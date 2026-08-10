@@ -521,6 +521,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 326 | §878 | **§879** | **STOPPING POINT — BOARD AT `ea9eac8`: 19 PASS · 2 FAIL · 5 BLOCKED, UNCHANGED, AND ITS EXPLANATION RETRACTED.** Until §876 this record said both FAILs were the *uncommitted* REQ-289 row and that committing it would clear them. **Measured both ways: `check:coverage` reads the register FILE, so committing leaves the row present and fixes nothing.** The fix is a classifiable `status`/`wp` — one edit clearing coverage, keeping traceability green (it NEEDS the row, source cites it), and taking tests to 1,131/1,131. Same expected board (**21 · 0 · 5**), different action; the two gates are in genuine tension until the row is **present AND classifiable**, so nobody should fix one by reverting the other. **Segment product: a RETRACTION** — 3 phases, **zero production-code changes**, one wrong claim withdrawn (§876), two record defects fixed (§877: six rows probed, three wrong), one self-check built (§878: 75 backticked symbols, 1 ghost). **Through-line**: §646 measured this 30 phases earlier and titled itself *the "2 FAIL" was a dirty working tree*, quoting *"a thing restated all session without re-measurement is suspect"* — and I restated the superseded version for 20 more phases, past a memory line saying *partly superseded*. **The record is a corpus like any other, and I searched the code far more often than I searched the record** |
 | 327 | §879 | **§880** | **I RE-RAN AN EXPERIMENT THE RECORD HAD ALREADY RUN — AND IT HAD ALREADY PREDICTED THE RESULT.** After §878 gated backticked SYMBOLS, the obvious sibling was backticked PATHS. Measured: 168 full repo paths cited, **5 unresolved**; narrowed the pattern, masked strikethrough, still 5 — then READ them. **All five are deliberate NEGATIVE EXAMPLES** (*"there is no `docs/ops/threat-model.md`"*, *"cited as a negative example"*, *"a `workers/agents/src/sender.ts` that has never existed"*). **Checklist row L413 already contains this experiment**: *"Link-check of every backticked path in this file (113 distinct, `existsSync` each) … ~76% false-positive rate … deliberate quotations of known-bad paths inside the rows that DOCUMENT citation rot … **A path-only gate would fire on this very row.**"* It did. **Second time in five phases the answer was already in the record** (§876 first, whose lesson was *search the record, not just the code*). **The contrast is the result**: symbols 75/1 flag (viable, shipped §878) vs paths 168/5-all-deliberate (not viable). Cause: **a path is usable as PROSE** — shorthand, ranges, elisions, and above all negative examples, since the natural way to record a broken citation is to quote it; a camelCase identifier is none of those. **A detector's precision is set by how much non-code lives in its token space.** NOTHING BUILT — L413 needed no edit, the correct outcome for a row that was already right |
 | 328 | §880 | **§881** | **THE PRE-R4 CARRY-FORWARD RE-VERIFIED — ACCURATE, ANNOTATED, CORRECTLY DEFERRED.** Re-measured L419 (*pool-binding exclusivity enforced on ENUMERATION, not RESOLUTION*) because it is a tenant-isolation claim (rule 8 / REQ-025) and **repo-owned rows are the only ones that can rot**. It survived: `workers/agents/src/tenants.ts@resolveClaimedTenantDb` carries the whole reasoning INLINE — the revert, its cause (six tests failed on a HARNESS artifact: two pool slots, standing claimed rows on both), and the named structural fix. **Doc and source agree in detail** — the configuration this audit usually finds broken. The enforced half is tested **three times** (agents/billing/translator, each *fails CLOSED, excludes BOTH slugs*). **The api worker has none, and that is CORRECT**: comment-stripped, `workers/api/src` calls `resolveClaimedTenantDb` and NEVER `claimedTenantSlugs` — api RESOLVES, the crons ENUMERATE; a missing enumeration test for a worker that does not enumerate is not a gap, and *3 of 4 workers have this test* is exactly the shape that reads as one. **Not shipped**, with reasons: R4-scoped and dark behind `PROVISIONING_ENABLED`; `pool_binding` lives in a JSON column so it needs a PARTIAL EXPRESSION index, not a constraint; and **it plausibly meets the same harness wall that reverted §12** — unmeasured, and saying so is the point, because *the structural fix avoids the problem* is a claim, not a measurement |
+| 329 | §881 | **§882** | **THE NAMED STRUCTURAL FIX MEETS THE SAME WALL, AND THE RECORD DOES NOT SAY SO.** §881 declined L419's fix partly because it *"plausibly"* meets §12's harness wall and flagged that as a claim. **Measured**: `workers/api/vitest.config.ts:30` runs `isolatedStorage:false` + `singleWorker:true` (a SQLite-backed DO leaves a `.sqlite-shm` sidecar the snapshot rejects), so **66 files share ONE D1 with no per-test rollback**. Standing claimants: `t-parity-mirror`→POOL_01, `t-lgproof`→POOL_02 — **different slots**, so they do not collide with each other (a detail §12 left ambiguous). The collision is the DYNAMIC claimants: four files re-seed the `_pool_0N` sentinels and claim one, and re-seeding a sentinel does not remove `t-parity-mirror` → **two claimed rows on `TENANT_POOL_01_DB` in one shared D1**. **What that changes**: the row's remedy says a UNIQUE index *"needs no runtime COUNT"*, which reads as *therefore it avoids §12's problem*. It does not — §12's COUNT failed at READ time, the index fails at WRITE time, the moment a test claims a slot a standing row holds. **Same wall, one step earlier**; the fix is necessary and NOT sufficient, and the harness work is a precondition either way. Also: `pool_binding` lives in a JSON column, so it needs a PARTIAL EXPRESSION index. Record refined, not corrected — L419 and §12 are both accurate; the gap is an implication nobody had measured |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -51529,3 +51530,72 @@ Nothing changed. `verify:docs` 0 · `test:tools` 1,131, 3 failed (the REQ-289 cl
   binding.** If it does, the index fails for the same reason the COUNT did, and the harness is the work.
 - If `workers/api/src` ever calls `claimedTenantSlugs`, it inherits the enumeration guard and needs the
   fourth exclusivity test. Nothing watches for that; the three existing tests are per-worker copies.
+## §882 — PHASE GATE: PHASE 102 CLOSED — the named structural fix meets the same wall, and the record does not say so
+
+§881 declined to ship L419's fix partly because it *"plausibly meets the same harness wall"* that reverted §12's
+runtime guard — and flagged that as a claim, not a measurement. This is the measurement.
+
+### The harness genuinely cannot hold one-tenant-per-binding
+
+`workers/api/vitest.config.ts:30` — `isolatedStorage: false`, `singleWorker: true`, with the reason stated:
+a SQLite-backed Durable Object leaves a `.sqlite-shm` WAL sidecar that pool-workers' storage snapshot rejects,
+so per-test rollback is off for the whole package. Its own comment: *"with isolation off, **ALL test files
+share ONE D1**"*, and `tools/testing/path-sequencer.ts`: *"66 files share ONE D1 with **no per-test
+rollback**."*
+
+Against that, the standing claimed rows:
+
+| file | slug | binding |
+|---|---|---|
+| `parity.test.ts:77` | `t-parity-mirror` (plan `pilot`) | `TENANT_POOL_01_DB` |
+| `source-aware-ledger.test.ts:127` | `t-lgproof` (plan `pilot`) | `TENANT_POOL_02_DB` |
+
+The two standing claimants occupy **different** slots, so they do not collide with each other — a detail §12
+did not spell out and which I checked because "carries standing claimed rows on both" could have meant either.
+The collision comes from the **dynamic** claimants: `provision.test.ts`, `signup.test.ts`,
+`plg-isolation-matrix.test.ts` and `signup-to-quote.e2e.test.ts` each re-seed the `_pool_0N` sentinels and
+then claim one. Re-seeding a sentinel does not remove `t-parity-mirror`, so a claim of slot 01 produces **two
+claimed rows naming `TENANT_POOL_01_DB` in one shared, un-rolled-back D1.**
+
+### What that changes about the fix
+
+The checklist row and the source comment both name the structural answer: *"a control-plane UNIQUE index on
+the claimed `pool_binding` makes the duplicate unrepresentable and **needs no runtime COUNT**."* True of
+production, and the second clause is the part that misleads: it reads as *therefore it avoids §12's problem.*
+
+It does not. §12's COUNT failed at **read** time; a UNIQUE index fails at **write** time — the moment a test
+claims a slot a standing row already holds. **Same six-tests-on-a-harness-artifact wall, one step earlier.**
+
+So the fix is *necessary and not sufficient*: **the harness work is a precondition either way**, and the row
+should say so, because as written it invites someone to land a migration and discover this the hard way. Two
+routes exist and neither is free — give the standing claimants their own bindings (there are only two slots),
+or scope the pool fixtures to a control plane the shared one cannot see.
+
+Also worth recording: the index needs a **partial expression** form, since `pool_binding` lives inside the
+JSON `policy` column (`db/control/migrations/0003_tenant_pool.sql:26`), not a column of its own.
+
+### The record is refined, not corrected
+
+Nothing here contradicts L419 or §12 — both are accurate. The gap is that the *named remedy* carries an
+implication ("needs no runtime COUNT") that a reader converts into "so it will land cleanly", and no one had
+measured the harness against it. Added to the row.
+
+### And §878's gate caught a defect in itself, visible only after commit
+
+Extending the L419 row turned `test:tools` red on **my own §878 gate** — *"`notifyBoard` is allowlisted as NEVER BUILT, but it now exists in source."* It does: `NAMED_AS_ABSENT` necessarily **writes the symbol it certifies as absent**, and the gate is a `.ts` file, so it satisfies its own existence check. The §672 half fired correctly and the subject was me.
+
+**The part worth keeping is the timing.** The gate passed when written and failed after commit, with no edit in between — because its corpus is `git ls-files`, and an *untracked* file is invisible (§870's lesson, now biting from the opposite side). **A self-referencing gate cannot be validated until it is tracked.** Fixed by excluding the file from its own corpus, and the exclusion is proved non-blinding: allowlisting a symbol that *does* exist (`hashPath`) still fires the §672 check.
+
+Fourth instance this session of *a gate that scans prose cannot tell an example from a use* (§829, §871, §878, here) — and the first where the example was **structurally required**: the allowlist has to name the thing.
+
+### Exit state
+
+No code changed; one checklist row extended with the measurement, one gate self-excluded. `verify:docs` 0 · `test:tools` 1,131, 3
+failed (the REQ-289 classifier).
+
+**Reopen triggers**
+- `isolatedStorage` becoming viable for `workers/api` (a pool-workers release that tolerates the `.sqlite-shm`
+  sidecar) removes the shared-D1 constraint and makes this whole problem disappear. That is a dependency
+  event, not a code change, and nothing watches for it.
+- If the two standing claimants are ever moved to distinct non-pool bindings, re-measure: the wall may lift
+  without any migration at all.

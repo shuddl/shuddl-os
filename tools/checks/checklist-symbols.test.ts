@@ -52,10 +52,22 @@ describe("§878: the live checklist may not cite a symbol that does not exist", 
     cited.set(s, (cited.get(s) ?? 0) + 1);
   }
 
+  // THIS FILE IS EXCLUDED FROM ITS OWN CORPUS, and the reason is a defect it caught in itself (§882).
+  //
+  // `NAMED_AS_ABSENT` necessarily WRITES the symbol it certifies as absent, and this is a `.ts` file, so once
+  // committed it satisfies its own existence check — `notifyBoard` "now exists in source". The §672 half fired
+  // correctly and the subject was me.
+  //
+  // What makes it worth a comment rather than a one-line filter: the gate PASSED before the commit and FAILED
+  // after, with no edit in between. The corpus is `git ls-files`, so an untracked file is invisible (§870) —
+  // which means a self-referencing gate cannot be validated until it is tracked. Run it once more after
+  // committing anything that adds a symbol to the allowlist.
+  const SELF = "tools/checks/checklist-symbols.test.ts";
+
   const sourceText = (): string => {
     const files = execSync("git ls-files -- '*.ts' '*.tsx' '*.mjs' '*.sql' '*.json'", { cwd: root, encoding: "utf8" })
       .split("\n")
-      .filter(Boolean);
+      .filter((f) => Boolean(f) && f !== SELF);
     return files.map((f) => readFileSync(`${root}/${f}`, "utf8")).join("\n");
   };
 
