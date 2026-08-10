@@ -512,6 +512,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 317 | §869 | **§870** | **THE SWEEP MADE MECHANICAL, AND THE MISCOUNT IT IMMEDIATELY CAUGHT — MY OWN, IN §868.** §868 closed naming its weakness (*"run by hand"*); this is that sweep as a gate, modelled on `sweep-containment-coverage.test.ts`. Building it found the weakness was worse than *expires*: **§868 reported "six projections, four unit-tested" — there are EIGHT and six were tested.** The finding (which two were dark) stands; the FRAME was wrong because **I counted from one consumer's import list rather than the directory** — `projections.test.ts` imports four, so "four of six" is what that FILE shows, and it is not the population. **A population derived from a consumer is not the population** — 5th counting/vocabulary miss this session, first where the wrong frame was a FILE not a regex. Gate: 8 projections derived from source, each required to be **IMPORTED** (not mentioned) by a test — not hypothetical, since `approvals-projection.test.ts` NAMES `projectAppointment` in prose and a mention-based check would have called it covered before its suite existed (§845's shape, pinned by a case). 3 mutations RED incl. the discovery half (a TRACKED new projection reddens both checks by name). **One mutation was silent and it was the PROBE's fault**: an UNtracked decoy is invisible because the scan is `git ls-files`, which sees what MERGES — the exact inverse of §867, same fact, opposite verdict, decided by *does this gate certify what merges or what is on the machine?* Also: **5th forward-reference failure** — I corrected §868 pointing at §870 before writing it |
 | 318 | §870 | **§871** | **"TESTED" IS NOT "WIRED", AND THE PROBE THAT SAID OTHERWISE WAS WRONG.** §870 named the gap: a projection can be exported, unit-tested and green while NOTHING CALLS IT — and that failure throws nothing, it just leaves a table that never fills, so an empty approvals queue looks like *no work today*. **The false alarm is the useful part**: the first probe reported **`projectMessages` → NO PRODUCTION CALLER** (a full suite, REQ-100 — would have been serious). WRONG: `projectMessages` is INTERNAL; the module's production entry is `applyMessageProjection`, imported at `workers/api/src/do/sequencer.ts:482@applyMessageProjection`. My probe excluded the projection dir AND searched the symbol I expected. **6th instrument miss this session** — §845, §857, §866×2, §870 (a consumer's import list), here; every one confident, specific, wrong, and resolved by reading the artifact. So the wiring half is **MODULE-level, not symbol-level**: a roster recording that `messages` enters via `applyMessageProjection` while seven enter via `project<X>` would rot; *is this module imported by anything that ships* cannot. **All 8 wired** (6 via the sequencer batch, `money` via contracts, `messages` via the wrapper) — clean negative, now held by a gate instead of a paragraph. Mutation: drop the sequencer's approvals import → RED by filename |
 | 319 | §871 | **§872** | **THE ASYMMETRY §871 REPORTED DOES NOT EXIST — THE PROBE MATCHED A COMMENT.** §871 said `money` is entered from `packages/contracts/src/money.ts` and filed it as a reopen trigger. **False**: the sequencer imports `applyMoneyProjection` at line 8 and CALLS it at line 469, like the other seven; contracts is a Zod module whose only mention is a comment — *"it would POISON projectMoneyLines (throw → DLQ)"* — and my probe `\bprojectMoneyLines\s*\(` matched the space before that paren. **8th instrument miss this session, 3rd CONSECUTIVE phase** with a wrong wiring claim (§870 a consumer's import list; §871 `projectMessages` "uncalled"; this). **It propagated into a REOPEN TRIGGER** — a wrong finding costs a correction, a wrong trigger costs someone else's time hunting a defect that was never there. **The fix already exists in-repo**: `tools/checks/source-corpus.ts@stripComments`, which `sweep-containment-coverage.test.ts` imports for exactly this; my throwaway probe just didn't use it. Generalised: **the better a thing is documented, the more false call sites it has.** The §871 GATE is unaffected — its wiring half is MODULE-level and matches an import specifier, which cannot match prose; a choice made for a different reason (entry-point names rot) is what kept it right while the prose around it was wrong |
+| 320 | §872 | **§873** | **"IMPORTED IS NOT CALLED" — AND THE LESSON FROM TWO PHASES AGO IS NOW A TEST, NOT A MEMORY.** Third and quietest depth of one question: **untested** (§870) → **unwired** (§871) → **uncalled** (here). `applyMoneyProjection` RETURNS statements that matter only once spread into `db.batch()`; delete the spread, keep the import, and the projection runs while its statements are DISCARDED — nothing throws, and the symptom is identical to an empty queue. **Measured by READING** (three consecutive phases of probe failures earned that): the sequencer builds ONE `stmts` array with the event insert + **all eight** projections, then `await db.batch(stmts)`. Clean negative. Gate requires each imported `projection/*` entry point to be CALLED in the same file **after `stripComments`** — the helper `sweep-containment-coverage.test.ts` already used, and whose absence caused §872. 2 mutations RED: import-kept/call-deleted (`projectAgentRuns`), and **the call left only inside a comment** (`projectAuthority`) — §872's defect committed deliberately against the gate built to catch it, and exactly what a hurried *"temporarily disabled"* looks like. Both plants failed to apply first try on indentation; `assert s2 != s` caught it — **4th time this session that assertion saved a result, because *no defect found* and *the edit never happened* are the same output** |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -50961,3 +50962,61 @@ failed (REQ-289).
 - The surviving §871 trigger still stands and is the real one: **imported is not called.** A module can be
   imported and its statements dropped — `applyMoneyProjection` returns statements that must reach
   `db.batch()`, and nothing static proves they do. That is a sequencer test, not a gate.
+## §873 — PHASE GATE: PHASE 93 CLOSED — "imported is not called", and the lesson from two phases ago is now a test rather than a memory
+
+§872's surviving trigger, and the last layer of the same question. Three failure modes, three depths:
+
+| depth | failure | closed by |
+|---|---|---|
+| untested | a projection with no unit test | §870 |
+| unwired | a projection nothing imports | §871 |
+| **uncalled** | a projection imported, then its statements dropped | **here** |
+
+The third is the quietest. `applyMoneyProjection` **returns** prepared statements; they matter only once
+spread into the array handed to `db.batch()`. Delete the spread and keep the import: the projection still
+runs, its statements are discarded, and the table silently never fills. Nothing throws, and the symptom is
+identical to an empty queue.
+
+**Measured first, by reading rather than grepping** (three consecutive phases of probe failures earned that):
+`workers/api/src/do/sequencer.ts` builds one `stmts` array containing the event insert plus **all eight**
+projections' statements, then `await db.batch(stmts)`. Every one is called and every one reaches the batch.
+Clean negative.
+
+### The gate, and the part that matters
+
+The check parses the sequencer's `projection/*` imports and requires each entry point to be **called** in the
+same file — after `stripComments`.
+
+That last clause is the whole point. §872 was caused by an ad-hoc `Symbol\s*\(` probe counting a hazard note
+(*"it would POISON projectMoneyLines (throw → DLQ)"*) as a call site, and the wrong claim reached a committed
+section **and** a reopen trigger. This gate uses `tools/checks/source-corpus.ts@stripComments` — the helper
+`sweep-containment-coverage.test.ts` already imported for exactly this reason. **The lesson is now a test
+instead of a memory**, which is the only form of a lesson that survives.
+
+| mutation | RED |
+|---|---|
+| the import kept, the call deleted | *imported is not called*, naming `projectAgentRuns` |
+| the call left **only inside a comment** | same, naming `projectAuthority` |
+
+The second mutation is the one worth keeping: it is the §872 defect committed deliberately, against the gate
+built to catch it. A commented-out projection call is exactly what a hurried "temporarily disabled" looks
+like, and it now fails.
+
+### A note on the mutations themselves
+
+Both plants failed to apply on the first attempt — my anchors carried the wrong indentation, and
+`assert s2 != s` caught it rather than letting a no-op mutation read as a silent pass. That assertion has now
+saved this session's mutation results four times; a mutation harness without it reports *"no defect found"*
+for *"the edit never happened"*, which are the same output.
+
+### Exit state
+
+`tools/checks/projection-coverage.test.ts` now 5 cases; `test:tools` **1,127**, 3 failed — the REQ-289 trio.
+typecheck 0 · lint 0. No production code changed.
+
+**Reopen triggers**
+- The sequencer is the only composition root checked. If a second worker ever projects (the Watchtower already
+  imports `projectAuthority`), it inherits none of this — the check is keyed to one path by name.
+- Called is still not *committed*: a statement can reach `stmts` and the batch can be rolled back by a gate
+  above it. That is correct behaviour (I1 — the event and its projection commit together or not at all), and
+  it is proven by the existing sequencer suites, not here.

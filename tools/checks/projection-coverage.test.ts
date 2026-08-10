@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { repoRoot } from "./repo-root.js";
+import { stripComments } from "./source-corpus.js";
 
 // §870 — NO READ-MODEL PROJECTION SHIPS UNTESTED.
 //
@@ -126,6 +127,40 @@ describe("§870: no read-model projection ships untested", () => {
       "a read-model projection nothing in production imports. It is dead code, or — worse — a table that " +
         "was meant to fill and never does, which surfaces as an empty queue rather than an error:\n  " +
         orphaned.join("\n  "),
+    ).toEqual([]);
+  });
+
+  it("every projection the sequencer IMPORTS is also CALLED there — imported is not called (§873)", () => {
+    // §872's surviving trigger. A module can be imported and its statements dropped: `applyMoneyProjection`
+    // RETURNS prepared statements that only matter once they are spread into the array handed to `db.batch()`.
+    // Delete the spread and keep the import and nothing static objects — the projection runs, its statements
+    // are discarded, and the table silently never fills. That is the same symptom as an unwired module, one
+    // layer deeper.
+    //
+    // COMMENTS STRIPPED FIRST, via the repo's own helper. §872 is the reason: an ad-hoc `Symbol\s*\(` probe
+    // counted a hazard note — "it would POISON projectMoneyLines (throw → DLQ)" — as a call site, and the
+    // wrong claim reached a committed section AND a reopen trigger. `sweep-containment-coverage.test.ts`
+    // already imported `stripComments` for exactly this; the solution existed and the throwaway probe skipped
+    // it. The better a symbol is documented, the more false call sites it has.
+    const seqPath = "workers/api/src/do/sequencer.ts";
+    const code = stripComments(readFileSync(`${root}/${seqPath}`, "utf8"));
+
+    const importedHere = new Set<string>();
+    for (const m of code.matchAll(/import\s*\{([^}]*)\}\s*from\s*["'][^"']*\/projection\/[^"']*["']/g)) {
+      for (const raw of (m[1] as string).split(",")) {
+        const name = raw.trim().replace(/^type\s+/, "").split(/\s+as\s+/)[0]?.trim();
+        if (name && /^(project|apply)[A-Z]/.test(name)) importedHere.add(name);
+      }
+    }
+
+    expect(importedHere.size, "no projection entry points parsed from the sequencer — the scan is broken").toBeGreaterThanOrEqual(7);
+
+    const uncalled = [...importedHere].filter((sym) => !new RegExp(`\\b${sym}\\s*\\(`).test(code));
+    expect(
+      uncalled,
+      `${seqPath} imports a projection entry point it never calls. Either its statements are being dropped ` +
+        "before `db.batch()` — a read-model that silently never fills, indistinguishable from an empty queue — " +
+        "or the import is dead and should go:\n  " + uncalled.join("\n  "),
     ).toEqual([]);
   });
 
