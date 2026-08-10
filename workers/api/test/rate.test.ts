@@ -188,6 +188,38 @@ describe("POST /v1/rate", () => {
     expect(await eventsFor(env.TENANT_A_DB, shipment_id)).toHaveLength(0);
   });
 
+  // §921 — CLAUDE.md LAW 5: INTERLINE FLOORS COMPARE THE EXECUTING SHARE, NEVER GROSS.
+  //
+  // The route rejects `legs` without `tenant_party`, and NOTHING drove that refusal: neutering the guard
+  // left all 816 api tests green. It is the only thing standing between an interline body and a gross
+  // comparison, because `approvalOpts()` attaches legs ONLY when BOTH are present — so with the guard gone
+  // it returns `{}`, `assessApproval` takes its DIRECT branch, and the floor is judged against
+  // `quote.sell_cents`, the whole move's price, instead of this tenant's share of it.
+  //
+  // The rater has a fail-loud sibling (`assessApproval` throws when legs and tenantParty disagree), but it
+  // can never see this case: the partial signal is DROPPED before it gets there. A guard whose siblings are
+  // structurally unable to fire is a guard with no backstop at all.
+  //
+  // This is the law whose $222,084-on-35-lb anomaly regression CLAUDE.md rule 5 makes permanent. A gross
+  // comparison does not error — it APPROVES, quietly, at a number nobody would have signed off.
+  it("interline legs WITHOUT tenant_party are refused — the executing share is unknowable, so nothing is priced", async () => {
+    const shipment_id = "rate-legs-noparty";
+    const res = await rate({
+      shipment_id,
+      ...PRICEABLE,
+      // no tenant_party — the executing party is exactly what a floor comparison needs
+      legs: [
+        { kind: "linehaul", executor: "carrier:self", split_bps: 7000 },
+        { kind: "interline", executor: "carrier:other", split_bps: 3000 },
+      ],
+    });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { code?: string };
+    expect(body.code).toBe("VALIDATION_FAILED");
+    // Refused at the boundary: no quote.priced, so no gross-compared approval can exist downstream.
+    expect(await eventsFor(env.TENANT_A_DB, shipment_id)).toHaveLength(0);
+  });
+
   it("a well-formed interline split (Σ = 10000) still prices — the boundary refine does not reject valid interline", async () => {
     const shipment_id = "rate-goodsplit-1";
     const res = await rate({

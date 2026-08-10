@@ -300,3 +300,42 @@ describe("REQ-127/035: the import body names EXACTLY ONE source (sheet XOR r2_ke
     expect(status, JSON.stringify(json)).toBe(400);
   });
 });
+
+// ─── §921 — REQ-025: AN IMPORT MAY NOT READ ANOTHER TENANT'S UPLOADED FILE ──────────────────────────────
+//
+// The r2_key branch prefixes the client's key with the SESSION tenant (`<tenant>/imports/<key>`), and that
+// prefix is the whole of the confinement. Dropping it — `imports/<key>` — left the ENTIRE api suite green:
+// every case in this file posts an INLINE `{ sheet }` body, and the only three that mention `r2_key` are
+// §914's XOR cases, which never reach R2 at all because they are refused at the boundary.
+//
+// So the R2 read path of /v1/import had no tenant-isolation test, on a route whose own comment claims the
+// discipline. CLAUDE.md rule 8 calls a cross-tenant read anywhere a build failure; this is the assertion
+// that makes that true for this path rather than merely asserted in a comment.
+describe("§921 — REQ-025: the /v1/import R2 read is confined to the session tenant", () => {
+  const CSV = "Customer,Origin,Destination\nAcme Freight,Chicago IL,Denver CO\n";
+  const postKey = async (r2_key: string): Promise<Res> => {
+    const res = await SELF.fetch("https://api.local/v1/import", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${await opsTok()}`,
+        "Idempotency-Key": crypto.randomUUID(),
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ r2_key }),
+    });
+    return { status: res.status, json: (await res.json().catch(() => null)) as Record<string, unknown> | null };
+  };
+
+  it("a key naming ANOTHER tenant's upload is not read, while the same bytes under this tenant's prefix import", async () => {
+    await env.EVIDENCE.put("tenant-b/imports/foreign.csv", CSV);
+    const foreign = await postKey("foreign.csv");
+    expect(foreign.status, JSON.stringify(foreign.json)).toBe(404);
+
+    // CONTROL (§908): identical bytes under the SESSION tenant's own prefix DO import. Without it a 404
+    // proves only that some object was missing — it could not distinguish confinement from a broken key
+    // template, which is the wrong-reason trap §906 recorded.
+    await env.EVIDENCE.put(`${TENANT}/imports/own.csv`, CSV);
+    const own = await postKey("own.csv");
+    expect(own.status, JSON.stringify(own.json)).toBe(200);
+  });
+});

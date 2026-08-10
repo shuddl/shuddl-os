@@ -560,6 +560,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 365 | §917 | **§918** | **TWO DIMENSIONS DECLINED ON EVIDENCE — §917's CORRECTION, APPLIED.** Nothing built; that is the result. **NOT NULL (138 cells)** — the obvious sibling of §915's CHECK sweep, declined: §590 owns the deploy-day hazard (dev/CI only ever meet an EMPTY database, so a `NOT NULL ADD COLUMN` passes both and fails on deploy; static rule shipped) and §906–§908 own the attribution hazard (a bare `toThrow()` cannot tell a NOT NULL from the FK it claims). The 138-cell residue is the LOW-YIELD half by §907's own reasoning — a NOT NULL violation is structural, not semantic. **Test-file collection** — declined: §709 (deleting one `test` script was ONE edit from dropping 208 files; `--if-present` skips in silence), §728 (a file outside a vitest `include` is not failing, not skipped, not counted — measured in `packages/design`), §727 (playwright's allowlist, planted failing spec merged green), §711 (one `it.only`: 304 passed → 267 passed/37 skipped, **exit 0**). Independently verified the only unanswered part: this session's three new gates ARE collected. **Why record a phase that builds nothing** — the alternative is not *no phase*, it is §917 again; a redundant phase is indistinguishable from a novel one in its output, and the cost lands on the next reader |
 | 366 | §918 | **§919** | **DEFECT — A DOUBLE INVOICE CORRECTION 500s, BECAUSE ITS TEST RAN A SCHEMA WE NEVER SHIP.** `mapMoneyProjectionError`'s correction branch requires `UNIQUE constraint failed` (matching `ux_ml_corrects`, 0002). But 0008 installs `money_lines_guard_ins_corrects` as a **BEFORE INSERT trigger**, and **a BEFORE INSERT trigger fires BEFORE uniqueness is checked** — so the shipped schema aborts with `RAISE(ABORT,'I1: projections are append-only')`, which contains no such substring. The mapper returned **null**: a second `invoice.corrected` surfaced as **INTERNAL 500 instead of VALIDATION_FAILED 400**. On a money path the client cannot tell *you already corrected this* from *our system broke*, and a 5xx invites the retry I7 exists to prevent. **Why it read as covered**: `money-projection.test.ts` applied 0001–0003 and stopped, while `workers/api/test/helpers.ts` applies 0008 — the mapper's test stood up a database the product never ships. **Proved with zero source changed**: adding 0008 to that suite reds its existing assertion. The **subset-fixture** shape — a WRONG fixture goes red, a SUBSET fixture stays green by construction. And `invoice-correction.test.ts` had five correction cases, **none correcting twice**. **Precision hazard**: BOTH money_lines guards raise the IDENTICAL text, so matching it unconditionally would report a duplicate-line fault as *invoice already corrected* — confidently wrong, worse than the 500. Fix gates on the **event kind**. Proof: drop the branch → both suites RED; drop the kind gate → RED. ledger 691→692, api 815→816 |
 | 367 | §919 | **§920** | **§919's CLASS — SWEPT FIRST (SOLE MEMBER), THEN MADE VISIBLE.** §919's trigger named the class; this closes it **by measuring before gating**. Thirteen ledger suites omit 0008; each given 0008 and re-run — **all twelve applicable stayed GREEN** (`migrate.test.ts` correctly out of scope, its subject IS the migrator). So §919 was the **sole member**, and that decides the gate's design: demanding every suite apply everything would churn twelve suites to prevent nothing. **A false positive caught before it became a registry**: the first scan reported ten files missing all 8 tenant migrations — they are **control-plane tests applying CONTROL migrations**, and the numbering collides (`db/control` ships 0001–0003 alongside tenant 0001–0008). Keying on actual FILENAMES dissolved all ten; a registry built on that conflation would have been confidently wrong about a third of its rows. **CORRECTION — half this gate already existed**: `checkTestSchemaParity` (§239, already blocking) enforces harness fullness, so that rule was deleted rather than duplicated. **But its corpus is `globSync("workers/*/test/helpers.ts")` — and §919's defect lived in `packages/ledger/test/`, ONE DIRECTORY OUTSIDE IT.** The gate existed, was blocking, was correct, and could not see the file — which answers how §919 survived a repo that already gates schema parity. What ships: every applier's set **PINNED two-sided** (a subset stays legal, it stops being invisible) + a **tripwire** that §239 still owns the other half. **The tripwire itself shipped weak** — `toContain("export function checkTestSchemaParity")` is satisfied by `…ParityX`, so renaming it away stayed GREEN one round; a prefix is not an identifier (§913's lesson on my own instrument). **The battery then caught my OWN drift via a different gate**: `money.ts` grew ~33 lines and a citation landed on a blank line — `verify:docs` passed because `citation-links` checks bounds/anchors while **blankness is a separate gate**; re-anchored `:120@VOID`. Proof: harness drops 0008 (§919 recreated one layer up) → RED×2; pinned set changes → RED; new applier → RED. test:tools 1,149→1,152 |
+| 368 | §920 | **§921** | **THREE CONSTITUTIONAL GUARDS DEFENDED BY NOTHING — LAW 5 AND TWO CROSS-TENANT READS.** The sweep returned 15 candidates; each re-verified by MUTATION rather than taken on confidence. **3 real, 3 refuted.** **(1) CLAUDE.md Law 5** — `/v1/rate` refuses `legs` without `tenant_party`; neutering it left **all 816 api tests green**. It is the ONLY thing between an interline body and a gross comparison: `approvalOpts()` attaches legs only when BOTH are present, so without it `assessApproval` takes its DIRECT branch and judges the floor against `quote.sell_cents` — the whole move. The rater's fail-loud sibling **can never fire**, because the partial signal is dropped before reaching it. The law whose $222,084/35-lb regression rule 5 makes permanent — and a gross comparison does not error, it **approves**. **(2) REQ-025** — `/v1/import`'s r2_key branch: dropping the session-tenant prefix left the suite green; every other case posts an inline sheet, so the **R2 read path had no isolation test at all**. **(3) REQ-025** — `/pub/documents/:cap`: widening the namespace check from `evidence/<t>/` to `evidence/` left the suite green; the nine cases beneath it exercise MAC/expiry/shape and **none varies the key's tenant against the cap's**. Both isolation tests carry a control serving the same bytes to their rightful tenant (§906's wrong-reason trap avoided by construction). **REFUTED**: `roleSatisfies`, the chain hash comparison, and the revoked-device clause — **the last nearly became a false finding**: neutering it left `devices.test.ts` GREEN and only the WHOLE-package run went RED, on a case in another file. **Ownership by NAME is a guess**; when a narrow run comes back green, widen before believing it. api 816→819. **6 of 15 candidates still unverified — recorded as unverified, not clean** |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -54035,3 +54036,62 @@ insertion is loud instead of silent.
   migration set. A future migration could make one of the twelve subsets matter again — and nothing re-runs
   that sweep. If a migration lands that changes refusal behaviour on a guarded table, re-run the
   add-and-observe sweep rather than trusting these pins.
+## §921 — PHASE GATE: three constitutional guards were defended by nothing — Law 5 and two cross-tenant reads
+
+The discovery sweep returned **15 candidates**. Every one was re-verified here by mutation rather than
+taken on the finder's confidence — and that mattered: **three were real, three I checked were refuted.**
+
+### The three real ones. In each, the code is CORRECT; nothing DEFENDED it
+
+**1 — CLAUDE.md Law 5: interline floors compare the executing share, never gross.** `/v1/rate` refuses a
+body carrying `legs` without `tenant_party`. Neutering that guard left **all 816 api tests green.**
+
+It is the only thing standing between an interline body and a gross comparison, and the reason is a
+structural one worth stating: `approvalOpts()` attaches legs **only when both** are present, so with the
+guard gone it returns `{}`, `assessApproval` takes its DIRECT branch, and the floor is judged against
+`quote.sell_cents` — the whole move's price — instead of this tenant's share of it.
+
+The rater *has* a fail-loud sibling (`assessApproval` throws when legs and tenantParty disagree), and it
+**can never fire here**: the partial signal is dropped before it arrives. A guard whose backstop is
+structurally unable to see the case has no backstop at all. This is the law whose $222,084-on-35-lb anomaly
+CLAUDE.md rule 5 makes a permanent regression — and a gross comparison does not error, it **approves**.
+
+**2 — REQ-025: `/v1/import` may read another tenant's uploaded file.** The r2_key branch prefixes the
+client's key with the session tenant; dropping the prefix left the whole api suite green. Every case in
+that file posts an inline `{ sheet }`, and the only three mentioning `r2_key` are §914's XOR cases, which
+are refused at the boundary and never reach R2. **The R2 read path had no isolation test at all**, on a
+route whose own comment claims the discipline.
+
+**3 — REQ-025: a MAC-valid document cap may address another tenant's bytes.** `/pub/documents/:cap` is
+mounted outside `/v1/*`, so the cap is the whole gate — and the route carries a second check beyond the
+MAC: the signed key must sit inside the signed tenant's namespace. Widening it from `evidence/<t>/` to
+`evidence/` left the suite green. The nine cases beneath it all exercise the MAC, the expiry and the claim
+shape; **none varies the key's tenant against the cap's.** The MAC cannot express this rule — a cap minted
+by this very server, perfectly signed, is exactly the artifact the check refuses.
+
+Both isolation cases carry a **control that serves the same bytes to their rightful tenant**, so the
+refusal is attributable to confinement and not to a missing object — §906's wrong-reason trap, avoided by
+construction rather than by luck.
+
+### Three refuted, and one of them nearly became a false finding
+
+- **`roleSatisfies` (segregation of duties)** — breaking it reds a test. Defended.
+- **The chain's stored-vs-recomputed hash comparison** — defended.
+- **The revoked-device clause (REQ-254)** — and this is the methodological one. Neutering
+  `revoked_ts IS NULL` left `devices.test.ts` **GREEN**; only the whole-package run went **RED**, on a case
+  in a different file (*"device_id is bound to the signing key — no offline-slot squatting"*).
+
+> **Ownership by NAME is a guess.** "Run the suite that owns the file" is a good rule and it nearly cost me
+> a fabricated finding: the file named after the subject was not the file that covered it. When a narrow run
+> comes back GREEN, widen before believing it — a false SILENT is the error that gets written down.
+
+### Proof
+
+- Law 5 guard neutered → **RED**; import prefix dropped → **RED**; cap confinement widened → **RED**.
+- api **816 → 819** · typecheck 0 · lint 0.
+
+**Reopen trigger**
+- **Six of the fifteen candidates are still unverified** — the `legs`/`approvals`/`documents` PRIMARY KEYs,
+  `lensFor`'s tenant default, the credits correlation id, and the aging-bucket partition. They are recorded
+  here as *unverified*, not as clean: three of the nine I have checked were real, so the prior on the
+  remainder is not low. Verify each by mutation against the **whole owning package**, per the rule above.

@@ -351,3 +351,35 @@ describe("verifyDocDownloadCap — a well-formed cap that must still be refused 
     await expect(verifyDocDownloadCap(wrongTyp, SECRET)).rejects.toBeInstanceOf(DocCapError);
   });
 });
+
+// ─── §921 — REQ-025: A MAC-VALID CAP MAY NOT REACH ANOTHER TENANT'S BYTES ───────────────────────────────
+//
+// `/pub/documents/:cap` is mounted OUTSIDE `/v1/*`, so the cap IS the whole gate — and the route carries a
+// SECOND check beyond the MAC: the signed key must live inside the signed tenant's namespace
+// (`evidence/<t>/…`). Widening that predicate from `evidence/${claims.t}/` to `evidence/` left the ENTIRE
+// api suite green: the nine cases below it all exercise the MAC, the expiry and the claim shape, and none
+// of them varies the key's tenant against the cap's.
+//
+// That is the confinement REQ-025 and CLAUDE.md rule 8 exist for, and the reason it needs its own test is
+// that the MAC cannot express it: a cap minted by this very server, with a perfect signature, is exactly
+// the artifact the check refuses. The mint path is correct today (`t` is session.tenant alone) — this pins
+// that the READER stays defended if a future minter ever takes `k` from somewhere less careful.
+describe("§921 — REQ-025: the doc cap is confined to its own tenant's namespace", () => {
+  const JWT = "test-secret-do-not-use-in-prod"; // the vitest binding (workers/api/vitest.config.ts)
+  const exp = (): number => Math.floor(Date.now() / 1000) + 300;
+
+  it("a cap for tenant-a naming tenant-b's key is refused, while the SAME key served to its own tenant is not", async () => {
+    const foreignKey = `evidence/tenant-b/shp-cross/${"a".repeat(64)}`;
+    await env.EVIDENCE.put(foreignKey, new Uint8Array([1, 2, 3]));
+
+    // CONTROL FIRST (§908): a cap whose `t` matches the key's namespace DOES serve those bytes. Without
+    // this, the 404 below could just as well mean "no such object" — the wrong reason, and the exact trap
+    // §906 recorded.
+    const own = await mintDocDownloadCap(JWT, { t: "tenant-b", k: foreignKey, expSeconds: exp() });
+    expect((await SELF.fetch(`https://api.local/pub/documents/${own}`)).status).toBe(200);
+
+    // The defect shape: MAC-valid, signed for tenant-a, addressing tenant-b's bytes.
+    const crossed = await mintDocDownloadCap(JWT, { t: TENANT_SLUG, k: foreignKey, expSeconds: exp() });
+    expect((await SELF.fetch(`https://api.local/pub/documents/${crossed}`)).status).toBe(404);
+  });
+});
