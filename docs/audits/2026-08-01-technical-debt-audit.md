@@ -523,6 +523,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 328 | §880 | **§881** | **THE PRE-R4 CARRY-FORWARD RE-VERIFIED — ACCURATE, ANNOTATED, CORRECTLY DEFERRED.** Re-measured L419 (*pool-binding exclusivity enforced on ENUMERATION, not RESOLUTION*) because it is a tenant-isolation claim (rule 8 / REQ-025) and **repo-owned rows are the only ones that can rot**. It survived: `workers/agents/src/tenants.ts@resolveClaimedTenantDb` carries the whole reasoning INLINE — the revert, its cause (six tests failed on a HARNESS artifact: two pool slots, standing claimed rows on both), and the named structural fix. **Doc and source agree in detail** — the configuration this audit usually finds broken. The enforced half is tested **three times** (agents/billing/translator, each *fails CLOSED, excludes BOTH slugs*). **The api worker has none, and that is CORRECT**: comment-stripped, `workers/api/src` calls `resolveClaimedTenantDb` and NEVER `claimedTenantSlugs` — api RESOLVES, the crons ENUMERATE; a missing enumeration test for a worker that does not enumerate is not a gap, and *3 of 4 workers have this test* is exactly the shape that reads as one. **Not shipped**, with reasons: R4-scoped and dark behind `PROVISIONING_ENABLED`; `pool_binding` lives in a JSON column so it needs a PARTIAL EXPRESSION index, not a constraint; and **it plausibly meets the same harness wall that reverted §12** — unmeasured, and saying so is the point, because *the structural fix avoids the problem* is a claim, not a measurement |
 | 329 | §881 | **§882** | **THE NAMED STRUCTURAL FIX MEETS THE SAME WALL, AND THE RECORD DOES NOT SAY SO.** §881 declined L419's fix partly because it *"plausibly"* meets §12's harness wall and flagged that as a claim. **Measured**: `workers/api/vitest.config.ts:30` runs `isolatedStorage:false` + `singleWorker:true` (a SQLite-backed DO leaves a `.sqlite-shm` sidecar the snapshot rejects), so **66 files share ONE D1 with no per-test rollback**. Standing claimants: `t-parity-mirror`→POOL_01, `t-lgproof`→POOL_02 — **different slots**, so they do not collide with each other (a detail §12 left ambiguous). The collision is the DYNAMIC claimants: four files re-seed the `_pool_0N` sentinels and claim one, and re-seeding a sentinel does not remove `t-parity-mirror` → **two claimed rows on `TENANT_POOL_01_DB` in one shared D1**. **What that changes**: the row's remedy says a UNIQUE index *"needs no runtime COUNT"*, which reads as *therefore it avoids §12's problem*. It does not — §12's COUNT failed at READ time, the index fails at WRITE time, the moment a test claims a slot a standing row holds. **Same wall, one step earlier**; the fix is necessary and NOT sufficient, and the harness work is a precondition either way. Also: `pool_binding` lives in a JSON column, so it needs a PARTIAL EXPRESSION index. Record refined, not corrected — L419 and §12 are both accurate; the gap is an implication nobody had measured |
 | 330 | §882 | **§883** | **THE GUARD THAT BOUNDS A LIVE MONEY EXPOSURE HAD NO TEST — AND THE MUTATION SHOWS WHAT IT ACTUALLY GUARDS.** Verified checklist L228 by RISK (client input selecting a money outcome, rule-5 territory). **Accurate and unmitigated**: `biller.ts:465@resolveInterline` passes `pod.actor.party` into `resolveInterline`; `approval.ts:126` selects on `leg.executor === tenantParty`; and **no gate reads it** — the sequencer names `actor_party_id` exactly once (a column list at `:182`) and a comment-stripped scan of `ledger/src/gates/**` + `contracts/src/**` returns NOTHING. A registered device can sign a valid POD naming ANY party. **The row's bounding claim — *naming a party that executes no leg is FAIL-CLOSED (verified)* — meant a SOURCE READ**: `interline_unresolved` appeared in the whole test corpus only inside TWO COMMENTS. Now driven, deliberately on the fail-CLOSED half (a test of the fail-open path would BLESS it). **The mutation is the finding**: deleting the guard yields `below_floor`, **still no invoice** — a signer executing no leg computes a share of ZERO, so the money property is held by a SIBLING guard (§688) and this guard is load-bearing for the **DIAGNOSIS** (*cannot locate your share* vs *your share is too small*), not the money. **Defensive spelling for the outcome, load-bearing for the message** — worth knowing before someone simplifies it away. **Does NOT close L228**: the real exposure is naming the PARTNER's party, which resolves cleanly and CLEARS the floor |
+| 331 | §883 | **§884** | **"249 ROWS UNVERIFIED" WAS MY OWN MISLEADING DENOMINATOR.** Bucketed all 255 open checklist rows: **38 dated 2026-08 · 22 dated earlier · 33 audit-§ only · 162 (63%) unstamped.** The 63% is the misleading figure — those 162 are dominated by **secrets, provisioning and legal prerequisites**, and **a row waiting on an external fact cannot rot**; it needs no stamp, ever. Filtering to repo-citing, non-external rows: **45**, of which ~a third are secret rows that merely mention a path → **~10–15 genuine code-claim rows without a stamp. The honest denominator is ~15, not 249** — I have been counting unrottable rows as unverified debt. **And the risk-picked rows were already done**: L229 scope-verified §415 (and better than its title — FOUR fields outside `clientView`, not two, three immaterial for stated reasons), L204 narrowed §124 (which deleted a FALSE half of its own title), L415 verified here (comment-stripped: `agent.acted` emitted only by `routes/rate.ts` + `translator/inbound.ts`, no Concierge source — row HOLDS; its Migrator sub-claim unchecked and said so). **§877's 3-of-6 was a biased sample** — chosen for mechanical checkability, which selects for rows quietly fixed by later work; risk-chosen rows are in better shape because risk got attention |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -51667,3 +51668,68 @@ open, and still owner-held.
 - `interline_unresolved` is one of four permanent hold reasons the recon sweep must not re-drive; only this one
   is now driven by a test. The other three (`below_floor`, `no_quote`, `anomaly`) are covered in this suite,
   but their interaction with the sweep is `recon-sweep.test.ts`'s business and was not checked here.
+## §884 — PHASE GATE: PHASE 104 CLOSED — "249 rows unverified" was my own misleading denominator
+
+Since §877 I have closed every report with a version of *"N of 255 checklist rows verified; the rest are
+unmeasured."* That framing is wrong in a way worth fixing, because it makes the backlog look both larger and
+more uniform than it is.
+
+### Measured
+
+255 open rows, bucketed by whether they carry any verification stamp:
+
+| bucket | rows | |
+|---|---|---|
+| dated 2026-08 | 38 | 14% |
+| dated earlier | 22 | 8% |
+| audit-§ reference only | 33 | 12% |
+| **no stamp at all** | **162** | **63%** |
+
+The 63% is the misleading number. Those 162 are dominated by **secrets, provisioning and legal
+prerequisites** — `RESEND_API_KEY`, a Cloudflare plan, DKIM, an on-call rota, counsel deliverables. **A row
+waiting on an external fact cannot rot**, because nothing in this repo could change its verdict. It does not
+need a stamp and never will.
+
+Filtering to rows that cite repo artifacts and are not purely external: **45**. Of those, roughly a third are
+still secret/provisioning rows that merely mention a repo path, leaving on the order of **10–15 genuine
+code-claim rows without a verification stamp** — the real backlog.
+
+**So the honest denominator is ~15, not 249.** I have been quoting a number that counts unrottable rows as
+unverified debt.
+
+### And the rows I picked by risk were already verified
+
+This phase set out to verify more rows and mostly found the work already done, recently and well:
+
+- **L229** (*device signature does not bind `source`/`party_refs`*) — scope-verified 2026-08-06 (§415), and
+  the verification is better than the row's title: **four** envelope fields sit outside `clientView`, not two,
+  and three are immaterial for stated reasons (`confidence` read by no decision, `override` needs an elevated
+  role a device append cannot carry, `source` forced to `native`). `party_refs` is isolated as the one
+  material field.
+- **L204** (*PLACED-PHOTO hash not byte-verified*) — narrowed 2026-08-03 (§124), which **removed a false half**
+  of its own title: the missing-evidence send-gate ships and is pinned by four cases.
+- **L415** (*the one agent with variable cost has no cost/latency metering*) — verified here, comment-stripped:
+  `agent.acted` is emitted in code by `workers/api/src/routes/rate.ts` and `workers/translator/src/inbound.ts`
+  only; **no Concierge source emits it.** The row holds. (Its sub-claim that the Migrator also emits was not
+  checked — I found two emitters, not three, and say so rather than round.)
+
+**§877's "three of six wrong" was a biased sample and I labelled it as one at the time** — those rows were
+chosen for *mechanical checkability*, which selects for rows quietly fixed by later work. Rows chosen by
+*risk* are in materially better shape, because risk is what got attention.
+
+### What this changes
+
+Nothing in the code. It changes the shape of the remaining work: **the record is far better maintained than my
+own reporting implied**, and the residual verification backlog is a dozen-ish rows, not 249. Future phases
+should pick from the repo-owned unstamped set rather than sampling 255.
+
+### Exit state
+
+No code changed. `verify:docs` 0 · `test:tools` 1,131, 3 failed (the REQ-289 classifier).
+
+**Reopen triggers**
+- The ~15 repo-owned unstamped rows are the standing list; the bucketing here is a script run by hand, and
+  nothing keeps it current. It would be gateable — *a repo-owned row must carry a stamp* — but "repo-owned" is
+  a judgement about a prose cell, which is §857's `dod_kind` problem for the fourth time.
+- **Three of the rows in that set say "needs a REQ row first"** (L415, L416, and the L419 family). Those are
+  not verification work; they are register work, and they cannot be closed from inside the repo.
