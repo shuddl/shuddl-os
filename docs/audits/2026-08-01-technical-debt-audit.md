@@ -547,6 +547,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 352 | §904 | **§905** | **I1 HOLDS, BY ONE MECHANISM — §904 NAMED THE WRONG BACKSTOP.** §904 hedged that the BEFORE INSERT trigger made D1's FK setting *non-fatal*. **Wrong**: `money_lines_guard_ins` guards **append-only** (duplicate `id` / `(event_id, line_no)`) and says nothing about whether the referenced event EXISTS — **I1's referential half rests on the FK alone**, and §904 asserted a mitigation that does not exist. **Measured against a real D1**: `PRAGMA foreign_keys = 1`; a line naming a nonexistent event → `D1_ERROR: FOREIGN KEY constraint failed`; **non-vacuity control** — the identical row with a real event inserts. **I1 holds, by ONE mechanism, not two** — worth knowing because §904 offered *six enforcement layers* as the reassurance, which is true across the eight and not within I1. **Four probe iterations, none looking like failure**: raw strings to `applyMigrations` → **"2 skipped"** (skipped is not passed); a missing NOT NULL column → `refused = true` **for the wrong reason**; a hand-rolled `events` insert → the control failed; the repo's `mkEvent`/`eventInsertStmt` → clean. **Iteration 2 is the keeper: the probe returned the answer I expected from a cause I had not considered**, separated only by reading the error text |
 | 353 | §905 | **§906** | **THE ONLY TEST GUARDING I1 DID NOT CHECK WHICH MECHANISM REFUSED.** §905 established I1's referential half rests on the FK **alone**, which makes its single pinning test unusually load-bearing. That test — `schema-domain.test.ts:55`, *event_id FK rejects a money_line for an unknown event* — asserts a **bare `rejects.toThrow()`**. **Proved, not argued**: rewriting the case so the event EXISTS (FK satisfied) and a NOT NULL is violated instead → **39 passed**. The assertion cannot tell the two apart, so it stays green if the foreign key is dropped and any other constraint fires. **Exactly the trap §905 hit one phase earlier** — my probe reported `refused = true` from `NOT NULL constraint failed: party_id` and I nearly credited it to I1 — and the same defect was already sitting in the suite, while its NEIGHBOUR at `:64` asserts `/I1/`. Fixed by attributing to `/FOREIGN KEY/i`, the text §905 measured against a real D1; mutation-proved both ways. **Fourth instance of a test whose NAME states more than its ASSERTION checks** (§858 SignatureScreen, §871 UNMOUNT, §864 the disjunction) — every one passed for a reason it did not verify, and every one was found by asking *what else would make this green?* |
 | 354 | §906 | **§907** | **A BARE `toThrow()` IS NOT THE DEFECT; A BARE `toThrow()` WITHOUT A CONTROL IS.** Swept §906's pattern: **380 bare vs 206 attributed**, **69 bare in DB-backed tests**. **380 bare assertions are not 380 defects** — most are Zod schema tests where exactly ONE mechanism can refuse, and *attribute every throw* is the obvious WRONG lesson from §906. **The rule §906 actually demonstrates**: a bare `toThrow()` is sound when a paired control isolates the single variable, unsound when nothing pins the row as otherwise valid. Read by hand: `users.role`/`email` is **sound** (a six-role loop proves a well-formed row inserts AND the tenant exists, so each bad insert differs in exactly one field); `legs.shipment_id` FK is **sound** (an adjacent `resolves.toBeTruthy()` isolates the shipment id); §906's case was **unsound** — no control, which is why a NOT NULL satisfied it. **I did NOT sweep the rest**: my control-detector reported NO for a case I had just read as having one — `$` without MULTILINE, and, the interesting fault, **the legs control lives in a SIBLING `it(` block**, which a per-block scan structurally cannot see. *Has a control* is therefore not mechanically decidable — §313's wall again — and the honest response is §897's: **do not publish a classification you cannot make.** Also: the scanner counted **my own §906 comment** quoting `.toThrow()` — 7th example-vs-use instance, first where the prose was mine |
+| 355 | §907 | **§908** | **ALL TEN READ; NINE SOUND, AND THE CONTROLS TAKE THREE DIFFERENT SHAPES.** §907 stated the rule and refused to classify the rest because its detector was wrong. Read the remaining six: **all sound — ten bare assertions in the file, nine sound, one defective (the one §906 fixed).** **The controls take three structurally different shapes**, which is why no regex could classify them: **(1)** a sibling `it(` written AS the control and named so — *accepts an honest AR freight line (non-vacuity — the rejections below must mean the CHECK)*; **(2)** a successful insert earlier in the same test (six valid roles; `t2` before the duplicate-slug `t3`); **(3)** a **cross-controlling pair + schema defaults** — `('not_a_module','native')` and `('rating','neither')` each carry a VALID value where the other tests, and every remaining column is `NOT NULL DEFAULT`, so nothing unrelated can fire. **The third is DDL-dependent and the one I would have got wrong from a distance**: add a required column without a default and BOTH assertions start passing for the wrong reason, silently, with no test edit. **§906's defect was not representative** — it was the single case with no control of any shape, in a file whose author had written an explicit non-vacuity control elsewhere and explained it in the test name. The discipline was present; one case escaped it |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -53158,3 +53159,46 @@ Nothing changed. §906's fix stands. `test:tools` 1,139, 3 failed (REQ-289) · `
   occurrence, inflating that file's count by one. Seventh instance this session of a prose-scanning probe
   unable to tell an example from a use — and the first where the prose was mine, written one phase earlier to
   document the very pattern.
+## §908 — PHASE GATE: PHASE 128 CLOSED — all ten read; nine sound, and the controls take three different shapes
+
+§907 stated the rule (*a bare `toThrow()` is sound iff a control isolates the variable*), verified three cases,
+and refused to classify the rest because its detector was wrong. This reads the remaining six.
+
+**All six are sound. Across the file: ten bare assertions, nine sound, one defective — the one §906 fixed.**
+
+### The controls take three structurally different shapes
+
+That is why no regex could classify them, and it is the real result of this phase:
+
+| shape | case | how the variable is isolated |
+|---|---|---|
+| **a sibling `it(` written as the control, and named so** | the three `money_lines` CHECKs (direction / kind / zero-amount) | the preceding case is literally *"accepts an honest AR freight line (**non-vacuity — the rejections below must mean the CHECK**)"* with `resolves.toBeTruthy()` |
+| **a successful insert earlier in the same test** | `users.role` + `email`; `tenants.slug` | six valid roles inserted first, or `t2` inserted before the duplicate-slug `t3` — proving the row shape and the FK parent both work |
+| **a cross-controlling pair + schema defaults** | `authority_map` module / authority | `('not_a_module','native')` and `('rating','neither')` each carry a **valid** value in the position the other tests; and every remaining column has a `DEFAULT`, so no unrelated constraint can fire |
+
+The third is the subtlest and the one I would have got wrong from a distance: its soundness depends on the
+**DDL**, not the test. `gates_status` and `flipped_events` are `NOT NULL DEFAULT`, so a two-column insert is
+otherwise complete. Change that DDL to add a required column with no default and **both** assertions start
+passing for the wrong reason — silently, with no test edit.
+
+### What this settles
+
+§906's defect was not representative. It was the **single** case in a ten-assertion file with no control of
+any shape — and the file's author had, elsewhere in the same file, written an explicit non-vacuity control and
+explained it in the test name. The discipline was present; one case escaped it.
+
+**And the rule survives contact with a full file**, which three cases could not establish. A bare `toThrow()`
+is a smell, not a defect; the defect is the absent control, and "absent" has at least three ways of being
+present.
+
+### Exit state
+
+Nothing changed; six cases read, none required a fix. `test:tools` 1,139, 3 failed (REQ-289) ·
+`verify:docs` 0.
+
+**Reopen triggers**
+- The `authority_map` pair's soundness is **DDL-dependent**: adding a required column without a default to
+  that table makes both assertions vacuous, and nothing links the test to the schema fact it relies on. That
+  is a real, narrow fragility and it is not gated.
+- The other 59 bare assertions in DB-backed tests (§907's 69, less this file's ten) are unread. This phase
+  bounds one file, not the repo.
