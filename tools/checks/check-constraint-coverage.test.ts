@@ -117,6 +117,24 @@ describe("§915: every D1 CHECK constraint is classified, and none arrives unnot
     ).toEqual(c);
   });
 
+  it("§926: §668's roster still COMPARES the values, not merely names them", () => {
+    // The residual §926 measured and this closes. Emptying §668's roster reds the link below (the column
+    // names live in it). HOLLOWING it does not: replace `toEqual([...values])` with a tautology and every
+    // name is still present, so the link stays green while the 23 value-sets go unverified.
+    //
+    // A deleted roster is loud; a hollowed one is silent. This is the tripwire on the assertion itself —
+    // the same division-of-labour shape as §920's: this gate owns COMPLETENESS, §668 owns the VALUES, and
+    // the split is only honest while §668 is actually comparing them.
+    const owner = readFileSync(`${root}/packages/ledger/test/schema-domain.test.ts`, "utf8");
+    expect(
+      owner,
+      "§668's roster no longer compares each CHECK's live value set against what it documents. This gate " +
+        "verifies that every constraint is CLASSIFIED; it has never verified the values, and it cannot — " +
+        "that assertion is the other half of the pair. Restore it, or move the comparison somewhere this " +
+        "gate can name.",
+    ).toContain("toEqual([...values])");
+  });
+
   it("every classified constraint names a test file that exists and mentions the column", () => {
     // A weak link on purpose: it cannot tell whether that file ASSERTS anything about the column (§668's
     // roster does that). What it does catch is the row whose home was deleted or renamed underneath it.
