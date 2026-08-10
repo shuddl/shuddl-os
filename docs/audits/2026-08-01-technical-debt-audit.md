@@ -517,6 +517,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 322 | §874 | **§875** | **THE SEED'S "I1 EXEMPTION" IS NOT ONE, AND ITS REAL GAP IS ONE EVENT KIND WIDE.** §874 filed that `tools/seed/load.ts` projects outside the sequencer so *"seeded data can hold a read-model state the ledger cannot produce"*. **Wrong on that axis**: the loader batches `eventInsertStmt` + its projections TOGETHER, so I1 holds — same pattern, different caller, and its header already says so. **Third trigger in four phases (§872, §874, here) that measured differently than I filed it**, all three settled by one file-read. The pattern: **a reopen trigger is written at the moment of LEAST evidence** — phase ending, thing is a hunch. Recording a hunch is fine; stating it as a property is what costs. **The real gap**: the loader runs 3 of 8 projections; 4 of the missing 5 are moot (the seed emits no `approval.*`/`agent.acted`/`authority.flipped`/`message.*`), but **`generate.ts:47` DOES emit `appointment.set` and `projectAppointment` never runs** — seeded appointment events with no dock-slot claim. Currently inert **because the seed creates no `legs` rows at all** (only events/parties/shipments), so the UPDATE would match nothing — inert for a reason nobody had written down, which is the shape that stops being true quietly. NOT a REQ violation (REQ-155's DoD is determinism, which `check:seed` proves); an undocumented FIDELITY limit whose cost is a developer seeing an empty view with no note saying whether the feature or the fixture is partial |
 | 323 | §875 | **§876** | **"COMMITTING REQ-289 TURNS BOTH FAILs GREEN" IS FALSE — AND §646 HAD ALREADY SAID SO.** Measured both directions: **row PRESENT** → `check:coverage` FAIL, `check:traceability` PASS, `test:tools` 3 failed; **row ABSENT (HEAD)** → coverage PASS, traceability **FAIL** (`built-but-unspec'd REQ-289`), test:tools **1,128/1,128**. `check:coverage` reads the register FILE, not git history — **committing leaves the row present, so it fixes nothing.** The real fix is a classifiable `status`/`wp` on REQ-289 (or teaching the classifier that `ACTIVE`/`GTM-0` is a bucket): that turns coverage green, KEEPS traceability green (it needs the row, since source cites it), and takes tests to 1,128/1,128. **§646 measured this exact table 30 phases ago** — titled *the "2 FAIL" was a dirty working tree* — and opens by naming the failure I then repeated for 20 more phases; the memory index even said *"partly superseded"* and I read past it while writing two stopping points asserting the superseded version. **A claim inherited from earlier in a session is not evidence, and the cheapest refutation is the record itself.** Causal shape: I had a CORRELATION (both FAILs move with the row) and published an INTERVENTION (committing fixes them) without running it — `git stash` is one command |
 | 324 | §876 | **§877** | **§876'S LESSON ON THE CHECKLIST: I PROBED SIX ROWS AND THREE WERE WRONG.** Only **repo-owned** rows can rot (a row waiting on a secret or counsel cannot). Of 288 rows / 255 open, probed 6 with falsifiable mechanical claims. **(1) `hashPath` unframed — FIXED, still listed**: the row cites *"`h.update(f).update(readFileSync(f))`, no framing"* and the source now length-prefixes both path and bytes. Struck. **(2) `notifyBoard` — the named seam DOES NOT EXIST**: 3 hits, ALL in documentation (the row, the WP-02 plan, WP-02.md); no such symbol in code. The row's SUBSTANCE is right (polled board, no push) and belongs to **REQ-257 vNEXT** (§865) — right about the world, wrong about the artifact, which is the harder stale to notice because the citation looks like evidence. **(3) §857 overpraised the identity redaction**: `mask()` is `term[0] + "*".repeat(len-1)`, so **first char and exact length survive** — and the checklist ALREADY records that as debt, which I did not check before praising the same line 20 sections later. **A SAMPLE OF SIX, NOT A SWEEP OF 255** (§857's own lesson): the six were chosen for checkability, which biases toward rows most likely already fixed; **249 remain unmeasured**. 3 of 6 is not a rot rate — it is a reason to think rot is not rare |
+| 325 | §877 | **§878** | **THE RECORD CAN CHECK ONE KIND OF CLAIM ABOUT ITSELF — AND IT IS THE KIND THAT FAILED.** §877 closed saying the record cannot check itself while its claims are free text. True in general, **false for one narrow case**: a backticked **camelCase identifier** is not prose, it is a mechanical claim that a symbol exists. **Measured before building: 75 such identifiers in the checklist, exactly ONE absent from all tracked source — `notifyBoard`, precisely §877's hand-found defect. A 1.3% flag rate.** Scope stated rather than assumed: the **checklist only** (the audit is a 50k-line append-only history that deliberately quotes since-renamed symbols — flagging those would flag history); **camelCase only**, because `events`/`pod.signed`/`JWT_SECRET`/`--progress` are tables, kinds, env vars and tokens, and widening trades a real gate for a noisy one; **existence, not correctness** — §877's `hashPath` row named a REAL symbol and still described code that no longer existed, so this gate certifies quite little and happens to certify the thing that broke. **It flags its own correction**: §877's fixed row says *"`notifyBoard` does not exist in code"*, so the detector fires on the row documenting the absence — the §829/§871 *example vs use* shape, 3rd time this session. Handled by an allowlist with a reason, not by loosening the pattern |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -51291,3 +51292,54 @@ Three record corrections; no code changed. `verify:docs` 0 · typecheck 0 · lin
 - A row whose citation names a symbol is checkable **today** — `check:citations` bounds-checks `path:line`
   citations but the checklist's evidence column often names a bare symbol (`notifyBoard`) with no path, which
   no gate reads.
+## §878 — PHASE GATE: PHASE 98 CLOSED — the record can check one kind of claim about itself, and it is the kind that failed
+
+§877 found `notifyBoard` — a checklist row citing a symbol that exists only in documentation — and closed
+saying the record cannot check itself while its claims are free text. That is true in general and **false for
+one narrow, valuable case**: a backticked **camelCase identifier** is not prose. It is a claim that a symbol
+exists, and that claim is mechanical.
+
+### Measured before building
+
+75 camelCase identifiers are backticked in `GO-LIVE-CHECKLIST.md`. **Exactly one** is absent from every
+tracked source file: `notifyBoard`. A **1.3% flag rate**, and the one flag is precisely the defect §877 found
+by hand.
+
+That number is what makes this worth a gate rather than a lint someone disables. §845's warning — invert to
+the violation, and expect the violation set to be dominated by correct uses — applies in reverse here: the
+correct uses are 74/75, and they cost nothing because they simply resolve.
+
+### The scope, stated rather than assumed
+
+- **The checklist only.** It is the *live* open-debt record. The audit is a 50,000-line historical log whose
+  older sections deliberately quote symbols that have since been renamed or deleted — flagging those would be
+  flagging history, and the file is append-only by design.
+- **camelCase only** (`[a-z]…[A-Z]…`). `hashPath`, `notifyBoard`, `projectApprovals` are code; `events`,
+  `pod.signed`, `JWT_SECRET` and `--progress` are tables, kinds, env vars and tokens. The narrow shape is what
+  keeps the precision at 74/75; widening it would trade a real gate for a noisy one.
+- **Existence, not correctness.** This proves a symbol is *somewhere* in the tree. It does not prove the row's
+  claim about it is true — §877's `hashPath` row named a real symbol and still described code that no longer
+  existed. **A gate's green certifies less than its name**, and this one certifies quite little; it just
+  happens to certify the thing that broke.
+
+### The gate flags its own correction — deliberately
+
+§877's corrected row now says *"`notifyBoard` does not exist in code"* and *"do not re-add a `notifyBoard`
+seam"*. Both are backticked mentions of an absent symbol, so the detector fires on the row that documents the
+absence — the §829/§871 shape (*a gate that scans prose cannot tell an example from a use*), met for the third
+time this session.
+
+Handled by an allowlist keyed to the symbol with its reason, not by loosening the pattern. A symbol may be
+named as absent; it must say so once, in one place, on purpose.
+
+### Exit state
+
+`tools/checks/checklist-symbols.test.ts` — 3 cases. `test:tools` **1,131**. typecheck 0 · lint 0 ·
+`verify:docs` 0. No production code changed.
+
+**Reopen triggers**
+- A row can name a symbol that exists in a *test* or a *doc-adjacent* file and still be wrong about production
+  — the corpus here is all tracked `.ts/.tsx/.mjs/.sql/.json`, deliberately wide, because a narrow corpus
+  would flag legitimate references to test helpers.
+- The allowlist has one row. A second entry means someone is documenting a second absence, which is fine; a
+  third suggests the record is accumulating ghosts and the pattern deserves re-measuring.
