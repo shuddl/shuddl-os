@@ -566,6 +566,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 371 | §923 | **§924** | **STOPPING POINT at `75b37b1` — 19 PASS · 2 FAIL · 5 BLOCKED; repo-owned failure set EMPTY.** Thirteen phases (§911–§923) closed. Board shape **unchanged from §916 — which is the point: none of this work moved the board, because the board was never measuring these classes.** Both FAILs are the one REQ-289 row (this run's own output, not inherited); the 5 BLOCKED report *could not run*, not *clean*. Everything else holds: 1,486 citations resolving / 265 anchored, bundle ratchet within 5% on all three surfaces, design audit clean, all four browser gates green. **Produced: 21 invariants that were enforced by exactly one mechanism with nothing exercising it** — 4 device-binding branches, the interline 10000-bps sum, `SafeInt`'s `-0`, the aging partition, **CLAUDE.md Law 5**, the import XOR, **two cross-tenant reads**, a double correction answering **500 instead of 400**, three `INSERT OR IGNORE` idempotency keys, 4 D1 CHECKs, an unlinkable credit sale — plus **5 new gates** converting each class from invisible-to-CI into fails-CI. **Three corrections to my own record**: §912 eyeballed 11 where 17 was the count; §917 re-measured what four phases already had; §920 rebuilt a rule blocking since §239 — whose **glob stops one directory short of where §919's defect lived**, the sharper finding. Corrected in place because an uncorrected claim here costs the next reader a phase |
 | 372 | §924 | **§925** | **THE REQ-025 STORAGE GUARD IS KEYED ON FUNCTIONS; AN INLINE KEY IS INVISIBLE TO IT.** Mines what the sweep recorded as BOUNDS rather than findings. `tenant-scope.test.ts` reads each `GUARDED_FNS` declaration, finds the tenant PARAMETER position, and checks every call — and its completeness half DERIVES the roster. **Both halves are keyed on a FUNCTION**, so a key built inline (`` `${session.tenant}/imports/…` ``) has no declaration to read and no export to derive: **not allowlisted, INVISIBLE**. Measured twice independently (the sweep's enumeration + a hand scan of 58 tenant-interpolated templates): **exactly two** sites. **Neither is a live defect** — the translator's 990 ack key is pinned by `isolation.test.ts` case 3b and the import key at §921 — so this repairs nothing and closes the **discovery half** of a guard that already has a roster half. R2 is why it earns a file: per-tenant D1 is PHYSICAL isolation and a wrong slug throws, while R2 is ONE SHARED BUCKET partitioned by a string prefix, so a dropped segment reads another tenant's objects **with no error anywhere**. 14 sites classified (10 builder bodies, 2 prefix guards, 2 inline). **The gate caught my own registry error on its first run** — a row for `tenderKey`, whose separator lives in the builder it composes, was dead weight; §672 said so immediately. Rows keyed by **file + snippet, never line** (§885/§913). Proof: new inline key → RED; row deleted → RED; **an existing key LOSING its tenant segment → RED**. test:tools 1,152→1,155 |
 | 373 | §925 | **§926** | **I VERIFIED MY OWN REOPEN TRIGGERS — ONE WRONG, ONE RIGHT, AND THE WRONG ONE WAS BACKWARDS.** A trigger describes a future, so it reads as unfalsifiable and gets inherited; this record already holds *3 of 4 checked were wrong*, and I wrote a dozen more this session. **§915's was wrong**: it said deleting §668's roster would leave `check-constraint-coverage` *green over nothing* — **emptying the roster turns it RED**, because the column names LIVE in the roster and the *mentions-the-column* link catches it. So I measured the real residual instead of guessing twice: **keep the roster and GUT its assertion** (`toEqual([...values])` → a tautology) and the gate stays **GREEN**. **A deleted roster is loud; a hollowed one is silent** — and my trigger named the mode that WOULD be caught, which is worse than no trigger because it spends a reader's attention in the wrong place. **§925's was right**: a key assembled across two statements is genuinely invisible to the shape-based detector (planted, stayed green). **The rule**: a trigger that names a mechanism is *decidable now* — *"if X is deleted, Y stays green"* is a mutation, not a prophecy; check it in the same phase or write it as a question. **The rule proved itself immediately**: §926's own trigger was written as a mutation, so it was runnable, and running it CLOSED it — a 4th case now asserts §668's roster still COMPARES the values (`toEqual([...values])`) rather than merely naming them; hollowing it reds. test:tools 1,155→1,156 |
+| 374 | §926 | **§927** | **ALL 23 AUTHORIZATION REFUSALS MUTATED — ZERO HOLES, AND §377'S CLASS FINISHED.** §914's last trigger measured: **102 `ApiError` sites / 27 files**, **27 authorization**, 23 conditional, each mutated against the FULL api suite. **16 RED · 7 silent · 0 holes.** §84 had swept 18 guards across **6 routes** (one real hole: a DRIVER could waive a server-side gate) — its scope excluded `middleware/auth.ts`, `tenants.ts`, `approvals.ts`, so this is **15 re-verifications + 8 new**; §84's one-real-hole fix came back RED, still holding. **Every silent explained**: 4 redundant with a sibling *read and verified* (missing-bearer→invalid-token; control-plane-kinds→the sequencer's t:root rule; both platform-slug guards→their allowlist and resolver siblings), 3 are **§377's LIVE class**. **I first classified those 3 as *defensive, per §84* — a verdict §377 had already OVERTURNED**: `party_id` is optional and unenforced, so the path is reachable, and §377 pinned 2 of 6 and left 4. **I nearly shipped 3 of 4** — the 4th (the `rate` path) caught by re-reading my own sweep output. All 4 now pinned, asserting the MESSAGE not the status (both routes 403 two lines later for a different reason). **The prior question a guard sweep cannot ask** — `route-authz-coverage` requires every route to be guarded or to DECLARE its mechanism, across **three** surfaces; the third (`/internal`, the single door to the `_platform` revenue tenant) **was found only by checking a false claim I had written myself** (*/pub is capability-gated* — false for `/pub/quote` and `/pub/signup`). **I reproduced §925's own corpus criticism one phase later.** P1 fail-open probe: the claimed-pool catch returning ANOTHER TENANT'S D1 → **RED (3)**. api 819→823 |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -54420,3 +54421,79 @@ task, not a note, and the phase that writes it is the cheapest phase to close it
 already in hand and the mutation harness is already warm.
 
 Nothing carried forward from this phase.
+## §927 — PHASE GATE: all 23 authorization refusals mutated — zero holes, and §377's class finished
+
+§914's last trigger named *"hand-rolled validators"* as unmeasured. Measured: **102 `ApiError` refusal sites
+across 27 files**, of which **27 are authorization** (`FORBIDDEN` 23, `UNAUTHORIZED` 3, `TENANT_MISMATCH` 1).
+Twenty-three are conditional and were mutated one at a time against the **full** api suite.
+
+**16 RED · 7 silent · 0 holes.**
+
+### The record already owned most of this, and finding that out mid-sweep changed the framing
+
+§84 ran *"the multi-guard 403 sweep, finished"* — 18 guards across **6 routes**, 13 pinned, 5 unpinned with
+verified reasons, and one real hole (a **driver** could waive a server-side gate, with all 740 tests green). Its scope was multi-guard **routes**, which excluded `middleware/auth.ts`, `tenants.ts`
+and `approvals.ts` entirely.
+
+So the honest split of the 23 is **15 re-verifications + 8 new**. §84's one real hole came back **RED**, which
+is the re-verification half paying: §84's fix still holds many sections and much churn later.
+
+### Every silent explained — four redundant, three live
+
+| silent | why | established by |
+|---|---|---|
+| `middleware/auth.ts`'s missing-bearer guard | `verify(undefined)` throws in the sibling catch → same 401/UNAUTHORIZED | read here |
+| `routes/events.ts`'s control-plane-kinds guard | the sequencer refuses `authority.flipped` off `t:root` | §84, re-read here |
+| `tenants.ts`'s platform-slug guard in `tenantDb` | the allowlist miss beneath it refuses (`_platform` is not a `TENANT_BINDINGS` key) — **and that one is RED** | read here |
+| `tenants.ts`'s platform-slug guard in `resolveTenantDb` | `assertNotPlatformTenant` is `resolveClaimedTenantDb`'s first line | read here |
+| the `portal-actions`, `rate` and `status-link` lens translations | **§377's class — LIVE, not defensive** | §377 |
+
+The last three are the finding. **I first classified them as "defensive, per §84" — following a verdict
+§377 had already overturned.** `party_id` is `optional` in `SessionClaims` and unenforced by the auth
+middleware, so a portal token without it is schema-valid and the path is reachable. §377 measured that,
+corrected the standing classification, pinned **two** instances (invoices, documents) and left four.
+
+**Four is the number, and I nearly shipped three.** Having written tests for `portal-actions`, the events
+read and `status-link`, the fourth (the `rate` path) was still unpinned — the correct-per-FILE mistake this
+record keeps naming, caught by re-reading my own sweep output rather than my own commit. All four are now
+pinned and mutation-proved, each asserting the **message** and not merely the status, because both routes
+answer 403 two lines later for a shipment outside scope.
+
+What it buys is small and real: without the translation the plain `Error("LENS_UNRESOLVED: …")` reaches
+`app.onError` and becomes a **500** — *"this server is broken"* where the truth is *"this token is
+incomplete"*, and real 500s are harder to see when a reachable client error manufactures them.
+
+### The prior question the sweep cannot ask
+
+A guard sweep tests guards **that exist**. `tools/checks/route-authz-coverage.test.ts` asks whether there is
+one at all, across **three** router surfaces:
+
+- **`/v1`** — `requireRole` **derived** from the registration (31 routes), or a **declared** lens/tenant
+  scope (9). All nine are correct today; nothing made the next one choose.
+- **`/pub`** — capability (`:cap`) or **deliberately public**. Not interchangeable, and the file's first
+  draft said `/pub` "is capability-gated", which is **false for half of it**: `/pub/quote` and `/pub/signup`
+  carry no capability at all (acceptance demo #2).
+- **`/internal`** — a constant-time shared secret, 503 dark / 403 mismatch. **Found only because I went back
+  to check that false `/pub` claim.** It is the single door to the reserved `_platform` revenue tenant.
+
+**I reproduced §925's own criticism one phase later.** §925 faulted `tenant-scope.test.ts` for a corpus that
+stopped short of where the defect lived; this gate shipped scoped to `/v1` + `/pub` with a third surface
+outside it. **Verifying my own prose found the gap that verifying the code did not.**
+
+### Proof
+
+- 23 sites mutated against the full api suite; **7/7 route-authz mutations RED** (new unguarded route,
+  stripped `requireRole`, deleted rows on all three surfaces, ghost row).
+- **P1 — the fail-open probe**: the claimed-pool catch in `tenants.ts` made to return **another tenant's D1** instead of
+  throwing → **RED (3)**. The fallback **value** is pinned, not merely the presence of a catch.
+- All four `LENS_UNRESOLVED` translations neutered → **4 REDs**.
+- api **819 → 823** · typecheck 0 · lint 0.
+
+**Reopen triggers**
+- **Both `tenants.ts` platform-slug guards are not pinnable as written.** Any test calling them passes via the sibling, which
+  is *why* the mutation is silent. Distinguishing them needs the allowlist injected into production code for
+  a counterfactual guard's sake — recorded as a deliberate non-test, not a gap.
+- **4 authorization refusals are non-conditional** (catch blocks / unconditional throws) and were skipped by
+  a condition mutation. P1 covered the highest-severity one behaviourally; the other three
+  (the auth invalid-token catch, `board.ts`'s driver branch, `copilot.ts`'s lens translation) have §84 verdicts or are catch-siblings, and none has been
+  probed *for its fallback value*. That is the decidable form if they are ever revisited.

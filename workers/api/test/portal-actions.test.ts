@@ -281,3 +281,41 @@ describe("Piece 3 — POST /v1/shipments/:id/claim (REQ-085/100)", () => {
     expect(list.events).toEqual([]);
   });
 });
+
+// ─── §927 — §377's CLASS, FINISHED: A PORTAL TOKEN WITHOUT party_id IS 403, NOT 500 ─────────────────────
+//
+// `party_id` is `z.string().optional()` in SessionClaims and nothing in the auth middleware requires it for
+// `role: "portal"`, so this token is schema-valid and these paths are LIVE. §377 established exactly that,
+// against a standing ledger that had the class filed as "defensive translation of an impossible error", and
+// pinned two instances (invoices, documents). Four more existed. This closes two of them.
+//
+// The stakes are small and real: without the translation the plain `Error("LENS_UNRESOLVED: …")` reaches
+// `app.onError` and becomes a 500 — a refusal either way, but a 500 says "this server is broken" where the
+// truth is "this token is incomplete", and real 500s are harder to see when a reachable client error
+// manufactures them.
+//
+// The MESSAGE is the discriminator, not the status: both routes answer 403 two lines later for a shipment
+// outside scope, so asserting the status alone would not say which guard fired (§82's authoring rule).
+describe("§927: a portal session WITHOUT party_id is 403 on the action and read paths (§377's class)", () => {
+  const noParty = (): Promise<string> => token({ sub: "pa-noparty", tenant: TENANT_SLUG, role: "portal" });
+
+  it("the portal ACTION path translates LENS_UNRESOLVED to a clean 403", async () => {
+    const res = await fileClaim("shp-noparty-action", { reason: "damage", detail: "x" }, await noParty());
+    expect(res.status, JSON.stringify(res.json)).toBe(403);
+    expect(JSON.stringify(res.json)).toContain("SESSION LENS UNRESOLVED");
+  });
+
+  it("the RATE path translates it too (routes/rate.ts) — the fourth copy", async () => {
+    // Completing the class rather than three-quarters of it: the sweep found FOUR silent copies and a fix
+    // that closes three is the correct-per-FILE mistake this record keeps naming.
+    const res = await rate("shp-noparty-rate", await noParty());
+    expect(res.status, JSON.stringify(res.json)).toBe(403);
+    expect(JSON.stringify(res.json)).toContain("SESSION LENS UNRESOLVED");
+  });
+
+  it("the shipment-events READ path translates it too (routes/events.ts toReadError)", async () => {
+    const res = await listEvents("shp-noparty-read", await noParty());
+    expect(res.status, res.body).toBe(403);
+    expect(res.body).toContain("SESSION LENS UNRESOLVED");
+  });
+});

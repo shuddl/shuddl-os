@@ -145,3 +145,16 @@ describe("POST /v1/shipments/:id/status-link (authed, lens-scoped mint)", () => 
     expect(claims.s).toBe(SHP);
   });
 });
+
+// ─── §927 — §377's CLASS on the status-link mint (the third of four) ────────────────────────────────────
+//
+// Same rule, same reachability: a portal token without `party_id` is schema-valid, `lensFor` throws, and
+// without the translation this route answers 500 instead of 403. §377 pinned this class on invoices and
+// documents; the mint route was one of the copies it did not reach.
+describe("§927: a portal session WITHOUT party_id is 403 on the status-link mint (§377's class)", () => {
+  it("translates LENS_UNRESOLVED to a clean 403, not an opaque 500", async () => {
+    const t = await token({ sub: "sl-noparty", tenant: TENANT_SLUG, role: "portal" });
+    const res = await mintLink("shp-noparty-mint", t);
+    expect(res.status, JSON.stringify(res)).toBe(403);
+  });
+});
