@@ -507,6 +507,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 312 | §864 | **§865** | **"THE LIVE BOARD FEED" WAS NOT LIVE, AND THE ROW THAT SAYS SO WAS CITED NOWHERE.** §864's closing question — does Command mirror the portal's four honesty states? — **was a misreading and is withdrawn**: the *mirrors* claim is about the fetch client having no `AbortSignal`, and `command/lib/board.ts` has NO hook (its parse was already covered). Reading instead of reasoning produced a better finding. **MEASURED: Command's map is not live** — `useBoardFleet` fetches ONCE on mount; a whole-corpus search for `WebSocket|EventSource|setInterval|refetch` under `apps/command` is empty **against a positive control**, so the silence is a result. Its comment opened *"The live board feed"*. **The register resolves it**: neither REQ-073 (backdrop) nor REQ-080 (lens) asks for refresh; **REQ-257 (V2-E, vNEXT)** does — and that row **names the "polling fallback" itself**, so the portal's 20s poll IS sanctioned and Command sitting one step back is deliberate scope. **Adding a poll would have been building an unregistered requirement** — CLAUDE.md's first rule, and I was two minutes from calling it a defect. **REQ-257 was cited NOWHERE in code**: the deferral lived only in the register (§813 shape). Comments only, no behaviour change, diff verified comment-only (both files were earlier mutation targets). `dispositions` note added per the REQ-184 precedent — after **verifying the manifest is actually read** (`coverage.ts:181`, staleness guard `:202`), because a note nobody reads is §851's defect |
 | 313 | §865 | **§866** | **EIGHT CITATIONS, FOUR WORKERS, ONE PROPERTY, AND THE WRONG REQ ROW.** Verified §865's nine unchecked status-drift rows. **Two false starts, same cause**: sorting by the literal word `VERDICT` said 7 were bare (FALSE — REQ-254's note is 1,085 chars opening *"PARTIALLY BUILT (recorded 2026-08-03)"* with a four-clause breakdown); re-sorting on `recorded YYYY-MM-DD|audit §N` said 3 (ALSO FALSE — REQ-288 carries a 700-char judgment stamped `NOTE (2026-07-27)` arguing the drift is a false positive: ~25 files implement the evidence PRODUCER, the row specifies the CONSUMER). **3rd and 4th time this session** a predicate whose boundary is English produced a confident wrong count. Real remainder: **2 rows, not 7.** **THE FINDING: REQ-278 is cited 8× across 4 files and every citation is about a DIFFERENT requirement** — *"ONE TENANT'S FAILURE MUST NOT KILL THE TICK"* (agents/billing/translator + a completeness gate) vs the row's actual text, *feature flags separate deployment/exposure/write/read authority*. REQ-025 (paired in 2 of 4) is *tenant isolation at DB level*, DoD *cross-tenant suite green forever* — isolation of DATA, not resilience of a SWEEP. **Neither row covers it, and the property is BUILT, SHIPPED and TESTED** (9 green in agents alone). So something shipped without a register row (CLAUDE.md rule 1), and the drift flag is a false positive for the STATED reason and a true positive for an unstated one. Not fixed: re-pointing requires choosing an owning row and none exists → a register amendment, **filed not decided** (§795). Disposition extended with the prior sentence PRESERVED (§865's lesson, one phase old) |
 | 314 | §866 | **§867** | **REQ-276 SAYS "NOT BUILT"; IT IS MOSTLY BUILT, AND THE HOLE IS WHERE NOBODY WRAPPED.** Measured all three DoD clauses. **TRUE**: zero tracked duplicates; a force-added `0001_ledger_core 3.sql` turns `check:invariants` **RED**. **FALSE**: *ignored artifacts do not alter authoritative counts* — one git-ignored duplicate `*.test.ts` takes vitest from **72 files/1,122 tests → 73/1,124**. It is a COPY so it passes, which is what makes it dangerous: **a test-count floor satisfied by a duplicate would hide a DELETED test file** and stay green. The tracked catch works but MISDESCRIBES itself (*"stray SQL outside db/*/migrations"* for a file INSIDE it): a **shadowing `globSync` wrapper** strips collision duplicates from all 15 glob sites, so the dup is absent from `migrations` while `git ls-files` lists it. **Five wrong measurements** to find that — the glob returned the dup in every standalone probe while `findStraySql()` flagged it, IN ONE PROCESS; the answer was an import alias (`globSync as globSyncRaw` + a local shadow). Reasoning about *"the same expression"* failed because it was not the same FUNCTION. Also: **12 `tools/` files walk the filesystem with neither git-awareness nor the filter** — mostly scanners, recorded not alarmed. `invariants.ts` solved this locally and completely; nothing carried it outward (§802's shape). Row is vNEXT → filed, not fixed |
+| 315 | §867 | **§868** | **FOUR PROJECTIONS HAD UNIT TESTS, TWO DID NOT — AND THE TWO CARRIED THE BRANCHES INTEGRATION CANNOT REACH.** Re-ran §858's sweep repo-wide with a better instrument: *does any test name any symbol the module EXPORTS?* (the old *does a test import this file?* was wrong 4× this session, last on `evidence-email-view.tsx` — imported via a barrel and thoroughly tested). **Cleared**: contracts/rater/map/design (54 files, 0 dark), agents (0), **mcp (0 — the six tool modules are driven through `buildRegistry`/`dispatch`, integration BY DESIGN)**. **Found: `projectApprovals` + `projectAppointment`** — 4 of 6 projections are unit-tested in `projections.test.ts`; these two were reached only by a HAPPY-PATH integration test. What that leaves: **(a) three `return []` tolerance branches protecting APPEND AVAILABILITY** — *"a throw here would … break the append for any other shape"* — a refactor to `throw` fails WRITES and no integration test notices; **(b) two statement-shape laws with stated consequences**: `OR IGNORE` not `REPLACE` on approvals (REPLACE drops `decided_event_id`, severing the link to WHO decided) and a plain `UPDATE` on `legs`, where **`legs` is UNGUARDED and a REPLACE is *silent slot theft with no guard to catch it*** — the difference between claiming a free dock slot and taking someone else's is one keyword and nothing at runtime objects. 20 cases, 4 mutations RED, plain-node fake-`db` idiom because the laws are about SQL TEXT |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -50635,3 +50636,73 @@ reacting cost one command.
   `name 2.test.ts` on disk before believing the count.
 - The 50 duplicates currently on disk are all inside `node_modules/.vite` caches. If one ever appears under
   `apps/`, `packages/`, `workers/` or `tools/`, the vitest hole becomes live rather than latent.
+## §868 — PHASE GATE: PHASE 88 CLOSED — four projections had unit tests, two did not, and the two carried the branches integration cannot reach
+
+The §858 sweep, run repo-wide with a better instrument. The old probe asked *"does a test import this file?"* and
+was wrong four times this session — most recently on `evidence-email-view.tsx`, which is imported through a
+barrel (`../src/index.js`) and is thoroughly tested. **The instrument that works: does any test name any
+symbol the module EXPORTS?**
+
+### The sweep, and what it cleared
+
+| tree | source files | dark |
+|---|---|---|
+| `packages/contracts` · `packages/rater` · `packages/map` · `packages/design` | 54 | **0** |
+| `packages/agents` | 15 | 0 — `evidence-email-view` is covered by a *"design law — VIEW mode"* block, 28 cases |
+| `workers/mcp` | 19 | 0 — the six tool modules are driven through `buildRegistry`/`dispatch`, integration by design |
+| `packages/ledger` | 41 | **2** |
+
+The MCP result is the §858 lesson applied *before* being burned by it: six files with one export each and no
+test naming any of them, which looks alarming and is correct — a tool registry is the right seam to test at.
+
+### The two
+
+`projectApprovals` (REQ-082/194) and `projectAppointment` (REQ-028/052). **Four of the six projections have
+unit tests in `projections.test.ts`** — passport, status-cache, agent-runs, authority. These two were reached
+only through `workers/api/test/approvals.test.ts`, which drives the **happy path** end to end.
+
+That leaves the branches integration cannot reach, and they are not decoration:
+
+**Tolerance (approvals).** Three `return []` branches exist so a malformed or differently-shaped
+`approval.requested` projects *nothing* rather than throwing — because, in the source's words, *"a throw here
+would couple every approval.requested append to this exact payload shape and break the append for any other
+shape."* **These protect APPEND availability, not read correctness.** Turning one into a throw is a small
+refactor that no integration test would notice, and the failure lands on the write path.
+
+**Statement shape (both).** Two laws stated with their consequences:
+
+- `approvals`: `INSERT OR IGNORE`, never `REPLACE` — *"REPLACE would DELETE the row through the PK … and drop
+  a decided row's `decided_event_id`"*, severing the read-model's only link to the append-only event recording
+  **who decided**.
+- `legs`: a plain `UPDATE`, never `REPLACE` — *"a REPLACE would DELETE the pre-existing row THROUGH
+  ux_legs_slot before re-inserting = **silent slot theft with no guard to catch it**."*
+
+`legs` is an unguarded table. That second one is the sharpest thing in this phase: **the difference between
+claiming a free dock slot and taking someone else's is one keyword, and nothing at runtime would object.**
+
+### What landed
+
+Two files, 20 cases, matching the plain-node idiom of `appointment-gate.test.ts` rather than the D1 harness —
+deliberately, because the laws above are about the **SQL text**, and a real-D1 test proves the row lands while
+only the statement proves *how*. A recording fake `db` captures `prepare(sql).bind(...)`.
+
+| mutation | RED |
+|---|---|
+| `OR IGNORE` → `OR REPLACE` on approvals | the REPLACE law |
+| a tolerance branch → `throw` | four tolerance cases |
+| `UPDATE legs` → `INSERT OR REPLACE INTO legs` | the slot-theft law |
+| the `serviceDate` guard dropped | *no serviceDate → nothing to claim* |
+
+No production code changed.
+
+### Exit state
+
+`packages/ledger` **36 files / 688 tests**, all green (+2 files, +20). typecheck 0 · lint 0 ·
+`check:invariants` 0.
+
+**Reopen triggers**
+- A seventh projection is added → it inherits neither this file nor `projections.test.ts`, and the sweep that
+  found these two was run by hand.
+- `projectApprovals`'s tolerance is deliberately *silent* — a malformed gate event opens no queue row and
+  logs nothing. If an approval is ever reported "missing from the queue", this is the first place to look,
+  and there is no signal that would have told anyone.
