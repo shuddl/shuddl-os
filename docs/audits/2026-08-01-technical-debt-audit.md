@@ -528,6 +528,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 333 | §885 | **§886** | **A CITATION THAT LANDS ON A BLANK LINE IS ROT, AND THAT IS DECIDABLE.** §885 found L210 pointing at a blank line and closed noting the ratchet only guards files it already tracks as high-churn — so a stale pointer into a QUIET file rots silently, and a hand pass found one. **But blankness is mechanical.** **Measured first: 101 resolvable `path:line` citations in the checklist (strikethrough masked), TWO on blank lines, ZERO out of bounds — a 2% flag rate** beside §878's 1.3%, and **both flags real**: `sender.ts:245` (the gap between two functions; the config fields are at `:200`) and `demo.ts:115` (the line BEFORE the comment block that is the row's subject; `DEMO_TILE_URL` is at `:119`). Re-anchored to `:200@apiKey` / `:119@DEMO_TILE_URL`. **Why the ratchet cannot catch these**: it is a GROWTH check on a NAMED SET of high-churn files — it refuses *more* unanchored citations into `sequencer.ts`/`biller.ts`, and says nothing about a citation that was fine when written and decayed later, nor anything about quiet files; `sweep-214.ts`, `sender.ts` and `demo.ts` are all quiet, which is why nobody noticed. **What it does NOT do**, stated so the green is not over-read: a citation drifting onto a different NON-blank line still passes — that is the majority of real drift and needs the symbol anchor |
 | 334 | §886 | **§887** | **THE AUDIT HAS ZERO CITATION ROT; THE ONLY THREE FLAGS ARE MY OWN DOCUMENTATION OF IT.** §886 scoped its gate to the checklist on an ASSUMPTION — widening *"would flag history"*. Measured: audit **76 citations, 3 blank (3.9%), 0 out of bounds, 64.5% anchored**; checklist 101 / 0 / 0 / 43.6%. **Both conclusions invert the assumption**: the audit has NO organic rot (all three flags are mine, from §885/§886, each a deliberate quote of a broken citation inside the section documenting it), and the append-only history I was protecting is **better anchored than the live checklist** (64.5% vs 43.6%) because the ratchet has been pushing me to anchor for weeks. **The obstacle is a rule I wrote down and kept breaking**: 5th instance this session of *a gate that scans prose cannot tell an example from a use* (§829/§871/§878/§882/here), and after §871 I recorded the fix — **write the shape, never the instance** — then wrote the instance three more times, in the two phases ABOUT citation rot. **Fixed by de-citationing the quotes, not by allowlisting** (an allowlist would encode the bad habit and make the next documented rot need a new exception). Audit now needs ZERO exclusions; gate widened to both documents, green over **174** citations |
 | 335 | §887 | **§888** | **THE FIVE-DEMO ACCEPTANCE SPINE, PROBED AT THE LEVEL THAT DEFINES "DONE ENOUGH TO SHOW".** Changed axis after several record phases: CLAUDE.md's five acceptance demos, `test:acceptance` PASS on the board — what does that green certify? **More than expected, and the harness is honest about what it cannot.** Design is explicitly TWO-TIER (in-repo **spine** = code-provable causal chain; **filmed** delta = what a human with a camera must still show), and it records where CLAUDE.md's own wording overreaches (demo #1 says *invoice + PHOTOS* while the email ships documentary placeholders, §178). Manifest drift gated SIX ways bidirectionally, incl. all five demos declared with ≥1 spine test AND a stated filmed delta, and §607's *all 7 spine files resolve on disk*. **The runner EXECUTES** — `spawnSync` per package through that package's own vitest config (api/mcp are pool-workers, driver node, map jsdom) — and checks existence BEFORE any run because *"a filter matching nothing is silent whenever a sibling filter in the same package still matches"*, the exact trap a prior phase found by disproving its own earlier comment. **Mutation-proved**: a renamed spine file → `ACCEPTANCE SPINE: FAIL … the demo they prove is UNTESTED` and **exit 1**; clean tree exit 0. **CLEAN NEGATIVE.** Method note: my first probe read `$?` after a pipe and printed `exit=0` for a failed run — the trap this record already carries |
+| 336 | §888 | **§889** | **A RENAMED SPINE TEST WAS CAUGHT; A GUTTED ONE WAS NOT.** §888's own trigger, closed with §827's pattern (per-file floors, `SUITE` derived from the keys, aggregate DERIVED by summing per §823). **Measured: 41 cases / 237 assertions across the 7 spine files — and the METRIC had to change.** §827 floors on CASE count; copying that would have shipped a gate blind to the demo that matters most, because `heartbeat.test.ts` is **1 `it()` carrying 48 `expect()`** — demo #1's whole causal chain in one case, so gutting it to a single assertion keeps a case-floor GREEN. Floored on **assertions per file** instead: **the precedent's SHAPE transfers, its METRIC did not**, and taking it on trust would have produced exactly the hollow gate this record keeps finding. **Limits stated rather than implied**: floors sit at ~80% of measured, so this catches GUTTING not EROSION (48→40 passes), and it cannot see a HOLLOWED assertion — `toBeDefined()` counts the same as a penny-exact invoice comparison. Counting is the cheap half |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -51954,3 +51955,53 @@ failed (the REQ-289 classifier).
   says so; nothing in this repo can advance it.
 - The spine is 7 files for 5 demos. A demo whose spine test is *renamed* is caught; a demo whose spine test is
   **weakened** is not — the registry proves a file exists and runs, never that it still asserts what it did.
+## §889 — PHASE GATE: PHASE 109 CLOSED — a renamed spine test was caught; a gutted one was not
+
+§888 closed by naming the hole it left: *"a demo whose spine test is renamed is caught; a demo whose spine test
+is **weakened** is not — the registry proves a file exists and runs, never that it still asserts what it did."*
+
+That is closable with the pattern this repo already uses. §827 built exactly this for the isolation suite: a
+`PER_FILE_FLOOR`, `SUITE` derived from its keys, and an aggregate `MIN_CASES` **derived by summing** rather
+than written twice (§823 — two numbers that must agree should be one). The per-file half exists because *"the
+aggregate floor alone is blind to REDISTRIBUTION"*: a file may grow freely, but it may not shrink while a
+sibling covers for it.
+
+### Measured, and the metric had to change
+
+| spine file | `it()` | `expect()` |
+|---|---|---|
+| `workers/api/test/heartbeat.test.ts` | **1** | **48** |
+| `workers/api/test/signup-to-quote.e2e.test.ts` | 2 | 13 |
+| `apps/driver/src/flow/stop-flow.test.ts` | 11 | 36 |
+| `workers/api/test/airplane-soak.test.ts` | 2 | 29 |
+| `workers/mcp/test/quote-book.test.ts` | 9 | 37 |
+| `workers/api/test/command-heartbeat.test.ts` | 2 | 40 |
+| `packages/map/test/MapCanvas.test.tsx` | 14 | 34 |
+
+**41 cases, 237 assertions.** §827's metric is the *case* count, and copying it here would have produced a
+gate that cannot see the thing it is for: `heartbeat.test.ts` is **one** `it()` carrying **48** assertions —
+demo #1's whole causal chain in a single case. Gut it to one assertion and a case-count floor stays green.
+
+So the floor is on **assertions per file**, derived the same way. The precedent's *shape* transfers; its
+*metric* did not, and taking the metric on trust would have shipped a gate blind to the demo that matters most.
+
+### What the floor does and does not catch
+
+Floors are set at ~80% of measured, so ordinary churn does not trip them. **This catches gutting, not
+erosion** — a file dropping from 48 assertions to 40 passes. Stated plainly because a floor invites being read
+as "the proof cannot weaken", and it means only "the proof cannot collapse".
+
+It also cannot see an assertion that has been *hollowed* — `expect(x).toBeDefined()` counts the same as a
+penny-exact invoice comparison. Counting is the cheap half; what each assertion is worth is
+[[a-gates-green-certifies-less-than-its-name]] territory and no count answers it.
+
+### Exit state
+
+`tools/acceptance/demos.test.ts` +2 cases. `test:acceptance` exit 0 · `test:tools` **1,136**. typecheck 0 ·
+lint 0 · `verify:docs` 0. No production code changed.
+
+**Reopen triggers**
+- The floors are a snapshot of 2026-08-09. If a spine file is legitimately refactored to carry fewer, larger
+  assertions, the floor must move **with a stated reason** — that is the §672 discipline, and the row that
+  lowers a floor silently is the defect this exists to make visible.
+- The filmed half remains outside the repo (§888) and no floor touches it.

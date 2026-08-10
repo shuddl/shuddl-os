@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { DEMOS, spineByPackage, spineFileCount } from "./demos.js";
-import { missingSpineFiles } from "./run.js";
+import { missingSpineFiles, packageDirs } from "./run.js";
 import { repoRoot } from "../checks/repo-root.js";
 
 // REQ-119 (audit §68) — the acceptance manifest and this module must name the SAME spine.
@@ -87,5 +87,73 @@ describe("REQ-119 §607: every registered spine file exists", () => {
     // If spineByPackage() ever returned nothing, missingSpineFiles() would return [] and the test above
     // would pass over an empty spine — the exact vacuity class this section exists to close.
     expect(spineFileCount(), "the spine registry is empty — the scan is broken, not the tree").toBe(7);
+  });
+});
+
+// §889 — A RENAMED SPINE TEST WAS CAUGHT; A GUTTED ONE WAS NOT.
+//
+// §888 mutation-proved that renaming a spine file fails the runner ("the demo they prove is UNTESTED"), and
+// closed by naming what that leaves open: the registry proves a file EXISTS and RUNS, never that it still
+// asserts what it did. A spine test emptied to `expect(true).toBe(true)` keeps its name, keeps its path, and
+// keeps the acceptance gate green.
+//
+// §827 built this pattern for the isolation suite: per-file floors, the suite derived from their keys, and the
+// aggregate derived by summing (§823 — two numbers that must agree should be ONE). The SHAPE transfers here.
+// The METRIC does not, and that difference is the whole reason this block is worth its lines:
+//
+//   §827 floors on CASE count. `heartbeat.test.ts` is ONE `it()` carrying FORTY-EIGHT assertions — demo #1's
+//   entire causal chain (gated stop → pod.signed → queue → Biller → invoice + evidence email) in a single
+//   case. A case-count floor reads 1, and still reads 1 after the body is deleted. Copying the precedent
+//   faithfully would have shipped a gate blind to the demo that matters most.
+//
+// So: assertions per file. Floors sit at ~80% of the 2026-08-09 measurement, so ordinary churn does not trip
+// them — which means this catches GUTTING, not EROSION (48 → 40 passes). It also cannot see a HOLLOWED
+// assertion: `toBeDefined()` counts the same as a penny-exact invoice comparison. Counting is the cheap half.
+const ASSERTION_FLOOR: Readonly<Record<string, number>> = {
+  // Keyed "<pkg> <pkg-relative file>", exactly as the registry names them — resolved to disk through the
+  // runner's OWN packageDirs(), so this cannot drift from how the acceptance gate locates the same files.
+  "@shuddl/api test/heartbeat.test.ts": 40, // measured 48 — demo #1, one case, the whole chain
+  "@shuddl/api test/signup-to-quote.e2e.test.ts": 10, // measured 13
+  "@shuddl/driver src/flow/stop-flow.test.ts": 30, // measured 36
+  "@shuddl/api test/airplane-soak.test.ts": 24, // measured 29
+  "@shuddl/mcp test/quote-book.test.ts": 30, // measured 37
+  "@shuddl/api test/command-heartbeat.test.ts": 33, // measured 40
+  "@shuddl/map test/MapCanvas.test.tsx": 28, // measured 34
+};
+
+/** Aggregate DERIVED from the per-file floors — never written twice (§823). */
+const MIN_ASSERTIONS = Object.values(ASSERTION_FLOOR).reduce((a, b) => a + b, 0);
+
+function assertionCount(root: string, key: string): number {
+  const [pkg, file] = key.split(" ") as [string, string];
+  const dir = packageDirs(root).get(pkg);
+  if (dir === undefined) throw new Error(`no workspace package named ${pkg} — the floor names a package that does not exist`);
+  return (readFileSync(`${root}/${dir}/${file}`, "utf8").match(/\bexpect\s*\(/g) ?? []).length;
+}
+
+describe("§889: a spine test may not be gutted", () => {
+  const root = repoRoot();
+
+  it("every floored file is a REGISTERED spine file (§672 — no row outlives its subject)", () => {
+    // A floor on a file the registry no longer names is dead weight that reads as coverage.
+    const registered = new Set([...spineByPackage()].flatMap(([pkg, files]) => files.map((f) => `${pkg} ${f}`)));
+    const orphaned = Object.keys(ASSERTION_FLOOR).filter((f) => !registered.has(f));
+    expect(orphaned, "a floor names a file the spine registry does not").toEqual([]);
+    expect(Object.keys(ASSERTION_FLOOR).length, "every spine file needs a floor").toBe(spineFileCount());
+  });
+
+  it("no spine file has fallen below its assertion floor, and the total holds", () => {
+    const fallen = Object.entries(ASSERTION_FLOOR)
+      .map(([f, floor]) => ({ f, n: assertionCount(root, f), floor }))
+      .filter((c) => c.n < c.floor);
+    expect(
+      fallen.map((c) => `${c.f}: ${c.n} assertions, floor ${c.floor}`),
+      "a spine test has been weakened. The acceptance gate would stay GREEN — the file exists and runs — " +
+        "while the demo it proves no longer proves it. Restore the assertions, or lower the floor here and " +
+        "say which demo lost which proof",
+    ).toEqual([]);
+
+    const total = Object.keys(ASSERTION_FLOOR).reduce((n, f) => n + assertionCount(root, f), 0);
+    expect(total, "the spine's aggregate assertion count fell below the derived floor").toBeGreaterThanOrEqual(MIN_ASSERTIONS);
   });
 });

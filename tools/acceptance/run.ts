@@ -37,7 +37,7 @@ function ensureMcpApiBundle(): void {
 }
 
 /** Workspace package name → its directory, from the three globs in pnpm-workspace.yaml. */
-function packageDirs(cwd: string = process.cwd()): Map<string, string> {
+export function packageDirs(cwd: string = process.cwd()): Map<string, string> {
   const out = new Map<string, string>();
   for (const p of globSync("{apps,workers,packages}/*/package.json", { cwd })) {
     const name = (JSON.parse(readFileSync(`${cwd}/${p}`, "utf8")) as { name?: string }).name;
