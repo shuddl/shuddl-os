@@ -504,7 +504,9 @@ export class ShipmentSequencer extends DurableObject<Env> {
       if (/UNIQUE constraint failed/i.test(msg) && /ux_legs_slot|legs\.(facility_id|appt_slot_key|appt_service_date)/i.test(msg)) {
         throw rpcError("VALIDATION_FAILED", { reason: "slot_taken" });
       }
-      const mapped = mapMoneyProjectionError(err);
+      // §919 — the KIND is load-bearing: both money_lines guards raise identical text, so the mapper
+      // cannot tell a double correction from an unrelated duplicate line without it.
+      const mapped = mapMoneyProjectionError(err, full.kind);
       if (mapped) throw rpcError("VALIDATION_FAILED", { reason: mapped.message });
       throw err; // an unmapped DB fault surfaces as INTERNAL via Task 14's default mapping
     }

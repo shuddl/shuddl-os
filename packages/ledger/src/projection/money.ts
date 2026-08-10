@@ -361,13 +361,42 @@ export function applyMoneyProjection(
 }
 
 /**
- * A UNIQUE violation on ux_ml_corrects means the targeted event was already corrected. The
- * sequencer maps this DB error to the VALIDATION_FAILED envelope (I7: one correction per event).
+ * A second correction of the same event is a CLIENT error (I7: one correction per event), not a server
+ * fault, so the sequencer must answer 400/VALIDATION_FAILED rather than an opaque INTERNAL 500.
+ *
+ * TWO REFUSAL PATHS, and until §919 only the unreachable one was mapped. `ux_ml_corrects` (0002) is a
+ * UNIQUE index, but 0008 installs `money_lines_guard_ins_corrects` as a **BEFORE INSERT** trigger over the
+ * same pair — and a BEFORE INSERT trigger fires BEFORE uniqueness is checked. So under the schema the
+ * product actually ships, the abort carries the trigger's RAISE text and contains no "UNIQUE constraint
+ * failed" substring at all: this function returned null and a double correction 500'd.
+ *
+ * It looked covered because `money-projection.test.ts` applied only 0001-0003 — a schema the product never
+ * ships — while `workers/api/test/helpers.ts` applies 0008. Adding 0008 to that suite turns its existing
+ * assertion RED with zero source changed, which is the production behaviour (audit §919).
+ *
+ * WHY `kind` IS REQUIRED TO STAY PRECISE. Both money_lines guards raise the SAME text —
+ * `I1: projections are append-only` (0003's id/(event_id,line_no) guard and 0008's corrects guard) — so the
+ * message alone cannot say WHICH collision happened, and mapping it unconditionally would report an
+ * unrelated duplicate-line fault as "invoice already corrected". Gating on the event kind is exact: for an
+ * `invoice.corrected` event both guards mean the same thing to the caller — this correction is already
+ * recorded. For every other kind the trigger text stays unmapped and still surfaces as INTERNAL.
  */
-export function mapMoneyProjectionError(err: unknown): { code: "VALIDATION_FAILED"; message: string } | null {
+export function mapMoneyProjectionError(
+  err: unknown,
+  kind?: string,
+): { code: "VALIDATION_FAILED"; message: string } | null {
   const msg = err instanceof Error ? err.message : String(err);
+  const alreadyCorrected = {
+    code: "VALIDATION_FAILED",
+    message: "invoice already corrected (I7: one correction per event)",
+  } as const;
+  // PATH 1 — the UNIQUE index. Reachable only where 0008's trigger is absent (the index is the backstop).
   if (/UNIQUE constraint failed/i.test(msg) && /(ux_ml_corrects|corrects_event_id)/i.test(msg)) {
-    return { code: "VALIDATION_FAILED", message: "invoice already corrected (I7: one correction per event)" };
+    return alreadyCorrected;
+  }
+  // PATH 2 — the BEFORE INSERT trigger, which is what the shipped schema produces.
+  if (kind === "invoice.corrected" && /I1: projections are append-only/i.test(msg)) {
+    return alreadyCorrected;
   }
   // Defense in depth: Zod normally guards the split boundary (bps non-negative, summing to 10000, gross
   // ≥ 0), but if an off-path caller reaches allocateCents with bad shares its input/postcondition throw

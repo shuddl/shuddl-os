@@ -13,6 +13,7 @@ import { appendWithMoney, mkEvent, resetEventCounter } from "./helpers.js";
 import ledgerCore from "../../../db/tenant/migrations/0001_ledger_core.sql?raw";
 import domain from "../../../db/tenant/migrations/0002_domain.sql?raw";
 import insertGuards from "../../../db/tenant/migrations/0003_insert_guards.sql?raw";
+import uniqueGuards from "../../../db/tenant/migrations/0008_append_only_unique_guards.sql?raw";
 
 const DB = env.TENANT_A_DB;
 
@@ -249,6 +250,10 @@ describe("REQ-012 / I7 — applyMoneyProjection through real D1 (append batch + 
       { path: "0001_ledger_core.sql", sql: ledgerCore },
       { path: "0002_domain.sql", sql: domain },
       { path: "0003_insert_guards.sql", sql: insertGuards },
+      // §919 — 0008 IS PART OF THE SHIPPED SCHEMA and this suite omitted it, so every assertion here ran
+      // against a database the product never deploys. `workers/api/test/helpers.ts` applies it; the
+      // divergence hid a mapper branch that production can never reach.
+      { path: "0008_append_only_unique_guards.sql", sql: uniqueGuards },
     ]);
   });
 
@@ -368,7 +373,8 @@ describe("REQ-012 / I7 — applyMoneyProjection through real D1 (append batch + 
       caught = e;
     }
     expect(caught).toBeInstanceOf(Error);
-    const mapped = mapMoneyProjectionError(caught);
+    // The kind is what makes this precise — see mapMoneyProjectionError's note on the shared RAISE text.
+    const mapped = mapMoneyProjectionError(caught, "invoice.corrected");
     expect(mapped?.code).toBe("VALIDATION_FAILED");
   });
 
@@ -485,6 +491,17 @@ describe("Exit audit (REQ-119) Minor: an allocateCents throw maps to VALIDATION_
   });
   it("an unrelated error is NOT swallowed (returns null so the sequencer can 500 it)", () => {
     expect(mapMoneyProjectionError(new Error("something else entirely"))).toBeNull();
+  });
+
+  // §919 — THE PRECISION HALF. Both money_lines guards raise the SAME text, so the trigger branch is gated
+  // on the event kind. Without that gate an unrelated duplicate-line abort — 0003's id/(event_id,line_no)
+  // guard, which fires on a REPLAY of any money-bearing event — would be reported to the client as
+  // "invoice already corrected": a confidently wrong answer, which is worse than the 500 it replaced.
+  it("the trigger text alone does NOT map — a non-correction keeps surfacing as INTERNAL", () => {
+    const abort = new Error("D1_ERROR: I1: projections are append-only: SQLITE_CONSTRAINT");
+    expect(mapMoneyProjectionError(abort, "invoice.issued")).toBeNull();
+    expect(mapMoneyProjectionError(abort)).toBeNull(); // no kind supplied → unmapped, never guessed
+    expect(mapMoneyProjectionError(abort, "invoice.corrected")?.code).toBe("VALIDATION_FAILED");
   });
 });
 

@@ -172,3 +172,40 @@ describe("Task 8 — an unresolved correction parent FAILS CLOSED (VALIDATION_FA
     expect(await correctionCount(shp)).toBe(0);
   });
 });
+
+// ─── §919 — A SECOND CORRECTION OF THE SAME EVENT IS A CLIENT ERROR, NOT A 500 ──────────────────────────
+//
+// I7 allows ONE correction per event, and the schema enforces it twice: `ux_ml_corrects` (0002, a UNIQUE
+// index) and `money_lines_guard_ins_corrects` (0008, a BEFORE INSERT trigger over the same pair).
+//
+// This file had five correction cases and NONE of them corrected twice, so nothing here exercised the
+// refusal — while `packages/ledger`'s mapper test "covered" it against a schema WITHOUT 0008. A BEFORE
+// INSERT trigger fires before uniqueness is checked, so on the shipped schema the abort carries the
+// trigger's RAISE text and never the substring the mapper looked for: a double correction surfaced as an
+// opaque INTERNAL 500. For a money path that is the wrong answer twice over — the client cannot tell "you
+// already corrected this" from "our system broke", and a 5xx invites exactly the retry that must not happen.
+//
+// This is the venue that proves it: the real DO over a D1 carrying the migrations production deploys.
+describe("§919 — I7: a SECOND correction of the same event is refused as a client error, not a 500", () => {
+  it("the first correction commits and the second is VALIDATION_FAILED, with no second correction persisted", async () => {
+    const shp = "ic-double";
+    const invId = await seedIssuedInvoice(shp);
+    const stub = stubFor(TENANT, `s:${shp}`);
+
+    // Control: the FIRST correction is accepted, so the refusal below is attributable to the repeat alone
+    // and not to anything else about a correction on this stream (§908).
+    await stub.append({ tenant: TENANT, streamId: `s:${shp}`, input: correctionInput(shp, invId) });
+    expect(await correctionCount(shp)).toBe(1);
+    const before = await eventCount(shp);
+
+    // A DISTINCT event (fresh id/seq) correcting the SAME invoice.issued. Distinctness matters: it means
+    // 0003's id/(event_id,line_no) guard cannot be what refuses — only the corrects pair collides.
+    await expect(
+      stub.append({ tenant: TENANT, streamId: `s:${shp}`, input: correctionInput(shp, invId) }),
+    ).rejects.toThrow(/VALIDATION_FAILED/);
+
+    // And the batch aborted whole: no event, no second correction.
+    expect(await eventCount(shp)).toBe(before);
+    expect(await correctionCount(shp)).toBe(1);
+  });
+});

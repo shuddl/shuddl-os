@@ -558,6 +558,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 363 | §915 | **§916** | **BOARD RE-MEASURED AT `4528cb2` — 19 PASS · 2 FAIL · 5 BLOCKED; STOPPING POINT.** Full `verify:merge` against a KNOWN tree (clean but for the owner's uncommitted REQ-289 row — a concurrent GTM workstream edits the register here, so an unknown tree is a race not a measurement). **Both FAILs are ONE row, attribution MEASURED not inherited** (§876's lesson): `check:coverage` prints *1 unaccounted … REQ-289: status "ACTIVE" / wp "GTM-0" names no active WP*, and `unit-tests` fails on exactly that row's three classifiers. The 5 BLOCKED are absent INPUTS reporting *could not run*, not *clean* (§247). **All four browser gates PASS** — perf 1, visual 5, a11y 4, e2e 6, including portal-isolation and driver-offline-sync. §911–§915 changed **coverage, not the board**: 13 defended-by-nothing invariants closed (+24 cases, 4 gates), every one found by neutering the guard and proved by watching that mutation go RED after. **The board did not move because it was never measuring these** — which is the argument for the gates: each converts an invisible class into one CI fails. Repo-owned failure set is EMPTY; the five open items are owner-held. Re-measure on any REQ-289 change; do not predict |
 | 364 | §916 | **§917** | **CLAUDE.md's SEVEN HARD BUDGETS — a RE-CONFIRMED clean negative, and a PROCESS FAILURE.** Three plants against CLAUDE.md (a stated budget drifting 35→36; **a NEW budget nobody enforces**, `· 7 agent queues`; the `(21 used)` observation drifting) all fired **RED**, each restored byte-identical — so the budgets hold at `bef2709`. **But this was NOT new measurement, and the section originally said it was.** §563 already mutation-proved all seven budgets, §611 proved stated-vs-enforced *both directions + the vacuity floor*, and the gate's own comments record the other two plants verbatim (§743's `· 7 agent queues ·` plant, §830's planted 22nd table). **All three were already documented at their sites.** Corrected in place. **The finding is the process failure: I searched the record AFTER writing, not before** — third instance in this audit, and the habit my own notes name as highest-yield. A redundant phase reads identically to a novel one, which is precisely why the correction matters more than the result: an uncorrected §917 would send the next reader to re-do what three phases already did. Real residual value: a regression check that §743's and §830's fixes still hold |
 | 365 | §917 | **§918** | **TWO DIMENSIONS DECLINED ON EVIDENCE — §917's CORRECTION, APPLIED.** Nothing built; that is the result. **NOT NULL (138 cells)** — the obvious sibling of §915's CHECK sweep, declined: §590 owns the deploy-day hazard (dev/CI only ever meet an EMPTY database, so a `NOT NULL ADD COLUMN` passes both and fails on deploy; static rule shipped) and §906–§908 own the attribution hazard (a bare `toThrow()` cannot tell a NOT NULL from the FK it claims). The 138-cell residue is the LOW-YIELD half by §907's own reasoning — a NOT NULL violation is structural, not semantic. **Test-file collection** — declined: §709 (deleting one `test` script was ONE edit from dropping 208 files; `--if-present` skips in silence), §728 (a file outside a vitest `include` is not failing, not skipped, not counted — measured in `packages/design`), §727 (playwright's allowlist, planted failing spec merged green), §711 (one `it.only`: 304 passed → 267 passed/37 skipped, **exit 0**). Independently verified the only unanswered part: this session's three new gates ARE collected. **Why record a phase that builds nothing** — the alternative is not *no phase*, it is §917 again; a redundant phase is indistinguishable from a novel one in its output, and the cost lands on the next reader |
+| 366 | §918 | **§919** | **DEFECT — A DOUBLE INVOICE CORRECTION 500s, BECAUSE ITS TEST RAN A SCHEMA WE NEVER SHIP.** `mapMoneyProjectionError`'s correction branch requires `UNIQUE constraint failed` (matching `ux_ml_corrects`, 0002). But 0008 installs `money_lines_guard_ins_corrects` as a **BEFORE INSERT trigger**, and **a BEFORE INSERT trigger fires BEFORE uniqueness is checked** — so the shipped schema aborts with `RAISE(ABORT,'I1: projections are append-only')`, which contains no such substring. The mapper returned **null**: a second `invoice.corrected` surfaced as **INTERNAL 500 instead of VALIDATION_FAILED 400**. On a money path the client cannot tell *you already corrected this* from *our system broke*, and a 5xx invites the retry I7 exists to prevent. **Why it read as covered**: `money-projection.test.ts` applied 0001–0003 and stopped, while `workers/api/test/helpers.ts` applies 0008 — the mapper's test stood up a database the product never ships. **Proved with zero source changed**: adding 0008 to that suite reds its existing assertion. The **subset-fixture** shape — a WRONG fixture goes red, a SUBSET fixture stays green by construction. And `invoice-correction.test.ts` had five correction cases, **none correcting twice**. **Precision hazard**: BOTH money_lines guards raise the IDENTICAL text, so matching it unconditionally would report a duplicate-line fault as *invoice already corrected* — confidently wrong, worse than the 500. Fix gates on the **event kind**. Proof: drop the branch → both suites RED; drop the kind gate → RED. ledger 691→692, api 815→816 |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -53876,3 +53877,72 @@ where this repo writes its measurements.
   pnpm's strict layout). It cannot rule out a matcher *more lenient* than vitest on a pattern not currently
   in use. That limit is stated at the site; it becomes live the moment a package adopts a more exotic
   `include`.
+## §919 — PHASE GATE: DEFECT — a double invoice correction 500s, because its test ran a schema we never ship
+
+Surfaced by a read-only discovery sweep across six enforcement dimensions; **every premise re-verified here
+before it was believed**, and the decisive experiment run locally. The agent's own summary was disciplined —
+it separated two lint-regex gaps it found as *noted-and-moved-on* because a sibling DB trigger refuses the
+same shapes, which is the distinction §688's taxonomy exists to force.
+
+### The defect
+
+`mapMoneyProjectionError` turns a DB refusal into a client answer. Its correction branch requires the error
+text to contain **`UNIQUE constraint failed`** — matching `ux_ml_corrects`, the UNIQUE index from 0002.
+
+But `0008_append_only_unique_guards.sql` installs `money_lines_guard_ins_corrects` as a **`BEFORE INSERT`
+trigger** over the same pair, and **a BEFORE INSERT trigger fires before uniqueness is checked.** So under
+the schema the product actually deploys, the abort carries the trigger's `RAISE(ABORT,'I1: projections are
+append-only')` text and contains no `UNIQUE constraint failed` substring at all. The mapper returned `null`.
+
+**A second `invoice.corrected` against the same event surfaced as an opaque INTERNAL 500 instead of
+VALIDATION_FAILED 400.** On a money path that is the wrong answer twice over: the client cannot distinguish
+*"you already corrected this"* from *"our system broke"*, and a 5xx invites precisely the retry that I7 —
+one correction per event — exists to prevent.
+
+### Why it read as covered: the fixture was not production
+
+`packages/ledger/test/money-projection.test.ts` applied **0001, 0002, 0003** and stopped.
+`workers/api/test/helpers.ts:48` applies **0008**. The mapper's test therefore stood up a database the
+product never ships, and passed against the one schema in which the branch is reachable.
+
+**Proved before anything was changed**: adding 0008 to that suite's migration list — no source edit at all —
+turns its existing assertion RED. That RED is the production behaviour, and it had been sitting one import
+away the whole time.
+
+This is the **fixture-shaped** gate from §"audit a law by the shape of its gate": the assertion is real, the
+law is real, and the *fixture* is what quietly diverges. It is also the sharpest instance yet of a
+**subset-fixture** — a fixture that is WRONG goes red; a fixture that is a SUBSET stays green by
+construction and its silence reads as proof.
+
+**And the API side had no test at all.** `invoice-correction.test.ts` carried five correction cases —
+missing parent, wrong-kind, cross-stream, cross-tenant, visibility inheritance — and **none of them
+corrected twice.**
+
+### The precision hazard, which is why the fix is not "match the trigger text"
+
+**Both** money_lines guards raise the *identical* string: 0003's `money_lines_guard_ins` (id or
+`(event_id, line_no)`) and 0008's corrects guard both `RAISE(ABORT,'I1: projections are append-only')`. The
+message alone cannot say which collision happened, so mapping it unconditionally would report an unrelated
+duplicate-line fault as *"invoice already corrected"* — **a confidently wrong answer, which is worse than
+the 500 it replaced.**
+
+The fix gates the trigger branch on the **event kind**. That is exact rather than merely safer: for an
+`invoice.corrected` event, both guards mean the same thing to the caller — this correction is already
+recorded. Every other kind keeps surfacing as INTERNAL.
+
+### Proof
+
+- Remove the trigger branch → **both** suites RED (`invoice-correction` 1, `money-projection` 1).
+- Remove the **kind gate** → RED, on a case asserting a non-correction abort stays unmapped.
+- ledger **691 → 692** · api **815 → 816** · typecheck 0 · lint 0.
+
+**Reopen triggers**
+- **The divergence is a CLASS, and one instance is fixed.** Only `schema-core.test.ts` applies 0008 among
+  the sixteen `packages/ledger` D1 suites. Any suite standing up a subset of the shipped migrations can hide
+  a production behaviour exactly this way, and nothing requires a helper to apply the full set or declare
+  why not. That gate does not exist; it is the obvious next build.
+- **Two lint-regex gaps, reported as bounds not defects**: `checkMigrationSql`'s `mutate` matcher misses
+  `UPDATE OR REPLACE events` (the SCHEMA fragment cannot absorb the `OR REPLACE` token) and its `[^;]*?`
+  cannot cross a `;` inside a string literal. Both shapes are refused by the DB triggers, so neither is
+  reachable — but the sibling that saves them is the schema, not the lint, and that is worth knowing before
+  anyone trusts the lint alone.
