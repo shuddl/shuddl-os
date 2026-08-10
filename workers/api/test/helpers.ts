@@ -168,6 +168,24 @@ export const ANOMALY_RATE_CONFIG: RatingConfigSeed = {
   accessorials: { kind: "accessorials", id: "acc-anom", version: "v1", items: {} },
 };
 
+// §930 — A ZERO-CHARGE TARIFF: every rate zero and no minimum charge. Not a curiosity — `min_charge_cents`
+// is `NonNegCents` (>= 0), so this is a CONTRACT-LEGAL tariff, and it is the shape a half-loaded or
+// not-yet-populated onboarding tariff takes. §929 proved the composer emits ZERO lines for it (freight,
+// fsc and accessorials are each omitted at zero), which is the one input quote.priced's penny-parity
+// refine cannot refuse (Σ [] = 0 === sell 0). This seed exists to measure what the ROUTE answers.
+export const ZERO_CHARGE_RATE_CONFIG: RatingConfigSeed = {
+  zone_tariff: {
+    kind: "zone_tariff",
+    id: "zt-zero",
+    version: "v1",
+    zip_to_zone: { "800": "Z5" },
+    rate_groups: [{ id: "rg-zero", zones: ["Z5"], breaks: [{ min_lb: 0, cwt_cents: 0 }], min_charge_cents: 0 }],
+  },
+  floors: { kind: "floors", id: "fl-zero", version: "v1", target_or_bps: 9800, full_cost_bps: 9200, contribution_bps: 8500 },
+  fsc: { kind: "fsc", id: "fsc-zero", version: "v1", pct_bps: 0 },
+  accessorials: { kind: "accessorials", id: "acc-zero", version: "v1", items: {} },
+};
+
 // Replace a tenant DB's rate_config with exactly the four required rows (deterministic — DELETE then
 // INSERT, no reliance on prior state). The rate_config table is created by the tenant migrations
 // (0002_domain.sql), so the DB must already be migrated (ensureSchema / ensureTenantBSchema).

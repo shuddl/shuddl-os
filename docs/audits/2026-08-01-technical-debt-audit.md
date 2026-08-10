@@ -569,6 +569,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 374 | §926 | **§927** | **ALL 23 AUTHORIZATION REFUSALS MUTATED — ZERO HOLES, AND §377'S CLASS FINISHED.** §914's last trigger measured: **102 `ApiError` sites / 27 files**, **27 authorization**, 23 conditional, each mutated against the FULL api suite. **16 RED · 7 silent · 0 holes.** §84 had swept 18 guards across **6 routes** (one real hole: a DRIVER could waive a server-side gate) — its scope excluded `middleware/auth.ts`, `tenants.ts`, `approvals.ts`, so this is **15 re-verifications + 8 new**; §84's one-real-hole fix came back RED, still holding. **Every silent explained**: 4 redundant with a sibling *read and verified* (missing-bearer→invalid-token; control-plane-kinds→the sequencer's t:root rule; both platform-slug guards→their allowlist and resolver siblings), 3 are **§377's LIVE class**. **I first classified those 3 as *defensive, per §84* — a verdict §377 had already OVERTURNED**: `party_id` is optional and unenforced, so the path is reachable, and §377 pinned 2 of 6 and left 4. **I nearly shipped 3 of 4** — the 4th (the `rate` path) caught by re-reading my own sweep output. All 4 now pinned, asserting the MESSAGE not the status (both routes 403 two lines later for a different reason). **The prior question a guard sweep cannot ask** — `route-authz-coverage` requires every route to be guarded or to DECLARE its mechanism, across **three** surfaces; the third (`/internal`, the single door to the `_platform` revenue tenant) **was found only by checking a false claim I had written myself** (*/pub is capability-gated* — false for `/pub/quote` and `/pub/signup`). **I reproduced §925's own corpus criticism one phase later.** P1 fail-open probe: the claimed-pool catch returning ANOTHER TENANT'S D1 → **RED (3)**. api 819→823 |
 | 375 | §927 | **§928** | **A MONEY CONSTRAINT THAT WAS THE SOLE GUARD FOR ONE INPUT — AND THE TEST NAMED AFTER IT COULD NOT REACH THAT INPUT.** 91 value-constraint sites, 53 survive contracts, **0 of 53 caught by ledger**. **I killed the ~1.5h escalation on §663's evidence**: it had already decided this class — *pinning all 73 would be volume, not assurance* — narrowing 73→5 (those with an explanatory comment)→1. Finishing would have been §917's redundancy at ninety minutes' cost. **Pivoted to a heuristic orthogonal to §663's**: **array** `.min(1)`, where empty is not id-hygiene but a silent **zero** through every downstream `reduce`. `invoice.issued.lines` has NO comment, so §663's filter structurally could not surface it. **The finding**: `QuotePricedPayload`'s penny-parity refine (Σ lines === sell) refuses an empty array — **except that `sell: Cents` may be ZERO**, where Σ[]=0===0 PASSES and `.min(1)` is the only refusal left. Removing quote-side and invoice-side minimums (§677: disable siblings TOGETHER) left **contracts, api, agents, billing ALL green** — an append-only `quote.priced` with **no basis at all**, and an invoice for zero. The quote-side minimum is load-bearing; the invoice-side is defence-in-depth behind it. **The test named for it passes with it deleted** (fixture `sell`=120 000, so the refine fires instead) — §906's shape on a money schema. Fixed with the case the refine is blind to, asserted on the array minimum's own message. **Two harness failures, both mine**: `atexit` does NOT run on SIGTERM (a kill left a DISABLED constraint in the tree, caught by `git status`), and a non-compiling mutation reported as `ERR/ERR/ERR` that a careless read takes for three greens — the re-run now typechecks UNDER the mutation before trusting any suite. contracts 328→329 |
 | 376 | §928 | **§929** | **§928's TRIGGER CLOSED — THE INPUT IS REACHABLE, BY THE COMPOSER'S OWN OMIT-ZERO RULE.** §928's trigger was phrased as a mutation, so it was runnable in the next phase (§926's rule). **Answer strengthens §928**: three facts compose — `compose` omits zero lines BY DESIGN (`if (freightCents > 0)`, fsc likewise, zero accessorials dropped, because a zero line is un-projectable against `money_lines CHECK(amount_cents != 0)`); `compose` ACCEPTS `freightCents === 0`; and `min_charge_cents` is `NonNegCents` (**>= 0**), with `engine.ts` flooring at `Math.max(asRated, minCharge)`. So `compose(0, [], fsc 0%, none)` returns **`lines: []`, `sell_cents: 0`** — measured and now pinned. That is precisely the input the penny-parity refine cannot refuse (Σ[]=0===0), leaving `.min(1)` as the sole guard. **The source states an ASSUMPTION where there is no enforcement** — *"freight is > 0 for any real PRICED shipment"* — while the contract deliberately permits the tariff that breaks it. What `.min(1)` buys: a zero-charge or half-loaded tariff makes `/v1/rate` **fail closed** instead of recording a quote with no basis — and a half-loaded tariff is exactly the onboarding shape. **§928's finding is therefore stronger than stated**: not a schema guard for an input nobody produces, but for one the rater's own composer produces. Proof: omit-zero rule removed → **RED (2)**, typecheck PASSING under the mutation. rater 165→166 |
+| 377 | §929 | **§930** | **§929's TRIGGER CLOSED — A HALF-LOADED TARIFF BLAMES THE CALLER.** Seeded a contract-legal zero-charge tariff (`cwt_cents: 0`, `min_charge_cents: 0`, fsc 0) and called `/v1/rate`: **400 VALIDATION_FAILED**, and **zero `quote.priced` recorded** (asserted, not inferred). **The ledger is protected; the diagnosis is inverted** — an integrator is told their REQUEST is invalid when the truth is that this TENANT'S TARIFF is not loaded, and a half-populated tariff is a state every new tenant passes THROUGH. **Filed, not fixed**: the rater already speaks `UNKNOWN` + reason (`no_zone`/`no_rate_group`/`missing_physics`), but a zero-charge tariff **computes a real zero**, so the engine returns PRICED and the refusal lands two layers later at the append where only a 400 is left. A `zero_tariff` UNKNOWN reason is a BEHAVIOUR change → register amendment → owner decision (CLAUDE.md rule 1). What ships is the behaviour **pinned** (400 + code) beside the invariant that matters, so a future change is a decision not a drift. **Four phases chain**: §927 refusals defended → §928 a sole guard exists → §929 the input is reachable → §930 the caller sees a mis-attributed 400; none was visible from the one before it. The section-ref gate caught the checklist row citing §930 **before it existed** — the forward-reference rule enforced on me, correctly. api 823→824 |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -54633,3 +54634,70 @@ but the guard against an input **the rater's own composer produces**, whose test
   returns to the caller — a clean `UNKNOWN` (REQ-004's "no price on air", which would be right) or a 400
   from the append refusal (correct but less informative). The decidable form: seed a `min_charge_cents: 0`
   tariff in the api harness and read the response body.
+## §930 — PHASE GATE: §929's trigger closed — a half-loaded tariff blames the caller
+
+Third trigger closed in three phases, each phrased as a mutation and therefore runnable. §929 asked what
+`/v1/rate` **answers** on a zero-charge tariff: a clean `UNKNOWN` (REQ-004's *no price on air* working) or a
+400 from the append refusal (correct, less informative).
+
+### Measured
+
+Seeded a contract-legal zero-charge tariff — `cwt_cents: 0`, `min_charge_cents: 0`, fsc `0` bps, no
+accessorials — and called the route:
+
+```
+status=400  body={"code":"VALIDATION_FAILED","message":"VALIDATION FAILED","req_id":"…"}
+```
+
+**The ledger is protected**: zero `quote.priced` events recorded, asserted directly rather than inferred
+from the status.
+
+**The diagnosis is inverted.** An integrator is told their *request* failed validation when the truth is
+that *this tenant's tariff is not loaded*. That is the onboarding shape — a half-populated tariff is a state
+a new tenant passes **through**, not an exotic misconfiguration — and `min_charge_cents` is `NonNegCents`
+(`>= 0`), so nothing in the contract calls it invalid.
+
+### Why this is filed, not fixed
+
+The rater already speaks the right language for *cannot price*: `UNKNOWN` with a reason — `no_zone`,
+`no_rate_group`, `missing_physics`. A zero-charge tariff is different in kind from those: it **computes a
+real zero**, so the engine returns PRICED and the refusal happens two layers later at the append, where the
+only vocabulary left is a 400.
+
+Adding a `zero_tariff` UNKNOWN reason would be the right answer *and* a **behaviour change** — CLAUDE.md
+rule 1: if it isn't a REQ row, it doesn't get built. Filed for the owner with both options and the
+measurement behind them, rather than built here because it looked small.
+
+### What ships instead
+
+The observed behaviour is **pinned** (`status === 400`, `code === "VALIDATION_FAILED"`) alongside the
+invariant that actually matters (no quote with no basis reaches the append-only ledger). Pinning the current
+answer is not endorsing it — it means a future change to it is a decision someone makes deliberately rather
+than a drift nobody sees, and the test carries the open question in its own comment.
+
+### The chain this closes
+
+Four phases, each closing the previous one's trigger by measurement:
+
+| | question | answer |
+|---|---|---|
+| §927 | are the route refusals defended? | 23 mutated, 0 holes |
+| §928 | is any value constraint a **sole** guard? | yes — `quote.priced.lines.min(1)` at `sell = 0`, and its test could not reach that input |
+| §929 | is that input **reachable**? | yes — the composer's own omit-zero rule produces it |
+| §930 | what does the **caller** see? | `400 VALIDATION_FAILED` — ledger safe, diagnosis inverted |
+
+None of these was visible from the one before it. Each needed the previous answer to even be askable, which
+is the argument for closing a trigger in the phase that writes it rather than filing it forward.
+
+### Proof
+
+- Zero-charge tariff seeded through the api harness → 400 / `VALIDATION_FAILED`, **0 `quote.priced`**.
+- api **823 → 824** · typecheck 0 · lint 0.
+- The `verify:docs` section-ref gate caught this section being cited by the checklist row **before it
+  existed** — the forward-reference rule enforced on me, again, and correctly.
+
+**Reopen trigger**
+- **Filed for the owner**: add a `zero_tariff` UNKNOWN reason (a register amendment) or accept the 400 and
+  document it in the onboarding runbook. The decidable form if it is ever taken: the §930 test asserts
+  `status === 400` today, so implementing the UNKNOWN path turns that assertion RED — which is the signal
+  that the decision was executed rather than forgotten.

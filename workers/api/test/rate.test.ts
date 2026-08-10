@@ -11,6 +11,7 @@ import {
   TEST_RATE_CONFIG,
   TENANT_B_RATE_CONFIG,
   ANOMALY_RATE_CONFIG,
+  ZERO_CHARGE_RATE_CONFIG,
 } from "./helpers.js";
 
 // WP-04 Task 10 (REQ-030 / REQ-025 / REQ-005 / I5) — POST /v1/rate. Proves the SERVER-SIDE gate: pricing
@@ -308,5 +309,47 @@ describe("POST /v1/rate", () => {
 
     const unauth = await rate({ shipment_id: "rate-auth-2", ...PRICEABLE }, { auth: false });
     expect(unauth.status).toBe(401);
+  });
+});
+
+// ─── §930 — WHAT A HALF-LOADED TARIFF ACTUALLY ANSWERS ──────────────────────────────────────────────────
+//
+// §928 found that `quote.priced`'s `lines.min(1)` is the SOLE refusal for a zero-sell empty-lines quote
+// (the penny-parity refine computes Σ [] = 0 === sell 0 and passes). §929 proved the input is REACHABLE:
+// `compose` omits zero lines by design, `min_charge_cents` is NonNegCents (>= 0), so a zero-charge tariff
+// composes an EMPTY breakdown. Both left the same question open: what does the CALLER see?
+//
+// It matters because the two possible answers are not equally good. A clean UNKNOWN is REQ-004's "no price
+// on air" working — the server declining to price what it cannot price. A 400 from the append refusal is
+// correct but tells an integrator their REQUEST was invalid when the truth is that the TENANT'S TARIFF is
+// not loaded. This test records which one it is, so the answer stops being a guess.
+describe("§930: a zero-charge tariff — what the route answers, and that NO quote is recorded", () => {
+  it("does not record a quote.priced with an empty breakdown", async () => {
+    const shipment_id = "rate-zero-tariff";
+    await seedRateConfig(env.TENANT_A_DB, ZERO_CHARGE_RATE_CONFIG);
+    try {
+      const res = await rate({ shipment_id, ...PRICEABLE });
+      const body = (await res.json().catch(() => null)) as { code?: string } | null;
+
+      // MEASURED at §930: 400 VALIDATION_FAILED. Pinned so the answer stops being a guess — and so a
+      // future change to it is a decision someone makes rather than a drift nobody sees.
+      //
+      // The ledger is protected (asserted below) but the DIAGNOSIS is wrong-way-round: the caller is told
+      // their REQUEST failed validation when the truth is that this TENANT'S TARIFF is not loaded. The
+      // rater already speaks the right language for "cannot price" — UNKNOWN with a reason (no_zone,
+      // no_rate_group, missing_physics) — and a zero-charge tariff computes a real zero, so it returns
+      // PRICED and the append refuses downstream instead.
+      //
+      // Whether that should become an UNKNOWN is a BEHAVIOUR change, so it is FILED for the owner
+      // (GO-LIVE-CHECKLIST, §930) rather than built here — CLAUDE.md rule 1.
+      expect(res.status).toBe(400);
+      expect(body?.code).toBe("VALIDATION_FAILED");
+
+      // The invariant that must hold either way: nothing meaningless reaches the append-only ledger.
+      const evts = await eventsFor(env.TENANT_A_DB, shipment_id);
+      expect(evts.filter((e) => e.kind === "quote.priced"), "a quote with no basis must never be recorded").toHaveLength(0);
+    } finally {
+      await seedRateConfig(env.TENANT_A_DB, TEST_RATE_CONFIG); // restore for the rest of the file
+    }
   });
 });
