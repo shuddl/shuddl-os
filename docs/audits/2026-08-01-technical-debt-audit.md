@@ -565,6 +565,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 370 | §922 | **§923** | **THE SWEEP FULLY RESOLVED — 14 DISTINCT CANDIDATES: 10 REAL, 3 REFUTED, 1 ROSTER HAZARD.** Closed §922's two remaining. **`lensFor`'s tenant default is correct today** (the role set is CHECK-closed) **and is a roster hazard**: a 7th role silently inherits `lensWhere → 1=1`, the most permissive read in the system, and the existing test iterates a **hand-copied list of four** rather than the union. Gate now keys on `Role.options` and pins the population, so adding a role fails in front of whoever added it — **doing nothing stops being neutral**. **`documents.id`**: dropping the PK left the api suite green, and WHY bounds the fix — the suite's idempotent-repeat case is SEQUENTIAL, returning 200 through the `existing !== null` branch without ever reaching the insert; the PK only decides the CONCURRENT race, which is not deterministically reproducible against a single-writer D1. So the test pins the **schema property** (a repeated id leaves one row, `changes === 0`) and the race is **named as out of reach rather than quietly claimed**. **Totals: 10 real, 3 refuted, 1 roster hazard.** All three refutations came from MY mutations, not the finders' — **a finder's confidence is a hypothesis; the mutation is the measurement**, and that division is what made a read-only sweep usable. ledger 694→697 |
 | 371 | §923 | **§924** | **STOPPING POINT at `75b37b1` — 19 PASS · 2 FAIL · 5 BLOCKED; repo-owned failure set EMPTY.** Thirteen phases (§911–§923) closed. Board shape **unchanged from §916 — which is the point: none of this work moved the board, because the board was never measuring these classes.** Both FAILs are the one REQ-289 row (this run's own output, not inherited); the 5 BLOCKED report *could not run*, not *clean*. Everything else holds: 1,486 citations resolving / 265 anchored, bundle ratchet within 5% on all three surfaces, design audit clean, all four browser gates green. **Produced: 21 invariants that were enforced by exactly one mechanism with nothing exercising it** — 4 device-binding branches, the interline 10000-bps sum, `SafeInt`'s `-0`, the aging partition, **CLAUDE.md Law 5**, the import XOR, **two cross-tenant reads**, a double correction answering **500 instead of 400**, three `INSERT OR IGNORE` idempotency keys, 4 D1 CHECKs, an unlinkable credit sale — plus **5 new gates** converting each class from invisible-to-CI into fails-CI. **Three corrections to my own record**: §912 eyeballed 11 where 17 was the count; §917 re-measured what four phases already had; §920 rebuilt a rule blocking since §239 — whose **glob stops one directory short of where §919's defect lived**, the sharper finding. Corrected in place because an uncorrected claim here costs the next reader a phase |
 | 372 | §924 | **§925** | **THE REQ-025 STORAGE GUARD IS KEYED ON FUNCTIONS; AN INLINE KEY IS INVISIBLE TO IT.** Mines what the sweep recorded as BOUNDS rather than findings. `tenant-scope.test.ts` reads each `GUARDED_FNS` declaration, finds the tenant PARAMETER position, and checks every call — and its completeness half DERIVES the roster. **Both halves are keyed on a FUNCTION**, so a key built inline (`` `${session.tenant}/imports/…` ``) has no declaration to read and no export to derive: **not allowlisted, INVISIBLE**. Measured twice independently (the sweep's enumeration + a hand scan of 58 tenant-interpolated templates): **exactly two** sites. **Neither is a live defect** — the translator's 990 ack key is pinned by `isolation.test.ts` case 3b and the import key at §921 — so this repairs nothing and closes the **discovery half** of a guard that already has a roster half. R2 is why it earns a file: per-tenant D1 is PHYSICAL isolation and a wrong slug throws, while R2 is ONE SHARED BUCKET partitioned by a string prefix, so a dropped segment reads another tenant's objects **with no error anywhere**. 14 sites classified (10 builder bodies, 2 prefix guards, 2 inline). **The gate caught my own registry error on its first run** — a row for `tenderKey`, whose separator lives in the builder it composes, was dead weight; §672 said so immediately. Rows keyed by **file + snippet, never line** (§885/§913). Proof: new inline key → RED; row deleted → RED; **an existing key LOSING its tenant segment → RED**. test:tools 1,152→1,155 |
+| 373 | §925 | **§926** | **I VERIFIED MY OWN REOPEN TRIGGERS — ONE WRONG, ONE RIGHT, AND THE WRONG ONE WAS BACKWARDS.** A trigger describes a future, so it reads as unfalsifiable and gets inherited; this record already holds *3 of 4 checked were wrong*, and I wrote a dozen more this session. **§915's was wrong**: it said deleting §668's roster would leave `check-constraint-coverage` *green over nothing* — **emptying the roster turns it RED**, because the column names LIVE in the roster and the *mentions-the-column* link catches it. So I measured the real residual instead of guessing twice: **keep the roster and GUT its assertion** (`toEqual([...values])` → a tautology) and the gate stays **GREEN**. **A deleted roster is loud; a hollowed one is silent** — and my trigger named the mode that WOULD be caught, which is worse than no trigger because it spends a reader's attention in the wrong place. **§925's was right**: a key assembled across two statements is genuinely invisible to the shape-based detector (planted, stayed green). **The rule**: a trigger that names a mechanism is *decidable now* — *"if X is deleted, Y stays green"* is a mutation, not a prophecy; check it in the same phase or write it as a question. No source changed |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -53691,9 +53692,12 @@ Then the two structural gates, because fixing four cells does not stop a fifth:
   · contracts 326 · typecheck 0 · lint 0 · `verify:docs` 0 · every migration restored byte-identical.
 
 **Reopen triggers**
-- **The coverage gate's link is weak by construction.** It proves each CHECK is classified and that the
-  named file mentions the column — not that the file asserts anything about it. §668's roster verifies the
-  values; if that roster is ever deleted, this gate stays green over nothing.
+- ~~**The coverage gate's link is weak by construction.** …if that roster is ever deleted, this gate stays
+  green over nothing.~~ **MEASURED WRONG at §926.** Emptying §668's roster turns this gate **RED** — the
+  "mentions the column" link catches it, because the column names live *in* the roster. The link is stronger
+  than I claimed. **The real residual, measured**: keep the roster and **gut its assertion**
+  (`toEqual([...values])` → a tautology) and this gate stays **GREEN**, because the names are all still
+  there. A deleted roster is loud; a hollowed one is silent.
 - **Pool-workers suites are unreliable under rapid repeated invocation in this environment.** Any future
   mutation sweep against them must use the narrowest owning suite and must treat a missing summary as
   ERROR, never as GREEN. Two false findings came from ignoring that.
@@ -54355,3 +54359,53 @@ exactly the edit someone should look at.
   builder (exactly the `tenderKey` case above), is outside it. That is a bound, not a bug — but it means a
   green here says *"no inline key of the shape I can see"*, not *"no inline key"*. The preferred fix for any
   new site remains extracting a named builder, which buys the call-site check the roster half already does.
+## §926 — PHASE GATE: I verified my own reopen triggers — one wrong, one right, and the wrong one was backwards
+
+A reopen trigger is the sentence in a phase gate that nobody ever measures: it describes a future, so it
+reads as unfalsifiable and gets inherited. This record already holds the finding that **3 of 4 checked
+triggers were wrong** — and I wrote a dozen more this session. Two are decidable today. Both were checked.
+
+### §915's trigger was wrong, and wrong in the reassuring direction
+
+It said: *"if §668's roster is ever deleted, this gate stays green over nothing."*
+
+**Emptying the roster turns `check-constraint-coverage` RED.** The "names a test file that mentions the
+column" link catches it — because the column names *live in* the roster, so deleting it takes them with it.
+The link I dismissed as weak is doing more work than I credited.
+
+**So I measured what the real residual is instead of guessing a second time.** Keep the roster intact and
+**gut its assertion** — `expect(live).toEqual([...values])` replaced by a tautology — and the coverage gate
+stays **GREEN**. Every column name is still present; only the checking is gone.
+
+> **A deleted roster is loud; a hollowed one is silent.** That is the honest weakness, and it is not the one
+> I wrote down. The trigger pointed at the failure mode that *would* be caught and missed the one that
+> would not — which is worse than no trigger, because it spends a reader's attention in the wrong place.
+
+### §925's trigger was right
+
+It said the detector is shape-based and a key assembled across two statements is outside it. Planting
+exactly that — a prefix builder and a concatenation across two statements — leaves the gate **GREEN**. The
+bound is real and stated correctly at the site.
+
+### Why this is worth a phase
+
+Every claim in this record has been measured except these. A trigger is the one artifact that is *written
+to be acted on later*, which makes a wrong one uniquely expensive: it survives precisely because nobody
+re-derives it, and it arrives at the moment someone is deciding whether to look.
+
+Both of this phase's checks cost one mutation each. The rule that falls out: **a trigger that names a
+mechanism is decidable now** — *"if X is deleted, Y stays green"* is a mutation, not a prophecy. Write it
+that way and check it in the same phase, or write it as a question instead.
+
+### Proof
+
+- §668 roster emptied → coverage gate **RED** (trigger falsified). Roster kept, assertion gutted → **GREEN**
+  (the real residual, now recorded in §915's corrected trigger).
+- Two-statement tenant key planted → `inline-tenant-key` **GREEN** (§925's trigger confirmed).
+- No source changed; every file restored byte-identical.
+
+**Reopen trigger** — stated as a mutation, per the rule above
+- **`check-constraint-coverage` cannot see a hollowed §668.** If someone replaces that roster's
+  `toEqual([...values])` with anything weaker, both gates stay green and the 23 CHECK value-sets become
+  unverified. The decidable form: gut that one assertion and confirm at least one gate reds. Today none
+  does — which is why this sentence exists rather than a claim that the pair is airtight.
