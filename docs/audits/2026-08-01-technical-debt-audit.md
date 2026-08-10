@@ -518,6 +518,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 323 | §875 | **§876** | **"COMMITTING REQ-289 TURNS BOTH FAILs GREEN" IS FALSE — AND §646 HAD ALREADY SAID SO.** Measured both directions: **row PRESENT** → `check:coverage` FAIL, `check:traceability` PASS, `test:tools` 3 failed; **row ABSENT (HEAD)** → coverage PASS, traceability **FAIL** (`built-but-unspec'd REQ-289`), test:tools **1,128/1,128**. `check:coverage` reads the register FILE, not git history — **committing leaves the row present, so it fixes nothing.** The real fix is a classifiable `status`/`wp` on REQ-289 (or teaching the classifier that `ACTIVE`/`GTM-0` is a bucket): that turns coverage green, KEEPS traceability green (it needs the row, since source cites it), and takes tests to 1,128/1,128. **§646 measured this exact table 30 phases ago** — titled *the "2 FAIL" was a dirty working tree* — and opens by naming the failure I then repeated for 20 more phases; the memory index even said *"partly superseded"* and I read past it while writing two stopping points asserting the superseded version. **A claim inherited from earlier in a session is not evidence, and the cheapest refutation is the record itself.** Causal shape: I had a CORRELATION (both FAILs move with the row) and published an INTERVENTION (committing fixes them) without running it — `git stash` is one command |
 | 324 | §876 | **§877** | **§876'S LESSON ON THE CHECKLIST: I PROBED SIX ROWS AND THREE WERE WRONG.** Only **repo-owned** rows can rot (a row waiting on a secret or counsel cannot). Of 288 rows / 255 open, probed 6 with falsifiable mechanical claims. **(1) `hashPath` unframed — FIXED, still listed**: the row cites *"`h.update(f).update(readFileSync(f))`, no framing"* and the source now length-prefixes both path and bytes. Struck. **(2) `notifyBoard` — the named seam DOES NOT EXIST**: 3 hits, ALL in documentation (the row, the WP-02 plan, WP-02.md); no such symbol in code. The row's SUBSTANCE is right (polled board, no push) and belongs to **REQ-257 vNEXT** (§865) — right about the world, wrong about the artifact, which is the harder stale to notice because the citation looks like evidence. **(3) §857 overpraised the identity redaction**: `mask()` is `term[0] + "*".repeat(len-1)`, so **first char and exact length survive** — and the checklist ALREADY records that as debt, which I did not check before praising the same line 20 sections later. **A SAMPLE OF SIX, NOT A SWEEP OF 255** (§857's own lesson): the six were chosen for checkability, which biases toward rows most likely already fixed; **249 remain unmeasured**. 3 of 6 is not a rot rate — it is a reason to think rot is not rare |
 | 325 | §877 | **§878** | **THE RECORD CAN CHECK ONE KIND OF CLAIM ABOUT ITSELF — AND IT IS THE KIND THAT FAILED.** §877 closed saying the record cannot check itself while its claims are free text. True in general, **false for one narrow case**: a backticked **camelCase identifier** is not prose, it is a mechanical claim that a symbol exists. **Measured before building: 75 such identifiers in the checklist, exactly ONE absent from all tracked source — `notifyBoard`, precisely §877's hand-found defect. A 1.3% flag rate.** Scope stated rather than assumed: the **checklist only** (the audit is a 50k-line append-only history that deliberately quotes since-renamed symbols — flagging those would flag history); **camelCase only**, because `events`/`pod.signed`/`JWT_SECRET`/`--progress` are tables, kinds, env vars and tokens, and widening trades a real gate for a noisy one; **existence, not correctness** — §877's `hashPath` row named a REAL symbol and still described code that no longer existed, so this gate certifies quite little and happens to certify the thing that broke. **It flags its own correction**: §877's fixed row says *"`notifyBoard` does not exist in code"*, so the detector fires on the row documenting the absence — the §829/§871 *example vs use* shape, 3rd time this session. Handled by an allowlist with a reason, not by loosening the pattern |
+| 326 | §878 | **§879** | **STOPPING POINT — BOARD AT `ea9eac8`: 19 PASS · 2 FAIL · 5 BLOCKED, UNCHANGED, AND ITS EXPLANATION RETRACTED.** Until §876 this record said both FAILs were the *uncommitted* REQ-289 row and that committing it would clear them. **Measured both ways: `check:coverage` reads the register FILE, so committing leaves the row present and fixes nothing.** The fix is a classifiable `status`/`wp` — one edit clearing coverage, keeping traceability green (it NEEDS the row, source cites it), and taking tests to 1,131/1,131. Same expected board (**21 · 0 · 5**), different action; the two gates are in genuine tension until the row is **present AND classifiable**, so nobody should fix one by reverting the other. **Segment product: a RETRACTION** — 3 phases, **zero production-code changes**, one wrong claim withdrawn (§876), two record defects fixed (§877: six rows probed, three wrong), one self-check built (§878: 75 backticked symbols, 1 ghost). **Through-line**: §646 measured this 30 phases earlier and titled itself *the "2 FAIL" was a dirty working tree*, quoting *"a thing restated all session without re-measurement is suspect"* — and I restated the superseded version for 20 more phases, past a memory line saying *partly superseded*. **The record is a corpus like any other, and I searched the code far more often than I searched the record** |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -51343,3 +51344,61 @@ named as absent; it must say so once, in one place, on purpose.
   would flag legitimate references to test helpers.
 - The allowlist has one row. A second entry means someone is documenting a second absence, which is fine; a
   third suggests the record is accumulating ghosts and the pattern deserves re-measuring.
+## §879 — PHASE GATE: STOPPING POINT — board at `ea9eac8`, and the segment whose main product was a retraction
+
+`pnpm verify:merge` run to completion at `ea9eac8`: **19 PASS · 2 FAIL · 5 BLOCKED**, unchanged, with the same
+two blocking reasons.
+
+**The board figure is unchanged and its explanation is not.** Until §876 this record said both FAILs were the
+*uncommitted* REQ-289 row and that committing it would clear them. Measured in both directions, that is wrong:
+
+| | row PRESENT (today) | row ABSENT (HEAD) |
+|---|---|---|
+| `check:coverage` | **FAIL** | PASS |
+| `check:traceability` | PASS | **FAIL** |
+| `test:tools` | 3 failed | **1,131 / 1,131** |
+
+`check:coverage` reads the register **file**. Committing leaves the row present, so it fixes nothing. **The fix
+is a classifiable `status`/`wp` on REQ-289** — one edit that turns `coverage` green, keeps `traceability` green
+(it needs the row, because source already cites REQ-289), and clears the three tests. Expected board after it:
+**21 PASS · 0 FAIL · 5 BLOCKED** — the same number, reached by a different action.
+
+The two gates are in genuine tension until the row is **present and classifiable**. Neither state is green
+alone, so nobody should "fix" one by reverting the other.
+
+### What this segment produced
+
+| § | |
+|---|---|
+| §876 | **the retraction** — a claim restated for 20 phases, whose refutation (§646) was already in the record |
+| §877 | the same lesson applied to the checklist: **six repo-owned rows probed, three wrong** |
+| §878 | the one class of self-check the record CAN do, built: **75 backticked symbols, 1 ghost** |
+
+Three phases, **zero production-code changes**, one wrong claim withdrawn and two record defects fixed. The
+honest summary is that this segment's main product was a **retraction**, and that the audit's value here was
+not finding bugs in the code but finding them in its own account of the code.
+
+### The through-line worth carrying
+
+§646 measured the board question thirty phases before §876 and titled its section *"the '2 FAIL' was a dirty
+working tree, and it was masking a defect of mine."* It even quoted the rule it was applying: *"a thing
+restated all session without re-measurement is suspect."* I then restated the superseded version for twenty
+more phases, past a memory index line that said *"partly superseded."*
+
+**The record is a corpus like any other, and I searched the code far more often than I searched the record.**
+Every instrument this segment built (§870–§878) points at the same target from a different angle: does the
+written claim still match the artifact? Three gates now answer a piece of that mechanically — projection
+coverage, projection wiring, checklist symbols — and the rest is still prose checked by hand.
+
+### Open, owner-held
+
+**REQ-289's `status`/`wp`** (clears both FAILs) · REQ-076's square/hollow · the `dod_kind` column · sweep
+containment's missing row (§866) · REQ-276's vitest hole (§867) · `unwitnessed`'s reader · `routes ±10%` ·
+the nine private fixtures · `IDENTITY_DENYLIST`.
+
+### Reopen triggers
+
+- **249 checklist rows remain unverified against HEAD** (§877 probed six). Nothing dates a row, and the
+  mechanical check that exists covers symbol *existence* only.
+- If any future section writes *"commit REQ-289 to clear the board"*, §876 is the refutation and this is the
+  second place it is recorded.
