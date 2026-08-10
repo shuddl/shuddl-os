@@ -492,6 +492,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 297 | §849 | **§850** | **PHASE 70 CLOSED — status-only trust is the vulnerability; the driver was the ONLY one.** Classified all **24** production `fetch` sites. **The discriminator is not "does it set `redirect`"** — it is what the caller TRUSTS. Four other protections, all stronger or equivalent: `apps/command`+`portal` have **caller-side Zod** (§782's `get<unknown>` + parse); `biller/sender.ts` does **body validation** and is exemplary, its own comment naming the case (*"a 2xx with a NON-JSON body — a proxy answering for a dead upstream"*); `platform-ledger` is a **service binding**, never on the network; `tsa/client` verifies **cryptographically** + echo-checks the nonce. **Body validation is strictly stronger than a redirect policy** — the sender needs no option because an interceptor cannot produce a Resend id; the driver needed one precisely because the sequencer's 202 carries **nothing to validate**. Rule: *trust a status only when you have nothing else.* §849's residual closed with a gate scoped to `apps/driver/src/sync/` — repo-wide would flag 22 correct sites (§845) and be wrong besides. 3 REDs |
 | 298 | §850 | **§851** | **PHASE 71 CLOSED — a WAIVER of the co-signature requirement that nothing downstream reads.** The evidence claim rests on I4 (*a custody event must be co-signed by a device*). **The chain holds**: the sequencer verifies at two sites, both fail-closed, and pins `device_id === actor.device` **before** the dedup lookup so an unsigned event cannot squat a victim's slot. **The waiver does not.** I4's escape hatch is `payload.unwitnessed`, and it is read in **exactly one place** — the refine that waives the requirement. Nothing downstream reads it: not the Biller, not the evidence email, zero hits across `workers/agents` + `packages/agents`. So an **unwitnessed POD bills identically to a co-signed one**, on the path demo #1 calls *"signature at a door"*. Whether it SHOULD differ is a **product decision, filed not made**. **I diagnosed §796 wrongly, twice.** I assumed it missed the field and blamed its `z.literal` exemption, narrowed it, widened the shape filter, filed the row — then removed the row to prove detection and it **still reported nothing**. §796 counts the field **CONSUMED**, correctly, by its own rule (*a read inside the declaring file counts*): the refine reads it four times. **Both edits reverted** — shipping them would claim a detection that does not happen. The finding is a class §796 does not model: §796 asks *does anything read this*, the question here is *does anything ACT on the difference*, and they come apart exactly when the reader IS the waiver. **Filed in the GO-LIVE-CHECKLIST** with both options; the remedy is a product call |
 | 299 | §851 | **§852** | **PHASE 72 CLOSED — the waiver class has EXACTLY ONE member, and the one that matters is fully accountable.** §851 named a class §796 does not model (*a field read only by the check that waives a requirement*); a class with one member is a hypothesis, so this swept the rest. Six waiver-shaped fields: `override` **5 readers**, `skipped` 2, `shipmentIdOverride` 1, and two zero-reader fields that are **telemetry counts** in a sweep's return, not waivers. **`unwitnessed` is the only member.** REQ-049's override — *the only thing that lets a transition proceed without its evidence* — is accountable end to end: named+reasoned (both refined non-blank), **role-gated** at the route, **persisted on the events row** (the migration states why: *a single-row mapper can't JOIN a side table*), **tamper-evident** in the hashed chain, and **rehydrated by the lens** to the API. The Command UI does not render it — stated precisely rather than filed, because REQ-049's *permanently visible* is a claim about the LEDGER record, and conflating that with a UI wish would file a product question as a compliance gap. **§851's finding is isolated, not systemic** — and the contrast (same role, 5 readers vs 0) is the sharpest argument for giving it one |
+| 300 | §852 | **§853** | **PHASE 73 CLOSED — demo #5's world-dim is CORRECT; one branch in it is vestigial.** genesis/07: *the rest of the map dims to 35%*. `setWorldDim` dims every layer class explicitly — circles, the `trucks` symbol layer, the `eta` line, clusters, the count — each exempting the exception (clusters via `maxStatus`, since they carry no feature-state). Its suite already applies the substring-vs-boundary lesson: it asserts the expression *contains* `0.35`, **names the trap** (*stays true if the exception branch dims too*), and follows with a fallback test. **What I nearly reported**: `entities.ts:163` keys the trucks paint on `feature-state "dimmed"`, which appears **exactly once in the repo — on that line**; nothing sets it, so my first reading was that moving trucks never dim, breaking the law on the demo the design system exists for. **Wrong** — `setWorldDim:230` overwrites `icon-opacity` directly. Checking the caller turned a headline into a footnote. It is **vestigial**: always evaluates to 1, replaced at runtime — removed because it *describes a mechanism that does not exist*. **Residual stated**: the 35% lives in two code copies and genesis/07, unlinked; the design CI covers colour/contrast/radius/motion, not this number |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -49650,3 +49651,71 @@ changed** — this phase measured a class and bounded it at one member.
   above is five links and only the ledger-row link is enforced by a migration.
 - A Command view starts rendering overrides → the UI observation here stops being an observation and becomes
   a tested behaviour; nothing currently pins it either way.
+## §853 — PHASE GATE: PHASE 73 CLOSED — demo #5's world-dim is correct; one branch in it is vestigial
+
+The one acceptance demo this session had not touched. genesis/07 states the law: *"The mark pulses at 100%
+opacity **and the rest of the map dims to 35%**"* — the exception is the only lit thing.
+
+### The mechanism is correct, and better tested than I expected
+
+`setWorldDim` dims **every** layer class explicitly: the circle layers, the `trucks` symbol layer
+(`icon-opacity`), the `eta` line, the clusters, and the cluster count — each with an expression that exempts
+the exception itself (`feature-state status === "exception"` for leaves, `maxStatus === 2` for clusters, since
+clusters carry no feature-state).
+
+Its suite is careful in a way worth noting: it asserts the dim expression **contains** `0.35`, then
+immediately notes the trap — *"which stays true if the exception branch dims too, because then BOTH branches
+are 0.35 and the string still matches"* — and follows with a test reading the fallback and asserting it is
+exactly `0.35`. That is the substring-vs-boundary lesson this audit keeps re-learning, already applied by the
+author.
+
+### What I nearly reported, and did not
+
+`entities.ts:163` paints the trucks layer with
+`["case", ["boolean", ["feature-state", "dimmed"], false], 0.35, 1]`, and **`"dimmed"` appears exactly once
+in the whole repo — on that line.** Nothing sets it. My first reading was that moving trucks never dim, which
+would break the law visibly on the demo the design system exists for.
+
+That reading was wrong. `setWorldDim` line 230 overwrites `icon-opacity` on `trucks` directly, so the trucks
+dim in every real case. Checking the caller before writing it down is what turned a headline into a footnote —
+the same discipline §849 needed in the other direction, where the caller was the problem rather than the
+rescue.
+
+### What it actually is
+
+A **vestigial branch**. `feature-state "dimmed"` is never set, so the expression always evaluates to `1`, and
+`setWorldDim` replaces it the moment an exception fires. Behaviour is correct before, during and after.
+
+It is worth removing rather than leaving, for one reason: it *describes a mechanism that does not exist*. A
+reader encountering `feature-state "dimmed"` reasonably concludes there is a dimming path keyed on per-feature
+state, looks for the setter, and finds nothing. That is the same cost §851 described — a distinction present
+in the code and nowhere else — at a much lower severity, and this one has no product question attached.
+
+Replaced with the constant it always evaluates to, and a comment naming `setWorldDim` as the owner of the
+runtime value.
+
+### The removal made a constant load-bearing, so it is now pinned
+
+Setting the initial paint to `0.35` instead of `1` reds **nothing** — the at-rest value was unpinned while it
+was buried in a `case` expression, and it matters more as a literal: a truck dimmed at rest is a map that
+looks like it has an exception when it does not. A test now asserts it, and that mutation reds.
+
+Two probe errors in the process, both the same kind and both cheap: I guessed `buildLayers()` for a builder
+actually exported as `entityLayers()`, and my restore assertion checked `'dimmed' not in s` — which is false,
+because **my own explanatory comment contains the word**. That is the third text-assertion false alarm
+(§849's, §850's, this), and the instrument that settled it every time is `diff -q` against the snapshot.
+**Assert with a diff, not with a substring** — prose can contain anything the code contains.
+
+### Exit state
+
+`@shuddl/map` **90** (+1), `test:tools` 1118 (3 failed — the REQ-289 trio), typecheck 0 · lint 0 ·
+`verify:docs` 0.
+
+**Reopen triggers**
+- A per-feature dim is genuinely wanted (dim one truck, not the world) → `feature-state "dimmed"` is the
+  natural design and this removal is the thing to undo, deliberately, with a setter.
+- `setWorldDim` stops covering a layer class → its suite pins the circle layers, trucks, eta, clusters and the
+  count, so a NEW layer is the gap: nothing asserts that every rendered layer is in one of those sets.
+- The 35% changes in genesis/07 → **two code copies** (the paint constant and `setWorldDim`'s) and the design
+  doc are unlinked; the design CI covers colour, contrast, radius and motion, not this number. Stated as
+  unpinned rather than fixed, because a doc↔code pin for one constant is a phase, not a footnote.

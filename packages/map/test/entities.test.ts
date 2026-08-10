@@ -220,6 +220,23 @@ describe("STATUS_NUM — worst-state ordering", () => {
   });
 });
 
+describe("§853: the trucks layer is OPAQUE at rest — setWorldDim owns the runtime value", () => {
+  // This paint read `["case", ["boolean", ["feature-state","dimmed"], false], 0.35, 1]` until §853, and
+  // `"dimmed"` was set nowhere in the repo — so the case always took its `1` branch and setWorldDim
+  // overwrote it the moment an exception fired. Replacing it with the constant it always evaluated to is
+  // behaviour-identical, and measured: setting the initial paint to 0.35 instead reds NOTHING, so the
+  // at-rest value was unpinned. It is load-bearing now that it is a literal — a truck dimmed at rest is a
+  // map that looks like it has an exception when it does not.
+  it("trucks render at full opacity before any exception", () => {
+    const trucks = entityLayers().find((l: LayerSpecification) => l.id === "trucks");
+    expect(trucks, "the trucks layer is gone — setWorldDim still targets it by id").toBeDefined();
+    expect(
+      (trucks as { paint?: Record<string, unknown> }).paint?.["icon-opacity"],
+      "trucks must be fully opaque at rest; setWorldDim dims them during an exception",
+    ).toBe(1);
+  });
+});
+
 describe("setWorldDim — dim the world by contrast, exempt the exception (REQ-077)", () => {
   function recorder(): {
     map: { setPaintProperty: (l: string, p: string, v: unknown) => void; setFeatureState: () => void };

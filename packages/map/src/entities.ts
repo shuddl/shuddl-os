@@ -160,7 +160,13 @@ export function entityLayers(): LayerSpecification[] {
       "icon-size": ["interpolate", ["linear"], ["zoom"], 6, 0.5, 14, 1.1],
       "icon-allow-overlap": true,
     },
-    paint: { "icon-opacity": ["case", ["boolean", ["feature-state", "dimmed"], false], 0.35, 1] },
+    // Opaque at rest; `setWorldDim` owns the runtime value and overwrites `icon-opacity` on this layer
+    // directly (REQ-077). This read `["case", ["boolean", ["feature-state","dimmed"], false], 0.35, 1]` until
+    // audit §853 — but `"dimmed"` was set NOWHERE in the repo, so the case always took its `1` branch and was
+    // replaced the moment an exception fired. Behaviour was correct; the expression described a per-feature
+    // dimming path that does not exist, which is the kind of thing a reader spends time looking for the
+    // setter of. If a per-feature dim is ever wanted, this is the natural place for it — with a setter.
+    paint: { "icon-opacity": 1 },
   };
 
   // (d) Mono status chips — text-field reads the `chip` PROPERTY (layout can't read feature-state);
