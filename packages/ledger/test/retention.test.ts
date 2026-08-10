@@ -320,3 +320,24 @@ describe("REQ-015 §580: a failing row and the rows behind it", () => {
     expect(res.deleted).toBe(2);
   });
 });
+
+// §915 — retention_status IS GUARDED BY THE DB AND BY NOTHING ELSE.
+//
+// Neutralising its CHECK left the ledger suite green. Unlike `events.visibility`/`source`, this column has
+// NO Zod schema anywhere in the repo — every write is a hardcoded SQL literal ('active' / 'expired') in
+// retention.ts and the evidence route. So the CHECK is the SOLE enforcement of the tombstone marker's
+// domain, and a typo'd literal in a future writer would persist a document in a state the sweep's
+// `WHERE retention_status = 'active'` silently skips: bytes that never expire, or a row that never tombstones.
+describe("§915: retention_status is constrained by the DB, which is its only guard", () => {
+  it("accepts the two legal states and refuses a third", async () => {
+    const doc = (id: string, status: string): Promise<D1Result> =>
+      A.prepare(
+        "INSERT INTO documents (id, shipment_id, kind, r2_key, hash, created_ts, retention_status) VALUES (?, 'S-ret', 'POD', ?, ?, 1000, ?)",
+      )
+        .bind(id, `evidence/t/${id}`, id.padEnd(64, "0"), status)
+        .run();
+    await doc("ret-active", "active"); // controls: both legal states insert cleanly…
+    await doc("ret-expired", "expired");
+    await expect(doc("ret-bad", "archived")).rejects.toThrow(/CHECK/i); // …so this refusal is the domain
+  });
+});

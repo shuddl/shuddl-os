@@ -231,3 +231,27 @@ describe("Task 5 — REPLACE cannot destroy a row through an UNENUMERATED unique
     expect((after as { id: string } | null)?.id).toBe("ml-victim");
   });
 });
+
+// §915 — THE DB'S OWN DOMAIN CHECKS ON `events`, WHICH NOTHING EXERCISED.
+//
+// `visibility` and `source` each carry a CHECK (col IN (...)) in 0001_ledger_core.sql, and neutralising
+// EITHER to `CHECK (1=1)` left the whole ledger suite green. Found by mutating all 23 D1 CHECK constraints,
+// not by reading.
+//
+// They are not redundant in the way "Zod already validates this" suggests. Zod guards the API boundary, so
+// every path that parses a LedgerEvent is covered — but the CHECK is what covers the paths that DON'T: a
+// migration backfill, a seed loader, a repair script, a console write. That is the whole point of a
+// constraint living in the schema, and it is exactly the layer no test was touching.
+//
+// Each case inserts a VALID row first (§908): the rejection is then attributable to the one column varied,
+// not to anything else the row happens to carry.
+describe("§915: the events domain CHECKs refuse an out-of-domain value at the DB, not just at Zod", () => {
+  it("visibility must be one of internal|counterparty|public", async () => {
+    await insertEvent(eventRow({ seq: 900, id: "vis-ok" })); // control: the same shape inserts cleanly
+    await expect(insertEvent(eventRow({ seq: 901, id: "vis-bad", visibility: "everyone" }))).rejects.toThrow(/CHECK/i);
+  });
+  it("source must be one of native|legacy|edi|email", async () => {
+    await insertEvent(eventRow({ seq: 902, id: "src-ok" })); // control
+    await expect(insertEvent(eventRow({ seq: 903, id: "src-bad", source: "carrier-pigeon" }))).rejects.toThrow(/CHECK/i);
+  });
+});

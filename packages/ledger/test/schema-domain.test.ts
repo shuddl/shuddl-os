@@ -182,6 +182,15 @@ describe("Task 3 — control plane (4 tables) constraints", () => {
     await CDB.prepare(
       "INSERT INTO pairings (id, tenant_id, kind, secret_ref, status) VALUES ('pr1', 't2', 'mcp', 'sref', 'active')",
     ).run();
+    // §915: the kind CHECK was the LAST control-plane constraint nothing exercised — this test inserted a
+    // valid pairing and never probed the domain, so neutralising `CHECK (kind IN (...))` left the suite
+    // green. The insert above is its control; a pairing kind decides which credential surface a token may
+    // act on, so a value outside the four is an unroutable grant, not a typo.
+    await expect(
+      CDB.prepare(
+        "INSERT INTO pairings (id, tenant_id, kind, secret_ref, status) VALUES ('pr-bad', 't2', 'ftp', 'sref', 'active')",
+      ).run(),
+    ).rejects.toThrow();
     await CDB.prepare("INSERT INTO usage_credits (id, tenant_id, period) VALUES ('uc1', 't2', '2026-07')").run();
     const r = await CDB.prepare("SELECT count(*) AS c FROM pairings WHERE tenant_id = 't2'").first<{ c: number }>();
     expect(r?.c).toBe(1);

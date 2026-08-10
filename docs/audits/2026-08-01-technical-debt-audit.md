@@ -554,6 +554,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 359 | §911 | **§912** | **A RULE WRITTEN TWICE, TESTED ASYMMETRICALLY — 4 OF 8 BRANCHES SILENT.** Discharged §911's trigger in the next phase instead of deferring it, and **it was already false**: contracts holds **19** refine/superRefine sites, not one refusal path. `events.ts` states REQ-016's device-binding rules TWICE (a Zod union cannot inherit a refined object); mutating all eight branches found **four silent** — and the coverage was **asymmetric**: `device_id==actor.device` tested only on EventInput, I4 only on LedgerEvent, the dedupe-key branch on NEITHER. Each copy tested for a different subset, so the pair read as covered while neither was. The dedupe branch is **not** redundant with `EventBase`'s identical refine — the union never uses EventBase — so it was the ONLY enforcement of the slot-squat rule, untested on both. **Two instrument failures, both mine**: the grep for the four messages returned **0** because the tests use TRUNCATED regexes (10th vocabulary miss — the finding stands on the mutation, not the grep); and writing the fix I nearly re-created §906's defect, since `EventInput.strict()` refuses an `eventFixture` with `Unrecognized keys`, so a bare `toThrow()` would have passed for the wrong reason. Fixed with 5 attributed cases + one corpus driven through BOTH schemas; roster half closed by `tools/checks/superrefine-parity.test.ts`, which parses both blocks and requires each rule to be pinned by a matcher. **That gate shipped weak and its own mutation caught it** — `/unwitnessed|device/` matched every message containing 'device', so renaming a rule in both blocks stayed GREEN; matchers tightened, property strengthened to require a DISCRIMINATING match. 8/8 RED, zero residual; contracts 308→318 |
 | 360 | §912 | **§913** | **SWEPT ALL 17 REMAINING REFINE SITES — 3 SILENT, 2 REAL.** §912's trigger said "the other **11** refine sites"; counting them gave **17**, and its list omitted `events.ts` itself (5 sites, including the `EventBase` that section discusses). **I eyeballed grep output instead of computing, in the phase whose whole finding was that reading is not measuring** — trigger struck and corrected in place. Sweep: every site neutralised, **14 RED** (coverage is broadly real), 3 silent, and §688's taxonomy separates them. `packages/contracts/src/money.ts:69@share_bps` — interline allocations must sum to **exactly 10000 bps** (REQ-019), untested: a short split leaves cents unapportioned, an over-allocated one hands out more than the gross. `packages/contracts/src/json.ts:12@isSafeInteger` — `SafeInt`'s ONLY marginal contribution over `z.number().int()` is the **`-0` rejection** (its own comment says so), so every prior green came from what Zod does anyway; `JSON.stringify(-0)` is `"0"`, so a `-0` hashes as `0` while comparing `!==` under `Object.is` — the frozen-byte law, now also driven through the RECURSIVE `JsonObject` that 30 of 35 kinds use. `packages/contracts/src/events.ts:295@EventBase` — **not a coverage gap: `EventBase` is DEAD**, no consumer anywhere, silent because nothing evaluates it; public API so filed for the owner and annotated, **because §912 cited it as load-bearing before measuring**. Trap avoided *before* writing: `Bps` caps at 10000, so a single `10001` share would fail on `Bps.max` — both bad sums built from individually valid shares. contracts **318 → 326** |
 | 361 | §913 | **§914** | **THE REFINE SWEEP FINISHES — 31 SITES REPO-WIDE, ONE SILENT.** §913 refused to guess the count outside contracts; measured: **12 sites in 7 files**, so **31 repo-wide, all mutated**. **11 of 12 RED**, including the four **CRLF-injection guards** on the evidence-email sender (`to`/`subject`/`idempotency_key` — a newline in a header is how a `Bcc:` gets forged) plus its double-wrap guard, and the webhook `https://` guard. **One silent**: `ImportBody`'s *exactly one of sheet \| r2_key*. Load-bearing twice — the route reads **`body.r2_key!`**, a non-null assertion justified ONLY by that refine, so NEITHER source ⇒ key `<tenant>/imports/undefined` ⇒ a validation fault reported as **404 NOT FOUND**; and BOTH ⇒ the inline sheet **silently wins** while the caller is told their uploaded file imported — the no-silent-drop law violated one level up, on the migrator path. Fixed with 3 cases (control + neither + both); mutation now fails exactly the two. **Incidental**: the webhook error said *"must be an http(s) URL"* while the code requires https ONLY — a caller would retry http and be refused identically; corrected. **Environment**: **544 orphaned workerd processes** (~2 days old, all `S`, NOT the `UE` wedge) cleared by SIGTERM — but the reason I looked was a misread: `timeout: command not found` on macOS, not a hang. **I did not establish the orphans blocked anything** (5th false measurement signal this session). api 812→815 |
+| 362 | §914 | **§915** | **23 D1 CHECKs SWEPT; §668'S ROSTER COMPLETED; A HARNESS THAT INVENTED FINDINGS.** §914's trigger named CHECKs as unmeasured; measured **23 across 4 files**, all mutated. **The record already held half the answer**: `schema-domain.test.ts` carries a §668 roster built for exactly this argument — *a DDL constraint is the last line below every gate and test double* — which is why 16 went RED. **But §668 swept `0002_domain.sql` and never swept its siblings**, and the 4 silent constraints are precisely those outside it: `events.visibility`, `events.source` (0001), `documents.retention_status` (0007), `pairings.kind` (control). Correct-per-VALUE-not-per-FILE one level up. **`retention_status` is sharpest — NO Zod schema exists**, every write is a hardcoded SQL literal, so a typo persists a doc in a state the sweep's `WHERE retention_status='active'` silently skips (bytes that never expire, or a row that never tombstones). **THE HARNESS INVENTED TWO FINDINGS FIRST**: attempt 1 read 20/21 cells as unmeasurable (stdout-only + workerd exhaustion) — naively *20 silent*; attempt 2 reported **2 SILENT that were FALSE** (`facilities.kind`, `anomalies.severity`, both RED when measured properly). **A false SILENT is a fabricated defect** — a false RED gets investigated and dies, a false SILENT gets WRITTEN DOWN. Fixed by SHRINKING the unit of work (owning suite, 2s) + escalating every GREEN to the full suite. 4 cases added, **4/4 RED**; plus 2 structural gates — `enum-parity` (Zod enum ≡ CHECK domain, RED on widen/narrow/widen-source) and `check-constraint-coverage` (every CHECK must be CLASSIFIED; RED on new/widened/orphaned). ledger 688→691, test:tools 1,142→1,149 |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -53600,3 +53601,89 @@ signal from the measurement rather than the subject.
 - **Zod is not the only refusal mechanism.** D1 CHECK constraints, DO guards and hand-rolled validators
   enforce rules the same way and were not part of this sweep. That count is unmeasured, and I am not
   guessing it here either.
+## §915 — PHASE GATE: PHASE 135 CLOSED — 23 D1 CHECKs swept; §668's roster completed; a harness that invented findings
+
+§914's trigger named D1 CHECK constraints as the unmeasured remainder. Measured: **23, across 4 migration
+files** — 20 enum CHECKs and 3 structural. All 23 mutated to `CHECK (1=1)`.
+
+### The record already held half the answer
+
+The sweep's first real discovery was in the record, not the code. `schema-domain.test.ts` carries a
+**§668** block — *"THE TENANT DOMAIN'S CHECK CONSTRAINTS WERE ENFORCED BY THE DATABASE AND BY NOTHING
+ELSE"* — with a fifteen-row roster, built for exactly this reason and stating exactly this argument:
+
+> a DDL constraint is the last line below every gate and test double, and it is exactly the clause a
+> schema refactor drops because nothing in the application layer references it.
+
+That is why 16 of my 23 went RED: §668 had already fixed them. **But §668 swept `0002_domain.sql` and
+never swept its siblings** — and the four silent constraints are precisely the ones outside that file:
+
+| constraint | file | why it was silent |
+|---|---|---|
+| `events.visibility` | 0001_ledger_core | Zod agrees exactly; the CHECK covers the paths Zod does not |
+| `events.source` | 0001_ledger_core | same |
+| `documents.retention_status` | 0007 | **no Zod schema anywhere — the CHECK is the sole guard** |
+| `pairings.kind` | control | the control test inserted a valid pairing and never probed the domain |
+
+"Correct per VALUE, not per FILE" — one level up. §668 wrote the argument, applied it to the file in front
+of it, and the argument itself named no boundary.
+
+**`retention_status` is the sharpest of the four.** Every write in the repo is a hardcoded SQL literal
+(`'active'` / `'expired'`) in `retention.ts` and the evidence route; there is no schema to catch a typo.
+A value outside the pair persists a document in a state the sweep's `WHERE retention_status = 'active'`
+silently skips — bytes that never expire, or a row that never tombstones. Both are audit failures that
+look like nothing.
+
+### The harness invented two findings before it produced a real one
+
+This took **three attempts**, and the second is the one worth recording.
+
+1. **Attempt 1 — 20 of 21 cells "DID NOT RUN".** I captured stdout only, and back-to-back pool-workers
+   runs exhaust workerd, so later runs died before emitting a summary. Read naively, that is *20 silent
+   constraints.*
+2. **Attempt 2 — added cleanup and retries; still 18 errors, and it reported TWO SILENT: `facilities.kind`
+   and `anomalies.severity`. Both were FALSE.** Both are RED in the credible run. Had I filed them, I would
+   have reported two defects that do not exist, in a record whose entire value is that its verdicts were
+   measured.
+3. **Attempt 3 — run the two suites that OWN the schema (2s, not 9s), and escalate every GREEN to the full
+   suite before calling it silent.** Credible: 18 RED, 3 silent, 1 error; the error resolved to silent on
+   a patient retry, and the two control-plane CHECKs were swept separately.
+
+**A flaky harness manufactures false SILENTs, and a false SILENT is a fabricated defect.** The asymmetry
+matters: a false RED gets investigated and dies; a false SILENT gets *written down*. The fix that worked
+was not more retries — it was **shrinking the unit of work** until the measurement stopped being flaky,
+plus refusing to treat a missing summary as data.
+
+### The fixes, and the two gates
+
+Four DB-level cases, each self-controlling (a valid insert first, so the refusal is attributable to the one
+column varied). **4/4 mutation-proved RED.**
+
+Then the two structural gates, because fixing four cells does not stop a fifth:
+
+- **`tools/checks/enum-parity.test.ts`** — `events.visibility` and `events.source` are constrained *twice*,
+  by a Zod enum and by a CHECK. Both pairs agree today; this keeps them agreeing. Widen either side alone
+  and it reds. Honest bound stated in the file: `source` is an inline `z.enum` rather than a named export,
+  so its check is behavioural per value plus one sentinel — stronger per value, weaker in coverage than
+  `visibility`'s true set equality.
+- **`tools/checks/check-constraint-coverage.test.ts`** — the discovery half of §668's roster. It scans every
+  CHECK in `db/`, requires each to be **classified** with the test that exercises it, and compares the two
+  sets both ways. A new CHECK fails until someone classifies it; a widened enum changes the row's value
+  signature and fails too, deliberately — widening an enum is a decision, not a detail.
+
+### Proof
+
+- 23/23 CHECKs mutated: **19 RED, 4 silent → all four now RED.**
+- `enum-parity`: widen the CHECK past Zod → RED · narrow it below Zod → RED · widen `source` → RED.
+- `check-constraint-coverage`: a new unclassified CHECK → RED · an enum widened silently → RED · a stated
+  test home that no longer exists → RED.
+- ledger **688 → 691** · `test:tools` **1,142 → 1,149** (3 failed = the REQ-289 classifier trio, unchanged)
+  · contracts 326 · typecheck 0 · lint 0 · `verify:docs` 0 · every migration restored byte-identical.
+
+**Reopen triggers**
+- **The coverage gate's link is weak by construction.** It proves each CHECK is classified and that the
+  named file mentions the column — not that the file asserts anything about it. §668's roster verifies the
+  values; if that roster is ever deleted, this gate stays green over nothing.
+- **Pool-workers suites are unreliable under rapid repeated invocation in this environment.** Any future
+  mutation sweep against them must use the narrowest owning suite and must treat a missing summary as
+  ERROR, never as GREEN. Two false findings came from ignoring that.
