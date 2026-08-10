@@ -526,6 +526,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 331 | §883 | **§884** | **"249 ROWS UNVERIFIED" WAS MY OWN MISLEADING DENOMINATOR.** Bucketed all 255 open checklist rows: **38 dated 2026-08 · 22 dated earlier · 33 audit-§ only · 162 (63%) unstamped.** The 63% is the misleading figure — those 162 are dominated by **secrets, provisioning and legal prerequisites**, and **a row waiting on an external fact cannot rot**; it needs no stamp, ever. Filtering to repo-citing, non-external rows: **45**, of which ~a third are secret rows that merely mention a path → **~10–15 genuine code-claim rows without a stamp. The honest denominator is ~15, not 249** — I have been counting unrottable rows as unverified debt. **And the risk-picked rows were already done**: L229 scope-verified §415 (and better than its title — FOUR fields outside `clientView`, not two, three immaterial for stated reasons), L204 narrowed §124 (which deleted a FALSE half of its own title), L415 verified here (comment-stripped: `agent.acted` emitted only by `routes/rate.ts` + `translator/inbound.ts`, no Concierge source — row HOLDS; its Migrator sub-claim unchecked and said so). **§877's 3-of-6 was a biased sample** — chosen for mechanical checkability, which selects for rows quietly fixed by later work; risk-chosen rows are in better shape because risk got attention |
 | 332 | §884 | **§885** | **EIGHT CODE-CLAIM ROWS VERIFIED IN ONE PASS; SEVEN HOLD, ONE CITATION DRIFTED.** Worked §884's sized backlog instead of sampling 255. **Hold**: L173 (`legacy-mirror.ts:69` is the monotonic-cursor docblock), L246 (`sms-not-wired` hold arm present), L267, L283, L295, **L304 — whose source annotates the gap VERBATIM** (`workers/agents/src/watchtower.ts` (the UNKNOWN⇒CLEAR branch): *"a native module whose mirror went UNKNOWN is unmonitored"*), L317 (`parity.ts:130` counts by KIND). **One defect: L210** cites `sweep-214.ts:182` and **that line is BLANK** — the claim is true (`dedupeKey` bare while the R2 key is tenant-scoped) and the source notes it itself at `:249`; re-anchored to `:254@send214`. **§877's `notifyBoard` shape in its mild form**: right about the world, wrong about the artifact — but `notifyBoard` named a symbol that NEVER EXISTED (a false claim) while this names a real file at a line that MOVED (decay); only the second is fixable by re-anchoring. **Two of my probes were wrong before any row was**: grepping `parity.ts` for `note` returned ZERO and looked like staleness — the word is absent *because* parity does not distinguish ops notes from customer messages, which is the row's whole point; **the absence I measured was the defect, not its refutation** |
 | 333 | §885 | **§886** | **A CITATION THAT LANDS ON A BLANK LINE IS ROT, AND THAT IS DECIDABLE.** §885 found L210 pointing at a blank line and closed noting the ratchet only guards files it already tracks as high-churn — so a stale pointer into a QUIET file rots silently, and a hand pass found one. **But blankness is mechanical.** **Measured first: 101 resolvable `path:line` citations in the checklist (strikethrough masked), TWO on blank lines, ZERO out of bounds — a 2% flag rate** beside §878's 1.3%, and **both flags real**: `sender.ts:245` (the gap between two functions; the config fields are at `:200`) and `demo.ts:115` (the line BEFORE the comment block that is the row's subject; `DEMO_TILE_URL` is at `:119`). Re-anchored to `:200@apiKey` / `:119@DEMO_TILE_URL`. **Why the ratchet cannot catch these**: it is a GROWTH check on a NAMED SET of high-churn files — it refuses *more* unanchored citations into `sequencer.ts`/`biller.ts`, and says nothing about a citation that was fine when written and decayed later, nor anything about quiet files; `sweep-214.ts`, `sender.ts` and `demo.ts` are all quiet, which is why nobody noticed. **What it does NOT do**, stated so the green is not over-read: a citation drifting onto a different NON-blank line still passes — that is the majority of real drift and needs the symbol anchor |
+| 334 | §886 | **§887** | **THE AUDIT HAS ZERO CITATION ROT; THE ONLY THREE FLAGS ARE MY OWN DOCUMENTATION OF IT.** §886 scoped its gate to the checklist on an ASSUMPTION — widening *"would flag history"*. Measured: audit **76 citations, 3 blank (3.9%), 0 out of bounds, 64.5% anchored**; checklist 101 / 0 / 0 / 43.6%. **Both conclusions invert the assumption**: the audit has NO organic rot (all three flags are mine, from §885/§886, each a deliberate quote of a broken citation inside the section documenting it), and the append-only history I was protecting is **better anchored than the live checklist** (64.5% vs 43.6%) because the ratchet has been pushing me to anchor for weeks. **The obstacle is a rule I wrote down and kept breaking**: 5th instance this session of *a gate that scans prose cannot tell an example from a use* (§829/§871/§878/§882/here), and after §871 I recorded the fix — **write the shape, never the instance** — then wrote the instance three more times, in the two phases ABOUT citation rot. **Fixed by de-citationing the quotes, not by allowlisting** (an allowlist would encode the bad habit and make the next documented rot need a new exception). Audit now needs ZERO exclusions; gate widened to both documents, green over **174** citations |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -51755,7 +51756,7 @@ list rather than sampling 255.
 
 ### The one defect
 
-L210 cites `workers/translator/src/sweep-214.ts:182`. **Line 182 is blank.** The claim itself is true and the
+L210 cites `workers/translator/src/sweep-214.ts` at line **182** — and that line is **blank**. The claim itself is true and the
 file is right — `dedupeKey = edi214/<newest-status id>` is bare while the R2 key is tenant-scoped — and the
 source carries its own note at `:249`: *"`dedupeKey` is NOT tenant/partner-[qualified]"*. Re-anchored to
 `:254@send214`, the line that actually hands the key to the transport, so the citation survives the next edit.
@@ -51806,8 +51807,8 @@ A **2% flag rate**, next to §878's 1.3% — and both flags are real:
 
 | citation | cited by | what is actually there |
 |---|---|---|
-| `packages/agents/src/biller/sender.ts:245` | L36 (`RESEND_API_KEY` + `EVIDENCE_FROM`) | the gap between `scrubAddresses` and `resendError`; the config fields are at `:200` |
-| `packages/map/src/demo.ts:115` | L56 (self-hosted Protomaps) | the line *before* the comment block that is the row's subject — `DEMO_TILE_URL` is at `:119` |
+| `packages/agents/src/biller/sender.ts` line 245 | L36 (`RESEND_API_KEY` + `EVIDENCE_FROM`) | the gap between `scrubAddresses` and `resendError`; the config fields are at `:200` |
+| `packages/map/src/demo.ts` line 115 | L56 (self-hosted Protomaps) | the line *before* the comment block that is the row's subject — `DEMO_TILE_URL` is at `:119` |
 
 Both are off-by-a-few after edits — the ordinary way a line citation dies. Re-anchored to
 `:200@apiKey` and `:119@DEMO_TILE_URL`, forms that survive the next insertion.
@@ -51838,3 +51839,53 @@ typecheck 0 · lint 0 · `verify:docs` 0. No production code changed.
 - A blank line is one of several "landed on nothing" shapes. A citation onto a closing brace, an import, or a
   comment delimiter is equally dead and equally mechanical; not built, because I have not measured the
   false-positive rate of those and would rather ship the one I have numbers for.
+## §887 — PHASE GATE: PHASE 107 CLOSED — the audit has zero citation rot; the only three flags are my own documentation of it
+
+§886 scoped its gate to the checklist and justified that with an assumption: widening to the audit *"would
+flag history"*, since a 50,000-line append-only record quotes lines that have legitimately moved. **That was a
+claim, not a measurement.** Measured:
+
+| document | resolvable `path:line` citations | blank | out of bounds | anchored |
+|---|---|---|---|---|
+| audit | **76** | **3 (3.9%)** | 0 | **64.5%** |
+| checklist | 101 | 0 | 0 | 43.6% |
+
+Two things fall out, and both are the opposite of what I assumed.
+
+**The audit has no organic citation rot.** Not a flood of stale history — **three**, and all three are *mine*,
+written in §885 and §886, each one a deliberate quotation of a broken citation inside the section that
+documents it. The append-only history I was protecting turns out to be in better shape than the live
+checklist: **64.5% of its citations carry an `@symbol` anchor against the checklist's 43.6%**, because the
+ratchet has been pushing me to anchor for weeks.
+
+### The real obstacle is a rule I wrote down and kept breaking
+
+This is the **fifth** instance this session of *a gate that scans prose cannot tell an example from a use*
+(§829, §871, §878, §882, here) — and after §871 I recorded the durable form: **write the shape, never the
+instance.** I then wrote the instance three more times, in the two phases whose subject was citation rot.
+
+So the fix is not an allowlist. Allowlisting would encode my own bad habit into the gate and make the next
+documented rot require a new exception. **The three quotes are rewritten so they no longer parse as
+citations** — `sweep-214.ts` line 182, not the backticked `path:line` form — which is what the rule said to do
+in the first place.
+
+With that, the audit needs **zero exclusions**, and the gate widens to cover both documents.
+
+### What widening buys
+
+The checklist is the live record and gets read; the audit is where a verdict goes to be found later. A stale
+pointer there is worse, not better — it is the artifact a future phase consults *precisely because* it does
+not remember. §880's reasoning (don't flag history) was sound in principle and simply did not apply, and the
+only way to know that was to count.
+
+### Exit state
+
+3 documenting quotes de-citationed; the gate now reads both documents. `tools/checks/citation-blank-line.test.ts`
+3 cases, green over **174** citations. `test:tools` **1,134**. typecheck 0 · lint 0 · `verify:docs` 0.
+
+**Reopen triggers**
+- The audit is append-only, so a future section documenting a broken citation will re-introduce this exact
+  failure unless it writes the shape. The gate now catches it at commit time rather than months later, which
+  is the point — but the failure mode is *structural*, not careless: **a record of rot must refer to the rot.**
+- Anchored coverage is 64.5% / 43.6%. The unanchored remainder is the drift this gate cannot see (a citation
+  moving onto a different non-blank line), and the checklist is the weaker half.

@@ -23,8 +23,17 @@ import { repoRoot } from "./repo-root.js";
 // the majority of real drift; catching it needs the `@symbol` anchor form, which `check:citations` enforces
 // where it is used. This gate closes one narrow, decidable hole — no more.
 
-/** The LIVE record. The audit is append-only history whose old sections cite lines that legitimately moved. */
-const DOC = "docs/ops/GO-LIVE-CHECKLIST.md";
+/**
+ * BOTH records. §886 scoped this to the checklist on the assumption that the append-only audit would flag
+ * legitimate history; §887 MEASURED it — the audit carries 76 resolvable citations, ZERO organically rotted,
+ * and is BETTER anchored than the checklist (64.5% vs 43.6%). The only three flags were quotes of broken
+ * citations inside the sections documenting them, and those were rewritten to name the shape instead of the
+ * instance rather than allowlisted (an allowlist encodes the habit and taxes the next honest write-up).
+ *
+ * The audit matters MORE, not less: it is the artifact a later phase consults precisely because it does not
+ * remember, so a pointer that has moved is worse there than in the record someone reads daily.
+ */
+const DOCS = ["docs/ops/GO-LIVE-CHECKLIST.md", "docs/audits/2026-08-01-technical-debt-audit.md"] as const;
 
 const CITATION =
   /`((?:docs|workers|packages|apps|tools|db|genesis|tests)\/[A-Za-z0-9_./-]+\.[a-z]{2,4}):(\d+)(?:@[A-Za-z0-9_$]+)?`/g;
@@ -38,7 +47,7 @@ interface Cit {
 }
 
 function citations(root: string): Cit[] {
-  const text = readFileSync(`${root}/${DOC}`, "utf8").replace(STRIKETHROUGH, " ");
+  const text = DOCS.map((d) => readFileSync(`${root}/${d}`, "utf8")).join("\n").replace(STRIKETHROUGH, " ");
   const tracked = new Set(execSync("git ls-files", { cwd: root, encoding: "utf8" }).split("\n"));
   const out: Cit[] = [];
   for (const m of text.matchAll(CITATION)) {
@@ -49,7 +58,7 @@ function citations(root: string): Cit[] {
   return out;
 }
 
-describe("§886: no live citation points at a blank line", () => {
+describe("§886/§887: no citation in either record points at a blank line", () => {
   const root = repoRoot();
   const cits = citations(root);
 
@@ -57,7 +66,7 @@ describe("§886: no live citation points at a blank line", () => {
     // A renamed doc, a changed pattern, or a broken tracked-set read yields zero, and the assertion below
     // would pass over nothing — the failure this repo met in four gates (§487/§554/§572). Floor well under
     // the 101 measured at §886.
-    expect(cits.length, `no resolvable path:line citations found in ${DOC} — the scan is broken, not the record`).toBeGreaterThanOrEqual(60);
+    expect(cits.length, `no resolvable path:line citations found in ${DOCS.join(", ")} — the scan is broken, not the record`).toBeGreaterThanOrEqual(120);
   });
 
   it("every cited line is in bounds AND not blank", () => {
@@ -81,7 +90,7 @@ describe("§886: no live citation points at a blank line", () => {
   it("the blankness test can actually fail (the instrument, not the corpus)", () => {
     // A tautological version of the check above — one that read the wrong file, or trimmed nothing — would be
     // green forever. This drives the same predicate over a known-blank line and a known-code line.
-    const lines = readFileSync(`${root}/${DOC}`, "utf8").split("\n");
+    const lines = readFileSync(`${root}/${DOCS[0]}`, "utf8").split("\n");
     const blankIdx = lines.findIndex((l) => l.trim() === "");
     const codeIdx = lines.findIndex((l) => l.trim().startsWith("|"));
     expect(blankIdx, "the doc has no blank line to probe with").toBeGreaterThanOrEqual(0);
