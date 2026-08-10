@@ -412,3 +412,39 @@ describe("REQ-118 §670 — a leg cannot exist without its shipment", () => {
     await expect(leg("leg-orphan", "S-does-not-exist")).rejects.toThrow();
   });
 });
+
+// ─── §923 — documents.id DEDUPES, WHICH IS WHAT THE UPLOAD ROUTE'S 201-vs-200 RESTS ON ──────────────────
+//
+// `/v1/evidence` writes `INSERT OR IGNORE INTO documents (id, …)` and reads `meta.changes` to tell a true
+// first store (201) from the concurrent-duplicate LOSER whose row already landed (200). Dropping
+// `documents.id PRIMARY KEY` left the whole api suite green.
+//
+// The reason it stayed green is worth stating, because it bounds what this test can claim: the suite's
+// idempotent-repeat case is SEQUENTIAL, so it returns 200 through the earlier `existing !== null` branch
+// and never reaches the insert at all. The PK only decides the CONCURRENT case — two inserts racing — and
+// that race is not deterministically reproducible against a single-writer D1.
+//
+// So this pins the SCHEMA PROPERTY the route depends on rather than the race: a second insert of the same
+// document id must not create a second row. Without the key, `OR IGNORE` is `INSERT`, `meta.changes` is
+// always > 0, every racing writer answers 201, and the duplicate rows break the row-iff-bytes invariant
+// that retention and the Biller's POD lookup both read.
+describe("§923: documents.id dedupes a duplicate insert (the 201-vs-200 discriminator's foundation)", () => {
+  it("INSERT OR IGNORE with a repeated id leaves exactly one row and reports no change", async () => {
+    const ins = (id: string): Promise<D1Result> =>
+      TDB.prepare(
+        // Base columns only: this suite applies 0001-0003, and `created_ts` arrives in a later migration.
+        "INSERT OR IGNORE INTO documents (id, shipment_id, kind, r2_key, hash) VALUES (?, 'S-dedupe', 'POD', ?, ?)",
+      )
+        .bind(id, `evidence/t/${id}`, id.padEnd(64, "0"))
+        .run();
+
+    const first = await ins("doc-dedupe-1");
+    expect(first.meta.changes, "the first insert wrote nothing — 'exactly one row' would pass over an empty table").toBe(1);
+
+    const repeat = await ins("doc-dedupe-1");
+    expect(repeat.meta.changes, "a repeated document id inserted AGAIN — OR IGNORE found no key to conflict on, so every racing writer would answer 201").toBe(0);
+
+    const n = await TDB.prepare("SELECT COUNT(*) AS n FROM documents WHERE id = 'doc-dedupe-1'").first<{ n: number }>();
+    expect(n?.n).toBe(1);
+  });
+});

@@ -562,6 +562,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 367 | §919 | **§920** | **§919's CLASS — SWEPT FIRST (SOLE MEMBER), THEN MADE VISIBLE.** §919's trigger named the class; this closes it **by measuring before gating**. Thirteen ledger suites omit 0008; each given 0008 and re-run — **all twelve applicable stayed GREEN** (`migrate.test.ts` correctly out of scope, its subject IS the migrator). So §919 was the **sole member**, and that decides the gate's design: demanding every suite apply everything would churn twelve suites to prevent nothing. **A false positive caught before it became a registry**: the first scan reported ten files missing all 8 tenant migrations — they are **control-plane tests applying CONTROL migrations**, and the numbering collides (`db/control` ships 0001–0003 alongside tenant 0001–0008). Keying on actual FILENAMES dissolved all ten; a registry built on that conflation would have been confidently wrong about a third of its rows. **CORRECTION — half this gate already existed**: `checkTestSchemaParity` (§239, already blocking) enforces harness fullness, so that rule was deleted rather than duplicated. **But its corpus is `globSync("workers/*/test/helpers.ts")` — and §919's defect lived in `packages/ledger/test/`, ONE DIRECTORY OUTSIDE IT.** The gate existed, was blocking, was correct, and could not see the file — which answers how §919 survived a repo that already gates schema parity. What ships: every applier's set **PINNED two-sided** (a subset stays legal, it stops being invisible) + a **tripwire** that §239 still owns the other half. **The tripwire itself shipped weak** — `toContain("export function checkTestSchemaParity")` is satisfied by `…ParityX`, so renaming it away stayed GREEN one round; a prefix is not an identifier (§913's lesson on my own instrument). **The battery then caught my OWN drift via a different gate**: `money.ts` grew ~33 lines and a citation landed on a blank line — `verify:docs` passed because `citation-links` checks bounds/anchors while **blankness is a separate gate**; re-anchored `:120@VOID`. Proof: harness drops 0008 (§919 recreated one layer up) → RED×2; pinned set changes → RED; new applier → RED. test:tools 1,149→1,152 |
 | 368 | §920 | **§921** | **THREE CONSTITUTIONAL GUARDS DEFENDED BY NOTHING — LAW 5 AND TWO CROSS-TENANT READS.** The sweep returned 15 candidates; each re-verified by MUTATION rather than taken on confidence. **3 real, 3 refuted.** **(1) CLAUDE.md Law 5** — `/v1/rate` refuses `legs` without `tenant_party`; neutering it left **all 816 api tests green**. It is the ONLY thing between an interline body and a gross comparison: `approvalOpts()` attaches legs only when BOTH are present, so without it `assessApproval` takes its DIRECT branch and judges the floor against `quote.sell_cents` — the whole move. The rater's fail-loud sibling **can never fire**, because the partial signal is dropped before reaching it. The law whose $222,084/35-lb regression rule 5 makes permanent — and a gross comparison does not error, it **approves**. **(2) REQ-025** — `/v1/import`'s r2_key branch: dropping the session-tenant prefix left the suite green; every other case posts an inline sheet, so the **R2 read path had no isolation test at all**. **(3) REQ-025** — `/pub/documents/:cap`: widening the namespace check from `evidence/<t>/` to `evidence/` left the suite green; the nine cases beneath it exercise MAC/expiry/shape and **none varies the key's tenant against the cap's**. Both isolation tests carry a control serving the same bytes to their rightful tenant (§906's wrong-reason trap avoided by construction). **REFUTED**: `roleSatisfies`, the chain hash comparison, and the revoked-device clause — **the last nearly became a false finding**: neutering it left `devices.test.ts` GREEN and only the WHOLE-package run went RED, on a case in another file. **Ownership by NAME is a guess**; when a narrow run comes back green, widen before believing it. api 816→819. **6 of 15 candidates still unverified — recorded as unverified, not clean** |
 | 369 | §921 | **§922** | **FOUR MORE UNDEFENDED GUARDS — AN IDEMPOTENCY CLASS, A MONEY PARTITION, AN UNLINKABLE SALE.** §921 left six candidates recorded *unverified, not clean*; continuing: **4 real, 1 refuted by reading, 1 still open.** **`INSERT OR IGNORE` is only idempotent because of a PRIMARY KEY** — `projectApprovals` (id = the requested event id) and the `booking.created` leg skeleton both state dedupe as their mechanism; dropping `legs.id`/`approvals.id` PK left ledger AND api green because **no test drove the same event twice**. OR IGNORE with no key to conflict on is just INSERT: a redelivery appends a second open approval, or a third skeleton leg the appointment claim can bind to — and at-least-once IS the queue contract. **The aging buckets** had to partition the line and only a comment said so: breaking the top bucket left contracts green **because the fallback returns the same label the broken bucket would have** — invisible by construction, a mislabel the day anyone edits the fallback, on the classifier BOTH the command MONEY queue and the portal customer STATEMENT share. Fixed as a **property** (reds on gap AND overlap; examples reach only the first), with `AGING_BUCKETS` exported for the same reason `lens.ts` exports `DRIVER_KINDS`. **An unlinkable credit sale**: `payment_intent` is OPTIONAL in the Stripe shape and removing the refusal left the whole billing suite green — every case builds its body through a helper that always supplies one; the guard's own comment names the result, *a phantom stream stuck 'issued' forever, invisible to any sweep*, which a green suite cannot see because **the wrong invoice is created successfully**. contracts 326→328, ledger 692→694, billing 58→59. **Still open**: `documents.id` PK (real, measured silent) and `lensFor`'s default (not a defect — the role set is CHECK-closed — but a ROSTER hazard: a 7th role silently inherits the unredacted tenant lens) |
+| 370 | §922 | **§923** | **THE SWEEP FULLY RESOLVED — 14 DISTINCT CANDIDATES: 10 REAL, 3 REFUTED, 1 ROSTER HAZARD.** Closed §922's two remaining. **`lensFor`'s tenant default is correct today** (the role set is CHECK-closed) **and is a roster hazard**: a 7th role silently inherits `lensWhere → 1=1`, the most permissive read in the system, and the existing test iterates a **hand-copied list of four** rather than the union. Gate now keys on `Role.options` and pins the population, so adding a role fails in front of whoever added it — **doing nothing stops being neutral**. **`documents.id`**: dropping the PK left the api suite green, and WHY bounds the fix — the suite's idempotent-repeat case is SEQUENTIAL, returning 200 through the `existing !== null` branch without ever reaching the insert; the PK only decides the CONCURRENT race, which is not deterministically reproducible against a single-writer D1. So the test pins the **schema property** (a repeated id leaves one row, `changes === 0`) and the race is **named as out of reach rather than quietly claimed**. **Totals: 10 real, 3 refuted, 1 roster hazard.** All three refutations came from MY mutations, not the finders' — **a finder's confidence is a hypothesis; the mutation is the measurement**, and that division is what made a read-only sweep usable. ledger 694→697 |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -54157,3 +54158,65 @@ successfully.**
   the tenant roles, so the default is correct. The hazard is adjacency: a seventh role added to the CHECK
   silently inherits the **unredacted whole-tenant lens**. Nothing links the two. Recorded, not fixed —
   the fix is a gate over the union, which is the §269 `Partial`-map shape.
+## §923 — PHASE GATE: the sweep fully resolved — 14 distinct candidates, 10 real, 3 refuted, 1 roster hazard
+
+§922 left two open. Both are closed here, and with them the whole discovery sweep.
+
+### A role can no longer inherit the most permissive lens in the system
+
+`lensFor` is an ordered if-chain ending in an unconditional `return { scope: "tenant" }`, and
+`lensWhere({scope:"tenant"})` is `1=1` — no visibility filter, no party filter. **That default is correct
+today**: the role set is closed by a D1 CHECK, `portal` and `driver` are handled explicitly, and the other
+four *are* the tenant roles. It is not a defect and §922 said so.
+
+The hazard is adjacency. A seventh role added to the enum silently inherits the unredacted whole-tenant
+read — and the existing test could not notice, because it iterates a **hand-copied list of four** rather
+than the union. That is the roster-copy shape one level up from the code it guards.
+
+The gate now keys on `Role.options` and pins the population, so **adding a role fails in front of the
+person who added it**, with the decision spelled out: tenant-scoped grants the unredacted read; narrowed
+means `lensFor` must return its own scope. **Doing nothing stops being neutral.** Proved by adding a
+seventh role — RED.
+
+### `documents.id`, and an honest bound on what the test can claim
+
+`/v1/evidence` writes `INSERT OR IGNORE INTO documents` and reads `meta.changes` to tell a true first store
+(201) from the concurrent-duplicate loser (200). Dropping the PK left the api suite green.
+
+**Why it stayed green is the interesting half**, and it bounds the fix: the suite's idempotent-repeat case
+is **sequential**, so it answers 200 through the earlier `existing !== null` branch and never reaches the
+insert. The PK only decides the **concurrent** case — two inserts racing — which is not deterministically
+reproducible against a single-writer D1.
+
+So the test pins the **schema property the route rests on** rather than the race: a second insert of the
+same id must leave one row and report `changes === 0`. Without the key, `OR IGNORE` is `INSERT`,
+`meta.changes` is always positive, every racing writer answers 201, and the duplicate rows break the
+row-iff-bytes invariant that retention and the Biller's POD lookup both read. Proved by dropping the PK —
+RED. The race itself is named as out of reach rather than quietly claimed.
+
+### The sweep, totalled
+
+Fifteen candidates, of which two named the same defect — **14 distinct**:
+
+| outcome | n | which |
+|---|---|---|
+| **real, fixed** | **10** | money-mapper (§919) · schema-parity corpus gap (§920) · Law 5 executing share · import R2 prefix · doc-cap confinement (§921) · legs PK · approvals PK · aging partition · unlinkable sale (§922) · documents PK (§923) |
+| **refuted by my own mutation** | 3 | `roleSatisfies` · the revoked-device clause · the chain hash comparison |
+| **not a defect; gated as a roster hazard** | 1 | `lensFor`'s tenant default |
+
+**Ten of fourteen were real.** That is a high hit rate for a read-only sweep, and the reason is worth
+naming: the finders were told to report only where a *thought-experiment mutation* would go green, and to
+look for the covering test before claiming absence. The three refutations all came from **my** mutations,
+not theirs — which is the division that made this usable. A finder's confidence is a hypothesis; the
+mutation is the measurement.
+
+### Proof
+
+- 7th role added → **RED** · `documents.id` PK dropped → **RED**.
+- ledger **694 → 697** · typecheck 0 · lint 0.
+
+**Reopen trigger**
+- **The concurrent-duplicate path in `/v1/evidence` remains unexercised**, and no test in this repo can
+  reach it deterministically. If D1 ever gains a way to interleave two writers in-test, that 200-vs-201
+  discrimination is the assertion to add — it is the only part of the upload's idempotency contract that
+  rests on behaviour rather than on the schema property now pinned.

@@ -3,6 +3,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { EVENT_KINDS, eventFixture, type EventKind, type LedgerEvent, type SessionClaims } from "@shuddl/contracts";
 import { buildChain, hashEvent } from "../src/chain.js";
 import { eventToRow, lensFor, lensWhere, readEvents, rowToEvent } from "../src/lens.js";
+import { Role } from "@shuddl/contracts";
 import { applyMigrations } from "../src/migrate.js";
 import ledgerCore from "../../../db/tenant/migrations/0001_ledger_core.sql?raw";
 import domain from "../../../db/tenant/migrations/0002_domain.sql?raw";
@@ -401,5 +402,50 @@ describe("readEvents: lens-scoped reads (I6, adversarial visibility)", () => {
       expect(res.map((e) => e.stream_id)).toEqual(["s:tsd-a", "s:tsd-b", "s:tsd-c", "s:tsd-d"]);
       expect(res.map((e) => e.ts)).toEqual([1000, 2000, 3000, 4000]);
     });
+  });
+});
+
+// ─── §923 — EVERY DECLARED ROLE MUST HAVE A *DECIDED* LENS, NOT AN INHERITED ONE ────────────────────────
+//
+// `lensFor` is an ordered if-chain ending in an UNCONDITIONAL `return { scope: "tenant" }`, and
+// `lensWhere({scope:"tenant"})` is `1=1` — no visibility filter, no party filter. That default is CORRECT
+// today: the role set is closed by a D1 CHECK, `portal` and `driver` are handled explicitly, and the other
+// four ARE the tenant roles.
+//
+// The hazard is adjacency, not correctness. A SEVENTH role added to the Role enum and the users.role CHECK
+// silently inherits the unredacted whole-tenant lens — the most permissive read in the system — and the
+// test above could not notice, because it iterates a HAND-COPIED list of four rather than the union.
+//
+// So this keys on `Role.options` (§269: guard the UNION, never the partial map) and pins the population.
+// Adding a role now fails HERE, in front of the person who added it, with the decision spelled out — which
+// is the whole difference between a default that was chosen and one that was inherited.
+describe("§923: every Role the contract declares has a decided lens (a new role cannot inherit tenant scope)", () => {
+  const base: Omit<SessionClaims, "role"> = { sub: "u-923", tenant: "t", exp: 2_000_000_000 };
+
+  /** Roles that intentionally receive the UNREDACTED whole-tenant lens. */
+  const TENANT_SCOPED = ["admin", "ops", "finance", "read"] as const;
+  /** Roles with their own narrowed lens. */
+  const NARROWED = ["driver", "portal"] as const;
+
+  it("the declared union is exactly what is classified below (a new Role reds HERE)", () => {
+    expect(
+      [...Role.options].sort(),
+      "a Role was added or removed. Classify it: TENANT_SCOPED grants the UNREDACTED whole-tenant read " +
+        "(lensWhere → 1=1), NARROWED means lensFor must return its own scope. Doing nothing is not neutral — " +
+        "an unclassified role falls through lensFor's default and inherits the most permissive lens there is.",
+    ).toEqual([...TENANT_SCOPED, ...NARROWED].sort());
+  });
+
+  it("each classified role resolves to the scope its classification promises", () => {
+    for (const role of TENANT_SCOPED) {
+      expect(lensFor({ ...base, role }), `${role} is classified tenant-scoped`).toEqual({ scope: "tenant" });
+    }
+    expect(lensFor({ ...base, role: "driver" }).scope).toBe("driver");
+    expect(lensFor({ ...base, role: "portal", party_id: "party-923" }).scope).toBe("party");
+    // The narrowed roles must NOT be reachable as tenant scope — the property the default would silently break.
+    for (const role of NARROWED) {
+      const lens = role === "portal" ? lensFor({ ...base, role, party_id: "party-923" }) : lensFor({ ...base, role });
+      expect(lens.scope, `${role} must never resolve to the unredacted tenant lens`).not.toBe("tenant");
+    }
   });
 });
