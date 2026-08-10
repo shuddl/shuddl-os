@@ -519,6 +519,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 324 | §876 | **§877** | **§876'S LESSON ON THE CHECKLIST: I PROBED SIX ROWS AND THREE WERE WRONG.** Only **repo-owned** rows can rot (a row waiting on a secret or counsel cannot). Of 288 rows / 255 open, probed 6 with falsifiable mechanical claims. **(1) `hashPath` unframed — FIXED, still listed**: the row cites *"`h.update(f).update(readFileSync(f))`, no framing"* and the source now length-prefixes both path and bytes. Struck. **(2) `notifyBoard` — the named seam DOES NOT EXIST**: 3 hits, ALL in documentation (the row, the WP-02 plan, WP-02.md); no such symbol in code. The row's SUBSTANCE is right (polled board, no push) and belongs to **REQ-257 vNEXT** (§865) — right about the world, wrong about the artifact, which is the harder stale to notice because the citation looks like evidence. **(3) §857 overpraised the identity redaction**: `mask()` is `term[0] + "*".repeat(len-1)`, so **first char and exact length survive** — and the checklist ALREADY records that as debt, which I did not check before praising the same line 20 sections later. **A SAMPLE OF SIX, NOT A SWEEP OF 255** (§857's own lesson): the six were chosen for checkability, which biases toward rows most likely already fixed; **249 remain unmeasured**. 3 of 6 is not a rot rate — it is a reason to think rot is not rare |
 | 325 | §877 | **§878** | **THE RECORD CAN CHECK ONE KIND OF CLAIM ABOUT ITSELF — AND IT IS THE KIND THAT FAILED.** §877 closed saying the record cannot check itself while its claims are free text. True in general, **false for one narrow case**: a backticked **camelCase identifier** is not prose, it is a mechanical claim that a symbol exists. **Measured before building: 75 such identifiers in the checklist, exactly ONE absent from all tracked source — `notifyBoard`, precisely §877's hand-found defect. A 1.3% flag rate.** Scope stated rather than assumed: the **checklist only** (the audit is a 50k-line append-only history that deliberately quotes since-renamed symbols — flagging those would flag history); **camelCase only**, because `events`/`pod.signed`/`JWT_SECRET`/`--progress` are tables, kinds, env vars and tokens, and widening trades a real gate for a noisy one; **existence, not correctness** — §877's `hashPath` row named a REAL symbol and still described code that no longer existed, so this gate certifies quite little and happens to certify the thing that broke. **It flags its own correction**: §877's fixed row says *"`notifyBoard` does not exist in code"*, so the detector fires on the row documenting the absence — the §829/§871 *example vs use* shape, 3rd time this session. Handled by an allowlist with a reason, not by loosening the pattern |
 | 326 | §878 | **§879** | **STOPPING POINT — BOARD AT `ea9eac8`: 19 PASS · 2 FAIL · 5 BLOCKED, UNCHANGED, AND ITS EXPLANATION RETRACTED.** Until §876 this record said both FAILs were the *uncommitted* REQ-289 row and that committing it would clear them. **Measured both ways: `check:coverage` reads the register FILE, so committing leaves the row present and fixes nothing.** The fix is a classifiable `status`/`wp` — one edit clearing coverage, keeping traceability green (it NEEDS the row, source cites it), and taking tests to 1,131/1,131. Same expected board (**21 · 0 · 5**), different action; the two gates are in genuine tension until the row is **present AND classifiable**, so nobody should fix one by reverting the other. **Segment product: a RETRACTION** — 3 phases, **zero production-code changes**, one wrong claim withdrawn (§876), two record defects fixed (§877: six rows probed, three wrong), one self-check built (§878: 75 backticked symbols, 1 ghost). **Through-line**: §646 measured this 30 phases earlier and titled itself *the "2 FAIL" was a dirty working tree*, quoting *"a thing restated all session without re-measurement is suspect"* — and I restated the superseded version for 20 more phases, past a memory line saying *partly superseded*. **The record is a corpus like any other, and I searched the code far more often than I searched the record** |
+| 327 | §879 | **§880** | **I RE-RAN AN EXPERIMENT THE RECORD HAD ALREADY RUN — AND IT HAD ALREADY PREDICTED THE RESULT.** After §878 gated backticked SYMBOLS, the obvious sibling was backticked PATHS. Measured: 168 full repo paths cited, **5 unresolved**; narrowed the pattern, masked strikethrough, still 5 — then READ them. **All five are deliberate NEGATIVE EXAMPLES** (*"there is no `docs/ops/threat-model.md`"*, *"cited as a negative example"*, *"a `workers/agents/src/sender.ts` that has never existed"*). **Checklist row L413 already contains this experiment**: *"Link-check of every backticked path in this file (113 distinct, `existsSync` each) … ~76% false-positive rate … deliberate quotations of known-bad paths inside the rows that DOCUMENT citation rot … **A path-only gate would fire on this very row.**"* It did. **Second time in five phases the answer was already in the record** (§876 first, whose lesson was *search the record, not just the code*). **The contrast is the result**: symbols 75/1 flag (viable, shipped §878) vs paths 168/5-all-deliberate (not viable). Cause: **a path is usable as PROSE** — shorthand, ranges, elisions, and above all negative examples, since the natural way to record a broken citation is to quote it; a camelCase identifier is none of those. **A detector's precision is set by how much non-code lives in its token space.** NOTHING BUILT — L413 needed no edit, the correct outcome for a row that was already right |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -51402,3 +51403,66 @@ the nine private fixtures · `IDENTITY_DENYLIST`.
   mechanical check that exists covers symbol *existence* only.
 - If any future section writes *"commit REQ-289 to clear the board"*, §876 is the refutation and this is the
   second place it is recorded.
+## §880 — PHASE GATE: PHASE 100 CLOSED — I re-ran an experiment the record had already run, and it had already predicted the result
+
+§878 gated one class of self-check (a backticked **symbol** must exist). The obvious next class is the
+**path**: a checklist row citing a file that no longer exists is definitively stale, and §877 found exactly
+that shape in `notifyBoard`. So I measured it.
+
+168 full repo paths cited in the checklist; **five unresolved.** Narrowed the pattern, masked strikethrough
+spans, re-measured: **still five.** Then I read the five in context.
+
+**All five are deliberate negative examples** — prose whose entire point is that the path does *not* exist:
+
+- *"path corrected 2026-07-27 — **there is no** `docs/ops/threat-model.md`"*
+- *"`docs/ops/threat-model.md` is cited as **a negative example**"*
+- *"the shorthand sent a reader to a `workers/agents/src/sender.ts` **that has never existed**"*
+
+### The record had already done this, and said so
+
+Row L413 of the checklist is an open row titled *"The citation gate is blind to a PATH-ONLY citation."* It
+contains:
+
+> *"Link-check of every backticked path in this file (113 distinct, `existsSync` each) … A ~76% false-positive
+> rate is the cry-wolf mode that has already co[st] … **deliberate quotations of known-bad paths inside the
+> rows that DOCUMENT citation rot** (every `docs/ops/threat-model.md` hit is in prose whose point is that no
+> such file exists). **A path-only gate would fire on this very row.**"*
+
+It ran the experiment, measured the false-positive rate, identified the exact cause, and **predicted that a
+gate built this way would fire on the row explaining why it should not exist.** My probe did precisely that.
+
+**Second time in five phases** that the answer was already in the record (§876 was the first, and its lesson
+was *search the record, not just the code*). I built and shipped a symbol gate in §878 and then, one phase
+later, started building its path sibling without checking whether the record had a verdict on it. It did.
+
+### The contrast is the real result
+
+Two neighbouring classes of self-check, opposite viability, measured:
+
+| class | population | false flags | viable? |
+|---|---|---|---|
+| backticked **camelCase symbol** (§878) | 75 | 1 | **yes** — 1.3%, and the one flag was a real defect |
+| backticked **repo path** (§880) | 168 | 5, **all deliberate** | **no** — and L413 measured ~76% on a wider corpus |
+
+The asymmetry has a cause worth keeping: **a path is usable as prose** — as shorthand (`routes/events.ts`),
+as a range (`docs/wp/WP-01..16.md`), as an elision (`packages/agents/.../compose.ts`), and above all as a
+*negative example*, because the natural way to record a broken citation is to quote it. A camelCase symbol is
+none of those things; nobody writes `notifyBoard` unless they mean the symbol.
+
+**A detector's precision is set by how much non-code lives in its token space**, and paths share a namespace
+with prose while identifiers do not. That is why §878 shipped and §880 did not.
+
+### Exit state
+
+**Nothing built, nothing changed.** L413 stands as written and is now independently corroborated; it needed no
+edit, which is the correct outcome for a row that was already right.
+
+`verify:docs` 0 · `test:tools` 1,131, 3 failed (the REQ-289 classifier). Working tree unchanged apart from the
+owner's register row.
+
+**Reopen triggers**
+- If a path gate is ever attempted again, the viable form is the one L413 implies: check paths **only inside
+  rows that are not about citation rot**, which requires classifying rows — semantic, and therefore §857's
+  `dod_kind` problem in a third costume.
+- The 249 unverified checklist rows (§879) are still unverified. This phase reduced that number by zero and
+  should not be read as having swept anything.
