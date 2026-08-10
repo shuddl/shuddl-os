@@ -497,6 +497,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 302 | §854 | **§855** | **PHASE 75 CLOSED — REQ-076 names FOUR shapes; the map draws TWO, and its DoD gate cannot see geometry.** Finishing §854's sweep found the row §854 missed — and it **reverses §854's central claim**. `REQ-076,MAP,Entity grammar: chevron/square/hollow/pulse per state … Squint CI,F0-SPEC'D` authorises the shape **vocabulary**, not the per-state mapping, so §854's grep for `delivered`/`55%` could never find it: **a register row names its subject in the REGISTER's vocabulary, not the spec's.** Measured: **chevron** and **pulse** render; **square** and **hollow** do not — every leaf draws `type: "circle"`, filled, 1px stroke; the only `addImage` is the chevron; no recorded decision explains circles. **The gate finding**: REQ-076's DoD is `Squint CI`, which audits contrast/tokens/motion/dividers/case and has **no geometry check** — so the DoD is green whatever shape the marks are. §842's *gate with nothing behind it*, **inverted**: the gate exists, runs, passes, and is blind to its own subject. A4 says why it matters: *status is grammar, not color*. Filed with 3 options; §854's row corrected |
 | 303 | §855 | **§856** | **PHASE 76 CLOSED — nine DoDs that name a gate; FOUR name the wrong one.** §855's sweep, done. 287 DoD strings → **14 name a CI gate** → 5 are `vNEXT` (a missing gate is expected) → **9 built rows** checked against what their gate can SEE. **REQ-076: real gap** (§855). **REQ-078: true but UNPINNED** — the audit enforces the token SET, the requirement is about SCOPE. REQ-077 met by a **unit** test, REQ-115 by a **component** test (*ErrorState shows FAILED + a retry button*), neither by the gate named. REQ-079/148/149/204/211 met. **Four of nine diverge and only ONE is a gap** — a DoD naming a gate is a POINTER, and pointers rot three ways: blind gate (076), neighbouring property (078), met elsewhere (077/115). **REQ-079 is the model**: it does NOT meet its stated 60fps and says so in code, with the reason and the choice — *a DoD deviation that documents itself is not debt*. Closed REQ-078: `--progress` is stated FOUR times (`ProgressLine`, `entities.ts`, `tokens.css`, the register) and enforced zero; now gated, starting green |
 | 304 | §856 | **§857** | **§856 COUNTED ITS OWN POPULATION WITH THE INSTRUMENT IT HAD JUST CALLED UNRELIABLE.** §856 reported **14** DoDs naming a gate; its own closing trigger said the DoD column is free text and *"a mechanical version would need a vocabulary rather than a parser"* — the refutation of its own number, six paragraphs below it. Widening to `audit`/`lint`/`harness`/`pnpm ` gives **23**, and the sets are **NOT nested**: REQ-077 and REQ-149 are in the 14 and absent from the 23. **Union 25; §856 examined 9.** The count was not wrong, it was UNQUALIFIED — a sample presented as a census, frame never written down. The 16 unexamined now classified: **REQ-167 EXECUTED** (its DoD is a mutation spec, not a description) — seeded denylist clean → exit 0, name planted → **exit 1**, and the gate **REDACTS the leaked name in its own failure message**, the one place a naive identity gate leaks what it protects. 163 (lint + message test + an override-survival note) and 154 (history-wide gitleaks, asserted WITHIN the job) sound. 13 need no gate: 145/147 self-satisfying, 112 the fixture hold, 212/247 vNEXT, 289 the owner's, **001/119/124 name a HUMAN audit — a DoD naming a person cannot rot**. §856's findings all stand; only its SCOPE claim was wrong |
+| 305 | §857 | **§858** | **TWO GATES IN ONE FLOW; ONE WAS PROVEN.** Swept §849's shape (a module imported by ZERO tests): 104/328 files. **The sweep was wrong twice.** (1) `workers/` routes are covered by INTEGRATION tests — not-imported ≠ not-tested, and for a handler the integration test is BETTER. (2) The driver 13 looked false too: React children are exercised TRANSITIVELY through the composing test. **Then the rebuttal was wrong** — `GatedFlow.test.tsx:19–34` **MOCKS all three children**, so the composing suite proves nothing about the composed component. Three readings; only opening the file was right. **The finding: REQ-063's forced-photo gate has a component suite; REQ-064's *ADVANCE is dead until the glass holds ink* had NONE** — same GatedFlow, same header comment, both mocked in the same file. This is REQ-142's BUILT half and acceptance demo #1's opening beat. **Why it hid**: jsdom has no 2D context → `getContext` null → every handler early-returns → a naive render PASSES (§688's *passing corpus*). Proof: **blinding the fake context reddens the 3 positive cases and leaves all 3 negatives GREEN** — *a tap lays no ink* is satisfied by a component that does nothing, and the negatives are the intuitive tests to write. 6 cases landed, 4 mutations RED. Best two: **a tap is not a signature** (`hasInk` set in `move`, never `down` — a fingertip in a truck cab must not satisfy a POD gate) and **clear re-arms the gate** (wipe the pixels but keep the flag → a BLANK signature commits as proof of delivery). No production code changed; the gate was right, nothing proved it |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -49980,3 +49981,83 @@ phase; one mutation executed and reverted (`diff -q` verified).
   amendment and therefore the owner's call, filed not decided.
 - The four sound gates (154/163/167/207) are edited → 167 is the only one whose DoD can be re-executed
   mechanically; re-run it rather than re-reading it.
+## §858 — PHASE GATE: PHASE 78 CLOSED — two gates in one flow, one of them proven; and the sweep that found it was wrong twice first
+
+§849 found a live defect in a module imported by **zero** tests. That shape is mechanical, so this phase swept
+for it: which shipped source files does no test import?
+
+### The sweep was wrong twice, and both corrections matter more than the number
+
+**104 of 328** source files came back "never imported by any test". Two things were wrong with that.
+
+**First, `workers/` is the wrong corpus.** 24 of the 104 are `workers/api` routes, exercised by *integration*
+tests that fetch the worker rather than importing the module. Not-imported is not not-tested, and for a
+request handler the integration test is the *better* test. Scoping to the driver PWA — where a unit test is
+the only coverage there is — left 13.
+
+**Second, the driver 13 were mostly false too, and the reason is the interesting one.** Widening past the
+import graph (a path-scoped search proves absence only within its path) showed `idb.ts` covered by
+`tests/e2e/driver-offline-sync.spec.ts`, and `SignatureScreen`/`StopScreen` named by
+`GatedFlow.test.tsx` — React children are exercised *transitively* through the component that composes them,
+which an import-graph probe cannot see.
+
+**And then the transitive rebuttal was itself wrong.** `GatedFlow.test.tsx:19–34` **mocks all three children**
+so the flow can be driven without a live camera or signature canvas. That is correct for a flow test. It also
+means the composing suite proves nothing about the composed component — the probe's original verdict was
+right, by a mechanism the probe never measured. Three readings, and only the fourth (opening the file) was
+correct.
+
+### The finding: REQ-063's gate is proven at the component, REQ-064's was not
+
+| gate | REQ | component test |
+|---|---|---|
+| forced photo — a capture requires a LIVE camera | REQ-063 | `CameraScreen.test.tsx`, 3 cases, opts into jsdom per-file |
+| **ADVANCE is dead until the glass holds ink** | **REQ-064** | **none** |
+
+Two gates, same `GatedFlow`, both mocked in the same suite, both named in the same header comment — one
+proven at the component and one not. `SignatureScreen.tsx` states its own gate in its header, and REQ-142
+records this exact mechanism as the built half of a CONFIRM-gated row (*"the e-signature CAPTURE mechanism
+(strokes → hashed bytes → pod.signed)"* is code; the legal-validity notes are counsel's). Acceptance demo #1
+opens on it: a signature at a door.
+
+**Why it stayed uncovered is the reusable part.** jsdom implements no 2D canvas context, so `getContext("2d")`
+returns null, every pointer handler early-returns at its first line, and the component does nothing. A naive
+render therefore *passes* — which is the failure mode this repo already knows by another name (§688's
+"passing corpus"): the test cannot fail, so it certifies nothing.
+
+Proof that this is not theoretical: **blinding the fake context reddens the three positive cases and leaves
+all three negative cases green.** "A tap lays no ink", "a palm lays no ink", "a blank glass cannot commit" are
+all satisfied by a component that does literally nothing. The negatives are the intuitive tests to write and
+they are precisely the ones that would have shipped a hollow suite.
+
+### What landed
+
+Six cases, modelled on the REQ-063 sibling, with a recording fake 2D context as the instrument:
+
+| mutation | RED |
+|---|---|
+| `setHasInk` moved from `move()` to `down()` | *a TAP is not a signature* |
+| `setHasInk(false)` dropped from `clear()` | *CLEAR RE-ARMS THE GATE* |
+| `disabled={!hasInk}` removed | four cases (dropping a gate breaks every gate assertion) |
+| the fake context blinded | the three positive cases only — see above |
+
+The two worth keeping are the ones a refactor breaks silently. **A tap is not a signature**: `hasInk` is set
+in `move`, never in `down`, so a fingertip brushing the glass in a truck cab cannot satisfy a POD gate — move
+that one line and every other assertion still passes. **Clear re-arms the gate**: if `clear()` wiped the
+pixels but left the flag, ADVANCE would stay live and the driver would commit a *blank* signature as proof of
+delivery — evidence for a delivery nobody signed for.
+
+No production code changed. The gate was correct; nothing proved it.
+
+### Exit state
+
+Driver suite **13 files / 80 tests**, all green (+1 file, +6). typecheck 0 · lint 0.
+
+**Reopen triggers**
+- The other two mocked children — `CameraScreen` has its own suite, **`StopScreen` does not**. Same argument,
+  smaller subject; not done here and not pretended otherwise.
+- `useSync.ts` (103 lines) is named by `session.test.ts` and `prod-surface.spec.ts` but neither renders the
+  hook. §848/§849 hardened `classifyStatus` and the transport *underneath* it; the orchestration between them
+  is the remaining untested layer of the sync path.
+- A jsdom upgrade that ships a 2D context → the fake becomes removable, and leaving it would then hide real
+  canvas behaviour behind a stub.
