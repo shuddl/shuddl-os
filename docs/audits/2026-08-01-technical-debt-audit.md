@@ -537,6 +537,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 342 | §894 | **§895** | **THE DESIGN CORPUS CAN NO LONGER EXCLUDE A DIRECTORY BY DEFAULT.** §894's structural trigger: the corpus is a **hand-written glob list**, so *a new top-level directory would be excluded by default rather than by decision* — the roster-half of §802/§822's shape. **Measured**: style-bearing files (css/tsx/jsx/html) live in `apps` (62), `packages` (16) and **`docs` (2)** — two marketing HTML files carrying **15 raw hexes**, no shadows, no gradients. **Their exclusion is CORRECT** (marketing collateral is not one of the three product surfaces; a palette rule for Command/Driver/Portal has no business failing a promo page) — **but nothing said so**, and *excluded because unlisted* is indistinguishable from *excluded because decided* until a third directory appears. Gate is DISCOVERY: enumerate every top-level dir holding a style-bearing file, require each to be in the audit's own glob list — **parsed from `tools/design/audit.ts`, not restated** (§830: read one side, COMPUTE the other) — or exempted with a reason. `docs` now carries one; a future `sites/` fails until someone writes one |
 | 343 | §895 | **§896** | **LAW 3 PROBED FOR EVASION — THE CHOKEPOINT HOLDS AND STATES ITS OWN LIMIT.** CLAUDE.md's most security-relevant law (*gates are server-side; any flow reachable by API must enforce the same gate*) was mutation-proved ~550 sections ago; the question is what STANDING mechanism keeps it true. **It is structural**: `check:chokepoint` asserts *the events table has exactly one application writer* — the whole law in one property, and §838's *only detector of a direct insert with a fresh id* (the append-only triggers fire on collisions; a fresh id collides with nothing). A planted second writer fails it, naming what is lost: *EVERY gate (POD/I2, booking, interline floors, credit) plus the visibility stamp and the prev_hash chain*. **Six evasions tried, six refused**: abutting quote `INTO"events"`, schema-qualified `main.events`, extra whitespace, lowercase, `INSERT OR REPLACE`, bracket delimiter. **The first two matter most** — this repo's own share-lint skill documents a real defect where exactly those two shapes SPLIT two scanners; the chokepoint is on the correct side of it. Two exemptions, both reasoned (the sequencer itself; the seed loader, *not reachable by API* — the clause law 3 turns on), §672-guarded because *a path-keyed exemption with no subject is inherited by whatever is created at that path next*. **And it states its own limit**: static regex, *closes the realistic regression — a new route that writes the ledger because it is convenient — **not a determined author***. That distinction, written down, is what makes the green worth something |
 | 344 | §896 | **§897** | **LAW 3'S OTHER HALF — AND THE ANSWER TO A PROBLEM I HAVE POSED THREE TIMES.** §896 closed noting the chokepoint proves ONE WRITER, not that the writer's gates are correct. **Roster half**: `check:authority-coverage` statically asserts each registered `(module,file)` calls `resolveAuthority(db, '<module>')`, **module-aware** (the Concierge emits `message.sent` AND prices `quote.priced`, so it must consult both) and refusing a bare mention — *a dangling import is not a consultation*. **Discovery half is the finding**: the coverage gate admits *a NEW emitter in a NEW file passes for free until a human adds it*, and **§313 TRIED the obvious discovery gate and REJECTED it** — *"'authoritative' is semantic; a rule keyed on kind-mentions misclassifies **4 of 4** unregistered candidates"*. **That is the exact wall I hit three times and filed as unsolved** (§857's `dod_kind`, §880's path gate at ~76% FP, §884's *repo-owned is a judgement*). **§313 found the third answer I missed: pin the POPULATION COUNT, not the classification** — *exactly 12 files reference an authoritative kind; a change means RE-ADJUDICATE*. The gate never decides what is authoritative; it decides the SET CHANGED and hands the semantic question to a human exactly when one is needed. Mutation-proved (13≠12). **Generalises: when membership is semantic, a COUNT is still mechanical — it converts *we cannot gate this* into *we cannot gate this SILENTLY*** |
+| 345 | §897 | **§898** | **§897'S TECHNIQUE APPLIED TO §857'S OPEN PROBLEM — AND BLOCKED BY THE SAME REGISTER ROW.** §857 filed *"the DoD column is free text, so a mechanical version would need a vocabulary rather than a parser"* as an owner decision. **That objection dissolves under a tripwire**: it needs no CORRECT vocabulary, only a CONSISTENT one, because it detects CHANGE not membership — whether the population is 8 or 23 is irrelevant. Measured both patterns (narrow `CI|check:|test:` → 8; broad `+audit|lint|harness|pnpm` → 23). **Then the check that mattered: HEAD holds 22 gate-shaped DoDs, the working tree 23** — the uncommitted REQ-289 row's DoD names the identity-leak lint, so it JOINS the population. A pinned count would be **green locally and red in CI**. **A gate whose verdict depends on where it runs is worse than no gate** — it teaches people to distrust a red. Measured, designed, deliberately NOT landed. **Adds a third consequence to resolving REQ-289**: it clears the two board FAILs (§876) AND unblocks this tripwire, closing §857's five-report standing item. And measuring first prevented building a gate that would have been red in CI on day one — §880's lesson paying for itself on a technique I had just praised |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -52536,3 +52537,60 @@ Nothing changed; one file planted, tracked, and removed. `test:tools` 1,139, 3 f
 - The count is 12 and the coverage registry holds 9 `(module, file)` consults across 8 files. **The gap between
   12 and 8 is the adjudicated-and-excluded set**, and its reasons live in prose the §672 half checks for
   existence, not for truth.
+## §898 — PHASE GATE: PHASE 118 CLOSED — §897's technique applied to §857's open problem, and blocked by the same register row
+
+§897 recovered a technique from §313 that I had missed three times: **when membership is semantic, pin the
+population COUNT rather than the classification.** A count is mechanical even when the predicate is not, and it
+converts *"we cannot gate this"* into *"we cannot gate this silently."*
+
+The obvious place to spend it is **§857's** open problem, filed as an owner decision and repeated since:
+
+> *"the register's DoD column is free text, so a mechanical version would need a vocabulary rather than a
+> parser."*
+
+**That objection dissolves under a tripwire.** A tripwire needs no correct vocabulary — only a *consistent*
+one, because it detects **change**, not membership. Whether the right population is 8 rows or 23 does not
+matter; what matters is that the number moves when someone adds or edits a DoD, and a human then looks.
+
+### Measured, and it does not land today
+
+| pattern | total | built | vNEXT |
+|---|---|---|---|
+| narrow — `CI` / `check:` / `test:` | 8 | 8 | 0 |
+| broad — `+ audit / lint / harness / pnpm` | 23 | 21 | 2 |
+
+Either would serve. Then the check that mattered:
+
+| | register rows | gate-shaped DoDs |
+|---|---|---|
+| **HEAD** | 288 | **22** |
+| **working tree** | 289 | **23** |
+
+The uncommitted REQ-289 row's DoD names the identity-leak lint, so it **joins the population**. A pinned count
+is therefore green in one place and red in the other: **green locally, red in CI**, or the reverse.
+
+**A gate whose verdict depends on where it runs is worse than no gate** — it teaches people to distrust a red,
+which is the opposite of what a tripwire is for. So this is measured, designed, and deliberately not landed.
+
+### What this adds
+
+REQ-289's resolution already clears the two board FAILs (§876). It now also **unblocks this tripwire**, which
+closes §857's standing item — the one I have carried through five reports as *"nothing enumerates the register
+rows whose DoD names a gate."* Three consequences from one edit, and that is worth knowing when it is
+scheduled.
+
+**And measuring first prevented a mistake.** I was one command from building a gate that would have been red in
+CI on the day it landed — §880's lesson (*measure before building*) paying for itself a second time, on a
+technique I had just praised.
+
+### Exit state
+
+Nothing built, nothing changed. `verify:docs` 0 · `test:tools` 1,139, 3 failed (the REQ-289 classifier) ·
+typecheck 0 · lint 0.
+
+**Reopen triggers**
+- **When REQ-289 is resolved**, land the tripwire: pin the gate-shaped-DoD count at whatever HEAD then holds,
+  with the pattern written beside it, and the §672 half asserting the pattern still matches something.
+- The same blocker applies to any future register-population tripwire, not just this one. **While the register
+  is dirty, no count over it can be pinned honestly** — which is a small, standing cost of leaving that row
+  uncommitted that nothing else in the record states.
