@@ -575,6 +575,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 380 | §932 | **§933** | **§932's TRIGGER CLOSED — THE DECAYED FIGURES ARE NOW RE-DERIVED, AND I WROTE THE SAME PREFIX BUG TWICE.** `checklist-figures.test.ts` derives each figure FROM THE AUTHORITY and compares it to the checklist (§830): the CONFIRM-GATED count from the register (the one that drifted 14→15), the canonical-view usage/ceiling from `registry.ts` (11 under 12 — the row's whole point is that a ceiling and a usage read alike), and **both halves of §932's correction** (that `PARITY_TOLERANCE_BPS` still exists with `rating: 1_000`, and that the checklist has not re-asserted the false claim). **Scope stated in the file**: 3 figures, not 35 rows — most expiry conditions name a DECISION no gate can evaluate, and a prose discovery half is the §831/§833 shape measured at 8 FPs to 0 real. **The finding is my own**: M3 (rename the constant away) came back **GREEN** — `toContain("export const PARITY_TOLERANCE_BPS")` is satisfied by `…_BPS_X`. **§920's tripwire had the identical defect and I recorded the lesson then**; writing it down did not stop me repeating it eleven phases later in a gate built to catch decay. So the operative discipline is NOT *remember the prefix rule* — it is **run the rename mutation on every existence assertion**, because that probe finds the class whether or not I remembered. 4/4 RED after the colon fix. Register restored to its WORKING-TREE state, not HEAD — restoring to HEAD would have silently reverted the owner's uncommitted row. test:tools 1,161→1,165 |
 | 381 | §933 | **§934** | **§933's TRIAGE DONE — 25 of 35 EXPIRY CONDITIONS ARE DECIDABLE; AND MY ROW COUNT WAS WRONG TWICE.** The repo-owned section holds **45 lines beginning `| `** — what I counted and asserted in §932 AND §933 — but only **35** are eight-field debt rows. The other nine belong to **two NESTED sub-tables** inside the section (a browser-gate table and a Command/Verdict table) plus headers. **A line-prefix count is a PROXY for a row**, and it swept in every nested table's rows; the fix is to count the thing itself (cells matching the section's schema). Corrected in three places — both audit sections and the gate's own header — because the figure had propagated into a gate built to stop figures propagating. **Triage**: 25 decidable — **13 name a FILE** whose change invalidates the evidence, **7 name an EVENT with a mechanical tell** (a binding appearing, `PROVISIONING_ENABLED` flipping, a cron gaining a sub-daily expression), **5 name a COUNT/symbol**; the other **10 name a DECISION** no gate can evaluate and are correctly written, just not automatable. **The 13 file-change rows are the cheap tranche** — a content-hash pin turns *evidence stands until `X` changes* into a check — but that shape goes stale **loudly, not dangerously** (a moved file makes a verdict unverified, not wrong), so it is recorded as available work with its value stated, not queued as urgent |
 | 382 | §934 | **§935** | **REQ-030's AUTHORITY REGISTRY RE-VERIFIED — IT HOLDS, AND TWO PROXIES NEARLY SAID OTHERWISE.** The most consequential of §934's 25 decidable expiry conditions. It matters because `check:authority-coverage` is a static scan over a HAND-LISTED roster — it verifies the registered pairs consult `resolveAuthority` and **cannot see an unregistered emitter**, so completeness is the half no gate holds. **Result: holds.** 13 files reference an authoritative kind AND carry an append seam; **8 consult `resolveAuthority`** (unchanged) and the 5 that do not are each correctly excluded **for a different reason** — `booking.ts` emits `booking.created` (it only REFERENCES `quote.priced`, to validate), `sla-sweep.ts` emits `message.received` not `.sent`, `portal-actions.ts` emits `quote.accepted`/`message.received`, `credits.ts` emits `invoice.issued` **against the PLATFORM tenant** (not a tenant DB), and `routes/events.ts` the row already explains. **Two proxies both looked like decay**: files MENTIONING a kind → **28** vs a recorded 12 (a registry apparently doubled); adding an append seam → **13** vs 12 (still drift, still wrong). **Only reading what each file EMITS settled it**, and `credits.ts` is the sharp case — it genuinely appends an authoritative kind, so every mechanical filter keeps it. Same failure as §934's row count one phase earlier: **a count over a proxy is not a count over the subject**, twice in two phases, both times producing a number that would have been published as decay. A clean negative is the ONLY form the completeness answer can take, and it now carries a date |
+| 383 | §935 | **§936** | **§935's TRIGGER CLOSED — THE MECHANISM WAS ALREADY STRONGER THAN THE CHECK I PROPOSED.** §935 asked for a lint: *assert `credits.ts` never calls `resolveTenantDb`/`tenantDb`*. **It calls no resolver at all.** It takes `ledger: PlatformLedger`, whose `append({streamId, input})` has **NO TENANT PARAMETER** — a caller cannot name a tenant even by mistake — and the implementation reaches `/internal/platform/credit-append`, *the ONLY caller that sets the sequencer's `platform: true` door*, on the `/internal` surface §927's gate enumerates. **A lint could only say *this file does not currently call a tenant resolver*; the signature says *no caller of this seam can express a tenant*.** The lesson is about triggers: written at the end of a phase, when the subject is understood but its NEIGHBOURS are not, a trigger proposes **the check you would build, not the one the code already has** — three of this session's corrections (§917, §920, §936) are that same miss. **Fourth pathspec fault**: `git grep -- 'workers/*/src'` found NO production callers (it does not recurse); `webhook.ts:52,56` call both. All four faults this session produced an **empty** result that looked like a finding — a bad pattern never over-reports, and under-reporting is the direction nobody double-checks. No source changed |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -55014,9 +55015,73 @@ re-run since.
   knows which numbers are misleading.
 - `verify:docs` 0.
 
+**Reopen trigger — CLOSED at §936, and the mechanism is stronger than this trigger proposed**
+
+~~The exclusion of `credits.ts` rests on "platform tenant ≠ tenant database" … assert that it never calls
+`resolveTenantDb` or `tenantDb`.~~
+
+**Measured.** `credits.ts` calls no resolver at all — it takes `ledger: PlatformLedger`, an interface whose
+`append({ streamId, input })` has **no tenant parameter**, so a caller cannot name a tenant even by mistake.
+Its implementation reaches `/internal/platform/credit-append`, which the source states is *"the ONLY caller
+that sets the sequencer's `platform: true` door, and it is NOT a customer `/v1` route."*
+
+So the exclusion is carried by a **type plus a single secret-gated door** — the surface §927's
+`route-authz-coverage` gate now enumerates — not by a convention that needed a lint. **The trigger asked for
+a weaker mechanism than the one that already exists**, which is its own lesson: a trigger written at the end
+of a phase proposes the check you would have built, not the one the code already has.
+## §936 — PHASE GATE: §935's trigger closed — the mechanism was already stronger than the check I proposed
+
+§935 ended by naming a scope claim it could not mechanise: *"`credits.ts` emits `invoice.issued` against the
+PLATFORM tenant, not a tenant DB"*, with the decidable form *"assert it never calls `resolveTenantDb` or
+`tenantDb`."* Closed here — and the answer is that the proposed assertion was the wrong instrument.
+
+### What actually holds it
+
+`credits.ts` calls **no DB resolver at all**. It takes `ledger: PlatformLedger`, and that interface is
+
+```ts
+append(req: { streamId: string; input: EventInput }): Promise<{ id: string }>
+```
+
+— **no tenant parameter**. A caller cannot name a tenant, correctly or otherwise. The implementation reaches
+`/internal/platform/credit-append`, which the source states is *"the ONLY caller that sets the sequencer's
+`platform: true` door, and it is NOT a customer `/v1` route, so the ISOLATION INVARIANT (REQ-025) holds: a
+customer JWT can never drive a `_platform` append."*
+
+So the guarantee is **a type with no tenant argument, plus one secret-gated route** — and that route is on
+the `/internal` surface §927's `route-authz-coverage` gate enumerates, which is where this chain started.
+
+### The lesson is about the trigger, not the code
+
+My trigger proposed a **source-scan lint** for a property the **type system already enforces**. A lint could
+only ever say "this file does not currently call a tenant resolver"; the signature says "no caller of this
+seam can express a tenant." The second is strictly stronger and it was there all along.
+
+> A reopen trigger is written at the end of a phase, when the subject is understood but its *neighbours* are
+> not. It therefore proposes **the check you would build**, not the one the code already has. Before
+> building a trigger's proposed mechanism, look for the existing one — three of this session's corrections
+> (§917, §920, §936) are that same miss.
+
+### A fourth pathspec error
+
+Searching for production callers with `git grep -- 'workers/*/src'` returned **none**, and the emitters
+looked unwired. The pathspec does not recurse to files beneath that directory; `workers/billing/src/webhook.ts`
+calls both, at lines 52 and 56. **Fourth glob/pathspec fault this session** — after a zsh-expanded
+`--include`, a regex metacharacter in a fixed-string search, and a `db/**/*.sql` that matched nothing.
+
+Every one produced an **empty** result that looked like a finding. That is the asymmetry this record keeps
+meeting: a bad pattern never over-reports, it under-reports, and under-reporting is the direction nobody
+double-checks. The habit that catches it is cheap — when a search for *callers of a shipped function*
+returns zero, the search is wrong until proven otherwise.
+
+### Proof
+
+- `PlatformLedger.append` signature carries no tenant; `credits.ts` matches no resolver call.
+- `webhook.ts:52,56` are the production callers, both passing `env.CONTROL_DB` (the control plane, for
+  usage-credit bookkeeping) with the ledger arg carrying the platform append.
+- §935's trigger struck in place rather than deleted, with the stronger mechanism recorded beside it.
+- `verify:docs` 0. No source changed.
+
 **Reopen trigger**
-- **The exclusion of `credits.ts` rests on "platform tenant ≠ tenant database".** That is correct today and
-  it is a *scope* claim, not a mechanical one: if the platform-credit path is ever pointed at a customer
-  tenant DB, this row's reasoning silently stops applying while every count above stays the same. The
-  decidable form: `credits.ts` reaches its DB through `resolvePlatformTenantDb`; assert that it never calls
-  `resolveTenantDb` or `tenantDb`.
+- **None from this phase.** The property is enforced by a signature, and a signature change is a compile
+  error at every call site — which is the one class of regression that cannot ship silently.
