@@ -538,6 +538,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 343 | §895 | **§896** | **LAW 3 PROBED FOR EVASION — THE CHOKEPOINT HOLDS AND STATES ITS OWN LIMIT.** CLAUDE.md's most security-relevant law (*gates are server-side; any flow reachable by API must enforce the same gate*) was mutation-proved ~550 sections ago; the question is what STANDING mechanism keeps it true. **It is structural**: `check:chokepoint` asserts *the events table has exactly one application writer* — the whole law in one property, and §838's *only detector of a direct insert with a fresh id* (the append-only triggers fire on collisions; a fresh id collides with nothing). A planted second writer fails it, naming what is lost: *EVERY gate (POD/I2, booking, interline floors, credit) plus the visibility stamp and the prev_hash chain*. **Six evasions tried, six refused**: abutting quote `INTO"events"`, schema-qualified `main.events`, extra whitespace, lowercase, `INSERT OR REPLACE`, bracket delimiter. **The first two matter most** — this repo's own share-lint skill documents a real defect where exactly those two shapes SPLIT two scanners; the chokepoint is on the correct side of it. Two exemptions, both reasoned (the sequencer itself; the seed loader, *not reachable by API* — the clause law 3 turns on), §672-guarded because *a path-keyed exemption with no subject is inherited by whatever is created at that path next*. **And it states its own limit**: static regex, *closes the realistic regression — a new route that writes the ledger because it is convenient — **not a determined author***. That distinction, written down, is what makes the green worth something |
 | 344 | §896 | **§897** | **LAW 3'S OTHER HALF — AND THE ANSWER TO A PROBLEM I HAVE POSED THREE TIMES.** §896 closed noting the chokepoint proves ONE WRITER, not that the writer's gates are correct. **Roster half**: `check:authority-coverage` statically asserts each registered `(module,file)` calls `resolveAuthority(db, '<module>')`, **module-aware** (the Concierge emits `message.sent` AND prices `quote.priced`, so it must consult both) and refusing a bare mention — *a dangling import is not a consultation*. **Discovery half is the finding**: the coverage gate admits *a NEW emitter in a NEW file passes for free until a human adds it*, and **§313 TRIED the obvious discovery gate and REJECTED it** — *"'authoritative' is semantic; a rule keyed on kind-mentions misclassifies **4 of 4** unregistered candidates"*. **That is the exact wall I hit three times and filed as unsolved** (§857's `dod_kind`, §880's path gate at ~76% FP, §884's *repo-owned is a judgement*). **§313 found the third answer I missed: pin the POPULATION COUNT, not the classification** — *exactly 12 files reference an authoritative kind; a change means RE-ADJUDICATE*. The gate never decides what is authoritative; it decides the SET CHANGED and hands the semantic question to a human exactly when one is needed. Mutation-proved (13≠12). **Generalises: when membership is semantic, a COUNT is still mechanical — it converts *we cannot gate this* into *we cannot gate this SILENTLY*** |
 | 345 | §897 | **§898** | **§897'S TECHNIQUE APPLIED TO §857'S OPEN PROBLEM — AND BLOCKED BY THE SAME REGISTER ROW.** §857 filed *"the DoD column is free text, so a mechanical version would need a vocabulary rather than a parser"* as an owner decision. **That objection dissolves under a tripwire**: it needs no CORRECT vocabulary, only a CONSISTENT one, because it detects CHANGE not membership — whether the population is 8 or 23 is irrelevant. Measured both patterns (narrow `CI|check:|test:` → 8; broad `+audit|lint|harness|pnpm` → 23). **Then the check that mattered: HEAD holds 22 gate-shaped DoDs, the working tree 23** — the uncommitted REQ-289 row's DoD names the identity-leak lint, so it JOINS the population. A pinned count would be **green locally and red in CI**. **A gate whose verdict depends on where it runs is worse than no gate** — it teaches people to distrust a red. Measured, designed, deliberately NOT landed. **Adds a third consequence to resolving REQ-289**: it clears the two board FAILs (§876) AND unblocks this tripwire, closing §857's five-report standing item. And measuring first prevented building a gate that would have been red in CI on day one — §880's lesson paying for itself on a technique I had just praised |
+| 346 | §898 | **§899** | **LAW 1'S "BOTH DIRECTIONS" VERIFIED — AND A FALSE ALARM CAUGHT ON THE SECOND QUERY.** *Every PR references REQ-IDs; traceability CI blocks orphans (both directions)* — three clauses, all enforced. **code→register**: a planted `// REQ-999` gives `check:traceability` exit 1, *FAIL built-but-unspec'd (annotations citing no register row)*. **register→code**: proven LIVE every run — `check:coverage`'s standing REQ-289 failure IS the demonstration, a gate evidenced by what it is currently refusing. **The PR clause is WIRED** (`ci.yml:29,32`, `if: github.event_name == 'pull_request'`, `PR_BODY` from title+body) — **and my first query said it was not**: a path-scoped glob with swallowed stderr returned only the package-script line, and I was one sentence from writing up *a law whose gate nothing runs*. **12th instrument miss**, from a fault this record names twice. **What did NOT save me**: my positive control (`check:coverage` in ci.yml) returned EMPTY, because CI invokes the merge gate rather than that script — **a positive control that FAILS tells you nothing; it is evidence only when it succeeds**, and I proceeded past a failed one |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -52594,3 +52595,61 @@ typecheck 0 · lint 0.
 - The same blocker applies to any future register-population tripwire, not just this one. **While the register
   is dirty, no count over it can be pinned honestly** — which is a small, standing cost of leaving that row
   uncommitted that nothing else in the record states.
+## §899 — PHASE GATE: PHASE 119 CLOSED — law 1's "both directions" verified, and a false alarm I caught on the second query
+
+Law 3 was probed at §896/§897. **Law 1** is the other with an untested compound claim: *"Every PR references
+REQ-IDs; traceability CI blocks orphans (**both directions**)."* Three assertions, each checkable.
+
+### Both directions block
+
+| direction | mechanism | proof |
+|---|---|---|
+| **code → register** — an annotation citing no row | `orphans.ts`, *built-but-unspec'd* | planted `// REQ-999` → `check:traceability` **exit 1**: `FAIL built-but-unspec'd (annotations citing no register row): REQ-999` |
+| **register → code** — a row nothing accounts for | `coverage.ts` | **proven live, every run**: `check:coverage` FAILs today on REQ-289 — *"1 unaccounted register row"* |
+
+The second needs no plant. The board's own standing FAIL **is** the demonstration, which is a pleasing
+property: a gate whose correctness is evidenced by the thing it is currently refusing.
+
+### "Every PR references REQ-IDs" is wired, and I nearly reported otherwise
+
+`check:pr` requires at least one `REQ-\d{3,}` in the PR text and rejects ids absent from the register —
+*"New scope = ADD A ROW FIRST."* It is exported, unit-tested, and **wired into CI**:
+
+```
+- name: traceability — PR REQ-IDs (REQ-118)
+  if: github.event_name == 'pull_request'
+  env: PR_BODY: ${{ github.event.pull_request.title }} / .body
+  run: pnpm check:pr
+```
+
+**My first query said it was not.** I grepped `package.json .github/workflows/*.yml` with `2>/dev/null`, got
+only the package-script line, and was one sentence from writing up *"a law with a built, tested, correct gate
+that nothing runs."* Re-querying with `git grep` over the whole `.github` tree found it immediately at
+`ci.yml:29,32`.
+
+**Twelfth instrument miss this session**, and the specific fault is one my own record already names twice: a
+path-scoped glob plus a swallowed stderr. The catch came from the habit rather than from suspicion — I widened
+the corpus because the negative was load-bearing, not because I doubted it.
+
+Worth noting what did *not* save me: I ran a positive control (`check:coverage` in `ci.yml`) and it returned
+**empty**, because CI invokes the merge gate rather than naming that script. **A positive control that fails
+tells you nothing about the real query** — it is only evidence when it *succeeds*. Mine failed and I proceeded
+anyway; the correct read is that the control was badly chosen, not that the corpus was empty.
+
+### Verdict
+
+**Clean negative on law 1.** All three clauses enforced: PR-text citation (CI, pull-request-scoped), orphan
+annotations (mutation-proved), unaccounted rows (live).
+
+### Exit state
+
+Nothing changed; one plant made and reverted. `check:traceability` exit 0 · `test:tools` 1,139, 3 failed
+(REQ-289) · typecheck 0 · lint 0 · `verify:docs` 0.
+
+**Reopen triggers**
+- `check:pr` is `if: github.event_name == 'pull_request'`, so a **direct push to main** carries no REQ-ID
+  requirement. That is a policy question, not a defect — the branch protection this repo assumes is outside
+  it — but the law reads *"every PR"* and the enforcement matches that literally.
+- The orphan direction scans **annotations**. A file with no REQ comment at all is not an orphan; it is
+  invisible. That is the §897 population problem again, and `check:coverage`'s built-but-unannotated bucket is
+  what covers it.
