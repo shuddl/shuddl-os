@@ -529,6 +529,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 334 | §886 | **§887** | **THE AUDIT HAS ZERO CITATION ROT; THE ONLY THREE FLAGS ARE MY OWN DOCUMENTATION OF IT.** §886 scoped its gate to the checklist on an ASSUMPTION — widening *"would flag history"*. Measured: audit **76 citations, 3 blank (3.9%), 0 out of bounds, 64.5% anchored**; checklist 101 / 0 / 0 / 43.6%. **Both conclusions invert the assumption**: the audit has NO organic rot (all three flags are mine, from §885/§886, each a deliberate quote of a broken citation inside the section documenting it), and the append-only history I was protecting is **better anchored than the live checklist** (64.5% vs 43.6%) because the ratchet has been pushing me to anchor for weeks. **The obstacle is a rule I wrote down and kept breaking**: 5th instance this session of *a gate that scans prose cannot tell an example from a use* (§829/§871/§878/§882/here), and after §871 I recorded the fix — **write the shape, never the instance** — then wrote the instance three more times, in the two phases ABOUT citation rot. **Fixed by de-citationing the quotes, not by allowlisting** (an allowlist would encode the bad habit and make the next documented rot need a new exception). Audit now needs ZERO exclusions; gate widened to both documents, green over **174** citations |
 | 335 | §887 | **§888** | **THE FIVE-DEMO ACCEPTANCE SPINE, PROBED AT THE LEVEL THAT DEFINES "DONE ENOUGH TO SHOW".** Changed axis after several record phases: CLAUDE.md's five acceptance demos, `test:acceptance` PASS on the board — what does that green certify? **More than expected, and the harness is honest about what it cannot.** Design is explicitly TWO-TIER (in-repo **spine** = code-provable causal chain; **filmed** delta = what a human with a camera must still show), and it records where CLAUDE.md's own wording overreaches (demo #1 says *invoice + PHOTOS* while the email ships documentary placeholders, §178). Manifest drift gated SIX ways bidirectionally, incl. all five demos declared with ≥1 spine test AND a stated filmed delta, and §607's *all 7 spine files resolve on disk*. **The runner EXECUTES** — `spawnSync` per package through that package's own vitest config (api/mcp are pool-workers, driver node, map jsdom) — and checks existence BEFORE any run because *"a filter matching nothing is silent whenever a sibling filter in the same package still matches"*, the exact trap a prior phase found by disproving its own earlier comment. **Mutation-proved**: a renamed spine file → `ACCEPTANCE SPINE: FAIL … the demo they prove is UNTESTED` and **exit 1**; clean tree exit 0. **CLEAN NEGATIVE.** Method note: my first probe read `$?` after a pipe and printed `exit=0` for a failed run — the trap this record already carries |
 | 336 | §888 | **§889** | **A RENAMED SPINE TEST WAS CAUGHT; A GUTTED ONE WAS NOT.** §888's own trigger, closed with §827's pattern (per-file floors, `SUITE` derived from the keys, aggregate DERIVED by summing per §823). **Measured: 41 cases / 237 assertions across the 7 spine files — and the METRIC had to change.** §827 floors on CASE count; copying that would have shipped a gate blind to the demo that matters most, because `heartbeat.test.ts` is **1 `it()` carrying 48 `expect()`** — demo #1's whole causal chain in one case, so gutting it to a single assertion keeps a case-floor GREEN. Floored on **assertions per file** instead: **the precedent's SHAPE transfers, its METRIC did not**, and taking it on trust would have produced exactly the hollow gate this record keeps finding. **Limits stated rather than implied**: floors sit at ~80% of measured, so this catches GUTTING not EROSION (48→40 passes), and it cannot see a HOLLOWED assertion — `toBeDefined()` counts the same as a penny-exact invoice comparison. Counting is the cheap half |
+| 337 | §889 | **§890** | **STOPPING POINT — THE SPINE IS NOT HOLLOW (MEASURED), BOARD AT `7288d9f` UNCHANGED.** §889 floored the acceptance spine on assertion COUNT and honestly caveated that a count cannot see a HOLLOWED assertion. Measured: **12 weak / 200 strong = 5%**, and demo #1's single-case whole-chain proof is **2%** (1 of 45) — **the floors guard genuine strength, not weight**. Honest bound: 212 of §889's 237 `expect(` calls classified; **25 unclassified** and NOT assumed to resemble the rest. **Board: 26 gates, 19 PASS · 2 FAIL · 5 BLOCKED**, unchanged across 14 phases / ~40 commits; the action remains *give REQ-289 a classifiable `status`/`wp`* — NOT commit it (§876). **§880–§889 produced two gates** (blank-line citations, spine assertion floors) **and one deliberately declined** (§880's path gate — the record had already measured its ~76% FP rate). **The through-line**: across ten phases I was wrong about MY OWN WORK far more often than about the code — a denominator (§884), an assumption about history (§887), a metric borrowed unchecked (§889), two reopen triggers (§882/§885), an experiment already run (§880) — every one caught by measuring, several by gates I had just built. **The code kept holding.** That asymmetry is the segment's most useful result |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -52005,3 +52006,77 @@ lint 0 · `verify:docs` 0. No production code changed.
   assertions, the floor must move **with a stated reason** — that is the §672 discipline, and the row that
   lowers a floor silently is the defect this exists to make visible.
 - The filmed half remains outside the repo (§888) and no floor touches it.
+## §890 — PHASE GATE: STOPPING POINT — the spine is not hollow (measured), and the board at `7288d9f`
+
+### First, the limit §889 stated, now measured
+
+§889 floored the acceptance spine on assertion *count* and said plainly what a count cannot see: a **hollowed**
+assertion — `toBeDefined()` weighs the same as a penny-exact invoice comparison. That was an honest caveat and
+an untested one. Measured, classifying every matcher in the seven spine files:
+
+| file | weak | strong | weak % |
+|---|---|---|---|
+| `heartbeat.test.ts` (demo #1) | **1** | 44 | **2%** |
+| `signup-to-quote.e2e.test.ts` | 0 | 9 | 0% |
+| `stop-flow.test.ts` | 0 | 33 | 0% |
+| `airplane-soak.test.ts` | 3 | 26 | 10% |
+| `quote-book.test.ts` | 3 | 34 | 8% |
+| `command-heartbeat.test.ts` | 3 | 36 | 7% |
+| `MapCanvas.test.tsx` | 2 | 18 | 10% |
+| **total** | **12** | **200** | **5%** |
+
+**The spine is not hollow.** 5% weak overall, and the file the floors most need to protect — demo #1's
+single-case, whole-chain proof — is **2%**. So §889's floors guard genuine strength, not weight.
+
+*Honest bound:* 212 matchers classified against §889's 237 `expect(` calls. **25 are unclassified** — multi-line
+forms, `.resolves.`, shapes my two patterns do not name. I am not calling that 5% exact; it is 5% of what I
+could classify, and the unclassified quarter is not assumed to resemble the rest.
+
+### The board, re-measured at `7288d9f`
+
+**26 gates — 19 PASS · 2 FAIL · 5 BLOCKED.** Unchanged across fourteen phases and roughly forty commits.
+
+The two FAILs remain the REQ-289 register row, and **the action is still not what this record said for twenty
+phases**: `check:coverage` reads the register *file*, so committing changes nothing. **Give REQ-289 a
+classifiable `status`/`wp`** and `coverage` goes green, `traceability` stays green (it needs the row — source
+cites REQ-289), and `test:tools` reaches 1,136/1,136. Expected board: **21 PASS · 0 FAIL · 5 BLOCKED**.
+
+### What §880–§889 produced
+
+Ten phases, and the honest summary is that **most of the value was in the record rather than the code** —
+which is itself the finding, because the code kept surviving inspection.
+
+| | |
+|---|---|
+| **§880** | re-ran an experiment the record had already run **and had predicted the result of** |
+| **§881–§882** | the pre-R4 carry-forward verified; its *named* fix measured to be **necessary but not sufficient** |
+| **§883** | a live money exposure's bounding guard had no test; the mutation showed it guards the **diagnosis**, not the money |
+| **§884** | *"249 rows unverified"* was **my own misleading denominator** — the real backlog is ~15 |
+| **§885–§887** | eight code-claim rows verified (7 held); two blank-line citations found and gated; the audit measured to have **zero organic rot** |
+| **§888–§889** | the acceptance spine probed and floored; a gutted demo #1 now fails by name |
+
+**Two gates shipped** (blank-line citations, spine assertion floors), **one deliberately not** (§880's path
+gate — the record had already measured its ~76% false-positive rate).
+
+### The through-line, stated once
+
+Across these ten phases I was wrong about my own work more often than about the code: a denominator (§884), an
+assumption about history (§887), a metric borrowed without checking (§889), two reopen triggers (§882, §885),
+and an experiment already run (§880). Every one was caught by measuring rather than reasoning, and several by
+gates I had just built.
+
+**The code, by contrast, kept holding.** That asymmetry is the most useful thing this segment established.
+
+### Open, owner-held
+
+**REQ-289's `status`/`wp`** (clears both FAILs) · REQ-076's square/hollow · the `dod_kind` column · sweep
+containment's missing row · REQ-276's vitest hole · L228's server-side executing-party fact · `unwitnessed`'s
+reader · `routes ±10%` · the nine private fixtures · `IDENTITY_DENYLIST`.
+
+### Reopen triggers
+
+- The **filmed** half of the acceptance demos (#3 a real driver, #5 the exception pulse) cannot be closed from
+  this repo, by construction.
+- ~15 repo-owned checklist rows still carry no verification stamp; three of them say *"needs a REQ row first"*
+  and are register work, not verification work.
+- The 25 unclassified spine matchers above are a small, real blind spot in this phase's own measurement.
