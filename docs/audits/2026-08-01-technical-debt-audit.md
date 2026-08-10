@@ -491,6 +491,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 296 | §848 | **§849** | **PHASE 69 CLOSED — the captive portal ONE LAYER DOWN: `fetch` was already following the redirect.** §848 pinned `classifyStatus` so a 3xx retries, and named where the defect would reappear: *the transport following redirects itself*. **It already did.** `transport.ts` calls `doFetch` with **no `redirect` option**, so the default `follow` applies and `res.status` is the FINAL response's — portal 302 → followed → login page **200** → `classifyStatus` → **`ack`** → **the signed capture is dropped**. **§848's test cannot see it**, because the function is handed the portal's 200, never the 302: *pinning a pure function proves nothing about what its caller feeds it.* CORS saves only the cross-origin case — luck per-portal, not a property. Fixed with `redirect: "error"` on both legs, licensed by a measurement: **the API never returns a 3xx**, so a redirect here is ALWAYS an interceptor. It routes into machinery §848 already pinned (throw → catch → status 0 → retry). **`createTransports` had ZERO tests** — the driver's whole HTTP boundary; +7 now |
 | 297 | §849 | **§850** | **PHASE 70 CLOSED — status-only trust is the vulnerability; the driver was the ONLY one.** Classified all **24** production `fetch` sites. **The discriminator is not "does it set `redirect`"** — it is what the caller TRUSTS. Four other protections, all stronger or equivalent: `apps/command`+`portal` have **caller-side Zod** (§782's `get<unknown>` + parse); `biller/sender.ts` does **body validation** and is exemplary, its own comment naming the case (*"a 2xx with a NON-JSON body — a proxy answering for a dead upstream"*); `platform-ledger` is a **service binding**, never on the network; `tsa/client` verifies **cryptographically** + echo-checks the nonce. **Body validation is strictly stronger than a redirect policy** — the sender needs no option because an interceptor cannot produce a Resend id; the driver needed one precisely because the sequencer's 202 carries **nothing to validate**. Rule: *trust a status only when you have nothing else.* §849's residual closed with a gate scoped to `apps/driver/src/sync/` — repo-wide would flag 22 correct sites (§845) and be wrong besides. 3 REDs |
 | 298 | §850 | **§851** | **PHASE 71 CLOSED — a WAIVER of the co-signature requirement that nothing downstream reads.** The evidence claim rests on I4 (*a custody event must be co-signed by a device*). **The chain holds**: the sequencer verifies at two sites, both fail-closed, and pins `device_id === actor.device` **before** the dedup lookup so an unsigned event cannot squat a victim's slot. **The waiver does not.** I4's escape hatch is `payload.unwitnessed`, and it is read in **exactly one place** — the refine that waives the requirement. Nothing downstream reads it: not the Biller, not the evidence email, zero hits across `workers/agents` + `packages/agents`. So an **unwitnessed POD bills identically to a co-signed one**, on the path demo #1 calls *"signature at a door"*. Whether it SHOULD differ is a **product decision, filed not made**. **I diagnosed §796 wrongly, twice.** I assumed it missed the field and blamed its `z.literal` exemption, narrowed it, widened the shape filter, filed the row — then removed the row to prove detection and it **still reported nothing**. §796 counts the field **CONSUMED**, correctly, by its own rule (*a read inside the declaring file counts*): the refine reads it four times. **Both edits reverted** — shipping them would claim a detection that does not happen. The finding is a class §796 does not model: §796 asks *does anything read this*, the question here is *does anything ACT on the difference*, and they come apart exactly when the reader IS the waiver. **Filed in the GO-LIVE-CHECKLIST** with both options; the remedy is a product call |
+| 299 | §851 | **§852** | **PHASE 72 CLOSED — the waiver class has EXACTLY ONE member, and the one that matters is fully accountable.** §851 named a class §796 does not model (*a field read only by the check that waives a requirement*); a class with one member is a hypothesis, so this swept the rest. Six waiver-shaped fields: `override` **5 readers**, `skipped` 2, `shipmentIdOverride` 1, and two zero-reader fields that are **telemetry counts** in a sweep's return, not waivers. **`unwitnessed` is the only member.** REQ-049's override — *the only thing that lets a transition proceed without its evidence* — is accountable end to end: named+reasoned (both refined non-blank), **role-gated** at the route, **persisted on the events row** (the migration states why: *a single-row mapper can't JOIN a side table*), **tamper-evident** in the hashed chain, and **rehydrated by the lens** to the API. The Command UI does not render it — stated precisely rather than filed, because REQ-049's *permanently visible* is a claim about the LEDGER record, and conflating that with a UI wish would file a product question as a compliance gap. **§851's finding is isolated, not systemic** — and the contrast (same role, 5 readers vs 0) is the sharpest argument for giving it one |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
 roughly ten phase gates.** Measured: `docs/ops/GO-LIVE-CHECKLIST.md` → *Repository-owned failures & debt*
@@ -49592,3 +49593,60 @@ options stated, and a corrected understanding of what §796 does and does not mo
   reader that acts on it, and I4's is currently the refine itself.
 - A third optional-literal appears → the narrowed exemption reports it, which is the intent; exempting it
   again requires stating why the parse enforces something the optionality removed.
+## §852 — PHASE GATE: PHASE 72 CLOSED — the waiver class has exactly one member, and the one that matters is fully accountable
+
+§851 named a class §796 does not model: **a field read only by the check that waives a requirement, with no
+consumer of the distinction it creates.** A class with one known member is a hypothesis. This sweeps for the
+rest.
+
+### Every waiver-shaped field, and who reads it
+
+Six fields matching `override|unwitnessed|bypass|force|skip|exempt|waive|sanction` in a schema position:
+
+| field | readers outside its declarer | verdict |
+|---|---|---|
+| `override` (REQ-049) | **5** — the gate, the lens, the sequencer, the events route, the migrator | accountable, below |
+| `skipped` (anchors) | 2 — `anchor.ts`, `webhooks.ts` | consumed |
+| `shipmentIdOverride` | 1 — `inbound.ts` | consumed |
+| `skipped_foreign_key` | 0 external — a **telemetry count** in a sweep's return (`{scanned, deleted, retained, skipped_foreign_key}`) | not a waiver |
+| `answered_skipped` | 0 external — same shape (`{scanned, appended, answered_skipped}`) | not a waiver |
+| **`unwitnessed`** | **0** | **§851's finding — the only member** |
+
+### The one that would matter most is sound
+
+REQ-049's gate override is *"the only thing that lets a transition proceed without its evidence"*, so it is
+the field where an unaccounted waiver would be worst. It is accountable end to end:
+
+- **named + reasoned** — `by` and `reason`, both refined non-blank
+- **role-gated** — `routes/events.ts` requires an elevated role (ops/admin/finance) before the DO ever sees it
+- **persisted on the event row**, not a side table — `0005_events_override.sql` states why: *"a pure
+  single-row mapper can't JOIN a side table, so the override MUST live on the events row"*
+- **tamper-evident** — when present it rides into the hashed, chained envelope; when absent the canonicaliser
+  drops the key, so a non-override event's bytes stay identical to a pre-0005 row
+- **rehydrated by the lens** onto `e.override`, so it reaches `/v1/shipments/:id/events`
+
+The Command UI does not render it, and that is worth stating precisely rather than filing as a defect:
+REQ-049's *"permanently visible"* is a claim about the **ledger record**, which is satisfied and then some.
+Whether an operator surface should badge an overridden event is a product question, and a real one — but the
+integrity requirement is met, and conflating the two would file a UI wish as a compliance gap.
+
+### What the sweep buys
+
+§851's finding is **isolated, not systemic**. That matters in both directions: it means there is no pattern of
+unaccounted waivers to hunt, and it means `unwitnessed` is genuinely anomalous rather than an instance of a
+house style. The contrast with `override` — same architectural role, five readers versus zero — is the
+sharpest argument for giving it one, and it is now in the checklist where the owner will see it.
+
+### Exit state
+
+`test:tools` **1118**, 3 failed — the REQ-289 trio. typecheck 0 · lint 0 · `verify:docs` 0. **Nothing
+changed** — this phase measured a class and bounded it at one member.
+
+**Reopen triggers**
+- A new waiver-shaped field is added → it needs a reader before it needs anything else. The sweep is a dozen
+  lines and re-runnable; it is not a gate, because "acts on the difference" is not mechanically decidable
+  without firing on every validation rule in the repo (§851).
+- `override` loses a reader (the lens stops rehydrating it, the role check moves) → the accountability chain
+  above is five links and only the ledger-row link is enforced by a migration.
+- A Command view starts rendering overrides → the UI observation here stops being an observation and becomes
+  a tested behaviour; nothing currently pins it either way.
