@@ -601,6 +601,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 406 | §958 | **§959** | **THE SURFACES ARE GENUINELY LIVE — AND RUNNING CODE 100 COMMITS BEHIND.** Re-ran the record's own probe against prod after 11 days: `api.shuddl.tech/v1/board` → **401** fail-closed as documented, command/driver/portal/track/mcp → **200**, api and billing roots 404 as expected. **A documented claim about live infrastructure, true in every particular** — recorded because a clean positive is worth its instrument too. But *the surfaces are live* and *the surfaces run current code* are different claims: against `origin/main` (= deployed `0415148`), **100 unpushed commits touch runtime src, 125 source files differ, 0 migrations differ** — every worker and surface, pure application code with no schema divergence. Not a defect (an old fail-closed build is a safe one), but only the first claim was written down. **A false clean caught by a positive control:** the pathspec `packages/*/src` matches ZERO files and reported *0 runtime commits* — the trap this repo's memory records verbatim |
 | 407 | §959 | **§960** | **THE REMEDIATION SAYS OIDC; THE WORKFLOW READS TWO SECRETS THAT DO NOT EXIST.** §957 left the nightly's mechanism inferred. Measured: `gh api …/actions/secrets` → **`{"total_count":0}`** — zero repository secrets, while the workflows reference `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` and `IDENTITY_DENYLIST`. That is the root cause of the 8-night red, and it settles a second question: **`identity-leak` is BLOCKED in CI too, not just local dev — the five BLOCKED gates are blocked everywhere.** **The defect:** `GO-LIVE-CHECKLIST:52` instructs *Configure GitHub Actions OIDC ↔ Cloudflare*, but `nightly.yml` authenticates with repository SECRETS and no workflow requests an `id-token` permission. **An operator would stand up OIDC and the nightly would still exit 2.** Corrected in place, naming both secrets |
 | 408 | §960 | **§961** | **THE MECHANICAL HALF OF §960's CLASS IS EMPTY — AND MY FIRST COUNT WAS A FALSE ALARM.** §960 was instance #3 of *a remediation that does not fix the thing*, so I counted: **53 checkable artifacts named in Action cells, 0 unresolvable.** Every file and script a remediation names exists. So §960's defect was SEMANTIC, not referential — *Configure OIDC* names nothing broken, it points at a mechanism the code does not use, and **no detector reaches that**. The class has two halves with opposite properties: the referential half is checkable and clean at 53/53; the semantic half is uncheckable and has produced 3 defects, all found by reading. **Near-miss:** the first pass reported **27 of 53 unresolvable** (51%), every one wrong — it read a bare basename as a repo-root path. A false ALARM, the opposite of this session's usual false cleans, and the asymmetry is the lesson: a false clean is corrected by nobody, a false alarm by whoever checks item one |
+| 409 | §961 | **§962** | **CI's 26-GATE SURFACE WAS *SKIPPED* — THE SAME SHORT-CIRCUIT, AT A THIRD LEVEL.** CI has failed every run since 2026-07-23 (last green 07-22). In the final run — at `0415148`, **the commit production runs** — step 14 `strict performance` FAILED and step 15 *merge evidence gate — the complete non-skippable surface* was **SKIPPED**, not failed. Three consecutive runs ended that way. Third level of the §940 idiom (package `&&` → `pnpm -r` bail → **GitHub step ordering**) and the worst, because the one step running all 26 gates sits AFTER four browser gates: locally `perf:map` passes at p95 **12.00ms** vs an **18.18ms** budget, and **a slower CI runner was enough to silence all 26 gates**. Fixed with `if: !cancelled()` — the job stays red, the surface reports. Also corrected L35: *CI binds the secret* is false (§960, 0 secrets) — referencing is not binding |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -56558,3 +56559,61 @@ is corrected by whoever checks the first item. That asymmetry is the reason to k
 on zeros — and the reason a non-zero deserves one sceptical read before it is published.
 
 **And the phase's own commit message was silently truncated writing that paragraph.** I built it with `printf`, whose format parser stopped at the `%)` in *"(51%)"* — the body lost its last third, including the lesson above, and `git commit` succeeded regardless. Same shape as everything else here: a tool that fails by producing LESS, with a zero-valued exit. Amended using a heredoc, which passes the text through unparsed and is what every other commit this session used.
+
+## §962 — PHASE GATE: CI's 26-gate surface was SKIPPED — the same short-circuit, at a third level
+
+§961 concluded the semantic half of the remediation class can only be found by reading. Reading `L35` —
+*"`IDENTITY_DENYLIST` … **CI binds the secret** (`ci.yml:49`)"* — against §960's measurement (`total_count: 0`)
+opened this, and the CI history answered something much larger.
+
+### CI has been failing since 2026-07-23, and the last run never reached the gates
+
+```
+2026-07-31  0415148  failure     ← origin/main, and the commit production runs (§959)
+2026-07-28  5b62a3e  failure
+2026-07-23  4f0a6f3  failure
+2026-07-22  ba23e16  success     ← the last green
+```
+
+The merge-gate job's steps from that final run:
+
+```
+13  success  strict end-to-end (merge mode)
+14  FAILURE  strict performance — 1K-entity interaction + long-task budget (merge mode)
+15  SKIPPED  merge evidence gate — the complete non-skippable surface (REQ-288)
+16  SKIPPED  production dependency audit
+```
+
+**The step that runs all 26 gates was skipped.** Not failed — never executed. Three consecutive runs ended
+that way, and the last of them is the commit currently serving prod.
+
+### The same idiom, now at its third and worst level
+
+| level | mechanism | phase |
+|---|---|---|
+| package script | `test:tools && pnpm -r run test` | §940 |
+| workspace runner | `pnpm -r` bails at the first failing package | §949 |
+| **CI workflow** | **a failed step skips every later step** | **§962** |
+
+This is the worst of the three because of *position*: the one step that runs the complete surface sits **after
+four browser gates**, any of which can skip it — and the browser gates are the most environment-sensitive
+things in the job. Locally `perf:map` passes with room (`p95 12.00ms` against an `18.18ms` budget); on a shared
+CI runner it did not. **A slower runner was sufficient to silence all 26 gates.**
+
+Fixed: `if: ${{ !cancelled() }}` on the merge-evidence step and the dependency audit. The job still goes red —
+the perf failure still fails the run — but the surface now reports its own verdict instead of vanishing.
+Exactly §940's fix: aggregate, do not short-circuit.
+
+### Two record corrections this produced
+
+- **`L35`'s status is wrong.** *"CI binds the secret"* — `ci.yml:49` **references** `${{ secrets.IDENTITY_DENYLIST }}`;
+  §960 measured zero repository secrets, so that env var is the empty string. Referencing is not binding.
+- **The local green and the CI red have never been reconciled**, and cannot be: they are verdicts on
+  *different code* (8 commits have touched the map/perf path since `0415148`) from *different hardware*, and
+  §957 means no CI run exists for anything newer.
+
+### What this does not say
+
+It does not say prod is broken — §959 measured the surfaces live and fail-closed. It says the deployed commit's
+only CI verdict is **FAIL**, the 26-gate surface never ran on it, and with §956 (no branch protection) nothing
+required otherwise. Those are four separately-measured facts that only mean something together.

@@ -44,11 +44,20 @@ jobs:
         run: pnpm test:e2e -- --mode merge
       - name: strict performance — 1K-entity interaction + long-task budget (merge mode)
         run: pnpm perf:map -- --mode merge
+      # §962 — RUNS EVEN AFTER AN EARLIER GATE FAILED. MEASURED: on 2026-07-31 at `0415148` (the commit
+      # production still runs) the perf step failed and THIS step was SKIPPED — so the complete 26-gate
+      # surface, the thing this job exists for, never executed. Three CI runs in a row ended that way.
+      # It is the §940 short-circuit at a third level: package.json's `&&` (§940), pnpm -r's bail (§949),
+      # and GitHub step ordering here — the most consequential of the three, because the ONE step that runs
+      # all 26 gates sits after four browser gates any of which can skip it. `!cancelled()` keeps the job
+      # RED (the earlier failure still fails the run) while ensuring the surface reports its own verdict.
       - name: merge evidence gate — the complete non-skippable surface (REQ-288)
+        if: ${{ !cancelled() }}
         env:
           IDENTITY_DENYLIST: ${{ secrets.IDENTITY_DENYLIST }}
         run: pnpm verify:merge
       - name: production dependency audit
+        if: ${{ !cancelled() }}
         run: pnpm audit --prod
       - name: upload merge evidence (even when a gate fails)
         if: ${{ always() }}
