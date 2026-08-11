@@ -631,6 +631,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 467 | §1019 | **§1020** | **CAN §1019's DEFECT BE GATED? — NO, AND THE DETECTOR PROVED IT ON ITSELF.** §1019 found a gate header quoting *"Unbounded list reads — 7 sites"* while the doc said 9. Is that a class, and is it detectable? **First detector: 185 quoted phrases, 75 'missing' — a 40% miss rate that describes the DETECTOR**, since the misses are the gate's own error strings, format strings and rhetorical questions. Not reported. **Narrowed to the repo's own `*"…"*` quotation marker: 22 marked, 6 unresolved — small enough to read, and ALL SIX ARE FALSE POSITIVES** in three ways: two quote a gate's own error/output, one quotes a **superseded comment deliberately**, two are **verbatim in the audit behind backticks** (my normaliser stripped whitespace but not MARKDOWN), and one quotes a **source** comment (`spark-meter.ts:18`) while my corpus was docs-only. **Zero confirmed stale quotations besides §1019's.** No gate is possible: the marker means *this is a quotation*, not *this must still be true* — and a superseded-comment quote that stops resolving is **the point of quoting it**. Third time at this boundary (§1012, §1014). Two transferable detector defects recorded: **normalise both sides to the same alphabet**, and **the corpus must be as wide as the thing QUOTED, not as wide as the thing audited** |
 | 466 | §1018 | **§1019** | **THE DRIFT GATE HAD DRIFTED — IN THE ONE PLACE NO GATE READS.** §1018 found `KNOWN_UNPAGINATED` entries are **filed debt**, raising the question whether the ledger an owner reads knows about them. **It does, and the join is gated better than expected:** `unbounded-reads-roster.test.ts` extracts the doc's NUMBER (`/Unbounded list reads — (\d+) sites/`) and asserts it equals `ROSTER.length`, with *whichever moved, move the other in the SAME commit* — earned at §823, whose row records *this row said '7 sites' while already citing 8, and the agreement test matched only the TITLE, so the disagreement was invisible for two audits*; plus §822's discovery half (*a roster watches what it knows; a ninth site walks past it*). **And its own header still said seven.** The doc says 9; the file's opening paragraph quoted 7. **The file whose entire purpose is stopping doc↔code count drift had drifted, in its own first paragraph** — and nothing could fail, because the assertion reads the DOC and a header comment is prose. Corrected to 9 with provenance kept. **A gate cannot audit its own prose**, so the most rigorous file in a repo is exactly as prone to a stale sentence as the least |
 | 465 | §1017 | **§1018** | **THE EXEMPTION SURFACE — 12 ALLOWLISTS, 0 THAT OUTLIVED THEIR SUBJECT.** §1017 swept suppressions; an allowlist is the same hazard with the opposite sign — **worse, because a suppression is visible where it silences while an exemption sits in a file nobody opens.** 12 allowlists across 16 gate files, every path-like entry checked against the tracked tree: **0 dead.** **§672 already asks this question on the one that matters most:** `append-chokepoint`'s `ALLOWED` is a **`Map<path, reason>`** (justification structurally inseparable from the entry), **2 entries only**, exported so the test pins the **exact key set**, requires every reason to exceed **40 chars**, and asserts *every allowlisted path still exists AND still writes events — no exemption outlives its subject*. **Two corrections to my own reading:** the reason-bearing-vs-bare split (5/7) was a **parser artifact** — I classified by declaration SYNTAX, and reading CONTENTS dissolves it, since every allowlist here carries prose reasons; and 3 'ungated' ones needed no gate because `ALLOWED_FONT`/`_TRANSFORM`/`_HEX` are **value** allowlists — the constitutional budgets themselves, proved by violation at §1001, and a value cannot outlive its subject. Design note: `KNOWN_UNPAGINATED` entries double as **filed debt** (*Remedy needs a REQ row*), so the exemption cannot be read without reading why it is temporary |
 | 464 | §1016 | **§1017** | **THE SUPPRESSION SURFACE — NINE FORMS SWEPT, ONE WAS §1016's FINDING, THE REST CLEAN.** §1016 found its finding by asking *which decision in this file is unexplained?* — mechanised here, since **every suppression is a decision and an unexplained one is indistinguishable from a silenced failure**. **0 `@ts-expect-error` · 0 `@ts-ignore` · 0 `istanbul ignore` · 0 `skipIf`/`.todo`** — zero type-checker suppressions in a strict, no-`any` codebase is the number worth recording, because a growing bank of `@ts-ignore` is the usual way a repo accumulates silent debt. `.only` ×2 and 3 of 4 `.skip` are **fixtures inside `no-focused-tests.test.ts`, the gate that BANS focused tests**; 5 `eslint-disable` are the standard `env.d.ts` module-augmentation idiom. **The one real skip is the model:** `prod-surface.spec.ts:30` skips on an unset `PROD_SURFACE_BASE`, and `test:surfaces` **bakes `--mode release`** so an all-skipped run is BLOCKED, never exit 0 — the guard reading Playwright's JSON stats because *it exits 0 both for '42 passed' and for '4 skipped', so the exit code alone cannot distinguish proof from silence.* **§968's rule discovered independently at the browser layer** — three instruments, one law |
@@ -60101,3 +60102,67 @@ gated both ways, and the one drift was in prose no gate reads.
 assertion, but this file's header is on nobody's list · a second gate quotes a checklist figure in its header,
 which is the shape that just bit · `KNOWN_UNPAGINATED`'s filed entries get REQ rows, at which point both the
 roster and the row shrink together.
+
+---
+
+## §1020 — PHASE GATE: can §1019's defect be gated? — no, and the detector proved it on itself
+
+§1019 found a gate whose header quoted *"Unbounded list reads — 7 sites"* while the checklist said **9** — a
+stale quotation in the one region no gate reads. The obvious follow-up: **is that a class, and can it be
+detected?**
+
+### The first detector was §240's wall again
+
+Extracting every quoted phrase from every gate comment and testing it against the doc corpus: **185 checked,
+75 "missing"** — a 40% miss rate that is a statement about the detector. Reading the sample dissolves it: the
+"missing" quotes are the gate's **own error messages** (*"no workspace package declares this name"*), format
+strings (`"<pkg> <pkg-relative file>"`), rhetorical questions (*"does something IMPLEMENT each gate rule 6
+names?"*), and self-description. **Not reported.**
+
+### Narrowing to the repo's own quotation marker did not save it
+
+This record marks quotations as `*"…"*`. Restricted to that form: **22 marked quotations, 6 unresolved.** A
+tractable number — so I read all six, and **every one is a false positive**, in three distinct ways:
+
+| quote | what it actually cites |
+|---|---|
+| *"no workspace package declares this name"* | the gate's **own error string** |
+| *"OK — 0/22 tables, events append-only (0 migration files)"* | a gate's **printed output**, quoted as evidence |
+| *"vitest exits non-zero on … 'no test files found'"* | a **superseded comment**, quoted deliberately as the claim being corrected |
+| *"`resolveTenantDb` gains an overload or a wrapper …"* | §571, **verbatim at `:30973`** — my normaliser stripped whitespace but **not markdown**, so an inline code span made it unmatchable |
+| *"…needs two edits nobody is prompted to make."* | the audit, **present** — same normalisation defect |
+| *"the chain is defence for a future non-storage await"* | `workers/agents/src/spark-meter.ts:18` — a **source** comment, and my corpus was docs-only |
+
+**Zero confirmed stale quotations besides §1019's.**
+
+### Why no gate is possible here
+
+The marker `*"…"*` means *"this is a quotation"*. It does **not** distinguish quotation **of a document** from
+quotation of an error string, a gate's output, a superseded comment, or a source file — and those need
+opposite treatment: a doc quote that stops resolving is a defect, while a superseded-comment quote that stops
+resolving is *the point of quoting it*.
+
+That is the third time this record has hit the same boundary — §1012 (email shapes), §1014 (self-confirming
+tests), and now this. **A marker that says "this is a quotation" is not a marker that says "this must still be
+true."** Adding one would mean annotating 22 sites by hand to buy the detection of a defect that has occurred
+once, which is §997's rule deciding against it.
+
+### The detector's two own defects, recorded because they are the transferable part
+
+1. **Normalising whitespace but not markup.** Two of six "misses" were verbatim in the audit behind backticks.
+   A corpus comparison must normalise **both sides to the same alphabet**, or inline formatting reads as
+   deletion.
+2. **A corpus that excluded source.** The sixth quote was from a `.ts` comment. I had defined "the documents"
+   as `docs/ + genesis/ + CLAUDE.md` — but a gate quotes whatever it is arguing with, and here that was a
+   Durable Object's own comment. **The corpus must be as wide as the thing being quoted, not as wide as the
+   thing being audited.**
+
+### Phase gating
+
+**STOP.** §1019's defect is real and its class is **one**. It was found by reading, and this phase establishes
+that reading is the only instrument — with the detector's failure modes documented so the next attempt starts
+past them rather than repeating them.
+
+**Re-open when:** a quotation marker distinguishing *doc quote* from *any other quote* is introduced for some
+other reason — the detection then costs nothing · a second stale doc-quote is found by reading, which makes the
+class two and changes the §997 arithmetic.
