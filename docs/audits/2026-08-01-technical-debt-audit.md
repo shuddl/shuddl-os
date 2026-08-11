@@ -631,6 +631,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 453 | §1005 | **§1006** | **DEPENDENCY LICENCES — THE COMPLIANCE SURFACE NOBODY HAD MEASURED.** §967 audited vulnerabilities and §974 pinned actions; the third supply-chain question was never asked — searching this record returns seven hits and **all seven are the word in another sense** (*a licensed dataset*, *what licenses this*). Install scripts ARE gated (`allowBuilds`: esbuild/workerd true, **sharp false**), checked before re-deriving. Measured: 13 declared runtime deps, but **nine are `@shuddl/*` workspace packages** — the external production set is `hono`/`react`/`react-dom`/`zod` + `scheduler`, and `pnpm licenses list --prod` returns **1 licence across 5 packages: MIT**. Counts reconcile against the manifests, which is what makes a suspiciously small number trustworthy. Full tree **335 packages / 13 licences**; ten are non-permissive-simple and **every one is dev-only** — LGPL `sharp-libvips-darwin-arm64` (whose install script `allowBuilds` already blocks), MPL `axe-core`/`lightningcss`, CC-BY `caniuse-lite`. **No copyleft obligation reaches anything distributed.** Deliberately NOT gated: §997's rule — *gating everything you examine is decorating, not measuring* — a 5-package surface with zero defects that moves twice a year gets a measurement + trigger, not a permanent maintenance surface |
 | 452 | §1004 | **§1005** | **WOULD ANY OF THIS WORK ON LINUX? — THE QUESTION CI HAS NEVER BEEN ALLOWED TO ANSWER.** Every gate here has only ever run on **darwin**; CI runs **ubuntu-latest**; and §957 measured that CI has evaluated **none** of the 1,018 local commits — so a platform assumption surfaces for the first time on the day of the push, as a red build with no obvious cause. Seven axes, all decidable without a runner: shell-outs are **only** `git`/`pnpm`/`npx`/`node` (no shell utilities at all) · **0** BSD/GNU-divergent flags (the apparent `tac` hits were substrings of *attached*/*attack*) · **0** tracked path case-collisions · **0** imports resolving only case-INSENSITIVELY — the class that resolves forever on macOS and fails instantly on Linux · **0** absolute paths (already gated) · 12 portable CI `run:` steps · toolchain agrees (`.node-version` **22.15.0** tracked, `engines >=22.15.0 <23`, `pnpm@11.10.0`, matching local). **CLEAN NEGATIVE on all seven.** `.node-version` earns its own line: `setup-node` uses `node-version-file`, so an untracked file fails the workflow at its FIRST step. **This proves the portability class is EMPTY, not that CI passes** — that needs the owner's push, and this narrows what it can go wrong in |
 | 451 | §1003 | **§1004** | **THE CWD-DEFAULT CLASS, SWEPT — 1 DEFECT, 9 CORRECT, AND THE RULE THAT TELLS THEM APART.** §1003 fixed two `cwd = process.cwd()` defaults; at instance #2 you count the class. **Nine more carry the identical signature — and the sweep that would have 'fixed' them would have BROKEN THE BUILD.** `invariants.test.ts:46`'s `runCli(cwd, args)` spawns the CLI against a **temp fixture repo**; anchoring `main()` to `repoRoot()` makes it ignore that cwd and scan the real repository, silently invalidating every fixture test. **The discriminator: a `cwd` default is a defect only when NO caller ever passes anything else** — indistinguishable from the signature alone. Classified all nine: 8 have fixture harnesses passing temp dirs, 1 inherits its CLI's own fixture-driven cwd. **9 of 9 correct.** The acceptance runner was the real defect precisely because its only explicit caller passed `repoRoot()` — a workaround, not a use. Behavioural check: 3 of 4 entrypoints are cwd-identical; `invariants.ts` differs and fails **CLOSED** on §732's floor — cwd-relative on purpose, loud when misused. **Twice now the right move was NOT to generalise a real fix** (§1000: a guard defended by types; here: a default defended by a harness) — generalising without a discriminator is how an audit starts producing defects instead of finding them |
 | 450 | §1002 | **§1003** | **CAN ANYONE ELSE BUILD THIS? — A FRESH CLONE, AND THE GATE THE CWD SWEEP MISSED.** 1,018 commits nobody else has seen; nothing had asked whether the tracked tree is self-sufficient. Cloned it (1,001 files) and ran the standalone gates with `repoRoot()` resolving there: **3 of 4 clean on tracked content alone**; `invariants.ts` crashed on a missing workspace package — **a harness artifact** (no `node_modules`), recorded because it reads like a defect. Full answer needs a network install (§973 says impossible here), so I measured the decidable half: **47 non-test tool modules, exactly ONE untracked literal path** (`workers/mcp/dist/api/index.js`) — and the runner BUILDS it if absent. **Reading that line found the real defect:** `tools/acceptance/run.ts` was never anchored — `missingSpineFiles()` returns **0 from root, 4 from any subdirectory**, so `pnpm test:acceptance` from a package dir reports the five acceptance demos as broken. **It survived the sweep that anchored sixteen siblings because it fails CLOSED** — that sweep hunted gates reporting OK over nothing, and *wrong-and-loud* does not match a search for *wrong-and-silent*. **The tell was in the TEST**: `demos.test.ts:80` already passed `repoRoot()` explicitly, routing around the default instead of failing on it — **a test that compensates for a bad default is a known, unfixed defect that is green by construction.** Both defaults fixed, pinned by a `chdir` test, 2 mutations RED |
@@ -59187,3 +59188,67 @@ after the push is not attributed to a portability cause that has been ruled out.
 **Re-open when:** a gate shells out to something that is not `git`/`pnpm`/`npx`/`node` · a workflow gains a
 `run:` step with shell logic · `.node-version`, `engines` or `packageManager` changes · a runner other than
 `ubuntu-latest` is added, at which point this table is the checklist to re-run.
+
+---
+
+## §1006 — PHASE GATE: dependency licences — the compliance surface nobody had measured
+
+§967 audited dependency *vulnerabilities* (4 found in `hono`, fixed) and §974 pinned every GitHub action. The
+third supply-chain question was never asked. Searching this record for it returns seven hits, and **all seven
+are the word used in another sense** — *a licensed dataset*, *what licenses this claim*. For a commercial
+product at a launch gate, that is a real unmeasured surface.
+
+Install scripts, by contrast, ARE gated and I checked before re-deriving: `allowBuilds` declares
+`esbuild: true`, `workerd: true`, `sharp: false`, with a non-vacuity test that fails if pnpm renames the key
+again (it was `onlyBuiltDependencies` before v10).
+
+### The production surface is five packages
+
+13 runtime dependencies are declared across the workspace, but **nine are `@shuddl/*` workspace packages**
+carrying no external licence. The external set is `hono`, `react`, `react-dom`, `zod`, plus react-dom's
+`scheduler`:
+
+```
+pnpm licenses list --prod   →   1 distinct licence across 5 packages:  MIT
+```
+
+The two counts reconcile, which is what makes the small number trustworthy rather than suspicious — a broken
+query and a genuinely lean tree look identical, and this one was cross-checked against the manifests.
+
+### Every non-permissive licence is confined to dev tooling
+
+Full tree: **335 packages, 13 distinct licences.** Ten packages carry something other than
+MIT/ISC/BSD/Apache-2.0, and every one is dev-only:
+
+| licence | packages | surface |
+|---|---|---|
+| **LGPL-3.0-or-later** | `@img/sharp-libvips-darwin-arm64` | dev-only — and a darwin-arm64 binary, whose install script `allowBuilds` already blocks (`sharp: false`) |
+| **MPL-2.0** | `@axe-core/playwright`, `axe-core`, `lightningcss`, `lightningcss-darwin-arm64` | dev-only — a11y testing and CSS build |
+| **CC-BY-4.0** | `caniuse-lite` | dev-only — browser-support data |
+| CC0-1.0 · BlueOak-1.0.0 | `@speed-highlight/core`, `mdn-data`, `lru-cache`, `minimatch` | dev-only, and all permissive |
+
+**CLEAN — no copyleft obligation reaches anything distributed.** LGPL's relinking requirement and MPL's
+file-level reciprocity attach to *distribution*; none of these packages is in the production graph, and a
+Workers deploy ships bundled worker code rather than the dev tree.
+
+### Why this is NOT becoming a gate
+
+The obvious next move is a gate failing on a non-MIT licence entering production dependencies. **§997's rule
+says otherwise:** *an audit that gates everything it examines is not measuring; it is decorating.* The
+production surface is **five packages**, it has zero defects, and it moves perhaps twice a year — a gate there
+costs a permanent maintenance surface to guard something a register amendment already touches. The evidence
+gates built this session each closed a *live* defect (six expired verdicts, a cited gate that does not exist,
+six stale files git could not see). This has none.
+
+**Recorded as a measurement with a trigger instead**, which is the cheaper instrument for a slow-moving,
+currently-clean surface.
+
+### Phase gating
+
+**STOP.** The third supply-chain axis is measured: vulnerabilities (§967), action pinning (§974), install
+scripts (`allowBuilds`), and now licences — production **5/5 MIT**, all copyleft confined to dev.
+
+**Re-open when:** a package is added to any `dependencies` block (not `devDependencies`) — re-run
+`pnpm licenses list --prod --json` and expect **MIT only** · a dev package moves to production · a dependency
+is added whose licence is copyleft, at which point the distribution question becomes real rather than
+theoretical.
