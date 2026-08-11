@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { repoRoot } from "./repo-root.js";
+import { scanCorpus } from "./scan-corpus.js";
 import { stripComments } from "./source-corpus.js";
 
 // REQ-025 §572 — EVERY TENANT-SCOPED STORAGE ENTRY POINT TAKES ITS TENANT FROM AN AUTHENTICATED IDENTITY.
@@ -89,28 +89,35 @@ function sourceFiles(root: string): string[] {
   // which passed because 35 sites lived in the 39% it did scan. A floor on HITS cannot detect a scan collapse;
   // the corpus floor below is what catches it.
   const globs = [
-    '"workers/*/src/*.ts"',
-    '"workers/*/src/**/*.ts"',
-    '"packages/*/src/*.ts"',
-    '"packages/*/src/**/*.ts"',
+    "workers/*/src/*.ts",
+    "workers/*/src/**/*.ts",
+    "packages/*/src/*.ts",
+    "packages/*/src/**/*.ts",
     // §696 — the .tsx half, exactly as §120 added it to the append chokepoint: "a React component is an
     // ordinary place to put a helper, and the file extension must not decide whether that is caught."
     // packages/agents, design and map all ship .tsx today, and none calls a guarded function yet — so this
     // closes a LATENT hole. REQ-025 is a build-failure law, which is the argument for closing it before it
     // is live rather than after.
-    '"packages/*/src/*.tsx"',
-    '"packages/*/src/**/*.tsx"',
-    '"apps/*/src/*.tsx"',
-    '"apps/*/src/**/*.tsx"',
+    "packages/*/src/*.tsx",
+    "packages/*/src/**/*.tsx",
+    "apps/*/src/*.tsx",
+    "apps/*/src/**/*.tsx",
     // §698 — and the .ts half of apps/. §696 added the surfaces' COMPONENTS and stopped there, leaving 49
     // .ts modules in a tree it had just started covering — an asymmetry introduced while closing a gap.
-    '"apps/*/src/*.ts"',
-    '"apps/*/src/**/*.ts"',
-  ].join(" ");
-  return execSync(`git ls-files ${globs}`, { cwd: root, encoding: "utf8" })
-    .trim()
-    .split("\n")
-    .filter((f) => f && !f.includes(".test."));
+    "apps/*/src/*.ts",
+    "apps/*/src/**/*.ts",
+  ];
+  // §1044 — per-glob non-vacuity, via the bundled scanner rather than a hand-rolled corpus floor.
+  // §1041 measured the gap this closes: blinding ONE of these ten globs removed 48 files from a 316-file
+  // corpus and the `> 180` floor absorbed it, so the suite stayed GREEN with all nested workers source —
+  // the sequencer DO's subtree included — silently outside REQ-025's scan. A union floor detects a
+  // COLLAPSE and cannot detect an AMPUTATION. `scanCorpus` throws `EmptyGlobError` the moment any single
+  // glob matches nothing, which needs no calibration and cannot drift as the corpus grows.
+  // No `mayBeEmpty` set: all ten globs match files today (measured §1044 — 99/48/116/35/8/4/59/47/53/38).
+  // If one legitimately empties later, DECLARE it here rather than deleting the glob — the declaration is
+  // the record that its emptiness was decided rather than suffered.
+  // `excludeTests` is byte-identical to the filter this replaced (`f.includes(".test.")`).
+  return scanCorpus(globs, root, { excludeTests: true });
 }
 
 /** Split a call's argument list on top-level commas (a nested `f(a, b)` must not split its parent). */

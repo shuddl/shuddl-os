@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 492 | §1044 | **§1045** | **§1041 CLOSED — THE DEFERRED JUDGEMENT WAS NOTHING TO DECIDE.** §1041 measured REQ-025's enforcer absorbing the loss of any single glob (union floor `> 180` over 316 files) and **filed** it, reasoning that adopting `scanCorpus` needed a `mayBeEmpty` decision per glob on a build-failure law. **Re-examined: which globs are empty is MEASURABLE, not a judgement.** All ten match files (99/48/116/35/8/4/59/47/53/38), so **`mayBeEmpty` needs no entries** — the deferred decision was nothing to decide, and deferring cost the owner attention that one command resolves. Fixed: `scanCorpus(globs, root, {excludeTests:true})`, whose filter is **byte-identical** to the one it replaced (corpus unchanged, guarantee added) and which judges emptiness on the RAW result before the test filter. Mutation-proved on three globs with the RED **attributed**: exit **1**, *scan glob matched ZERO files: …*, at COLLECTION time so the gate refuses to run rather than running blind. The `> 180` floor is KEPT — it defends §572's *collapse*, `scanCorpus` the *amputation*, neither subsumes the other. **Refinement: before filing a decision, check whether it is a MEASUREMENT** — a row asking an owner to decide something a command can answer spends their attention on work the audit could have finished |
 | 491 | §1043 | **§1044** | **THE LAST THREE BLOCKED HOLDS — THE INHERITED CLAIM, TESTED.** §1000/§1002 exercised two of the five BLOCKED gates; the other three carried a claim from §159 — *three of the four buy real-data EVIDENCE for a mechanism already proved in-repo on synthetic data* — which is the difference between *we cannot run this gate* and *we do not know whether this works*, **and which I had been repeating without testing** (§804: a claim you inherit is a claim you are making). The gates report honestly: all three **PENDING, executed:false, assertions:0**, each naming its absent fixture. And each mechanism is green in-repo: **rater 166 passed** (including `sweep.test.ts`, the 7-zone × 72-weight property sweep CLAUDE.md rule 4 names) · **ledger money 34** (`iif` + `money-projection`, what the penny reconciliation compares) · **agents parse 37** (the parser the parity harness drives). **The inherited claim holds, now measured rather than quoted.** That completes the BLOCKED half: **nothing in that column is an unknown** — every one is a named external input with the machinery behind it demonstrated |
 | 490 | §1042 | **§1043** | **THE FRONT DOOR, STALE AGAIN — BY MY OWN HAND, TWENTY SECTIONS AFTER I FIXED IT.** §1022 repointed the entry index at §999; §1037 then measured that **the figures most likely to be stale are the ones the summariser is actively changing.** Twenty sections later that applies to the navigation: *what blocks release* still pointed at §999 though **§1036** re-measured the board 37 commits on · *what needs an owner-signed REQ row* named five findings when **§994** classifies EVERY open row · *is the record trustworthy* predated **§1032**'s error rate and **§1030/§1031**'s proof coverage · *what does vendoring buy* predated **§1000** · and **§1035** — *is the constitution actually enforced* — **had no row at all.** Four repointed, one added, §162's rule kept (every cell names a section, none restates it, superseded pointers stay visible). **Third layer of one pattern:** §162 fixed a pointer decayed nine times, §1022 found the VALUES §162 left behind had decayed, and this finds the POINTERS §1022 fixed decayed again — in twenty sections, same author, same session. **A navigation index decays at the rate its document grows, and its author is least able to notice, because every section added feels like an addition rather than a change to what the index should say** |
 | 489 | §1041 | **§1042** | **THE CLASS COUNTED — 6 OF 7 DETECT AN AMPUTATED GLOB, AND THE EXCEPTION IS REQ-025's.** §1041 measured one gate; the rule is to count the class. Seven hand-floored gates scan multiple globs — blinding one glob in each, every mutation asserted: `and-chain-or-parens` **RED** · `llm-agent-metering-trigger` **RED** · `sweep-containment-coverage` **RED** · `invariants` **RED** · `syntax-ban-inheritance` **RED** · `source-corpus` is the corpus's own test · **`tenant-scope` GREEN — the exception.** **6 of 7 detect it, and my structural prediction was wrong for all five I reasoned about.** I predicted `and-chain-or-parens` was MOST vulnerable (floor of **2** against 467 files); it is the opposite — the floor is on **hits**, the repo has exactly two AND-joined chains, blinding `packages/**` removes `lens.ts` and the count drops to 1. **This sharpens §572's rule** (*a floor on HITS cannot detect a scan collapse*) into: **a hits floor cannot detect a collapse WHEN IT HAS SLACK; calibrated at the exact count it detects an amputation BETTER than a corpus floor** — every lost file is a lost hit, while a corpus floor must exceed its slack. **The gates with the smallest floors are the safest**, and the one blind gate has the large, well-reasoned corpus floor — because §572's fix for one blindness introduced the other |
@@ -61609,3 +61610,69 @@ mechanisms measured green and their gates honestly abstaining.
 **Re-open when:** any engagement fixture is vendored — the gate moves from PENDING to a real verdict, and
 §1000's guarantee is what makes that verdict trustworthy · a synthetic suite backing one of these three goes
 red, which would invalidate the claim this section just earned · a sixth gate is added to the BLOCKED set.
+
+---
+
+## §1045 — PHASE GATE: §1041 closed — the deferred judgement was nothing to decide
+
+§1041 measured a real weakness in REQ-025's enforcer — a union floor of `> 180` over a 316-file corpus, which
+absorbs the loss of any single glob — and **filed it** rather than fixing it, on the grounds that adopting
+`scanCorpus` required deciding a `mayBeEmpty` set per glob on a build-failure law.
+
+Re-examining that reasoning: **which globs are empty is measurable, not a judgement.** §1021 had already shown
+the shared corpus declares its empty globs (`EXPECTED_EMPTY_GLOBS`) rather than guessing them. So the question
+was never "what should we allow to be empty" but "what *is* empty".
+
+Measured, all ten of tenant-scope's globs match files:
+
+```
+99 · 48 · 116 · 35 · 8 · 4 · 59 · 47 · 53 · 38
+```
+
+**`mayBeEmpty` needs no entries at all.** The judgement §1041 deferred turned out to be nothing to decide —
+and deferring it was the more expensive answer, because a filed row costs the owner a decision that
+measurement resolves in one command.
+
+### The fix
+
+`sourceFiles()` now calls `scanCorpus(globs, root, { excludeTests: true })`. Two properties matter:
+
+- **`excludeTests` is byte-identical** to the filter it replaced (`f.includes(".test.")`), so the corpus is
+  unchanged — the fix adds a guarantee without moving what is scanned.
+- `scanCorpus` judges emptiness on the **raw** `git ls-files` result, before the test filter, *"a glob matching
+  only test files has still matched, and calling that empty would send the reader after the wrong defect."*
+
+Mutation-proved on three globs, with the RED attributed rather than assumed:
+
+```
+blind workers/*/src/**/*.ts   → exit 1: "scan glob matched ZERO files: NOSUCH/workers/*/src/**/*.ts"
+blind apps/*/src/*.tsx        → exit 1
+blind packages/*/src/**/*.tsx → exit 1
+fixed point                   → 7 passed
+```
+
+The throw happens at **collection**, so the gate refuses to run rather than running blind — the same posture
+§1017 found in the Playwright guard (*an absent browser BLOCKS, never skips*).
+
+**The `> 180` corpus floor is kept.** It defends §572's *collapse* shape; `scanCorpus` defends the
+*amputation* shape. Neither subsumes the other, which is the §920-family pattern this record keeps arriving at.
+
+Also removed: the now-unused `execSync` import, caught by lint rather than by me.
+
+### What this changes about filing
+
+§1041's instinct — *a change with a design decision inside it belongs to the owner* — is right as a rule and
+was wrong here. The refinement:
+
+> **Before filing a decision, check whether it is a measurement.** "Which globs may be empty" sounds like
+> policy and is arithmetic. A row that asks an owner to decide something a command can answer spends their
+> attention on work the audit could have finished.
+
+### Phase gating
+
+**STOP.** REQ-025's enforcer now floors per glob. `scanCorpus` adoption: **4 → 5**, and the fifth is the
+build-failure law that most needed it.
+
+**Re-open when:** a glob is added to `sourceFiles()` — it inherits the guarantee automatically · a
+`mayBeEmpty` entry is proposed, which must carry the measurement showing the glob is genuinely empty · another
+hand-floored multi-glob gate is found (§1042 counted 6 of 7 already safe, so the population is small).
