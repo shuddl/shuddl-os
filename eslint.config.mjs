@@ -43,6 +43,16 @@ export default tseslint.config(
       // Keeping the ban package-wide with a single named exception is the point — it makes that egress the
       // only one, visibly, so a second one cannot appear without editing this file and explaining itself.
       "no-restricted-globals": ["error", { name: "fetch", message: "REQ-024: the ledger's only sanctioned network egress is the RFC 3161 TSA client (src/tsa/**). An LLM is reachable by raw fetch with no import — do model work in packages/agents." }],
+      // REQ-024, the THIRD route (audit §985). `no-restricted-imports` does not see an ImportExpression —
+      // `const m = await import("@anthropic-ai/sdk")` passed lint with exit 0 while the static form was
+      // caught, MEASURED by planting both. That is an ESLint limitation, not a config error, and it left the
+      // "statically linted" guarantee in CLAUDE.md covering only one of the two import forms. Same pattern
+      // list as above; kept adjacent so the two cannot drift.
+      "no-restricted-syntax": ["error", {
+        selector: "ImportExpression[source.value=/^(@anthropic-ai\\/|anthropic|openai|@openai\\/|ai$|@ai-sdk\\/|@shuddl\\/agents|.*agents)/]",
+        message: "REQ-024: LLMs never write ledger truth — no LLM/agent dynamic import() in packages/ledger.",
+      }],
+
     },
   },
   {
