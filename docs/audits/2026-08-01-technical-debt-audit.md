@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 517 | §1069 | **§1070** | **THE LOCAL CHAIN'S HONESTY, MEASURED — 5 OF 13 SKIP, AND THE SET IS EXACTLY THE MERGE-BLOCKED SET.** §1069 found `check:identity` exits 0 while printing *Lint SKIPPED*, inside `verify:dev`. The general question — how many of the chain's gates can exit 0 without executing — turned out to be **answered by the artifact itself**: `verify:dev`'s step 18 already prints *"Gates that are BLOCKED on absent inputs report PENDING here and still exit 0. Run pnpm verify:merge for the shippable verdict."* Verified rather than trusted: all 13 gates run individually, **exactly 5 emit skip/pending language** (identity, fixtures, rater-parity, invoice-parity, concierge-parity) and they are **precisely the 5 the merge board reports BLOCKED** — no sixth, and the other 8 execute for real. `recall` also showed the *exits 0* class already carries **30 prior verdicts** including a Confirmed Critical, so the sweep I was about to run would have been §1067's error again. |
 | 516 | §1068 | **§1069** | **`recall` USED, AND IT CAUGHT MY OWN MISREADING — I CALLED A *SKIPPED* GATE *CLEAN*.** First real use of §1068's tool, on the 17 repo-owned OPEN rows. L413 (*REQ-167 unverified in every local run*) contradicted something I had reported at §1066: `check:identity : clean`. Measured — **I had read the EXIT CODE past a message saying the opposite.** Plain run prints *"Lint SKIPPED"* and exits **0**; `--mode merge` emits `executed:false, assertions:0` and exits **2**. `verify:dev` calls the plain form, so a local `pnpm verify` goes green having never checked REQ-167 — precisely what L413 says. Re-verified and stamped; **fully pinned by 18 cases** (local→warn, merge→BLOCKED, release→BLOCKED, CI+no-denylist→fail, empty-denylist→absent). `recall` took three queries to land on §125/§247, which had already characterised it — no re-derivation. |
 | 515 | §1067 | **§1068** | **`pnpm recall` — MAKING A THRICE-BROKEN RULE CHEAP INSTEAD OF WRITING IT AGAIN.** §1067 was the third violation of *search the record before the code*, and §1062 already established that writing a rule down does not install it. The cause is mechanical: the record is **63,390 lines across 1,052 phase sections**, and a raw grep for `NotConfiguredMigrator` returns **8 bare lines, none naming the phase that decided it** — so reading them costs more than re-tracing the code, and re-tracing wins silently every time. `recall` maps each hit to the section heading (or checklist ROW) that OWNS it: the query §1067 should have run now surfaces **§798's actual heading** in one second. 6 tests, including one run against the LIVE record so a rename fails loudly rather than returning empty. |
 | 514 | §1066 | **§1067** | **I RE-DERIVED §798 INSTEAD OF SEARCHING FOR IT — THIRD INSTANCE.** Chasing §1066's loose end (which dormant collaborators lack a degradation test) produced a real correction and a wasted phase. **The correction:** §1066 said the 11 dormant doubles *"throw"*; measured individually, **7 throw and 3 return a benign `null`** — a generalisation from the two files I had open. The verdict survives (both shapes prevent absorption) but the mechanism was invented. **The waste:** `NotConfiguredMigrator` has zero test references, and I traced its call graph to conclude it is opt-in rather than the default — which is **verbatim what §798 concluded**, with a reopen trigger, 269 sections ago. Re-verified that trigger instead: `selectMigrator` still returns `DeterministicMigrator`, still pinned. |
@@ -63532,4 +63533,62 @@ both looked like diligence, and neither cost more than one extra command to get 
 **STOP.** L413 re-verified in both modes and stamped, its 18-case defence confirmed, and a false verification
 line from §1066 corrected at its source. `recall`'s first use found a defect in the auditor rather than the
 audited. `test:tools` 1,245 passed / 3 failed — the REQ-289 baseline · lint clean.
+
+## §1070 — PHASE GATE: the local chain is honest, and the artifact said so first
+
+**Why this phase.** §1069 found that `check:identity` exits **0** while printing *"Lint SKIPPED"*, and that
+`verify:dev` calls it. The obvious generalisation: **how many gates in that chain can exit 0 without
+executing?** A local `verify` that goes green over unexecuted gates is the exact shape of every silent-pass
+defect this loop has found.
+
+### First: the record already owns the class
+
+`recall "exits 0"` → **37 mentions across 30 prior verdicts**, including a **Confirmed Critical** in §2 (*"the
+deployed-surfaces field gate exits 0 on an all-skipped run"*). The general class has been swept, repeatedly.
+Running it again would have been §1067's mistake for the fourth time — so the question was narrowed to what is
+actually unanswered: not *can a gate skip*, but **is `verify:dev`'s aggregate honest about which ones do?**
+
+### Second: the artifact answers it, in its own last line
+
+`verify:dev` is 18 steps, and step 18 is an `echo`:
+
+> *"verify:dev OK — this is the DEVELOPMENT loop, NOT a promotion verdict. Gates that are BLOCKED on absent
+> inputs report PENDING here and still exit 0. Run `pnpm verify:merge` for the shippable verdict."*
+
+The disclosure was already written. That is the second consecutive phase where the answer existed before the
+question — §1069's was §125/§247, this one is a line in `package.json`.
+
+### Third: verified rather than trusted
+
+A disclosure is a claim (§1044). Every gate in the chain, run individually:
+
+| | count | gates |
+|---|---|---|
+| exit 0 **with** skip/pending language | **5** | `identity` (*no denylist*), `fixtures`, `rater-parity`, `invoice-parity`, `concierge-parity` (*PENDING*) |
+| exit 0 having **executed** | **8** | runtime, invariants, rater-purity, chokepoint, authority-coverage, traceability, seed, design |
+
+**Exactly five**, and they are **precisely the five the merge board reports BLOCKED** (§1064): `identity-leak`,
+`fixtures`, `rater-parity`, `invoice-parity`, `concierge-parse`. There is no sixth gate skipping quietly, and
+nothing skips locally that merge does not stop on.
+
+That correspondence is the property worth having measured. It means the local loop's dishonesty is **bounded
+and disclosed**: the set of things `verify:dev` can be green about without checking is identical to the set
+`verify:merge` refuses to pass. A gate that skipped locally but was *not* BLOCKED at merge would be a real
+hole — and there are none.
+
+### What this phase says
+
+> **A disclosure is only worth its correspondence to the thing disclosed.** The echo could have named four
+> gates, or five that had since become six, and nothing would have failed — it is prose in a shell string, with
+> no gate behind it. It happens to be exactly right, and the only way to know that was to run all thirteen.
+
+The narrower observation, two phases running: **a mature record answers faster than an investigation.** §1069
+took three `recall` queries to find that §125 and §247 had already characterised the identity skip; this phase's
+general sweep was pre-empted by 30 prior verdicts and a line of `package.json`. That is what the record is
+*for*, and the failure mode it replaces — re-deriving a held conclusion — is invisible from the inside, because
+the rediscovered answer is correct.
+
+**STOP.** The local chain's skip set is measured (5 of 13), matched 1:1 against the merge board's BLOCKED set,
+and confirmed to contain no gate that skips locally without being stopped at merge. `test:tools` 1,245 passed /
+3 failed — the REQ-289 baseline · lint clean.
 
