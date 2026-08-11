@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 529 | §1081 | **§1082** | **THE TOOL CAUGHT ME TWICE IN ONE PHASE, AND I COMMITTED OVER THE SECOND.** §1081 built `pnpm delta`; §1082 is what it found. **(1) Before the commit:** my index row quoted bare-count output with an UNESCAPED PIPE — 5 cells against a 4-cell header. Fixed. **(2) After `git add`:** delta reported a new failure and **I committed anyway — the third time.** `tools/testing/delta.ts` contained a literal **NUL byte**: my key function used `` `${file}\0${title}` `` as a separator, which is collision-free and makes the file **BINARY to git** (`section-refs` refused it: *"every diff renders as Bin X -> Y"*). Replaced with `JSON.stringify([file, title])`. The failure was invisible pre-add because the gate walks TRACKED files — §1049's mechanism, now hit for the second time. |
 | 528 | §1080 | **§1081** | **`pnpm delta` — THE BASELINE RULE MECHANISED AFTER FAILING TWICE AT THE SAME STEP.** §1062 wrote *a delta is not explained until it is reproduced*; §1080 reproduced a 4-vs-3 delta **three times and committed anyway**, because reproducing a count is not IDENTIFYING it. *"baseline" appears in **128 prior verdicts** and NOTHING mechanised it.* `delta` runs the suite and answers one question — **what is failing that was not already failing?** — keyed by (file, title), never by count. Proved by replaying §1080's exact defect: the bare run says *"4 failed / 1251 passed"*; `delta` says **`phase-index.test.ts` — "the index points only at real PHASE GATE sections"**. It also reports **HEALED** baseline entries, so a silently-fixed known failure is news too — the direction a count can never see, since a heal and a new break cancel out. 6 unit cases. |
 | 527 | §1079 | **§1080** | **A FAIL-OPEN SKIP ON THE DEPLOY PATH, CLOSED — AND MY FIX LANDED INSIDE THE LOOP.** §1079 showed the deploy preflight parses `wrangler.toml` with its OWN parser, sharing the blind spot of four other gates. Cross-checked it against wrangler's resolver: **0 workers skipped, all 5 prod scopes seen** — the parsers agree at HEAD. But the skip path is fail-OPEN: `if (target.worker.length > 0) push; else console.warn(…)` collapses *genuinely no scope* with *this parser missed it*, and the second **silently drops a worker that WILL deploy** from every check below. Closed with a count floor keyed to §1079's measurement (all 5 resolve in every env), exiting MALFORMED. **My first placement landed INSIDE the for loop** — it fired *"parsed 1 of 5"* on a clean tree, and I nearly read that as preflight dropping 4 of 5 workers. Tenth shape error: I anchored on a brace by indentation. Relocated; mutation-proved (hidden `[env.prod]` → *parsed 4 of 5*, exit 3), clean tree + staging + dev unaffected. |
 | 526 | §1078 | **§1079** | **THE ONLY INDEPENDENT CHECK OF THE TOML PARSERS, RE-RUN — 15/15 CELLS, ZERO DROPPED BINDINGS.** §1078's root (*a TOML has tables; grep does not*) makes regex-parsed config a class: **4 gates parse `wrangler.toml` with regex and no parser**, incl. `binding-parity` (10 regexes, 0 parsers), and §990 already produced *four successive parser errors on one TOML file*. Every standing gate reads the SAME file the same way, so none of them can catch a mis-parse. §286's cross-check with **wrangler's own resolver** is the only independent mechanism — and it was a ONE-TIME manual run. Re-run at HEAD across **all 15 cells** (5 workers × dev/staging/prod): **every cell resolves 5–12 bindings, none zero.** Extends §286's 13. My probe read `dev=0` five times first — there is no `[env.dev]`, dev is the TOP-LEVEL config and `--env dev` errors; ninth probe-shape error, caught. |
@@ -64327,4 +64328,64 @@ on the very edit that documented it, which is a better argument for it than the 
 **STOP.** The twice-broken rule now costs one command, keyed by assertion rather than count, reporting both new
 failures and healed baseline entries, and proved against the exact defect that produced §1080. `pnpm delta`
 clean · `check:citations` 0 · `check:tables` OK · lint clean.
+
+## §1082 — PHASE GATE: the tool caught me twice, and I committed over the second
+
+**Why this phase.** §1081 built `pnpm delta` to answer *what is failing that was not already failing?* This
+phase is not about the tool. It is about the two things it found in the hour after it existed, and the fact
+that I overrode one of them.
+
+### Catch 1 — before the commit, as designed
+
+Writing §1081 introduced a new failure: its index row quoted the bare-count output *"4 failed | 1251 passed"*
+with an **unescaped pipe**, which markdown reads as a cell separator — 5 cells against a 4-cell header.
+`delta` named `check-table-shape.test.ts` → *"the real tree is clean"* before the commit. Fixed by replacing
+the pipe with a slash.
+
+Third table-shape violation this session (§996, §1041, here), and **all three came from quoting tool output
+inside a table** — a pattern worth naming: the output of a command is the most likely text to contain a
+delimiter, and a table is the most likely place to paste it.
+
+### Catch 2 — after `git add`, and I committed anyway
+
+The post-stage run reported **1 NEW failure**, printed it, and I committed. **Third time this session** (§1062,
+§1080, here) that a delta was in front of me and the commit went ahead.
+
+What it found was real and mine: **`tools/testing/delta.ts` contained a literal NUL byte.** My key function was
+
+```ts
+const key = (f) => `${f.file}\0${f.title}`;
+```
+
+A NUL is the *correct* choice for a collision-free join — it cannot appear in a path or a title — and it makes
+the file **binary to git**. `section-refs` refused it with the reason: *"NUL byte(s) make these files BINARY to
+git — every diff renders as `Bin X -> Y`."* Every future review of that file would have shown no diff at all.
+
+Replaced with `JSON.stringify([file, title])`: collision-free **and** plain text, which is the property the
+first version missed by satisfying only half the requirement.
+
+### Why it was invisible before the commit
+
+The pre-stage run was clean. `section-refs` walks **tracked** files, and an untracked new file is outside its
+corpus — **§1049's mechanism, hit for the second time.** The gate could not see the defect until `git add`, and
+that is exactly the window in which I stopped reading.
+
+So the ordering that works is now measured, not guessed: **stage first, then run `delta`, then commit.** §1081
+asserted that; this phase is the proof, obtained the expensive way.
+
+### What this phase says
+
+> **A tool that reports a problem does not fix the habit of overriding it.** `delta` did its job perfectly
+> twice inside one hour — named the file, named the assertion, printed a paragraph explaining exactly this
+> failure mode — and I committed over the second report anyway. The gap between *being told* and *stopping* is
+> not closed by better telling.
+
+The narrower one, and the useful half: **a separator that is correct for the data can be wrong for the
+medium.** NUL is the right delimiter for a key and the wrong byte for a text file; the two requirements are
+independent, and satisfying the interesting one made the boring one invisible until a gate that had never
+mattered before spoke up.
+
+**STOP.** Both defects found by the new tool are fixed — the unescaped pipe before the commit, the NUL byte
+after — with the second recorded as a third override of the same rule rather than filed quietly. `pnpm delta`
+clean · `lint` clean · 14/14 on the delta and section-refs suites.
 
