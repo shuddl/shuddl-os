@@ -605,6 +605,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 410 | §962 | **§963** | **WHAT ACTUALLY BROKE CI WAS A VACUITY FLOOR, NOT A PERFORMANCE BUDGET.** §962 fixed the consequence; this is the cause. CI's perf step failed with `frames=29` against `expect(frames.length).toBeGreaterThan(30)` — while its own log said **enforcing FPS here = false** and the long-task budget was NOT ASSERTED. `perf.spec.ts` carries TWO hardware-awareness mechanisms (`softwareRasterizer`, `isReferenceMachine`) and the vacuity floor used **neither**, though frames-in-a-fixed-window is exactly as hardware-dependent as the numbers they decline to assert. **The guard against a vacuous pass became the only thing that could fail, on the machine where everything it guards was already switched off.** Fixed: floor 10 under a software rasterizer. Reproduced CI's shape locally — frames=21 PASSES with the fix and FAILS at the hard 30 — so the CI failure was reproduced and removed, not reasoned about. **Five phases from *the board says 19 PASS* to one ungated `> 30`** |
 | 411 | §963 | **§964** | **§963's LESSON TURNED ON THIS SESSION'S OWN GATES.** Swept every numeric floor in a browser-executed spec — the only floors over RUNTIME-measured quantities: **9 of 10 are `> 0`** (*did this happen at all*, which cannot depend on machine speed); the single magnitude floor was §963's defect. **The convention was right and there was one deviation** — the reasonable prior (*this class is everywhere*) is false. Then audited my own seven gates (27 cases): all read repo content except `mode-source-coverage`, which shells out. `git grep` **exits 1 on no-match** and `execFileSync` THROWS on non-zero — verified both — so its non-vacuity floor was **unreachable in the exact case it was written for**. Fixed (exit 1 = zero matches; anything else re-throws) and proved. Also stated plainly: **these seven gates have never run in CI**, because §962's step was skipped in all three last runs |
 | 412 | §964 | **§965** | **CROSS-PLATFORM READINESS FOR THE FIRST LINUX RUN THESE GATES WILL EVER GET.** §964 established the seven new gates have never executed on Linux; once §962's fix lands they run on a different OS for the first time. Probed: this filesystem **is case-INSENSITIVE** (`CaseProbe.txt` resolves as `caseprobe.txt`), so a wrong-case `readFileSync` works here and throws there. Three checks, all **0**: case-mismatched path references, filenames differing only by case, and tracked/source iCloud `name 2.ext` duplicates (the standing per-session check). Each would fail loudly and confusingly — an ENOENT inside a gate reads as a broken gate, not a platform difference. **Note for the next reader:** the raw sweep shows **50** duplicates and every one is in `.vite/deps` build cache — tracked 0, source 0, **deleting them is unnecessary**. My first `find -prune` excluded only top-level `node_modules`, the §959 shape again |
+| 413 | §965 | **§966** | **THE NIGHTLY IS A CLOCK, NOT A CHECK — TEN RUNS, ONE COMMIT.** §952 said a gate that only ever refuses deserves scrutiny; the mirror does too. `nightly`'s `orphan-audit` has been GREEN every night — a real gate (`pnpm check:traceability`), correctly designed to need no credentials. But all ten runs (2026-08-01…08-10) are at **`0415148`, one distinct SHA** = `origin/main`, frozen since 07-31. **Ten greens are one verification re-emitted over byte-identical input; ten reds are one alarm repeated.** A scheduled audit exists to catch drift AS CODE CHANGES — with nothing pushed it structurally cannot. §957's THIRD cost (after the single copy and §958's unresolvable stamps): **the nightly assurance has been inert for ten days while appearing to run**, and the appearance is the problem. No new hold — a third symptom of one cause is not a second problem |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -56773,3 +56774,48 @@ My first pass at that sweep also missed them being nested: `find . -path ./node_
 the **top-level** directory, not `apps/driver/node_modules`. Same incomplete-exclusion shape as §959's
 pathspec — and, as there, the corrected scope changed the answer's meaning entirely (50 alarming hits → 0 real
 ones).
+
+## §966 — PHASE GATE: the nightly is a clock, not a check — ten runs, one commit
+
+§952 established that a gate which only ever refuses deserves scrutiny. The mirror deserves it too: `nightly`
+has **two** jobs and one of them, `orphan-audit`, has been **green every night** while `backup` was red. A
+job that only ever passes is exactly as unexamined as one that only ever fails.
+
+`orphan-audit` is not a stub — it runs `pnpm check:traceability`, the register ↔ code orphan diff, and the
+workflow's own header explains why it is separated from `backup`: *"the register ↔ code diff, which needs no
+credentials and always runs."* Real gate, correct design.
+
+### But it has been auditing the same commit for ten nights
+
+```
+2026-08-10  sha=0415148   2026-08-05  sha=0415148
+2026-08-09  sha=0415148   2026-08-04  sha=0415148
+2026-08-08  sha=0415148   2026-08-03  sha=0415148
+2026-08-07  sha=0415148   2026-08-02  sha=0415148
+2026-08-06  sha=0415148   2026-08-01  sha=0415148
+
+distinct SHAs across those runs: 1
+```
+
+`0415148` is `origin/main` — unchanged since 2026-07-31 (§957). So:
+
+- **ten greens are not ten verifications.** They are one verification, produced on 2026-08-01 and re-emitted
+  nightly over byte-identical input.
+- **ten reds are not ten alarms.** Same reasoning, opposite colour — which is what §957 called alarm fatigue,
+  now with its cause measured rather than assumed.
+
+A scheduled audit exists to catch drift *as code changes*. With nothing pushed, it structurally cannot: the
+input is frozen, so the output is a foregone conclusion. **A nightly job over an unchanging commit is a clock,
+not a check** — it proves the runner is alive, nothing more.
+
+### This is §957's third cost
+
+The hold already records two: a single copy of 1,018 commits, and (§958) four governing records whose SHA
+stamps mostly do not resolve. This is the third and the least obvious — **the nightly assurance has been inert
+for ten days while appearing to run**, and the appearance is the problem. Anyone glancing at the Actions tab
+sees a job executing on schedule and concludes the register↔code diff is being enforced against current work.
+It is being enforced against work from July.
+
+All three costs have the same one-line remedy, and none of them is visible from inside the repo — which is why
+§956–§966 needed to look outward at all. Recorded on the §957 row; **no new hold**, because a third symptom of
+one cause is not a second problem.
