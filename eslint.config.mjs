@@ -38,24 +38,34 @@ export default tseslint.config(
   },
   {
     // REQ-024: LLMs never write ledger truth — statically banned from the ledger package.
-    files: ["packages/ledger/**/*.ts"],
+    //
+    // §1049 — AND FROM `packages/contracts`, WHICH IS THE LEDGER'S ENTIRE FIRST-PARTY SURFACE.
+    // `no-restricted-imports` matches SPECIFIERS, so it is direct-import-only by construction and sees no
+    // transitive reach. Measured: `packages/ledger` declares exactly ONE first-party dependency,
+    // `@shuddl/contracts`, and that package carried no LLM ban — so an `@anthropic-ai/sdk` import there gave
+    // the ledger LLM reach with NO banned specifier anywhere under `packages/ledger`. Planted exactly that
+    // and eslint, `check:invariants`, `rater-purity` and `lint-guards` were ALL GREEN.
+    //
+    // The assumption was already WRITTEN DOWN and enforced by nothing — `tools/checks/rater-purity.ts` says
+    // the guarantee *"RELIES on @shuddl/contracts staying a pure type/schema boundary (Zod shapes only — no
+    // logic, no LLM)"*. A lockstep comment is a missing test; this is the test half.
+    //
+    // Cost today: zero. `contracts` has one dependency (`zod`) and no fetch, timers or DOM references.
+    // Widening this block's `files` rather than adding a second block is deliberate — ESLint flat config is
+    // last-writer-wins PER RULE NAME, so a new block naming `no-restricted-imports` for these paths would
+    // REPLACE this rule's options rather than merge with them (audit §874).
+    //
+    // The closure itself is asserted in `tools/checks/req024-closure.test.ts`, which COMPUTES the ledger's
+    // first-party dependencies and fails if one is not covered here — so a new ledger dependency cannot
+    // silently re-open the hole this comment describes.
+    files: ["packages/ledger/**/*.ts", "packages/contracts/**/*.ts"],
     rules: {
       "no-restricted-imports": ["error", {
         patterns: [
           { group: ["*lumina*", "*Lumina*", "*shuddl-2023*"], message: "REQ-163: organ bank only." },
-          { group: ["@anthropic-ai/*", "anthropic*", "openai*", "@openai/*", "ai", "@ai-sdk/*", "@shuddl/agents*", "*agents*"], message: "REQ-024: LLMs never write ledger truth — no LLM/agent imports in packages/ledger." },
+          { group: ["@anthropic-ai/*", "anthropic*", "openai*", "@openai/*", "ai", "@ai-sdk/*", "@shuddl/agents*", "*agents*"], message: "REQ-024: LLMs never write ledger truth — no LLM/agent imports in the ledger or its first-party closure (packages/contracts is the ledger's ONLY dependency, so an LLM there reaches the ledger with no banned specifier under packages/ledger — audit §1049)." },
         ],
       }],
-      // REQ-024, the OTHER half (audit §53). The import ban above cannot see a raw HTTP call: a model is
-      // reachable with `fetch("https://api.anthropic.com/v1/messages")` and no import at all, and the lint
-      // would have passed it. `fetch` is the only network primitive in a Worker, so banning the global closes
-      // that route for the realistic case — a well-meaning "just ask the model to classify this event".
-      // It does not stop deliberate obfuscation; that is true of every lint here and is not the threat model.
-      //
-      // The ledger has exactly ONE sanctioned egress, exempted below: the RFC 3161 trusted-timestamp client.
-      // Keeping the ban package-wide with a single named exception is the point — it makes that egress the
-      // only one, visibly, so a second one cannot appear without editing this file and explaining itself.
-      "no-restricted-globals": ["error", { name: "fetch", message: "REQ-024: the ledger's only sanctioned network egress is the RFC 3161 TSA client (src/tsa/**). An LLM is reachable by raw fetch with no import — do model work in packages/agents." }],
       // REQ-024, the THIRD route (audit §985). `no-restricted-imports` does not see an ImportExpression —
       // `const m = await import("@anthropic-ai/sdk")` passed lint with exit 0 while the static form was
       // caught, MEASURED by planting both. That is an ESLint limitation, not a config error, and it left the
@@ -67,7 +77,7 @@ export default tseslint.config(
       "no-restricted-syntax": ["error",
         {
           selector: 'ImportExpression[source.value=/^(@anthropic-ai\\/|anthropic|openai|@openai\\/|ai$|@ai-sdk\\/|@shuddl\\/agents|.*agents)/]',
-          message: "REQ-024: LLMs never write ledger truth — no LLM/agent dynamic import() in packages/ledger.",
+          message: "REQ-024: LLMs never write ledger truth — no LLM/agent dynamic import() in the ledger or its first-party closure (audit §1049).",
         },
         {
           selector: 'ImportExpression[source.value=/lumina|Lumina|shuddl-2023/]',
@@ -75,6 +85,33 @@ export default tseslint.config(
         },
       ],
 
+    },
+  },
+  {
+    // §1049 — THE `fetch` BAN STAYS LEDGER-ONLY, DELIBERATELY, AND IT IS ITS OWN BLOCK.
+    //
+    // Widening the REQ-024 block above to `packages/contracts/**` widened EVERY rule in it, including this
+    // one — and §989's disjointness gate caught that immediately: `no-restricted-globals` is the one rule in
+    // the family with no inheritance gate, which is only safe while its blocks cannot match the same file.
+    // Splitting by RULE NAME keeps both properties: each name appears once across the blocks matching any
+    // given file, so nothing is replaced (§874), and the globals scope set is byte-identical to what §989
+    // pins. That the repo's own gate rejected the first shape of this fix is the argument for the gate.
+    //
+    // Scope, on purpose: `contracts` is a Zod/type boundary with zero fetch, timers or DOM today, so the
+    // egress argument that makes this ban meaningful for the ledger has no subject there. A ban with no
+    // subject is not free — it is a rule nobody can violate, which is how allowlists rot.
+    files: ["packages/ledger/**/*.ts"],
+    // REQ-024, the OTHER half (audit §53). The import ban above cannot see a raw HTTP call: a model is
+    // reachable with `fetch("https://api.anthropic.com/v1/messages")` and no import at all, and the lint
+    // would have passed it. `fetch` is the only network primitive in a Worker, so banning the global closes
+    // that route for the realistic case — a well-meaning "just ask the model to classify this event".
+    // It does not stop deliberate obfuscation; that is true of every lint here and is not the threat model.
+    //
+    // The ledger has exactly ONE sanctioned egress, exempted below: the RFC 3161 trusted-timestamp client.
+    // Keeping the ban package-wide with a single named exception is the point — it makes that egress the
+    // only one, visibly, so a second one cannot appear without editing this file and explaining itself.
+    rules: {
+      "no-restricted-globals": ["error", { name: "fetch", message: "REQ-024: the ledger's only sanctioned network egress is the RFC 3161 TSA client (src/tsa/**). An LLM is reachable by raw fetch with no import — do model work in packages/agents." }],
     },
   },
   {

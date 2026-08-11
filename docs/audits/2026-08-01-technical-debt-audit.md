@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 496 | §1048 | **§1049** | **THE SAME SHAPE ONE LAW OVER — REQ-024's BAN IS DIRECT-IMPORT-ONLY, AND THE LEDGER'S ONLY DEPENDENCY WAS OUTSIDE IT.** `no-restricted-imports` matches SPECIFIERS, so it sees no transitive reach. `packages/ledger` declares exactly ONE first-party dependency — `@shuddl/contracts` — which carried no LLM ban. A planted `@anthropic-ai/sdk` import there was GREEN across eslint, check:invariants, rater-purity and lint-guards, giving the ledger LLM reach with no banned specifier under `packages/ledger`. The assumption was already WRITTEN DOWN in `rater-purity.ts` and enforced by nothing. Fixed by widening the block's `files`; **the repo's own §989 gate rejected the first shape of the fix** (widening every rule widened the `fetch` ban too), so the block is now split by RULE NAME. New `req024-closure.test.ts` COMPUTES the closure so a new ledger dependency cannot silently re-open it. Also: §1048's commit turned a gate red that no pre-commit run could see — **`git grep` reads TRACKED files, so the coverage gate's verdict changes at `git add`, not at file creation**; five verdicts recorded. |
 | 495 | §1047 | **§1048** | **THE ONLY CONFIRM-GATED PROHIBITION WITH AN ADJACENT BUILT CAPABILITY — AND NOTHING GUARDING IT.** CLAUDE.md forbids anything whose REQ row is CONFIRM-GATED while the CONFIRM is open, naming three: Direct merchant, voice recording, escrow settle. All three are unbuilt (0 files each). The asymmetry is the finding: merchant and escrow have NO adjacent code, while voice recording's API is already called in shipping code — `getUserMedia({video:{facingMode:"environment"}})` for REQ-063's forced photo. Planting `audio: true` in that one call left the driver suite, typecheck, lint and check:invariants **ALL FOUR GREEN**. `audio` is absent by AUTHORSHIP, not by ENFORCEMENT. New gate `tools/checks/no-audio-capture.test.ts` derives its authority from the register — it enforces only while REQ-096/REQ-137 are CONFIRM-GATED and RETIRES ITSELF when the owner closes the CONFIRM. Mutation-proved RED on the planted word; 4 tests; suite at its 3-failure REQ-289 baseline (1,230 tests). |
 | 494 | §1046 | **§1047** | **EVERY OPEN ROW NAMES ITS BLOCKER — AND MY CHECK READ THE WRONG CELL.** §1046 rested on the property that *each row states what it is blocked on*, verified on four rows; eighteen are open, so it was a hypothesis until counted. **The single-cell check flagged 6 of 18 as bare, and all six are wrong**: L421 names *without an opt-in marker*, L431 names *NOT diagnosed: a single non-reproducing failure cannot locate a cause*, L426/L427 carry posture in Status and blocker in Owner, and L411/L418 — whose Status is literally `OPEN` — name theirs in **Owner** (*register owner (denylist contents) / infrastructure (the secret)*) and **Expires** (*on binding `IDENTITY_DENYLIST`*). **18 of 18 name their blocker.** The schema is the reason and it is a good one: **Status carries the verdict, Owner who can move it, Expires what event unblocks it** — a bare `OPEN` is not incomplete, it is not where that lives. **A checker that reads one field of a structured record will find it under-specified, and be wrong** — same class as §1039's structural-vs-behavioural and §1040's vocabulary narrowness: **the instrument's shape decided the finding.** Fourth consecutive phase where the record was ahead of the probe |
 | 493 | §1045 | **§1046** | **§1045's LESSON TURNED ON THE LEDGER — §1041 WAS THE EXCEPTION, NOT THE PATTERN.** §1045 closed a filed row by noticing its deferred judgement was arithmetic, and stated: **before filing a decision, check whether it is a measurement.** A rule earned on one instance is a hypothesis until counted — so I examined every decision-shaped row. **None is a disguised measurement.** L408 (*duplicate-vs-strand*) is a **genuine** design decision, both answers correct engineering with different failure modes · L410 (coverage) is external + scope, §1006 having measured **0 installable providers** · L426 (the signup 409) is a genuine product call, the row itself saying *accepted-for-now, recorded so the pre-GA pen-test row inherits it knowingly* · **L398 was already prepared** — it names the exact replacement text, and I verified the number rather than trusting it: `CANONICAL_VIEWS` declares **11** against `MAX_CANONICAL_VIEWS = 12`, so *(11 used, one spare)* is right and the owner's action is a copy-paste. **The author of that row got there before the rule was written.** **A well-kept ledger's 'decisions' are mostly real decisions** — filing a measurement as a judgement is a mistake an auditor makes under time pressure, not a property of the record; and it is only visible because each row states WHAT IT IS BLOCKED ON |
@@ -61890,4 +61891,111 @@ word is currently absent is not evidence anything is stopping it.
 gated, 1 unfalsifiable and owner-recorded**, and the one item whose prohibition was enforced by nothing now has
 a register-derived gate that retires itself when the CONFIRM closes. `test:tools` 1,227 passed / 3 failed — the
 REQ-289 baseline, unchanged.
+
+## §1049 — PHASE GATE: the same shape one law over, and a gate that changes verdict at `git add`
+
+**Why this phase.** §1048's rule — *rank a prohibition by adjacency, not severity* — implies a sibling shape it
+did not test: **prohibition present, gate present, but the gate covers the far form and not the near one.** The
+sharpest candidate is REQ-024, which CLAUDE.md calls *"statically linted"*.
+
+### The near form: a ban that matches specifiers cannot see a dependency
+
+REQ-024 is well defended. §985 and §986 already closed the two other routes into `packages/ledger` — the
+dynamic `import()` (ESLint's `no-restricted-imports` does not see an `ImportExpression`) and the `fetch` global.
+Three routes, each measured.
+
+`no-restricted-imports` matches **specifiers**. That is the shape of the tool, not a defect in it — and it means
+the remaining reach is through a package the ledger *depends on*. Measured:
+
+| question | answer |
+|---|---|
+| first-party packages `packages/ledger` imports | **exactly one** — `@shuddl/contracts` |
+| its declared dependencies | `@shuddl/contracts`, nothing else |
+| packages with no LLM ban | `contracts`, `design`, `map` |
+| of those, in the ledger's closure | **`contracts`** |
+
+The ledger's entire first-party surface was the one package in its closure with no ban. **Planted a static
+`@anthropic-ai/sdk` import in `packages/contracts`:**
+
+```
+eslint            : GREEN
+check:invariants  : GREEN
+rater-purity      : GREEN
+lint-guards       : GREEN
+```
+
+Four green, and the ledger has LLM reach with **no banned specifier anywhere under `packages/ledger`**.
+
+### The assumption was already written down
+
+`tools/checks/rater-purity.ts` states it outright: the guarantee *"RELIES on @shuddl/contracts staying a pure
+type/schema boundary (Zod shapes only — no logic, no LLM)"*. **A lockstep comment is a missing test**, and this
+is the second time this session that reading a comment as a claim rather than as prose produced the finding.
+Cost of closing it: zero — `contracts` has one dependency (`zod`) and no fetch, timers or DOM.
+
+### The repo's own gate rejected the first shape of the fix
+
+Widening the block's `files` to include contracts widened **every rule in it**, including the `fetch` ban — and
+§989's disjointness gate failed immediately, because `no-restricted-globals` is the one rule in the family with
+no inheritance gate, which is only safe while its blocks cannot match the same file.
+
+That is [[adding-a-gate-can-delete-a-gate]] arriving from the direction I did not expect: not *"my new block
+silently disabled a rule"* but *"my widening silently EXTENDED one."* The config is split by **rule name** now —
+`no-restricted-imports` + `no-restricted-syntax` cover ledger + contracts, `no-restricted-globals` stays
+ledger-only — so each name appears once across the blocks matching any file, and the globals scope set is
+byte-identical to what §989 pins.
+
+My insertion then shipped a block with **no `files:` key at all**, making the fetch ban effectively repo-wide
+(9 errors in `tools/deploy/`). Caught in the same minute by `pnpm lint`, and worth recording: a config edit has
+a failure mode where the rule still *works* and simply applies to the wrong universe.
+
+**Re-proved all three properties AFTER the restructure**, because the earlier proof no longer covered the text:
+
+| probe | result |
+|---|---|
+| LLM import in `contracts` | **RED** ✓ — the fix survives the split |
+| `fetch` in `ledger` | **RED** ✓ — the globals ban was not lost |
+| `fetch` in `contracts` | **GREEN** ✓ — scope stayed ledger-only, as §989 requires |
+
+### The durable half
+
+`tools/checks/req024-closure.test.ts` (new, 2 tests) **computes** the ledger's first-party closure transitively
+and fails if a member is not covered by the REQ-024 block. Naming `contracts` in a second list would re-create
+the defect one dependency later; adding `@shuddl/foo` to the ledger would widen the hole silently. The block
+marker is anchored so a reword **throws** rather than reporting an empty glob list — §1041's lesson, in the gate
+that guards the ledger. Mutation-proved: narrowing the scope → RED; rewording the marker → throws.
+
+### The second finding: a gate whose verdict changes at `git add`
+
+§1048's own commit turned a gate red, and **no pre-commit measurement could have caught it.** `check:coverage`
+finds citations with `git grep`, which reads **tracked files only**. `no-audio-capture.test.ts` was untracked
+when I ran `test:tools` (3 failed, the baseline) and tracked when I committed it — at which point its five
+CONFIRM-GATED citations (REQ-033/096/104/137/143) became visible and §612's gate fired correctly.
+
+I had already measured the wrong moment once this session and written the rule for it — *verify the commit, not
+the tree*. This is its sharper form:
+
+> **A gate that reads the index has a verdict for the working tree and a different verdict for the commit, and
+> the file's tracked-ness is the variable.** Running every gate before `git add` measures a tree that is about
+> to stop existing. For any gate built on `git grep` / `git ls-files` — which in this repo is most of them —
+> the only faithful measurement is **after the add**.
+
+The gate was right to fire, and its verdicts are now recorded: REQ-096/REQ-137 as the rows the new gate
+*derives authority from*, and REQ-033/REQ-104/REQ-143 as **far forms** — cited only in §1048's adjacency table,
+recording why they needed no gate, which is the opposite of an implementation.
+
+### What this phase says
+
+> **Two gates enforcing one law can be individually sound and jointly incomplete, and the gap is at the
+> boundary neither one owns.** REQ-024's three routes are each measured and each correct. Nothing owned the
+> question *"what does the ledger IMPORT, and is that covered?"* — because that question belongs to neither the
+> lint (which sees specifiers) nor the package (which sees itself).
+
+The search this implies: **for every scoped prohibition, compute the scope's dependency closure and ask whether
+the prohibition covers it.** The scope of a ban is a set of FILES; the reach of the code in it is a set of
+PACKAGES, and those are different sets unless something makes them agree.
+
+**STOP.** REQ-024 now covers the ledger's whole first-party closure, computed rather than listed, with the
+fix and both guard branches mutation-proved and all three original properties re-proved after the restructure.
+`test:tools` 1,229 passed / 3 failed — the REQ-289 baseline. lint clean · citations 0 · tables OK.
 
