@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 526 | §1078 | **§1079** | **THE ONLY INDEPENDENT CHECK OF THE TOML PARSERS, RE-RUN — 15/15 CELLS, ZERO DROPPED BINDINGS.** §1078's root (*a TOML has tables; grep does not*) makes regex-parsed config a class: **4 gates parse `wrangler.toml` with regex and no parser**, incl. `binding-parity` (10 regexes, 0 parsers), and §990 already produced *four successive parser errors on one TOML file*. Every standing gate reads the SAME file the same way, so none of them can catch a mis-parse. §286's cross-check with **wrangler's own resolver** is the only independent mechanism — and it was a ONE-TIME manual run. Re-run at HEAD across **all 15 cells** (5 workers × dev/staging/prod): **every cell resolves 5–12 bindings, none zero.** Extends §286's 13. My probe read `dev=0` five times first — there is no `[env.dev]`, dev is the TOP-LEVEL config and `--env dev` errors; ninth probe-shape error, caught. |
 | 525 | §1077 | **§1078** | **THE NARROW-CHARACTER-CLASS SWEEP — 8 SITES, 0 LIVE DEFECTS, AND A 3rd HISTORICAL INSTANCE FOUND IN A COMMENT.** Having written the same bug twice (§1064's tally dropping `a11y`/`e2e`, §1077's deriver missing `probe9`), vigilance is not the fix — a mechanical sweep is. All 8 narrow classes in `tools/`: 4 match CSS keywords (safe by grammar), 1 is my own §1077 comment, and **3 match repo identifiers** — each tested against what the GENERATOR can emit: event kinds (0 with a digit/underscore after the dot), projector names (0 with a digit), worker names (**all 15 match**). **0 live defects.** `design/audit.ts:29` documents a THIRD historical instance — the design vocabulary enumerated with `--[a-z-]+`. And my own worker probe false-positived: I grepped every `name =` in the TOMLs and flagged 18 `shuddl-t-*` entries that are **D1 DATABASES, not workers** — eighth probe-shape error, caught before publication. |
 | 524 | §1076 | **§1077** | **THE DRIFTED COUNT IS NOW CI-DERIVED — AND I WROTE §1064's BUG AGAIN, ONE PHASE LATER.** §1076 fixed a sweep count stated in two files and corrected in only one. The durable fix extends the EXISTING figures roster (§1053: no rival gate) so the copies cannot disagree. **Two things it caught immediately.** (1) Including the checklist gave **2 hits, both FALSE** — a closed row counting a different population (*repo-wide* sweeps) and §1076's own stamp QUOTING the corrected-away *seven*. A record that preserves its history necessarily contains its own wrong numbers; scoped to source, where the count is a LIVE assertion. (2) The deriver matched `contain\("([a-z-]+)"` — a planted 9th sweep named `probe9` was **INVISIBLE** and the gate went GREEN. **That is §1064's character-class bug, reproduced one phase after documenting it.** Widened to `[^"]+`; both directions now RED. |
 | 523 | §1075 | **§1076** | **THE Med–HIGH BOOKING ROW RE-VERIFIED — 1 OF 3, NOT 1 OF 2 — AND A STALE COUNT ITS SIBLING HAD ALREADY FIXED.** L427: `quote.accepted` commits, the fire-and-forget `AGENT_QUEUE.send` fails, the shipment stays UNBOOKED forever. Confirmed at HEAD; §131's log correction held (*"NO SWEEP RECOVERS THIS"*). The row compares only to `pod.signed`, but the sequencer has **THREE** such enqueues and this is **the ONLY one unbackstopped** — `pod.signed` names REQ-169 (`queries/unbilled.ts`, present), the concierge trigger names the SLA sweep (present). **Found while checking the argument:** its comment said *"none of the seven crons"* — there are **eight**; the identical stale figure §248 fixed in `sla-sweep.ts` and never carried to this sibling. **And fixing it broke 8 anchored citations** by shifting lines — so it was redone IN PLACE at the same line count. The `path:line@symbol` form caught the drift instantly, which is precisely what §1073 said bare citations cannot do. |
@@ -64111,4 +64112,75 @@ have sent someone to "fix" a regex that is correct.
 **STOP.** The character-class class is swept: 8 sites classified, 3 tested against their generators, 0 live
 defects, and a third historical instance recorded from a comment that had documented it all along.
 `test:tools` 1,246 passed / 3 failed — the REQ-289 baseline · lint clean.
+
+## §1079 — PHASE GATE: re-running the only check the config parsers cannot perform on themselves
+
+**Why this phase.** §1078's eighth probe error had a root worth generalising: *a TOML has tables; `grep` does
+not.* That makes regex-parsed configuration a class, and the class is populated — **four gates read
+`wrangler.toml` with regex and no parser** (`binding-parity` with 10 regexes and zero, plus `named-resources`,
+`wrangler-absence-claims`, `wrangler-scope-parity`). §991 records that §990 produced **four successive parser
+errors on one TOML file**, so this is not hypothetical.
+
+The structural problem is that **every standing gate reads the same file the same way.** A mis-parse is
+invisible to all of them simultaneously — they would agree, and be wrong together. Nothing in the merge profile
+can detect it.
+
+### The one independent mechanism, and it ran once
+
+§286 checked bindings with **wrangler's own resolver** (`deploy --dry-run --env …`) — *"a genuinely independent
+mechanism from the gate's TOML parser: 5 workers × {prod, staging} + 3 app workers × prod = 13 cells, zero
+dropped bindings."*
+
+That is the only measurement in this record that validates the parsers against the thing they model. It was a
+**one-time manual run**, in a phase about something else, and nothing re-runs it.
+
+The defect it guards against is real and has happened here: Cloudflare does **not** inherit bindings into
+`[env.X]`, so a named environment that omits them **deploys with nothing** — and this repo has previously
+shipped a `shuddl-api-prod` declaring a name and no bindings.
+
+### Re-run at HEAD, and widened to 15 cells
+
+| worker | dev | staging | prod |
+|---|---|---|---|
+| `api` | 11 | 11 | 11 |
+| `agents` | 11 | 12 | 11 |
+| `billing` | 8 | 8 | 8 |
+| `mcp` | 5 | 5 | 5 |
+| `translator` | 8 | 8 | 8 |
+
+**15 of 15 cells resolve real bindings; none is zero.** §286 covered 13; this covers all 15, including the five
+top-level `dev` configs it did not. Wrangler's resolver runs fully offline under `--dry-run`, so this is a
+one-command re-verification that anyone can repeat.
+
+Two things worth noting from the run: `agents/staging` carries **12** where `agents/prod` carries 11 — a real
+asymmetry, not an error (staging binds an extra resource) — and the counts are otherwise identical across
+environments, which is exactly the invariant `wrangler-scope-parity` asserts by name. **Two mechanisms
+agreeing is worth as much as the count**, and that is the sentence §286 ended on.
+
+### The ninth probe-shape error
+
+My first matrix reported **`dev=0` for all five workers** — a spectacular-looking finding: every development
+environment deploying with no bindings at all.
+
+There is no `[env.dev]`. **`dev` is the top-level configuration**, so `--env dev` names an environment that does
+not exist and wrangler exits with a config error, which my `grep -c` faithfully counted as zero. Run correctly
+— no `--env` at all — every dev cell resolves 5–11 bindings.
+
+Ninth this session, and the same shape as §1078's: **the probe encoded an assumption about structure** (that
+every environment is a named table) that the artifact does not share.
+
+### What this phase says
+
+> **When every gate parses a file the same way, none of them is checking the parse.** Four gates agreeing about
+> `wrangler.toml` is one measurement repeated four times, not four measurements. The only real check is a
+> mechanism that does not share the assumption — here, the tool that actually consumes the file — and this
+> repo has exactly one such check, run once, by hand, in a phase about something else.
+
+The practical form: **a one-time cross-check is a fact with no expiry date attached.** §286's 13 cells were
+true in the phase that measured them and said nothing about HEAD. Re-running cost one command and a background
+wait; not re-running would have left four gates trusted on the strength of a measurement nobody had repeated.
+
+**STOP.** The only independent validation of this repo's TOML parsing is re-run at HEAD and widened from 13
+cells to 15 — **zero dropped bindings anywhere** — with the probe error that nearly reported five phantom
+empty environments recorded. `test:tools` 1,246 passed / 3 failed — the REQ-289 baseline · lint clean.
 
