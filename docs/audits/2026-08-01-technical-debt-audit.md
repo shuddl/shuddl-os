@@ -612,6 +612,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 417 | §969 | **§970** | **THE HARD BUDGETS, MEASURED AGAINST THEIR OWN DECLARATIONS.** The other constitutional list, unchecked this session. All are gated from `tools/` — the half that never went dark — so **unlike rules 4/5/6/8 (§955) the budgets held through the §940 window.** Values counted from the rosters, not greps: tables **21/22**, surfaces **3/3**, canonical views **11/12**, event kinds **35/35** (`EVENT_KINDS` checked=35 entries, 35 distinct), colours **5 base + 4 derived**, fonts **2**, shadows/gradients/radius `design audit: clean`. **Operational fact: event kinds have ZERO headroom** — CLAUDE.md's *additions = register amendment* is now the live constraint, and *within budget* vs *at the ceiling* read identically in a green gate. Two probes returned `checked=0` (a token regex assuming a `--color-*` convention this repo does not use) and were re-run rather than published — §968's rule, working |
 | 418 | §970 | **§971** | **RULE 1's GATE HAS NEVER RUN — NOT ONCE, IN THE REPOSITORY'S HISTORY.** Completing the rule sweep: rules **2, 3, 10** are gated from `tools/` (append-only 14 files, REQ-030 authority, migrator no-silent-drop) so they held through the §940 window. Rule 1 has two clauses — the ORPHAN half is enforced (`check:traceability`, green), the **PR half is `check:pr`, guarded `if: github.event_name == 'pull_request'`**. Measured: last 8 ci runs **all `event=push` on main**, **pull requests ever = 0**, step 7 SKIPPED on the last run. The audit had filed this as *a policy question… the branch protection this repo assumes is outside it* — **§956 measured that assumption false**, so the deferred question is answered unfavourably. Counterweight, measured: **199 of 200 commits reference a REQ-ID (99%)** — the law is held by hand. Which is the point: **a practice sustained by one author's discipline is not one sustained by a gate** |
 | 419 | §971 | **§972** | **STOPPING POINT II — THE GATES ARE SOUND; NOTHING WAS ENFORCING THEM.** Board at `0948bb2`: 19 PASS · 2 FAIL · 5 BLOCKED. §948 was superseded not for being wrong but for looking INWARD; §949–§971 looked outward. One sentence: **every gate works, and for three weeks essentially none was stopping anything** — no branch protection (§956), **0 pull requests ever** so rule 1's gate never ran (§971), CI red since 07-23 with the **26-gate step SKIPPED** in all three runs (§962) because a **vacuity floor** failed on a GPU-less runner (§963), `origin/main` 1,018 commits behind (§957), the deployed commit's only CI verdict FAIL (§959), and 4 prod vulnerabilities in a step that never ran (§967, now 0). Fixed in-repo: `!cancelled()`, hardware-aware floor, hono 4.13.1, both halves `--no-bail`, 10 gates, rules 1–10 + budgets swept. **Owner-held, best first: PUSH** — one action closes §957, §958 and §966 and gives CI its first run against three weeks of work |
+| 420 | §972 | **§973** | **VALIDATING §962's CI FIX AS FAR AS THIS ENVIRONMENT ALLOWS.** §972 recommends PUSH, and that rests on §962's edit being syntactically valid — a malformed `ci.yml` produces **no run at all**, so the action would appear to succeed and verify nothing. **Stated first: no parse was possible** — `yaml`, `js-yaml`, `pyyaml` and `actionlint` all absent, and an `npm install` into a temp dir failed. Three structural checks instead: (1) the diff is **two `if:` lines + comments**, no step added/removed/reordered; (2) **the construct is already proven in this file** — line 63's pre-existing `if: ${{ always() }}` is on a step that ran **`success`** in the last CI run, and `cancelled()` is the same status-function family; (3) indentation is uniform (`- name:` 6, all others 8) and both additions sit at 8. Residual named: run `actionlint` or `gh workflow view ci` after the push |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -57121,3 +57122,56 @@ obliged to run, on code nobody had pushed, verified by a CI job that stopped bef
 
 **When a push lands, re-run this audit's external sweep** — §956, §957, §959, §962, §966 are all one command
 each and all of their verdicts change the moment `origin/main` moves. Everything else here is stable.
+
+## §973 — PHASE GATE: validating §962's CI fix as far as this environment allows, and naming what is left
+
+§972's first recommendation is *push*, and its value rests on §962's CI edit being **syntactically valid**. A
+malformed `ci.yml` produces **no workflow run at all** — so the recommended action would appear to succeed and
+verify nothing, which is the exact failure shape this session has documented eleven times. §963's fix was
+proved by reproducing CI's conditions locally. §962's cannot be: there is no GitHub Actions runner here.
+
+### What could not be done, stated first
+
+No YAML parser is available — `yaml` and `js-yaml` are absent from `node_modules` and the pnpm store, `pyyaml`
+is not installed, `actionlint` is not present, and an `npm install yaml` into a temp dir **failed** in this
+environment. So **this phase contains no parse.** That is the residual, and it is named rather than papered
+over.
+
+### What could be done
+
+**1. The change is two lines.** The complete diff of `ci.yml` since §962:
+
+```
++ 7 comment lines
++        if: ${{ !cancelled() }}      (merge evidence gate)
++        if: ${{ !cancelled() }}      (production dependency audit)
+```
+
+No step was added, removed, reordered or re-keyed. A YAML file that parsed before and gains only a comment
+block and two `if:` keys at an existing depth is not a plausible parse failure.
+
+**2. The construct is already proven in this exact file.** Line 63 carries `if: ${{ always() }}` on *"upload
+merge evidence (even when a gate fails)"* — and §962's own step listing shows that step ran **`success`** in
+the last CI run. `cancelled()` is the same documented status-check function family as `always()`, `success()`
+and `failure()`. The form, the delimiters and the position are copied from a line GitHub has already accepted
+and executed in this workflow.
+
+**3. Indentation is uniform.** Every key in the file sits at exactly one depth:
+
+```
+- name: [6]    if: [8]    run: [8]    env: [8]    uses: [8]
+```
+
+My two additions are at `8`, alongside the pre-existing `if:` at line 27 (`github.event_name == 'pull_request'`)
+and line 63.
+
+### The honest verdict
+
+Three independent structural checks agree, and the strongest is #2: **the construct is not novel here.** That
+falls short of a parse, and the residual is one command for whoever has a runner —
+`gh workflow view ci` after the push, or `actionlint .github/workflows/` anywhere with it installed. Recorded
+so that if the first push does produce no run, the workflow file is the first place to look rather than the
+last.
+
+*(Two more macOS/GNU divergences surfaced while measuring: `cat -A` and `head -0` are GNU-only and errored
+here — the same family as §968's `tac`. Neither affected a result, because both failed loudly.)*
