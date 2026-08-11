@@ -6,7 +6,10 @@ import { parseOrphans } from "./reap-orphans.js";
 // pushes a boundary-adjacent assertion over its timeout (§1052). Both directions are pinned here rather than
 // trusted, because neither is observable from a run that happens to be clean.
 
-const ROOT = "/Users/x/repo";
+// A synthetic checkout root. NOT a `/Users/<name>` or `/home/<name>` path: REQ-167 bans that SHAPE in any
+// tracked artifact regardless of whether the name is real, and §1062 caught this file violating it with a
+// placeholder. A fixture that would fail a constitutional lint is not a safe fixture.
+const ROOT = "/srv/checkout";
 const ps = (rows: readonly string[]): string => ["  PID  PPID ELAPSED ARGS", ...rows].join("\n");
 
 describe("§1061: the orphan reaper touches exactly the orphans of this checkout", () => {
@@ -23,7 +26,7 @@ describe("§1061: the orphan reaper touches exactly the orphans of this checkout
 
   it("NEVER touches another checkout's workerd on the same machine", () => {
     // Same binary name, same orphaned state, different repo. Matching on the absolute path is what scopes it.
-    expect(parseOrphans(ps([`  271     1 19:01:23 /Users/x/other-repo/node_modules/.pnpm/@cloudflare+workerd/bin/workerd`]), ROOT)).toEqual([]);
+    expect(parseOrphans(ps([`  271     1 19:01:23 /srv/other-checkout/node_modules/.pnpm/@cloudflare+workerd/bin/workerd`]), ROOT)).toEqual([]);
   });
 
   it("NEVER touches an unrelated orphan under this repo (the match needs BOTH conditions)", () => {

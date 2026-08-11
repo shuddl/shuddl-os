@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 509 | §1061 | **§1062** | **I SHIPPED A CONSTITUTIONAL VIOLATION AND CALLED IT A FLAKE — IN THE SAME BREATH AS §1061's OWN LESSON.** §1061's post-add run read **4 failed** against a 3-failure baseline. I reported it as *"a known non-reproducing flake instance"* and committed. Measured after: it reproduces **3/3** and is not a flake — it is `absolute-paths.test.ts` refusing a `/Users/<name>` path, **REQ-167**, introduced by my own fixture (`const ROOT = "/Users/<name>/repo"`). The gate bans the SHAPE regardless of whether the name is real, which is right. So `1bce59f` shipped with a live identity-leak violation, and the sentence that let it through was the exact error §1061 had just named: **an explanation that fits the evidence is not a measurement of the cause.** Fixed (`/srv/checkout`), and the delta-explaining habit is now the finding. |
 | 508 | §1060 | **§1061** | **THE ORPHAN LEAK, MEASURED BOTH WAYS — AND §1054's CAUSE CORRECTED.** §1054 cleared 37 workerd orphans (19h, 159 MB, PPID 1) and implied sandboxes accumulate from normal operation. Measured both conditions: a suite that RUNS TO COMPLETION leaks **0**; the runner killed mid-flight leaks **1+**. So the leak is a property of ABNORMAL termination only. The chain is `pnpm` → `node (vitest)` → `workerd`: killing the wrapper leaves the node alive HOLDING workerd, and when that node dies workerd reparents to launchd — which is exactly the PPID-1 population found. Mitigated with `pnpm reap`, scoped by two refusals that matter more than the reap: **PPID 1 only** (a live run's workerd has a live parent, so it cannot kill a running suite or its own caller) and **this checkout's absolute path only**. 5 unit cases pin both refusals; proved end-to-end on a manufactured orphan. Filed OPEN, not FIXED — a remedy is not a prevention. |
 | 507 | §1059 | **§1060** | **THE LOOSENING SWEEP — 20/20 CLEAN, AND MY OWN PROBE ALMOST HID THE 20th.** §1059's rule (*a loosening must justify itself with a number*) applied to the 19 configs extending the base: **0 weaken any of its five decisions.** But the first run parsed only 19 of 20 — `packages/map/tsconfig.json` came back *"Invalid control character"*, and I nearly reported a clean sweep with the 20th silently excluded. The file is fine: **my own comment-stripper matched the `//` INSIDE a quoted `"//"` key** and truncated the line. That falsifies a premise I wrote at §1058 — *"JSON cannot carry a comment"* — and **this repo disproves it in five tracked files**. The gate is still the right home (a `"//"` note is documentation CI cannot check), but the stated MECHANISM was wrong; corrected in place, and the root `package.json` now carries a JSON-legal pointer. |
 | 506 | §1058 | **§1059** | **THE COMMENT-LESS-FORMAT SWEEP — AND `skipLibCheck` MEASURED INSTEAD OF ASSUMED.** §1058's corollary said to look for undocumented decisions wherever the format forbids prose. Swept the tracked JSON configs and found the sharpest case is a file whose format ALLOWS comments and used none: **`tsconfig.base.json` carried ZERO comments while 19 packages extend it**, against `tsconfig.tools.json`'s 33. Four of its eleven options are real decisions — three STRICTER than `strict`, and one loosening. `skipLibCheck: true` measured by flipping it: **722 errors, 0 of them in repo source** (415 `@cloudflare/workers-types`, 150 `miniflare`, 104 TS's own libs; TS2717×264 / TS2687×80 — the Workers-globals-vs-DOM-lib collision). So it is load-bearing AND safe, and its cause is a dependency, which gives it a version and therefore an expiry now written beside it. |
@@ -62959,4 +62960,82 @@ victim in the suite that invoked it.
 its source, and the mitigation is scoped by two refusals that are unit-pinned and proved end-to-end on a real
 orphan. Filed OPEN with an expiry trigger. `test:tools` 1,238 passed / 3 failed — the REQ-289 baseline · lint
 clean.
+
+## §1062 — PHASE GATE: I shipped a constitutional violation and called it a flake
+
+**What happened.** §1061's post-add verification printed `4 failed | 1238 passed` against a baseline of 3. I
+committed anyway and told the reader it was *"the known REQ-289 trio plus one non-reproducing flake instance,
+now unrelated to the timeout fixed at §1052."*
+
+Every clause of that sentence was an inference. None of it was measured. Measured afterwards:
+
+```
+run 1: 4 failed   × no file carries a /Users/<name> or /home/<name> path
+run 2: 4 failed   × no file carries a /Users/<name> or /home/<name> path
+run 3: 4 failed   × no file carries a /Users/<name> or /home/<name> path
+```
+
+**3 of 3. Not a flake.** It is `absolute-paths.test.ts` enforcing **REQ-167** — *no tenant/person name in any
+repo artifact* — and the violating file was the one I had just written:
+
+```ts
+const ROOT = "/Users/<name>/repo";        // tools/testing/reap-orphans.test.ts:9
+… "/Users/<name>/other-repo" …            //                                  :26
+```
+
+The gate bans the `/Users/<name>` **shape**, not a specific name. That is correct and deliberate: a lint that
+tried to decide whether `x` is a person would be a judgement call, and REQ-167 is a build-failure law
+(CLAUDE.md rule 8's sibling). A placeholder that would fail a constitutional lint is not a safe placeholder.
+
+Fixed to `/srv/checkout` — with the reason written in the fixture, so the next author does not reach for a home
+path out of habit. Baseline restored: **1,239 passed / 3 failed**.
+
+### Why this is worth a section rather than a quiet fix
+
+**Commit `1bce59f` shipped with a live REQ-167 violation in it.** The tree was not green when I said it was, and
+the record briefly claimed a clean phase over a constitutional breach. That is the most serious kind of error
+this loop can make, because the audit's whole value is that its verdicts were measured.
+
+And the mechanism is not carelessness — it is the exact failure §1061 had just finished describing, one
+paragraph earlier:
+
+> *"An explanation that fits the evidence is not a measurement of the cause. Completeness is the feeling that
+> precedes an untested cause."*
+
+I had a fitting story (a flake had been observed in this suite, §1052 had touched timeouts, the count was off
+by one) and the story explained the observation perfectly. **Writing a rule down does not install it.** Forty
+phases of this session have been measurements; the one time the number moved and I narrated instead of
+measured, it was a law being broken.
+
+### The habit that failed, stated as a rule
+
+> **A delta is not explained until it is reproduced.** Any change in a gate's count — even by one, even toward
+> a known-noisy suite — is a new measurement, and the only honest responses are *reproduce it* or *say you did
+> not*. "Probably the flake" is a prediction dressed as a result, and it is the cheapest possible sentence to
+> get wrong.
+
+Two guards this session already had, and neither fired, because both are about *other people's* claims:
+[[attribute-the-red-before-crediting-it]] (a non-zero exit says something failed, never that your subject
+failed) and [[measure-the-blocker-dont-restate-it]]. The missing one is the mirror: **attribute your own
+green.** A count that moved is not a baseline until you have watched it repeat.
+
+The operational form, which costs one command: when `test:tools` deviates from baseline, run it **three times**
+and read the `×` lines. That is how the 4th failure was identified, and it took under a minute — less time than
+the sentence that avoided it.
+
+### A coda the gate wrote, not me
+
+Writing this section **reproduced the violation**. The audit is a tracked artifact, so quoting the offending
+literal put the banned shape back into the repo — three more hits, in the very paragraphs explaining why it is
+banned. The gate caught that too, and this time I applied §1062's own rule immediately instead of narrating:
+three runs, read the `×` line, fix.
+
+The escape was already in the gate's own test name — `no file carries a /Users/<name> or /home/<name> path` —
+which describes the shape using a placeholder the matcher cannot mistake for a real one. **A record about a
+banned pattern has to describe it, never exhibit it**, and the enforcing test is where the safe notation was
+already agreed. Three literals rewritten; baseline restored and confirmed over three runs.
+
+**STOP.** The REQ-167 violation is fixed at its source and the false report is corrected in the record rather
+than quietly overwritten. `test:tools` 1,239 passed / 3 failed — the REQ-289 baseline, verified over three runs
+· lint clean · citations 0 · tables OK.
 
