@@ -631,6 +631,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 458 | §1010 | **§1011** | **§1010's ADVICE WAS NECESSARY AND NOT SUFFICIENT — THE RECORD ALREADY SAID WHY.** Tracing REQ-289's source document to the commit that introduced it (`da475d5`, four days ago) surfaced a qualification written by the phase that fixed a **real REQ-167 violation**: *check:identity uses a DENYLIST … it can only catch a name someone thought to add.* That leak was **39 occurrences across 5 files in `docs/plans/`** — an absolute home path embedding an operator account name — and `docs/plans/` is the **same document class** as `docs/gtm/`. §1010 treated the risk as prospective; **it is precedented.** A GTM corpus is full of names nobody has thought to add yet — the denylist is the wrong shape for its dominant risk. What runs TODAY is the complement `da475d5` built: `absolute-paths.test.ts`, denylist-INDEPENDENT and shape-based, *the only REQ-167 enforcement that runs at all* while the secret is BLOCKED. **And it would fire:** the pending corpus carries the leak shape in **3 files (1 real + its 2 sync-duplicates)** — paths deliberately not reproduced here, since printing them re-commits the identifier. Sequence gains a step-0 that needs no secret: clear the path, bind, delete duplicates, commit. Also clean: **register provenance 76 citations / 0 unresolvable** (§1003's frame on the register); `.claude/plugins/` untracked AND unignored |
 | 457 | §1009 | **§1010** | **WHAT HAPPENS THE DAY `docs/gtm/` IS COMMITTED — AND THE GUARD THAT IS SWITCHED OFF.** §1000 asked what a BLOCKED gate does on the day it unblocks; the same question applies to a **corpus** about to enter the gated tree. `docs/gtm/` + `docs/research/` are untracked, so every gate is blind by construction — and they are an ACTIVE workstream, so the commit is a matter of when. Measured: **72 `.md`, of which 38 are file-sync DUPLICATES** (§997's gate fires the moment one tracked file makes the dir repo-owned) · **2 of 405 table rows** malformed · ~5 `§N` refs (all `§0`, likely genesis-style) · **≤33 of 101 citations** unresolvable — stated as an **upper bound, not a verdict**, since my probe tested plain path existence while the real gate has a partial-path resolver. **The headline is not in that table:** the pending corpus is a GTM workstream — messaging, ICP list, founder call script — i.e. **the single most name-bearing content this repo will ever hold** — and REQ-167's identity gate, which §1002 PROVED detects and redacts, is **BLOCKED** on an unbound denylist. Committing first would put the most name-bearing content into the repo **with the name-checker switched off — not a failure, a silence**, recoverable only by history rewrite. Finding is the SEQUENCE: bind the denylist → delete the 38 duplicates → then commit |
 | 456 | §1008 | **§1009** | **THE WORLD-TIME CLASS, ENUMERATED — 1 HAS A CADENCE, 3 CANNOT GET ONE HERE.** §1008 found the first claim that dies while the tree sits still; this counts the class. **15 external holds, 10 world-querying, and 3 that can change with NO signal**: Dependabot posture, workflow token scope, branch protection — all pure GitHub account settings whose expiry trigger reads *re-run the `gh api` command*, which is **an instruction, not a cadence** (§995: 6 of 17 such triggers had already fired unnoticed). The other seven are provisioning holds and are safe for a structural reason: **the act that clears them is the act that re-runs their proof.** **The asymmetry that matters:** two of the three are known-BAD today, which cannot regress — the risk is the moment branch protection is ENABLED, since §957 calls it *the authority of all 26 gates* and nothing would notice it switched off again. **No automation added, deliberately:** reading those settings needs a scope beyond the `read` default, i.e. a `permissions:` block — and §975 declined one because an explicit block grants exactly what it lists, REMOVING the others, on a CI about to run for the first time. Chasing a monitoring nicety would be the tail wagging the dog. Left owner-held **with the unlock named precisely** rather than as *someone should check sometimes* |
 | 455 | §1007 | **§1008** | **REPO-TIME vs WORLD-TIME — THE ONE CLAIM THAT DIES WHILE THE TREE SITS STILL.** §995's expiry gate keys every trigger on a FILE CHANGING; a vulnerability verdict is the opposite — **the tree sits still and the answer changes**, because the advisory database moves underneath it. Exposed a real gap: `pnpm audit --prod` lives in `ci.yml` on `pull_request`+`push`, with **0 PRs ever** and CI having evaluated none of the 1,018 commits; Dependabot is **disabled**; `nightly` ran no world-time check at all. §976 called the in-repo half fixed because §962 restored the step's guard — true and insufficient: **restoring a step that never runs changes nothing; an event-triggered check on an event that does not occur is not a slower mechanism, it is no mechanism.** **And it corrects §966 by half:** *a scheduled audit over a frozen commit is a clock, not a check* is right for the register↔code diff (repo-time: same commit, same answer forever) and **exactly backwards for a world-time check**, where a frozen commit is what holds every variable except the one you are watching. Fix: a `dependency-audit` nightly job mirroring `orphan-audit` (1 named step — §980's tripwire fires above 3 — 3 `uses`, 10/10 refs SHA-pinned), scoped `--prod` so a dev advisory cannot make the job noisy. **Places a mechanism, does not start one:** nightly runs against `origin/main`, 1,016 behind, so it activates on the push |
@@ -59523,3 +59524,83 @@ order, rather than being discovered as 38 red gate findings and an unscanned nam
 live and `no-sync-duplicates` is the first gate to fire · `IDENTITY_DENYLIST` binds, at which point step 1 is
 done and the ordering constraint dissolves · another fully-untracked directory appears inside the repo, which
 is the general form of this hazard.
+
+---
+
+## §1011 — PHASE GATE: §1010's advice was necessary and not sufficient — the record already said why
+
+§1010 ended with a sequence: bind `IDENTITY_DENYLIST`, delete the 38 duplicates, then commit `docs/gtm/`.
+Tracing REQ-289's cited source document to the commit that introduced it (`da475d5`, 2026-08-07) surfaced a
+qualification to that advice — **written into this record four days ago, by the phase that fixed a real
+REQ-167 violation.**
+
+### The precedent: this has already happened once
+
+`da475d5` is titled *"a person identifier in five tracked documents"*. Its reasoning:
+
+> `check:identity` uses a DENYLIST — names, maintained client-side, held by the owner. Right for tenant and
+> vendor names, which are unguessable from inside the repo, **but it can only catch a name someone thought to
+> add.**
+
+The leak was **39 occurrences across 5 files in `docs/plans/`** — an absolute home path embedding an operator
+account name inside operational instructions. The tell recorded there is worth repeating: *"they were also a
+portability defect — none of those commands run on another machine — and that coincidence is the tell: the
+leak and the bug were the same edit."*
+
+`docs/plans/` is the *same document class* as `docs/gtm/`: narrative operational planning, written for a
+reader, quoting commands. §1010 treated the risk as prospective. **It is precedented.**
+
+### So binding the denylist is necessary and not sufficient
+
+A go-to-market corpus is full of names **nobody has thought to add yet** — that is what a prospect is. The
+denylist protects against the names the owner already knows to guard, which is exactly the wrong shape for
+this corpus's dominant risk.
+
+What actually runs today is the complement `da475d5` built: `absolute-paths.test.ts`, **denylist-independent**
+and shape-based. Its own words: *"check:identity knows which names matter and cannot see one it was never
+given; this knows nothing about names and cannot miss the shape. Neither subsumes the other — and with the
+denylist secret still BLOCKED, this is currently the only REQ-167 enforcement that runs at all."*
+
+### And it would fire on the pending corpus
+
+Probed the untracked tree for that exact shape:
+
+```
+files carrying the leak shape : 3      occurrences : 3
+  docs/gtm/00-mission-control.md          1
+  …/00-mission-control 2.md               1   (a sync-duplicate)
+  …/00-mission-control 3.md               1   (a sync-duplicate)
+```
+
+**One real defect, tripled by iCloud.** The paths are deliberately not reproduced in this record — printing
+them would re-commit the identifier the whole exercise exists to keep out, which is the same trap `da475d5`
+recorded when its own gate source had to be excluded by identity rather than by pattern.
+
+So the sequence from §1010 gains a step, and it is the one that does not need the owner's secret:
+
+```
+0. clear the absolute path from docs/gtm/00-mission-control.md   ← would RED absolute-paths on commit,
+                                                                    and is the precedented leak shape
+1. bind IDENTITY_DENYLIST          (necessary; catches known names only)
+2. delete the 38 sync-duplicates
+3. then commit
+```
+
+### Two smaller measurements, recorded so they are not re-derived
+
+- **Register provenance is clean.** All 289 rows scanned for file-ish `source` citations: **76 citations, 0
+  unresolvable.** REQ-289's own source is tracked (it landed in `da475d5`). A fresh clone can read the
+  justification behind every row — the §1003 frame applied to the register.
+- **`.claude/plugins/` is untracked AND unignored** (6 files) — permanent `git status` noise and committable
+  by accident, unlike `.claude/skills/` which is deliberately tracked (32 files). Owner-held tooling, not repo
+  content; flagged rather than ignored-by-me, since adding a gitignore rule to someone's agent tooling is
+  their call.
+
+### Phase gating
+
+**STOP.** The pre-commit picture for the pending corpus is now complete and precedented rather than
+speculative.
+
+**Re-open when:** `docs/gtm/` becomes tracked — `absolute-paths` fires first, before any denylist question ·
+`IDENTITY_DENYLIST` binds · another `docs/plans`-class document is written, since that is the class with a
+demonstrated leak history and the leak rode in on a *portability* defect rather than a naming mistake.
