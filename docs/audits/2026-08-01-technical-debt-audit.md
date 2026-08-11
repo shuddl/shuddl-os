@@ -631,6 +631,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 477 | §1029 | **§1030** | **84 MUTATION PROOFS, 44 WHOSE SUBJECT MOVED — AND WHY ONLY 14 ARE A QUESTION.** §1029 showed a proof covers only the text that existed when it ran; this asks it of every proof claim in the record. Mapped **all 1,029 sections to their introducing commit** in one pass, then checked each proof's named subject for later commits. **First run said 0 of 84 — contradicting a positive I had already established by hand** (§896's `sequencer.ts` at `3b1ad75`); the command carried a stray empty-string argument. **A zero that contradicts a known positive is a broken probe**, and §896 became the control the second run carried. Result: **44 of 84 subjects moved** — but split by kind, **39 are GATE/test files, where the gate still runs and a later commit usually STRENGTHENS it: the standing mechanism supersedes the moment's proof.** Only **14 are product files**. The record already had the right pattern, in the very section that prompted this: §896 does not re-run the old proof, it asks *whether anything **standing** keeps it true*. **A mutation proof is a claim about a moment; a gate is what persists.** The one checked by reading HOLDS — `sequencer.ts`'s change widens `mapMoneyProjectionError` to take the event kind, error mapping orthogonal to the gate chain — now recorded inline at §896 |
 | 476 | §1028 | **§1029** | **A LAW EDITED AFTER ITS PROOF — AND THE ONE CONSTITUTIONAL COUNT THAT DECAYED IN HOURS.** The ten non-negotiable rules were mutation-proved at §310/§323/§340/§341, but **a proof only covers the text that existed when it ran**, and CLAUDE.md has been edited three times since. Verified by `git merge-base --is-ancestor` (not inferred from section numbers): all four proof commits are **descendants of `83e32c5`**, the last rule edit — so **the ten laws are proved exactly as they now read**. That leaves ONE piece of constitutional text younger than its proof, the working agreement's `verify:merge` clause — **and its count had decayed in HOURS.** It read *a 16-step chain … it reaches 4 of 16*; today the chain is **18 segments (17 gates + echo)**. Reconstructed: at `8bd4c8b` it was 17 segments = **16 gates + echo, so the claim was CORRECT when written**, and `7b61624` — same day, later — added `check:chokepoint` to the loop. **Accurate when written, invalidated hours later by an improvement.** Sharpest instance yet of why §1022's remedy is deletion not refresh: **writing '17' would have survived less than a day.** Fixed to keep the mechanism (*step 4, and nothing after it*) and drop the total. Constitution now verified in all three factual surfaces: budgets by violation, stack by presence, rules by proof-ancestry |
 | 475 | §1027 | **§1028** | **THE GOVERNING FILE'S STACK LINE — 12/12 PRESENT, AND TWO FALSE FINDINGS I NEARLY FILED.** §1001 proved CLAUDE.md's BUDGETS by violation; its **Stack** line is the other half of the constitution's factual surface and had never been checked. All twelve named technologies are present (Hono 65 · D1 109 · Queues 124 · Zod 145 · Stripe 27 …). **Two numbers look wrong and both are ME misreading:** *TypeScript strict — 1 of 20 tsconfigs* reads as 19 unstrict packages, but **19 of 20 `extends` a base** and that base is the single `"strict": true` declaration — **the count of 1 is the evidence FOR the structure, not against it**. And *self-hosted Protomaps* vs `DEMO_TILE_URL = tiles.openfreemap.org` shipping in BOTH surfaces looks like §1016's shape (a claim describing something unbuilt) — **except the heading already scoped it: `## Stack (decided — do not relitigate)`** is a list of DECISIONS, not an inventory of current state, and the interim third-party basemap is recorded in `threat-model.md:44`, `pen-test-basics.md:131` and `:160` with REQ-075 and a severity. **Read the heading before judging the line** — a statement's tense is set by the block it lives in, and half this record's drift findings turned on tense (§1013, §1019, §1022); this one turns on tense too and comes out the other way |
 | 474 | §1026 | **§1027** | **THE REVERSE-DIRECTION CHECK AT THE DOCUMENT LEVEL — EVERY AUTHORITATIVE DOC IS REACHABLE.** §1026's principle (*every check validates what a claim points AT; none asks what points at NOTHING*) is already CLAUDE.md rule 1's for scope — *traceability blocks orphans BOTH directions* — so where else does a one-way check hide? The doc tree had never been asked. Checked all 63 tracked `docs/**.md` for an inbound reference: **audits 3/0 orphaned · ops 9/0 · security 2/0 · wp 17/0 · plans 32/13.** **Every authoritative document is reachable** — the ledger, release evidence, threat model, pen-test artifact, all sixteen WP close-outs. The 13 orphans are all in `docs/plans/`, the one class §240 already excluded from citation checking (*a plan proposes a path that later lands elsewhere, which is not rot*), and plans are **19 of 32 referenced**, so not uniformly unlinked — the unreferenced cohort is early (07-10 → 07-31), the WP-era plans whose work landed. **A plan becomes unreferenced exactly when its outcome documentation supersedes it**: the inbound link migrating away is EVIDENCE the work completed. §1026's orphans were content that FAILED to function; these are content that has FINISHED functioning |
@@ -52541,6 +52542,8 @@ the other**, so the gate cannot drift from the thing it checks.
   (§894, currently zero files), and this gate would not notice if that omission became live.
 ## §896 — PHASE GATE: PHASE 116 CLOSED — law 3 probed for evasion; the chokepoint holds and states its own limit
 
+> **RE-VERIFIED 2026-08-11 (audit §1030).** `workers/api/src/do/sequencer.ts` changed once after this section (`3b1ad75`), so the proof no longer covers the file as it stands. Read the diff: it widens `mapMoneyProjectionError(err)` to `mapMoneyProjectionError(err, full.kind)` because both `money_lines` guards raise identical text and the mapper cannot otherwise tell a double correction from an unrelated duplicate line. That is **error mapping after a projection failure, orthogonal to the gate chain this section proved.** The verdict stands — recorded because nothing else would have said so.
+
 The most security-relevant of CLAUDE.md's ten laws: *"Gates are server-side (Gatekeeper); UIs merely reflect
 them. **Any flow reachable by API must enforce the same gate** (REQ-030)."* My notes record it as
 mutation-proved around §310–§341 — roughly 550 sections ago — so the question is whether anything **standing**
@@ -60710,3 +60713,70 @@ stale and repaired.
 --is-ancestor` against §310/§323/§340/§341 is the check · a gate is added to `verify:dev`, which no longer
 falsifies the text · a new total enters the working agreement, which is the one section with a demonstrated
 decay rate measured in hours.
+
+---
+
+## §1030 — PHASE GATE: 84 mutation proofs, 44 whose subject moved — and why only 14 are a question
+
+§1029 established that **a proof only covers the text that existed when it ran**, verified by git ancestry.
+That was applied to CLAUDE.md's ten rules. The same question applies to every proof claim in this record, and
+this record makes ~84 of them.
+
+### The measurement, after a broken probe
+
+Mapped all **1,029 sections to their introducing commit** in one pass over the audit's history, then asked
+whether each proof's named subject has commits after it.
+
+First run: **0 of 84 stale** — which contradicted a positive I had already established by hand (§896's
+`sequencer.ts` changed at `3b1ad75`). The command carried a stray empty-string argument, so git returned
+nothing. **A zero that contradicts a known positive is a broken probe**, and §896 became the positive control
+the second run carried:
+
+```
+POSITIVE CONTROL §896/sequencer.ts → 1 commit after the proof   ✓ probe works
+84 proof-claiming sections · 44 whose subject changed since
+```
+
+### Why 44 is not 44 findings
+
+Splitting the moved subjects by what they are:
+
+| subject | count | what a later change means |
+|---|---|---|
+| **gate / test files** | **39** | the proof was *about a gate*, and the gate **still runs** — it is in `test:tools` and the merge roster. A later commit almost always **strengthens** it. The standing mechanism supersedes the moment's proof |
+| **product files** | **14** | the proof was about behaviour that has since been edited. These are the ones with a real question |
+
+The record already contains the correct pattern, in the section that prompted this. §896 does not re-run
+§310–§341's proof; it asks a better question:
+
+> *"My notes record it as mutation-proved around §310–§341 — roughly 550 sections ago — so the question is
+> whether anything **standing** keeps it true, and whether that thing can be walked around."*
+
+**A mutation proof is a claim about a moment; a gate is what persists.** That is why 39 of the 44 dissolve —
+and why the remaining 14 are worth naming rather than gating.
+
+### The one checked by reading holds
+
+`sequencer.ts` moved once after §896, at `3b1ad75`: `mapMoneyProjectionError(err)` → `…(err, full.kind)`,
+because both `money_lines` guards raise identical text and the mapper could not otherwise distinguish a double
+correction from an unrelated duplicate line. **Error mapping after a projection failure — orthogonal to the
+gate chain §896 proved.** The verdict stands, and §896 now records that inline, because nothing else would
+have said so.
+
+### Not built: a gate over the other 13
+
+§997's rule decides it. There is **no demonstrated invalid proof** — the one examined holds — and a gate here
+would have to re-run a mutation to know, which is the proof itself. The honest instrument is the one §896 used:
+when a law matters, ask what **standing** mechanism keeps it true, rather than re-reading an old proof.
+
+The 13 unexamined subjects are listed above with their section and commit count, so the next reader starts
+from a name rather than a sweep.
+
+### Phase gating
+
+**STOP.** Proof-coverage is measured: 84 claims, 44 moved subjects, 39 superseded by the standing gate, 14
+product-file questions, 1 verified and recorded.
+
+**Re-open when:** a product file in that list of 14 is edited again — the count grows and the question sharpens
+· a proof claim is written about a product file, which is the only kind that decays this way · a standing gate
+is deleted, which is the event that would make the 39 matter.
