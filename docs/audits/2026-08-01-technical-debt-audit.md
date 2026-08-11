@@ -631,6 +631,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 479 | §1031 | **§1032** | **THE AUDIT'S OWN ERROR RATE — 5.5%, AND WHY ZERO WOULD BE THE ALARMING NUMBER.** §1031 showed the audit is its own churn source; the unasked question is whether any fix it landed **needed fixing**. **First measurement was 19% and wrong** — a loose matcher on *my own / its own / broke* returned 207 of 1,082 and caught §1031's own TITLE, which describes the repo rather than corrects a fix (§1015's wall: **a rate from a loose matcher is a statement about the matcher**). Tightened to subjects naming a PRIOR SECTION plus a corrective verb about that section's work: **59 of 1,082 = 5.5%.** They are real — *a fourth hole **§986's fix opened*** · *§962 protected the consumers, not the gates that feed them* · *§944's open-row count was wrong four different ways* · *my own §253 edit broke four citations the gate cannot see* · *§904 named the wrong backstop*. **Every one found by this audit**, not by a user, CI, or production — visible only because each **names the section it corrects** instead of silently overwriting it. **Why 5.5% is the reassuring reading: a 0% rate across 1,082 commits would not mean flawless work, it would mean nothing re-read it.** The rate measures the REVIEW, not the authorship — same inversion as §1031's moved-subject count. Stated as a FLOOR: a silently-fixed or never-found defect appears in neither this number nor anywhere else |
 | 478 | §1030 | **§1031** | **THE 13 EXAMINED — EVERY PROOF HOLDS, AND THE AUDIT IS ITS OWN CHURN SOURCE.** §1030 left 14 product-file questions with 1 verified; this reads the other 13 rather than leaving a list. **Every later commit is itself a fix landed by this audit**, and the effect is overwhelmingly to STRENGTHEN: `2e2883b` hardened REQ-030's *grants nothing* sentinel · `42d0cbb` swept 17 refine sites (**3 silent, 2 real**) · `e2d5b00` made rule 10's field index total · `b03f04f` closed **16 casts plus a gate** · `09484fc` gave the transition gates four falsification recipes. Two changed behaviour, and **§741 is the sharpest and still not an invalidated proof**: it closed *the fallback-value line*, while `dbf0a2e` closed a DIFFERENT hole in the same law (*dims are a measurement, not a token — a price on air was API-reachable*). **A proof whose subject later gained a fix is usually evidence the audit worked**; the test is whether the commit changed THE PROPERTY PROVED or a neighbouring one — 13 of 13, the latter. Also corrected: §1030 mis-binned `test/helpers.ts` as product because it is not `*.test.ts`. **The self-referential half: the 44 moved subjects moved BECAUSE of this audit — an audit that fixes things invalidates its own proofs' coverage, and the more effective it is, the more subjects have moved.** Which is why a proof-freshness gate would fire hardest on the most productive sessions |
 | 477 | §1029 | **§1030** | **84 MUTATION PROOFS, 44 WHOSE SUBJECT MOVED — AND WHY ONLY 14 ARE A QUESTION.** §1029 showed a proof covers only the text that existed when it ran; this asks it of every proof claim in the record. Mapped **all 1,029 sections to their introducing commit** in one pass, then checked each proof's named subject for later commits. **First run said 0 of 84 — contradicting a positive I had already established by hand** (§896's `sequencer.ts` at `3b1ad75`); the command carried a stray empty-string argument. **A zero that contradicts a known positive is a broken probe**, and §896 became the control the second run carried. Result: **44 of 84 subjects moved** — but split by kind, **39 are GATE/test files, where the gate still runs and a later commit usually STRENGTHENS it: the standing mechanism supersedes the moment's proof.** Only **14 are product files**. The record already had the right pattern, in the very section that prompted this: §896 does not re-run the old proof, it asks *whether anything **standing** keeps it true*. **A mutation proof is a claim about a moment; a gate is what persists.** The one checked by reading HOLDS — `sequencer.ts`'s change widens `mapMoneyProjectionError` to take the event kind, error mapping orthogonal to the gate chain — now recorded inline at §896 |
 | 476 | §1028 | **§1029** | **A LAW EDITED AFTER ITS PROOF — AND THE ONE CONSTITUTIONAL COUNT THAT DECAYED IN HOURS.** The ten non-negotiable rules were mutation-proved at §310/§323/§340/§341, but **a proof only covers the text that existed when it ran**, and CLAUDE.md has been edited three times since. Verified by `git merge-base --is-ancestor` (not inferred from section numbers): all four proof commits are **descendants of `83e32c5`**, the last rule edit — so **the ten laws are proved exactly as they now read**. That leaves ONE piece of constitutional text younger than its proof, the working agreement's `verify:merge` clause — **and its count had decayed in HOURS.** It read *a 16-step chain … it reaches 4 of 16*; today the chain is **18 segments (17 gates + echo)**. Reconstructed: at `8bd4c8b` it was 17 segments = **16 gates + echo, so the claim was CORRECT when written**, and `7b61624` — same day, later — added `check:chokepoint` to the loop. **Accurate when written, invalidated hours later by an improvement.** Sharpest instance yet of why §1022's remedy is deletion not refresh: **writing '17' would have survived less than a day.** Fixed to keep the mechanism (*step 4, and nothing after it*) and drop the total. Constitution now verified in all three factual surfaces: budgets by violation, stack by presence, rules by proof-ancestry |
@@ -60833,3 +60834,69 @@ standing gate, **14 product-file proofs examined and 14 holding.**
 **Re-open when:** a product file gains a commit that changes *the property a proof named* rather than a
 neighbouring one — that is the only shape that invalidates, and it needs a read, not a scan · a proof is
 written whose subject is a product file, since those are the only ones that decay this way.
+
+---
+
+## §1032 — PHASE GATE: the audit's own error rate — 5.5%, and why zero would be the alarming number
+
+§1031 established that this audit is its own churn source. The question it does not ask about itself: **did
+any fix it landed need fixing?** Fix-induced regressions are the failure mode of remediation work, and this
+record has 1,082 commits since 2026-08-01 to answer with.
+
+### The first measurement was 19% and wrong
+
+A loose matcher — subjects or bodies containing *"my own"*, *"its own"*, *"broke"*, *"was wrong"* — returned
+**207 of 1,082 (19%)**. It matched §1031's own title (*"the audit is its own churn source"*), which describes
+the repo rather than corrects a fix. Same wall as §1015's 90% probe: **a rate produced by a loose matcher is a
+statement about the matcher.**
+
+Tightened to commits whose subject names a **prior section** and a corrective verb about *that section's*
+work:
+
+```
+1,082 commits since 2026-08-01
+   59 correct a named prior section's own work      =  5.5%
+```
+
+### They are real, and they are the good kind
+
+A sample, unedited:
+
+> *"close the REQ-035/127 residual — and a fourth hole **§986's fix opened**"*
+> *"**§962 protected the consumers**, not the gates that feed them"*
+> *"**§944's open-row count was wrong** four different ways"*
+> *"I verified my own reopen triggers — **one wrong, one right, and the wrong one was backwards**"*
+> *"**my own §253 edit broke four citations** the gate cannot see"*
+> *"the roster class was NOT closed — billing had **the instance my own claim missed**"*
+> *"**§904 named the wrong backstop**" · "**§900's headroom figure was wrong**"*
+
+**Every one was found by this audit**, not by a user, a gate failure in CI, or production. The corrections
+are internal all the way down — which is what a review discipline is *for*, and is only visible because each
+one **names the section it corrects** rather than silently overwriting it.
+
+### Why 5.5% is the reassuring reading
+
+The instinct is that a lower number is better. It is not, at this volume:
+
+> **A 0% self-correction rate across 1,082 commits would not mean the work was flawless. It would mean nothing
+> re-read it.** The rate measures the *review*, not the *authorship* — and a record whose corrections are
+> attributable is one whose claims can be trusted precisely because its errors are countable.
+
+That is the same logic as §1031's: an audit with zero moved proof-subjects changed nothing, and an audit with
+zero self-corrections checked nothing. Both metrics invert.
+
+### What it does not say
+
+It is a **floor**, not a total. It counts corrections whose subject *names* a section — a defect fixed
+silently, or one never found, appears in neither this number nor anywhere else. The honest claim is: **at
+least 59 errors were made, caught internally, and recorded with attribution.** The unfound remainder is
+unmeasurable by construction, which is why the standing gates matter more than any of this.
+
+### Phase gating
+
+**STOP.** The audit's own error rate is measured for the first time: **5.5%, all internally caught, all
+attributed.**
+
+**Re-open when:** the rate falls sharply while output continues — that is the signature of review stopping,
+not of errors ceasing · a correction lands without naming what it corrects, which removes it from this
+measurement and from the record's provenance chain.
