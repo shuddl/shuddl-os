@@ -622,6 +622,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 427 | §979 | **§980** | **WHY §979 READS ONLY ONE WORKFLOW, ASSERTED INSTEAD OF ASSUMED.** §974's pinning gate reads BOTH workflows; §979's ordering gate reads only `ci.yml`, and that asymmetry was justified nowhere. It is correct: **every action ref is equally a supply-chain risk**, but **step ordering only bites when one job holds several INDEPENDENT verdicts**. Measured — `nightly.yml` has no such job: `orphan-audit` is **1 step alone in its job**, and `backup`'s 3 steps are one operation plus two CONSEQUENTS (showing a manifest never written, retaining a backup never made) where skipping is *correct*. §978's prerequisite-vs-verdict line applied to another file, landing on the opposite answer. Added a **scope tripwire** rather than widening the scan: if a nightly job grows past the measured shape the gate REDs and says to re-check. **A gate whose scope is a judgement should assert the judgement** |
 | 428 | §980 | **§981** | **TWO LEDGERS, TWO VOCABULARIES — AND THAT IS WHY §945 SCOPED TO ONE.** §980's question aimed at §945: it reads only the repo-owned section while External holds carries the SAME eight-field schema. Measured: repo-owned **35/35 canonical**, external **11 of 15 NON-canonical** — `BLOCKED`, `CLEARED`, `NARROWED`. They are right, and the section header says so: *"Every one of these is BLOCKED, not failed, and none may be relabelled PASS."* Different KINDS: a repo defect lives until a commit closes it (OPEN → FIXED); an external hold lives until the world changes (BLOCKED → NARROWED → CLEARED). **§945's scope was correct for a reason nobody had written down.** Asserted the SEPARATION rather than merging — 2/2 mutations RED. Net: the whole ledger is now machine-countable, 35 rows by one vocabulary and 15 by another, each with its own floor |
 | 429 | §981 | **§982** | **EVERY PROSE MATCH IN THIS SESSION'S GATES, AND WHETHER ITS GUARD ACTUALLY FIRES.** Prose matching is not always avoidable (headings, conventions, governing sentences); what makes it safe is a companion assertion that fails when the prose MOVES. Audited all nine gates: **checked=9, prose matches=7 across 5 files, non-vacuity assertion present in 9 of 9.** Six guards had been mutation-proven when written; **`wp-blocker-staleness`'s section guard was asserted at §946 and never fired** — *a pin that ships unable to fail*. Exercised here: renaming `### Milestone / CONFIRM gates` goes **RED**. **7 of 7 prose matches now have a guard seen to fire** — no gate can silently stop covering its subject through a rename. Found by turning a just-written rule on my own instruments **before anything broke**: the cheapest place this class has been caught in the whole audit |
+| 430 | §982 | **§983** | **MCP CANNOT REACH THE LEDGER EXCEPT THROUGH THE API — NOW ENFORCED, AND MY FIRST GATE WAS WRONG.** Rule 3 is hardest to hold on MCP (model-driven, not UI). The architecture is the strong one: `index.ts:72` dispatches via **`env.API.fetch`**, an in-process service binding returning the api's own Response untouched, so every `/v1` gate runs by CONSTRUCTION. Measured **checked=6 tools, 6 through the seam, 0 raw fetch**. **False alarm of my own:** the first sweep flagged `approve.ts`/`dispute.ts` — both use `mutatingCallApi`, and my matcher tested `'callApi'` **case-sensitively**. Two phantom bypasses on the most security-sensitive surface, from one capital letter (4th crude-matcher miss this session). `mcp-api-seam.test.ts` closes the gap parity.test.ts does not (*REST ≡ MCP for the tools that EXIST* ≠ *no tool escapes*) — and **one of its four assertions was defective when written**: the raw-fetch detector anchored at line start, so an inline `await fetch(url)` went GREEN. Widened, re-tested RED |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -57580,3 +57581,55 @@ entire session has been about: §938's unpinned config, §940's short-circuited 
 own instruments against a rule I had just written down, before anything broke. **That is the cheapest place
 this class has ever been caught in this audit**, and it is the argument for turning every new rule on the work
 that produced it (§969's survivorship point, applied a second time).
+
+## §983 — PHASE GATE: MCP cannot reach the ledger except through the api — now enforced, and my first gate was wrong
+
+Back to product. CLAUDE.md rule 3 — *"any flow reachable by API must enforce the same gate (REQ-030)"* — is
+hardest to hold on **MCP**, because that surface is driven by a language model rather than a UI. A tool that
+talked to D1 or a queue directly would bypass every `/v1` gate while looking like a normal tool.
+
+### The architecture is the strong one
+
+`workers/mcp/src/index.ts:72` dispatches through **`env.API.fetch(request)`** — a service binding running the
+api worker's own Hono app **in-process**, returning its Response untouched. So auth, idempotency and the
+Gatekeeper run for an MCP caller by **construction**, not by re-implementation. Measured:
+
+```
+MCP tool modules (excl. registry): checked=6
+routing through the seam: 6      raw fetch( in any tool: 0
+  approve · book · dispute · quote  → mutatingCallApi
+  document · track                  → callApi
+```
+
+`mutatingCallApi` is the stronger half: a tool declaring `mutating: false` while writing has no chokepoint, so
+its context is never cleared and the call **throws** rather than silently skipping caps and confirm — the
+append-chokepoint pattern applied to MCP.
+
+### And a false alarm of my own, worth recording
+
+My first sweep flagged `approve.ts` and `dispute.ts` as bypasses. Both route through **`mutatingCallApi`** —
+my matcher tested for `'callApi'` **case-sensitively**, and `mutatingCall**A**pi` does not contain it. Two
+phantom bypasses on the most security-sensitive surface in the repo, from one capital letter. **Fourth
+crude-matcher miss this session** (§961's basenames, §968's `tac`, §968's zsh split, this) — and the only
+reason it did not reach the record is that §981's habit of reading the file before believing the grep is now
+automatic.
+
+### The gate, and the mutation that caught it being wrong
+
+Nothing enforced any of this. `workers/mcp/test/parity.test.ts` proves REST ≡ MCP **for the tools that
+exist** — a different claim from *no tool escapes the seam*. `mcp-api-seam.test.ts` closes it: 4 assertions,
+and **one of them was defective when written.**
+
+| mutation | result |
+|---|---|
+| a tool stops using the seam | RED ✓ |
+| a tool issues an inline `await fetch(…)` | **GREEN — the gate was wrong** |
+| the seam itself stops using `env.API.fetch` | RED ✓ |
+
+The raw-fetch detector anchored at line start (`/^\s*(?:await\s+)?fetch\(/m`), so a bypass written inline —
+`const r = await fetch(url)`, which is how anyone would actually write it — passed. Widened to
+`(?<![.\w])fetch\(`, which catches it anywhere while leaving `env.API.fetch(` exempt. Re-tested: **RED**.
+
+**A gate that only catches the naive form of a bypass is worse than none on a security boundary**, because it
+converts "unprotected" into "believed protected". The mutation found it in the phase that wrote it — which is
+the entire argument for predicting each RED before running it.
