@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 523 | §1075 | **§1076** | **THE Med–HIGH BOOKING ROW RE-VERIFIED — 1 OF 3, NOT 1 OF 2 — AND A STALE COUNT ITS SIBLING HAD ALREADY FIXED.** L427: `quote.accepted` commits, the fire-and-forget `AGENT_QUEUE.send` fails, the shipment stays UNBOOKED forever. Confirmed at HEAD; §131's log correction held (*"NO SWEEP RECOVERS THIS"*). The row compares only to `pod.signed`, but the sequencer has **THREE** such enqueues and this is **the ONLY one unbackstopped** — `pod.signed` names REQ-169 (`queries/unbilled.ts`, present), the concierge trigger names the SLA sweep (present). **Found while checking the argument:** its comment said *"none of the seven crons"* — there are **eight**; the identical stale figure §248 fixed in `sla-sweep.ts` and never carried to this sibling. **And fixing it broke 8 anchored citations** by shifting lines — so it was redone IN PLACE at the same line count. The `path:line@symbol` form caught the drift instantly, which is precisely what §1073 said bare citations cannot do. |
 | 522 | §1074 | **§1075** | **THE SLA CADENCE ROW RE-VERIFIED — AND ITS OWN PRECEDENT WAS UNDERSTATED.** L426 (Med, blocks R3): a 4h SLA policed by a daily sweep. Every input confirmed at HEAD — `SLA_REPLY_WINDOW_MS = 4h`, and `crons = ["0 1 * * *"]` in **all three environments**, not just the default. The row argues sub-daily is *precedented by billing's hourly cron*; measured, it is far stronger: **`agents` is the ONLY cron-bearing worker still on a daily tick** — billing hourly, and `mcp` + `translator` every FIVE MINUTES. Technical risk ≈ 0. **The real cost is the one the code names:** all **8** contained sweeps ride that single tick (count re-measured at HEAD; the comment is exact), so the question is *8 sweeps × frequency*, not *can we*. Reframed from a technical unknown to a cost decision — still the owner's. My sweep count read **2** first (a grep window too small to see the `contain(...)` list); caught before reporting because it disagreed with the code's own figure. |
 | 521 | §1073 | **§1074** | **§275's REACHABILITY CLAIM RE-VERIFIED — 0 BEHAVIOURAL MODULES UNREACHED — AND MY PROBE GAVE THREE DIFFERENT ANSWERS BEFORE IT WAS RIGHT.** L412 (*no line/branch coverage anywhere*) is correctly owner-held: **no coverage provider is installed**, so measuring it means ADDING A DEPENDENCY, which is the "new tooling scope" the row reserves. But the row cites a reachability measurement, and that is inheritable — so it was re-run at HEAD. **212 source modules, 209 reached, 3 unreached**, and all three are explained: `ledger/index.ts` (1 re-export, 0 logic) and `map/index.ts` (8 re-exports, 0 logic) are barrels that tests BYPASS via the `"./*"` exports map, and `map/demo.ts` is the deterministic fleet generator exercised by the perf harness and the 5 blessed screenshots — playwright `.spec.ts` files my seed list excluded. **Zero behavioural modules unreached.** The probe read 9, then 3, then 0-of-consequence as its resolver and seeds were corrected; each intermediate number was a plausible finding. |
 | 520 | §1072 | **§1073** | **THE LIVE-ROW CITATION SURFACE, CLOSED — AND 1 OF 3 WAS ROTTED.** §1072 re-keyed one drifted citation and measured 129 bare ones. Scoping to what still makes a CLAIM — bare citations inside **live OPEN rows** — the surface is **3, not 129**; the other 37 in-table ones sit in closed/struck rows where a line number is historical record. Checked all three by opening what they point at: **`ci.yml:49` was ROTTED** — the row says *"CI binds it at"* that line, but `IDENTITY_DENYLIST` is bound at **`:61`** and `:49` is an unrelated `if: ${{ !cancelled() }}`. Two re-keyed to snippets. The third is left line-keyed **deliberately**: it points into a MIGRATION, and §1052 proved an edit to a committed migration REDs `check:invariants` — the one file class whose line numbers are frozen by construction. |
@@ -63923,4 +63924,69 @@ not decoration — it is a second measurement, and it earned its keep here.
 **STOP.** L426 re-verified in three parts across three environments, its precedent measured across all five
 workers, and its true cost (8 sweeps on one tick) confirmed at HEAD. Decision unchanged and still the owner's,
 now with both numbers. `test:tools` 1,245 passed / 3 failed — the REQ-289 baseline · lint clean.
+
+## §1076 — PHASE GATE: one of three, a stale sibling count, and the anchor that caught me
+
+**Why this phase.** L427 is **Med–High** and blocks **R3** — the most consequential unexamined product row. A
+committed `quote.accepted` whose trigger enqueue fails transiently leaves the shipment **UNBOOKED
+indefinitely**, recoverable only by a human. §1075's rule says verify the *argument*, not just the claim.
+
+### The claim holds
+
+`sequencer.ts` still does `ctx.waitUntil(AGENT_QUEUE.send(trigger).catch(…))`, and §131's log correction
+survived — the line reads **"NO SWEEP RECOVERS THIS"**, having previously named a recovery that does not exist.
+The defect is real, current, and honestly documented where it lives.
+
+### The argument was understated — it is 1 of 3, not 1 of 2
+
+The row compares this window to `pod.signed` alone. Measured, the sequencer has **three** fire-and-forget
+enqueues:
+
+| trigger | log line claims | backstop file | exists |
+|---|---|---|---|
+| `pod.signed` → biller | *"the REQ-169 sweep recovers it"* | `packages/ledger/src/queries/unbilled.ts` | ✓ |
+| concierge (message) | *"the sweep recovers…"* | `workers/agents/src/sla-sweep.ts` | ✓ |
+| **`quote.accepted` → booking** | **"NO SWEEP RECOVERS THIS"** | — | **✗** |
+
+**Two of three are backstopped; this is the only one that is not.** That reads differently from *"the identical
+window for POD was judged serious enough to build a sweep"*: it is not one precedent, it is the **pattern**,
+and one trigger sits outside it.
+
+### A stale count, in the sibling nobody grepped
+
+While verifying the argument, the comment's own words: *"none of the **seven** crons (sla, recon, credit-recon,
+collector, mirror, watchtower, retention)."* §1075 measured **eight** contained sweeps. The eighth —
+`watchtower-snapshots` — is exactly the one §248 added when it corrected this same figure **in
+`sla-sweep.ts`**, whose comment now reads *"count re-measured 2026-08-05, audit §248; this comment read 'seven'
+and predated watchtower-snapshots."*
+
+The fix landed in one file and not its sibling. This is §797's rule (*pin the siblings in the same commit*)
+failing in the direction it always fails: the corrected copy carries a proud note about being corrected, and
+the uncorrected copy carries the original error, and nothing connects them. Corrected here, with the miss
+recorded so the next reader knows the two are a pair.
+
+### And fixing it broke eight citations
+
+My first correction expanded the comment to four lines. That shifted every line below it in a 1,248-line file
+and **rotted 8 anchored citations** — in two skill files and the audit — pointing at `sequencer.ts:650@stream_id`,
+`:683@stop.arrived`, `:832@REQ`, `:1215@deviceOwnedBy`.
+
+`check:citations` caught all eight **immediately**, because they are `path:line@symbol` and the gate re-derives
+the symbol at the line. §1073 argued that bare `path:line` citations rot silently while anchored ones fail
+loudly; this is that claim demonstrated on my own edit, in the opposite direction — **the anchor was the thing
+that stopped me shipping the drift.**
+
+Redone **in place at the same line count** (1,248 → 1,248). A comment correction has no business perturbing
+eight citations, and keeping the line count fixed is cheaper than repointing them.
+
+### What this phase says
+
+> **A prose fix in a heavily-cited file is a refactor.** Line numbers are an interface, and a file that
+> thirty-odd citations point into cannot absorb a "harmless" comment expansion. The right move is not to avoid
+> the fix but to make it line-neutral — the same instinct as an append-only migration, applied to a comment.
+
+**STOP.** L427 re-verified at HEAD with its argument strengthened from 1-of-2 to **1-of-3 unbackstopped**; a
+stale sweep count corrected in the sibling that §248 missed; the resulting citation drift caught by the anchored
+form and resolved by making the edit line-neutral. Still owner-held — building the sweep needs a REQ row.
+`test:tools` 1,245 passed / 3 failed — the REQ-289 baseline · lint clean · citations 0.
 

@@ -582,7 +582,7 @@ export class ShipmentSequencer extends DurableObject<Env> {
           // tenants only", which named a recovery that DOES NOT EXIST. The pod.signed -> invoice window has
           // one (REQ-169: `queries/unbilled.ts` anti-joins committed PODs against invoices and `recon-sweep.ts`
           // re-drives them). There is NO equivalent for quote.accepted -> booking.created: no unbooked query,
-          // and none of the seven crons (sla, recon, credit-recon, collector, mirror, watchtower, retention)
+          // and none of the EIGHT sweeps (sla, recon, credit-recon, collector, mirror, watchtower, retention, watchtower-snapshots — §1076)
           // reconciles bookings. A lost trigger here leaves the accept committed and the shipment UNBOOKED
           // indefinitely, recoverable only by a human re-driving it. Proposed as a register row in audit §131;
           // building the sweep needs that row first (CLAUDE.md: no build without a REQ).
