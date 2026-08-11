@@ -368,4 +368,55 @@ describe("REQ-200/204 — outbound 214 sweep with allocated control numbers", ()
       logSpy.mockRestore();
     }
   });
+  // ── §1065 — CHARACTERIZATION of the L409 race. THIS TEST ASSERTS A DEFECT. ──────────────────────────────
+  //
+  // Checklist L409 (**High, latent**) records that the sent-marker is a presence CHECK, not a CLAIM, and that
+  // Cloudflare gives `scheduled()` no mutual exclusion — so a `*/5` tick outrunning five minutes overlaps the
+  // next one, both `head` the marker while it is absent, and both transmit. That was MEASURED ONCE by hand at
+  // audit §236 and pinned by NOTHING: this suite covers byte-stability, control numbers, certification,
+  // tenant isolation, failed sends and malformed markers, and never drives two sweeps at once.
+  //
+  // An unpinned defect is as fragile as an unpinned fix. It can silently change shape, silently worsen, or
+  // silently disappear — and when the eventual fix lands there is nothing to prove it changed anything.
+  //
+  // SO THIS TEST EXPECTS **2** TRANSMITS. It is deliberately the wrong number for production and the right
+  // number for today, which is what a characterization test is. It does NOT choose between the two candidate
+  // fixes — claim-before-send (closes the race, but strands a 214 permanently if the process dies between
+  // claim and send) and a lease with expiry — because that trade-off is L410's open owner decision, and a
+  // silent omission is worse than a duplicate for freight status.
+  //
+  // WHEN THE FIX LANDS: flip this expectation to 1, keep the concurrency, and move this comment to the fix.
+  // A green `toHaveLength(1)` here is then the only evidence in the repo that the race is actually closed.
+  it("CHARACTERIZATION (L409, unfixed): two overlapping sweeps BOTH transmit the same 214", async () => {
+    await seedDeliveredShipment();
+    await seedEdiPartner(env.TENANT_A_DB, PARTNER_ID, "certified", COUNTER_CONFIG);
+    await seedTenderMarker();
+
+    // COUNT CALLS INTO THE TRANSPORT, NOT `transport.sent` — and this is the whole reason the race went
+    // unpinned for 800 sections. `RecordingTransport.send214` keeps its own `byKey` map and returns early on
+    // a repeat key with identical bytes ("no second record"), so **`transport.sent` can never exceed 1 for one
+    // idempotency key, by construction of the double**. The natural assertion is structurally incapable of
+    // seeing the defect: measured here, the naive version reports 1 and reads as "the race is closed".
+    //
+    // The 60ms hold keeps BOTH sweeps inside `send214` before either writes its marker (the sweep is
+    // send-THEN-mark), which is exactly the overlap a `*/5` tick outrunning five minutes produces.
+    const transport = new RecordingTransport();
+    let calls = 0;
+    const inner = transport.send214.bind(transport);
+    (transport as unknown as { send214: typeof inner }).send214 = async (partner, bytes, key) => {
+      calls += 1;
+      await new Promise((r) => setTimeout(r, 60));
+      return inner(partner, bytes, key);
+    };
+    await Promise.all([run214Sweep(env, transport, clock), run214Sweep(env, transport, clock)]);
+
+    expect(
+      calls,
+      "the L409 race no longer reproduces — TWO transmits of one 214 no longer occur. If a claim or lease " +
+        "landed, this is the GOOD failure: change the expectation to 1, keep the concurrency and the " +
+        "call-counting, and close checklist L409/L410. Do NOT switch back to asserting `transport.sent`: the " +
+        "double dedupes, so it would report success whether or not the race is fixed.",
+    ).toBe(2);
+    expect(transport.sent, "the double collapses the duplicate — this is the masking, pinned").toHaveLength(1);
+  });
 });

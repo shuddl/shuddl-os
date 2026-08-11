@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 512 | §1064 | **§1065** | **THE HIGHEST-SEVERITY REPO ROW, RE-VERIFIED AND PINNED — AND THE TEST DOUBLE WAS MASKING IT.** L409 (**High, latent**): overlapping `*/5` ticks both transmit one 214, measured ONCE by hand at §236 and pinned by NOTHING across ten test cases. Re-measured at HEAD: **the race reproduces — 2 calls into the transport for one idempotency key.** The reason it stayed unpinned is the finding: `RecordingTransport.send214` keeps its own `byKey` map and returns early on a repeat key, so **`transport.sent` is capped at 1 BY CONSTRUCTION** — my first naive test asserted exactly that, got 1, and would have reported the race CLOSED. Counting CALLS exposes it. Now pinned as a characterization test asserting the DEFECT (2), which flips to 1 when the owner picks claim-vs-lease (L410). No design decision taken. |
 | 511 | §1063 | **§1064** | **THE BOARD RE-EARNED AT HEAD — 26 GATES: 19 PASS · 2 FAIL · 5 BLOCKED.** Thirty-seven phases since the last full run (§1036 at `40f69a8`), with ~10 new gates landed in between. Ran `verify:merge` complete at `c59a599`: **identical shape to §1036**, and every verdict attributable. Both FAILs are the ONE uncommitted REQ-289 register row (`1 unaccounted register row(s)` → `unit-tests` + `coverage`); all 5 BLOCKED are absent private fixtures (`identity-leak` needs `IDENTITY_DENYLIST`; the four parity/fixture gates need the engagement vendoring). **Every browser gate is GREEN** — `perf`, `visual` 5, `a11y` 4, `e2e` 6 — alongside `design-audit`, `acceptance`, `invariants`, `append-chokepoint`, `rater-purity`. Zero repo-owned reds. And a fourth probe-shape error: my tally regex `[a-z-]+` silently dropped `a11y` and `e2e` because they contain DIGITS. |
 | 510 | §1062 | **§1063** | **WHAT THE RECORD MAY NOT SAY — MEASURED, AND IT IS EXACTLY TWO THINGS.** §1062 tripped a gate by QUOTING what it forbids, which will recur every time a phase documents a violation. Planted 7 forbidden patterns in a tracked doc: SQL `INSERT OR REPLACE INTO events`, a lumina import, `box-shadow`, a raw hex, an over-budget radius, `it.only`, and a non-existent pnpm script. **First probe fired NOTHING — because I wrote them as plain prose while the scanners read backticks and fenced blocks**, the same covers-the-shape-that-prompted-it error inside my own instrument. Re-run in the real forms: **5 of 7 are safe to quote** (those gates scan source only) and **2 are not** — an absolute home path and a non-existent `pnpm` script. Both already have escapes, and both are now mutation-proved: removing §996's marker REDs. |
 | 509 | §1061 | **§1062** | **I SHIPPED A CONSTITUTIONAL VIOLATION AND CALLED IT A FLAKE — IN THE SAME BREATH AS §1061's OWN LESSON.** §1061's post-add run read **4 failed** against a 3-failure baseline. I reported it as *"a known non-reproducing flake instance"* and committed. Measured after: it reproduces **3/3** and is not a flake — it is `absolute-paths.test.ts` refusing a `/Users/<name>` path, **REQ-167**, introduced by my own fixture (`const ROOT = "/Users/<name>/repo"`). The gate bans the SHAPE regardless of whether the name is real, which is right. So `1bce59f` shipped with a live identity-leak violation, and the sentence that let it through was the exact error §1061 had just named: **an explanation that fits the evidence is not a measurement of the cause.** Fixed (`/srv/checkout`), and the delta-explaining habit is now the finding. |
@@ -63180,4 +63181,75 @@ reason a silent exclusion ever surfaced.
 **STOP.** The board is re-earned at HEAD rather than remembered: **26 gates — 19 PASS · 2 FAIL · 5 BLOCKED**,
 both FAILs traced to one owner-held register line, all five BLOCKED to absent private inputs, and zero
 repo-owned failures. `test:tools` 1,239 passed / 3 failed across three runs · lint clean · typecheck clean.
+
+## §1065 — PHASE GATE: the High row re-verified, and a test double that hid it
+
+**Why this phase.** §1064 established the board has **zero repo-owned reds**, so the remaining work is the open
+ledger. Sorting it by severity: L427 is Med, twelve rows are Low, and **L409 is the only High** — *"cron sweeps
+double-fire under overlapping ticks"*, measured by hand at audit **§236** and never re-checked. An inherited
+High-severity claim is exactly what §1044 says not to carry.
+
+### The claim is true at HEAD
+
+`workers/translator/src/sweep-214.ts` still documents it at the site: *"the sent-marker below is a presence
+CHECK, not a CLAIM, and Cloudflare gives `scheduled()` [no] mutual exclusion … both `head` the marker while it
+is absent, and both transmit."* And the sweep suite has **ten** cases — byte-stability, control numbers,
+certification, tenant isolation, failed sends, malformed markers, empty status — and **not one drives two
+sweeps at once.**
+
+Re-measured by driving them concurrently:
+
+```
+CALLS_INTO_TRANSPORT=2   RECORDED=1
+```
+
+**The race reproduces.** Two overlapping sweeps both call `send214` with the same idempotency key — two real
+transmits of one 214 to a partner.
+
+### Why it stayed unpinned for 800 sections
+
+This is the part worth keeping. My first characterization test did the obvious thing: assert
+`transport.sent`. It returned **1**, and had I stopped there I would have filed *"the L409 race no longer
+reproduces"* — closing a High row on a false negative.
+
+`RecordingTransport.send214` keeps a private `byKey` map:
+
+> `return; // same key + same bytes → the original transmission; no second record`
+
+So **`transport.sent` cannot exceed 1 for one idempotency key, by construction of the double.** The natural
+assertion — the one any author reaches for, the one used by the nine sibling cases — is *structurally incapable*
+of observing this defect. That is not a flaw in the double: its idempotency is deliberate and pins byte-stability
+(a repeat key with different bytes throws loudly). It just happens to absorb exactly the symptom L409 is about.
+
+The distinguishing probe was to block **inside** `send214`: because the sweep is send-then-mark, a held send
+means the marker cannot yet exist, so a second arrival proves both sweeps passed the presence check. Counting
+**calls** rather than **records** is what makes the race visible.
+
+### Pinned as a characterization test, with no design decision taken
+
+The test now asserts **2** — deliberately the wrong number for production and the right number for today. It
+does not choose between the two candidate fixes, because that trade-off is L410's open owner decision and the
+stakes are asymmetric: claim-before-send closes the race but **strands a 214 permanently** if the process dies
+between claim and send, and a silent omission is worse than a duplicate for freight status. A lease with expiry
+is the third option. None of that is mine to pick.
+
+It also pins the masking itself (`transport.sent` is asserted to be 1), so the next author cannot quietly
+revert to the assertion that cannot fail, and the failure message says so explicitly.
+
+### What this phase says
+
+> **A test double's correctness can be a defect's camouflage.** `RecordingTransport` is idempotent *because
+> that is what a good EDI transport double should be* — and that virtue makes it blind to duplicate
+> transmission, the one thing this row is about. When a defect is "we send twice", any double that dedupes will
+> report success.
+
+The operational form: **when pinning a race, count what crossed the boundary, not what landed on the far side.**
+Records are deduplicated, retried, coalesced and reordered by the very machinery under test; call counts are
+not. Had §236's hand-measurement been written down as an assertion in 2026-08, this would have been caught the
+first time someone touched the sweep — instead it survived ten sibling cases that all looked at the wrong side
+of the boundary.
+
+**STOP.** The only High repo-owned row is re-verified at HEAD rather than inherited, pinned by a test that
+cannot silently pass, and left to the owner for the decision it genuinely needs. `test:tools` at the REQ-289
+baseline · translator suite 10/10 · lint clean.
 
