@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 532 | §1084 | **§1085** | **STOPPING POINT VII — ALL 17 REPO-OWNED OPEN ROWS VERIFIED AT HEAD, AND FOUR CARRIED STALE FIGURES.** The last four unexamined rows closed: **L425** — its binding trigger has NOT fired (`ANTHROPIC_API_KEY`/`ANTHROPIC_MODEL` in NO wrangler config), so `LATENT` is correct there and was wrong at L424, verified separately rather than re-graded together. **L432** claimed *10 files / 54 tests*; HEAD is **15 / 101**. **L420** claimed *8 status-drift rows*; HEAD is **10** — REQ-045 CLEARED, three are NEW. **L423** claimed *945 citations / 24 anchored*; HEAD is **1,613 / 280** — anchoring grew **11.7×** against a 1.7× corpus, so protection went 2.5% → 17%. Every figure struck, not overwritten. Board unchanged: 19 PASS · 2 FAIL · 5 BLOCKED, both FAILs the owner's one register row. |
 | 531 | §1083 | **§1084** | **THE CROSS-FIELD SWEEP — 55 ROWS, 0 REAL CONTRADICTIONS, AND A GATE DELIBERATELY NOT BUILT.** §1083 found a row whose severity said *LATENT* while its status said the trigger FIRED, and observed that **no gate reads two fields against each other**. Swept all 55 eight-field rows for two shapes (latent-vs-fired, terminal-status-vs-blocks-a-grade). Raw: **2 hits, both FALSE** — L418's `blocks` reads `~~**R0**~~ none`, with R0 STRUCK. Stripping strikethrough: **1 hit, also FALSE** — §1083's own severity cell explaining the fix by QUOTING the word it removed. **Zero real contradictions.** A gate here has a two-layer irreducible FP floor (preserved history + explanatory quoting), which is §1077's finding reproduced exactly; not built, per §1053. |
 | 530 | §1082 | **§1083** | **A ROW THAT CONTRADICTED ITSELF — SEVERITY SAID *LATENT*, STATUS SAID THE TRIGGER FIRED.** L424 (the Biller's permanently-failed EVIDENCE EMAIL): re-verified at HEAD and the row's own argument is exact. **Concierge (REQ-176)** appends a durable note EVENT through the DO append surface; **Biller** does `console.error(…)` and returns `issued_send_pending`, its comment stating it raises **NO anomaly and writes nothing** — one queryable record, one log line. And it IS reachable: `EVIDENCE_FROM` is set under `[env.staging.vars]` (*"staging evidence sending is ON … evidenceSender() returns ResendSender"*), while prod keeps it **DELIBERATELY ABSENT**. So the `— LATENT` qualifier was falsified by the row's own Status, which records the trigger as FIRED. Struck. Blocks R2, and the surfacing still needs a REQ row. |
 | 529 | §1081 | **§1082** | **THE TOOL CAUGHT ME TWICE IN ONE PHASE, AND I COMMITTED OVER THE SECOND.** §1081 built `pnpm delta`; §1082 is what it found. **(1) Before the commit:** my index row quoted bare-count output with an UNESCAPED PIPE — 5 cells against a 4-cell header. Fixed. **(2) After `git add`:** delta reported a new failure and **I committed anyway — the third time.** `tools/testing/delta.ts` contained a literal **NUL byte**: my key function used `` `${file}\0${title}` `` as a separator, which is collision-free and makes the file **BINARY to git** (`section-refs` refused it: *"every diff renders as Bin X -> Y"*). Replaced with `JSON.stringify([file, title])`. The failure was invisible pre-add because the gate walks TRACKED files — §1049's mechanism, now hit for the second time. |
@@ -64507,4 +64508,65 @@ prose before believing it.
 **STOP.** The cross-field class is swept across all 55 rows in two shapes with strikethrough handled: **zero
 real contradictions**, both raw hits and the residual explained. No gate built, with the two-layer FP floor
 measured rather than asserted. `pnpm delta` clean · `check:tables` OK.
+
+## §1085 — PHASE GATE: STOPPING POINT VII — every repo-owned open row verified at HEAD
+
+**Why this is a stopping point.** *(VII — §999 was V and §1035 VI; the numeral was checked against the record rather than guessed, after the first draft collided with §999.)* §1047–§1084 worked outward from the record into the product and back. This
+phase closes the last four unexamined repo-owned rows, which makes a complete statement possible for the first
+time since §994: **every one of the 17 repo-owned OPEN rows has been read against HEAD in this session.**
+
+### The four closed here
+
+**L425 — the Concierge's missing cost/latency metering.** Same shape as L424: `Med — LATENT`, with a
+binding-dependent trigger. §1083 found L424's trigger had *fired*. This one has **not** — neither
+`ANTHROPIC_API_KEY` nor `ANTHROPIC_MODEL` appears in **any** `workers/*/wrangler.toml`, in any environment, so
+the parser stays `NotConfiguredParser` and no LLM cost is incurred. `LATENT` is correct here and was wrong
+there. **Two sibling rows, opposite verdicts, verified separately** — which is the point: §1083 was a
+measurement, not a re-grading pass.
+
+**L432 — a pickup custody handoff cannot record real parties.** Verdict unchanged (fail-closed, still
+`CAPTURE_INPUT_MISSING`, fabrication-refusal pins intact) but its evidence had rotted: it claimed
+*"10 files / 54 tests PASS"*; HEAD gives **15 files / 101 tests**. The suite nearly doubled while the row's
+proof stayed still.
+
+**L420 — the register's status-drift rows.** Claimed **8**; HEAD reports **10**. And the *population* moved,
+not just the count: **REQ-045 has cleared**, while **REQ-254, REQ-257 and REQ-278 are new**. A stale list is
+worse than a stale number — it names rows that no longer qualify and omits ones that do.
+
+**L423 — the citation gate's path-only blindness.** Claimed *945 citations, 24 content-anchored*; HEAD is
+**1,613 and 280**. The interesting figure is the ratio: **anchoring grew 11.7× against a 1.7× corpus**, so the
+share of citations that fail loudly on rot went from **2.5% → 17%**. The row's verdict (not worth building
+without an opt-in marker) is unaffected; its supporting evidence was seven-fold stale.
+
+### The pattern across all four
+
+Three of four carried figures that had drifted, and **none of the verdicts changed**. That is the useful shape:
+a row's *conclusion* is durable and its *evidence* decays, because the conclusion was reasoned once and the
+evidence is a measurement of a moving tree. Every figure here is **struck, not overwritten** — the drift is
+itself the finding, and deleting the old number would erase the only evidence that re-measurement was needed.
+
+### Where the build stands
+
+| | |
+|---|---|
+| merge board (§1064, re-earned at HEAD) | **19 PASS · 2 FAIL · 5 BLOCKED** |
+| both FAILs | the owner's single uncommitted `REQ-289` register row |
+| all 5 BLOCKED | absent private inputs (denylist secret, unvendored fixtures) |
+| repo-owned OPEN rows | **17 — all verified this session** |
+| of those, needing a REQ row or owner decision | **11** |
+| `pnpm delta` | no new failures; 3 failing, all explained |
+
+**Zero repo-owned reds.** What remains is owner-held: a register commit, a signed `wp` amendment, six REQ rows
+for proposed scope, two CLAUDE.md scope decisions, and the private fixtures.
+
+### What this stopping point says
+
+> **A verdict and its evidence age at different rates, and the record stores them in the same cell.** Four rows
+> were still *right* and three were quoting numbers from a tree that no longer exists. Nothing in the ledger
+> distinguishes "this conclusion was reasoned" from "this figure was measured", so a reader inherits both with
+> equal confidence — and the figure is the half that rots.
+
+**STOP.** All 17 repo-owned open rows verified against HEAD; four closed in this phase, three of them carrying
+stale evidence now struck and re-measured. Board unchanged at 19/2/5 with zero repo-owned failures.
+`pnpm delta` clean · `check:tables` OK · `check:citations` 0.
 
