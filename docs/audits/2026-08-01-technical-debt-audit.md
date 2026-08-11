@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 510 | §1062 | **§1063** | **WHAT THE RECORD MAY NOT SAY — MEASURED, AND IT IS EXACTLY TWO THINGS.** §1062 tripped a gate by QUOTING what it forbids, which will recur every time a phase documents a violation. Planted 7 forbidden patterns in a tracked doc: SQL `INSERT OR REPLACE INTO events`, a lumina import, `box-shadow`, a raw hex, an over-budget radius, `it.only`, and a non-existent pnpm script. **First probe fired NOTHING — because I wrote them as plain prose while the scanners read backticks and fenced blocks**, the same covers-the-shape-that-prompted-it error inside my own instrument. Re-run in the real forms: **5 of 7 are safe to quote** (those gates scan source only) and **2 are not** — an absolute home path and a non-existent `pnpm` script. Both already have escapes, and both are now mutation-proved: removing §996's marker REDs. |
 | 509 | §1061 | **§1062** | **I SHIPPED A CONSTITUTIONAL VIOLATION AND CALLED IT A FLAKE — IN THE SAME BREATH AS §1061's OWN LESSON.** §1061's post-add run read **4 failed** against a 3-failure baseline. I reported it as *"a known non-reproducing flake instance"* and committed. Measured after: it reproduces **3/3** and is not a flake — it is `absolute-paths.test.ts` refusing a `/Users/<name>` path, **REQ-167**, introduced by my own fixture (`const ROOT = "/Users/<name>/repo"`). The gate bans the SHAPE regardless of whether the name is real, which is right. So `1bce59f` shipped with a live identity-leak violation, and the sentence that let it through was the exact error §1061 had just named: **an explanation that fits the evidence is not a measurement of the cause.** Fixed (`/srv/checkout`), and the delta-explaining habit is now the finding. |
 | 508 | §1060 | **§1061** | **THE ORPHAN LEAK, MEASURED BOTH WAYS — AND §1054's CAUSE CORRECTED.** §1054 cleared 37 workerd orphans (19h, 159 MB, PPID 1) and implied sandboxes accumulate from normal operation. Measured both conditions: a suite that RUNS TO COMPLETION leaks **0**; the runner killed mid-flight leaks **1+**. So the leak is a property of ABNORMAL termination only. The chain is `pnpm` → `node (vitest)` → `workerd`: killing the wrapper leaves the node alive HOLDING workerd, and when that node dies workerd reparents to launchd — which is exactly the PPID-1 population found. Mitigated with `pnpm reap`, scoped by two refusals that matter more than the reap: **PPID 1 only** (a live run's workerd has a live parent, so it cannot kill a running suite or its own caller) and **this checkout's absolute path only**. 5 unit cases pin both refusals; proved end-to-end on a manufactured orphan. Filed OPEN, not FIXED — a remedy is not a prevention. |
 | 507 | §1059 | **§1060** | **THE LOOSENING SWEEP — 20/20 CLEAN, AND MY OWN PROBE ALMOST HID THE 20th.** §1059's rule (*a loosening must justify itself with a number*) applied to the 19 configs extending the base: **0 weaken any of its five decisions.** But the first run parsed only 19 of 20 — `packages/map/tsconfig.json` came back *"Invalid control character"*, and I nearly reported a clean sweep with the 20th silently excluded. The file is fine: **my own comment-stripper matched the `//` INSIDE a quoted `"//"` key** and truncated the line. That falsifies a premise I wrote at §1058 — *"JSON cannot carry a comment"* — and **this repo disproves it in five tracked files**. The gate is still the right home (a `"//"` note is documentation CI cannot check), but the stated MECHANISM was wrong; corrected in place, and the root `package.json` now carries a JSON-legal pointer. |
@@ -63038,4 +63039,79 @@ already agreed. Three literals rewritten; baseline restored and confirmed over t
 **STOP.** The REQ-167 violation is fixed at its source and the false report is corrected in the record rather
 than quietly overwritten. `test:tools` 1,239 passed / 3 failed — the REQ-289 baseline, verified over three runs
 · lint clean · citations 0 · tables OK.
+
+## §1063 — PHASE GATE: what the record may not say
+
+**Why this phase.** §1062 ended with a coda: writing about a banned pattern **reproduced** it, because the
+audit is a tracked artifact and the gates scan tracked artifacts. That is not a one-off — every future phase
+that documents a violation faces it. So the useful question is bounded and answerable: **which forbidden
+patterns can this record not quote, and what is the agreed notation for each?**
+
+### The first probe measured the wrong thing
+
+I planted seven patterns in a tracked doc under `docs/` and **nothing fired**. Reported as-is, that would have
+been a clean bill of health and wrong. The patterns were written as **plain prose** — but an audit section
+quotes things in **backticks and fenced blocks**, and that is precisely what the scanners read (§998 widened
+`cited-scripts-exist` to fenced blocks for exactly this reason).
+
+My own instrument covered the shape I happened to type rather than the shape the subject takes. That is
+[[a-gate-covers-the-shape-that-prompted-it]] turned on a probe instead of a gate, and the tell was the same one
+as always: a **zero** that arrived too easily.
+
+### Re-measured in the forms the record actually uses
+
+| pattern | quoted inline + fenced | verdict |
+|---|---|---|
+| `INSERT OR REPLACE INTO events` | ✓ | **safe** — the append-chokepoint scans source, not markdown |
+| a `lumina-core` import | ✓ | **safe** — REQ-163 is an ESLint rule over source |
+| `box-shadow`, a raw hex, an over-budget radius | ✓ | **safe** — `audit:design` reads the design corpus |
+| `it.only(…)` | ✓ | **safe** — `no-focused-tests` scans test files |
+| a **non-existent `pnpm` script** | ✓ | **FIRES** — `cited-scripts-exist` |
+| an **absolute home path** | (§1062) | **FIRES** — `absolute-paths` |
+
+**Five of seven are safe to quote; two are not.** That asymmetry is not arbitrary: the two that fire are the
+two whose gates deliberately scan *documents*, because their whole subject is what documents claim — a cited
+command that cannot run, and an operator's account name embedded anywhere.
+
+### Both escapes exist, and both are now proved
+
+| pattern | notation | proof |
+|---|---|---|
+| absolute home path | `/Users/<name>/…` — the placeholder the matcher cannot read as a real name, taken from the gate's own test title | passes `absolute-paths` |
+| non-existent script | `` `pnpm …` `` + `<!-- script-check: ignore -->` (§996) | passes with the marker; **REDs when the marker is removed** |
+
+The second is the one that mattered to verify. A green with the marker present proves nothing on its own — the
+citation might have been skipped for an unrelated reason. Removing it and watching the gate fire is what shows
+the marker is load-bearing, which is the §"a silent mutation has two explanations" discipline applied to an
+escape hatch rather than a guard.
+
+### What this phase says
+
+> **A record that enforces rules on itself needs a notation for quoting them.** Without one the honest options
+> are both bad: describe a violation vaguely enough to be useless, or exhibit it and break the build. The
+> notation is not a loophole — it is what makes the record able to explain the law it lives under.
+
+And the narrower one, which is now the second instance in two phases: **when a probe returns zero, suspect the
+probe's shape before believing the result.** §1062's error was narrating a non-zero delta; this phase's
+near-error was accepting a zero. Both are the same failure to ask *what would this instrument have to see to
+report otherwise* — and a zero is the more dangerous of the two, because nothing about it looks like a
+question.
+
+### A hygiene failure worth its own line
+
+Verifying this section reported **7 failures**, and the cause was not the section: a probe file was left
+**staged in the git index while deleted from disk** (`AD`), so four gates that walk tracked files hit ENOENT.
+The trap that was supposed to clean up ran `git rm --cached`, which FAILS on a path already gone from disk —
+the correct undo for a staged-then-deleted file is `git reset HEAD`. Two cleanup attempts reported success and
+left the index dirty both times.
+
+That is the third probe-hygiene failure this session (a no-op mutation at §1002, an unverified removal at
+§1051, this). The pattern is consistent and worth stating: **a probe that leaves state behind does not fail
+loudly — it contaminates the NEXT measurement**, which is read as a finding about whatever was measured next.
+A trap is only as good as the command inside it, and `git rm --cached` is the wrong one for a file the trap
+has already deleted. Order matters: unstage first, then remove.
+
+**STOP.** The set of patterns this record cannot quote is measured rather than guessed — exactly two, both with
+a documented notation, one mutation-proved. `test:tools` 1,239 passed / 3 failed, the REQ-289 baseline · lint
+clean · citations 0 · tables OK.
 
