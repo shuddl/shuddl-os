@@ -631,6 +631,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 475 | §1027 | **§1028** | **THE GOVERNING FILE'S STACK LINE — 12/12 PRESENT, AND TWO FALSE FINDINGS I NEARLY FILED.** §1001 proved CLAUDE.md's BUDGETS by violation; its **Stack** line is the other half of the constitution's factual surface and had never been checked. All twelve named technologies are present (Hono 65 · D1 109 · Queues 124 · Zod 145 · Stripe 27 …). **Two numbers look wrong and both are ME misreading:** *TypeScript strict — 1 of 20 tsconfigs* reads as 19 unstrict packages, but **19 of 20 `extends` a base** and that base is the single `"strict": true` declaration — **the count of 1 is the evidence FOR the structure, not against it**. And *self-hosted Protomaps* vs `DEMO_TILE_URL = tiles.openfreemap.org` shipping in BOTH surfaces looks like §1016's shape (a claim describing something unbuilt) — **except the heading already scoped it: `## Stack (decided — do not relitigate)`** is a list of DECISIONS, not an inventory of current state, and the interim third-party basemap is recorded in `threat-model.md:44`, `pen-test-basics.md:131` and `:160` with REQ-075 and a severity. **Read the heading before judging the line** — a statement's tense is set by the block it lives in, and half this record's drift findings turned on tense (§1013, §1019, §1022); this one turns on tense too and comes out the other way |
 | 474 | §1026 | **§1027** | **THE REVERSE-DIRECTION CHECK AT THE DOCUMENT LEVEL — EVERY AUTHORITATIVE DOC IS REACHABLE.** §1026's principle (*every check validates what a claim points AT; none asks what points at NOTHING*) is already CLAUDE.md rule 1's for scope — *traceability blocks orphans BOTH directions* — so where else does a one-way check hide? The doc tree had never been asked. Checked all 63 tracked `docs/**.md` for an inbound reference: **audits 3/0 orphaned · ops 9/0 · security 2/0 · wp 17/0 · plans 32/13.** **Every authoritative document is reachable** — the ledger, release evidence, threat model, pen-test artifact, all sixteen WP close-outs. The 13 orphans are all in `docs/plans/`, the one class §240 already excluded from citation checking (*a plan proposes a path that later lands elsewhere, which is not rot*), and plans are **19 of 32 referenced**, so not uniformly unlinked — the unreferenced cohort is early (07-10 → 07-31), the WP-era plans whose work landed. **A plan becomes unreferenced exactly when its outcome documentation supersedes it**: the inbound link migrating away is EVIDENCE the work completed. §1026's orphans were content that FAILED to function; these are content that has FINISHED functioning |
 | 473 | §1025 | **§1026** | **THE INVERSE OF §1025 — SHIPPED REFERENCE FILES NOTHING POINTS AT.** §1025 found a pointer to something ABSENT; this sweeps for something PRESENT that nothing points at. Ten reference files ship inside `.claude/skills/`: **8 named paths, 0 unresolvable — but 2 of 10 shipped files were never mentioned.** **Method, third instance this session:** my first check used `grep --include=*.md` UNQUOTED, which zsh expands before grep sees it — **a shell error printed as a result** (after §968's `tac` and §959's pathspec). Re-run quoted, both were genuinely unmentioned. **Both substantive, one constitutional:** the 61-line SQL reference explains why `PRAGMA recursive_triggers = 0` makes a **BEFORE-INSERT** guard mandatory — the mechanism behind I3/I7 on D1, and exactly what a reader adding an append-only table needs; the 85-line port skeleton carries *going live is a CONFIRM-gated config flip, not a code change.* **The pair is one defect with two signs:** pointer-without-content is **loud on arrival** (the reader opens it and finds nothing); content-without-pointer is **silent forever** (the reader never opens it). The second survived a grounding note, ratchet enrolment and two prior fixes because **every one of those checks what a claim points AT; none asks what points at NOTHING** |
 | 472 | §1024 | **§1025** | **A SKILL'S PROSE vs ITS OWN SHIPPED REFERENCE — 293 SYMBOLS, 1 THAT NEVER EXISTED.** §1024 found a claim outside the grounding note's scope (a COUNT is neither an example nor a `path:line` citation); the same gap admits **bare identifiers** — the ratchet checks `path:line`, so a named symbol rots silently. **The probe broke first: 0 of 295 missing, worthless**, because my corpus was ALL tracked content **including the skills**, so a symbol named only in a skill matched itself — §1021's rule inverted (there too narrow, here too wide; both give a confident zero). Corrected to 821 code files: **293 checked, 6 absent** — 4 external APIs (MapLibre `minzoom`/`maxzoom`/`Marker`), 2 repo-shaped. **One is a real defect, between a skill and its OWN reference file:** *Factor `consentFor`, `assignmentOf`, `deviceOwnedBy` into one module (see `reference-predicates.ts`)* — but that file, shipped inside the skill, exports `assignmentOf`, `deviceOwnedBy` and **`streamPrior`**, with **no `consentFor` and no consent predicate anywhere in the codebase**; meanwhile the recommendation was already followed (`gate-context.ts`). **The skill was right about the pattern and wrong only about a name** — the error a reader cannot detect without opening the file. Nothing already in place reaches it: the ratchet validates `path:line`, the grounding note scopes to examples and citations, and an identifier is a third thing |
@@ -60576,3 +60577,70 @@ an index to a directory the repo deliberately treats as archival is a decision, 
 every authoritative doc has one today · a plan is written for work that does **not** land, since the orphan
 signal then means *dropped* and nothing distinguishes it · `docs/plans/` gains an index, which would make the
 distinction readable and turn this measurement into a gate.
+
+---
+
+## §1028 — PHASE GATE: the governing file's STACK line — 12/12 present, and two false findings I nearly filed
+
+§1001 proved CLAUDE.md's *budgets* by violating each. Its **Stack** line has never been checked, and it is the
+other half of the constitution's factual surface: twelve technologies named as decided.
+
+Every one is present in tracked code or config:
+
+```
+Hono 65 · D1 109 · R2 21 · Durable Objects 41 · Queues 124 · MapLibre 22
+Protomaps 5 · React 19: 6 · Vite 38 · TS strict 1 · Zod 145 · Stripe 27
+```
+
+Two of those numbers look wrong, and **both are me misreading rather than the repo drifting.** Recording them
+because the corrections are the useful part.
+
+### False finding #1 — "TypeScript strict: 1 file of 20 tsconfigs"
+
+Reads as 19 unstrict packages. Measured: **19 of 20 carry `"extends": "…/tsconfig.base.json"`**, and the base
+is the one file declaring `"strict": true`. That is the correct structure — a single declaration inherited
+everywhere — and the count of **1** is the evidence *for* it, not against.
+
+`no-explicit-any` is a separate `"error"` rule in `eslint.config.mjs`, so the line's second clause (*no
+`any`*) has its own enforcement.
+
+### False finding #2 — "self-hosted Protomaps" vs an external tile host
+
+The apps ship `tileUrl={DEMO_TILE_URL}`, and `DEMO_TILE_URL` is
+`https://tiles.openfreemap.org/planet` — a **third-party** host, in both Command and Portal. Against a stack
+line reading *"MapLibre GL + **self-hosted** Protomaps vectors"*, that is the §1016 shape: a claim describing
+something not built.
+
+Except the heading already does the scoping: **`## Stack (decided — do not relitigate)`.** It is a list of
+*decisions*, not an inventory of *current state*. Self-hosted Protomaps is the decision; openfreemap is the
+interim.
+
+And the interim is recorded — in three places, with a REQ and a severity:
+
+- `docs/security/threat-model.md:44` — *"A third party can fail (or move) a CI gate"*
+- `docs/security/pen-test-basics.md:131` — *"NEW SURFACE — a third party owns an input to a CI gate"*
+- `docs/security/pen-test-basics.md:160` — *"Production basemap is still a third-party host"* (REQ-075, Low)
+
+**Nothing is undocumented.** The gap between a decided stack and a shipped implementation is exactly what a
+hold row is for, and it exists.
+
+### The transferable half
+
+§1016 found a comment citing a `vNEXT` row as though it were built, and that WAS a defect. This looked
+identical and is not — **because the heading above the line already scoped it.** The difference is one word in
+a section title.
+
+> **Read the heading before judging the line.** A statement's tense is set by the block it lives in, and a
+> constitution's *decisions* section is not making claims about the present. Half the drift findings in this
+> record turned on tense (§1013, §1019, §1022); this one turns on tense too, and comes out the other way.
+
+### Phase gating
+
+**STOP.** The constitution's factual surface is now checked in both halves — budgets by violation (§1001),
+stack by presence (here). 12/12 named technologies exist; the one genuine decision-vs-implementation gap is
+recorded in the threat model with a REQ.
+
+**Re-open when:** a technology is added to or removed from the Stack line — presence is cheap to re-check and
+nothing does it automatically · the basemap is self-hosted, which closes REQ-075 and makes the stack line
+descriptive as well as decided · `tsconfig.base.json` stops declaring `strict`, which 19 packages inherit
+silently.
