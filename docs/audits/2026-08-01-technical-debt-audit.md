@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 518 | §1070 | **§1071** | **§1070's PROPERTY IS ENFORCED BY CONSTRUCTION, NOT BY LUCK — AND NO NEW GATE WAS NEEDED.** §1070 called `verify:dev`'s disclosure *"prose in a shell string with no gate behind it"* and measured its correspondence empirically. Wrong about the mechanism: `evidence.ts:70-71` REFUSES `PASS && !executed` (*"a PASS that never ran is fabricated"*) and `PASS && assertions<=0` (*"the skip masquerading as green"*), and that runs on the LIVE merge path — `run-gate.ts:200` → `evaluateEvidence` → `gateResultProblem` per gate. So a locally-skipping gate **cannot** emit PASS at merge; the correspondence holds by construction. I nearly filed the opposite: a grep scoped to `tools/release/*.ts` returned no callers and I was one step from *"the validator is only wired in tests"* — **fifth probe-shape error this session.** No gate built (§1053's redundancy rule). |
 | 517 | §1069 | **§1070** | **THE LOCAL CHAIN'S HONESTY, MEASURED — 5 OF 13 SKIP, AND THE SET IS EXACTLY THE MERGE-BLOCKED SET.** §1069 found `check:identity` exits 0 while printing *Lint SKIPPED*, inside `verify:dev`. The general question — how many of the chain's gates can exit 0 without executing — turned out to be **answered by the artifact itself**: `verify:dev`'s step 18 already prints *"Gates that are BLOCKED on absent inputs report PENDING here and still exit 0. Run pnpm verify:merge for the shippable verdict."* Verified rather than trusted: all 13 gates run individually, **exactly 5 emit skip/pending language** (identity, fixtures, rater-parity, invoice-parity, concierge-parity) and they are **precisely the 5 the merge board reports BLOCKED** — no sixth, and the other 8 execute for real. `recall` also showed the *exits 0* class already carries **30 prior verdicts** including a Confirmed Critical, so the sweep I was about to run would have been §1067's error again. |
 | 516 | §1068 | **§1069** | **`recall` USED, AND IT CAUGHT MY OWN MISREADING — I CALLED A *SKIPPED* GATE *CLEAN*.** First real use of §1068's tool, on the 17 repo-owned OPEN rows. L413 (*REQ-167 unverified in every local run*) contradicted something I had reported at §1066: `check:identity : clean`. Measured — **I had read the EXIT CODE past a message saying the opposite.** Plain run prints *"Lint SKIPPED"* and exits **0**; `--mode merge` emits `executed:false, assertions:0` and exits **2**. `verify:dev` calls the plain form, so a local `pnpm verify` goes green having never checked REQ-167 — precisely what L413 says. Re-verified and stamped; **fully pinned by 18 cases** (local→warn, merge→BLOCKED, release→BLOCKED, CI+no-denylist→fail, empty-denylist→absent). `recall` took three queries to land on §125/§247, which had already characterised it — no re-derivation. |
 | 515 | §1067 | **§1068** | **`pnpm recall` — MAKING A THRICE-BROKEN RULE CHEAP INSTEAD OF WRITING IT AGAIN.** §1067 was the third violation of *search the record before the code*, and §1062 already established that writing a rule down does not install it. The cause is mechanical: the record is **63,390 lines across 1,052 phase sections**, and a raw grep for `NotConfiguredMigrator` returns **8 bare lines, none naming the phase that decided it** — so reading them costs more than re-tracing the code, and re-tracing wins silently every time. `recall` maps each hit to the section heading (or checklist ROW) that OWNS it: the query §1067 should have run now surfaces **§798's actual heading** in one second. 6 tests, including one run against the LIVE record so a rename fails loudly rather than returning empty. |
@@ -63590,5 +63591,70 @@ the rediscovered answer is correct.
 
 **STOP.** The local chain's skip set is measured (5 of 13), matched 1:1 against the merge board's BLOCKED set,
 and confirmed to contain no gate that skips locally without being stopped at merge. `test:tools` 1,245 passed /
+3 failed — the REQ-289 baseline · lint clean.
+
+## §1071 — PHASE GATE: the property was already structural, and the gate I did not build
+
+**Why this phase.** §1070 ended on a real-sounding weakness: `verify:dev`'s honesty about which gates skip is
+*"prose in a shell string with no gate behind it"* — it happened to be exactly right, and only running all
+thirteen gates showed that. The obvious follow-up is to **build the gate behind the prose**.
+
+### First, the record: the naming half is already closed
+
+`recall "gate-wiring"` → **46 mentions across 36 verdicts.** `gate-wiring.test.ts` already pins *"every
+`check:`/`audit:`/`test:` script is invoked by run-gate, CI, or another script"*, *"§807: the merge roster is
+exactly this set of gates, BY NAME"*, and *"§809: `backup-manifest` is the ONLY external gate — every other gate
+must actually RUN."* A fourth gate asserting membership would be redundant, and §1053's rule is explicit that a
+redundant gate is worse than none.
+
+So the question narrowed to the **behavioural** half: can a gate that skipped still report green?
+
+### It cannot, and the refusal is structural
+
+`tools/release/evidence.ts`:
+
+```
+if (g.status === "PASS" && !g.executed)      → "a PASS that never ran is fabricated"
+if (g.status === "PASS" && g.assertions <= 0) → "a PASS asserting nothing is a skip masquerading as green"
+if (gates missing or empty)                   → "a record that asserted nothing proves nothing"
+```
+
+And it is on the **live** path, not only in unit tests: `run-gate.ts:200` calls `evaluateEvidence`, which at
+`evidence.ts:92` runs `gateResultProblem` over **every** gate in the record before producing the aggregate.
+
+That upgrades §1070's finding. The correspondence it measured — *the set of gates that skip locally is exactly
+the set the merge board BLOCKS* — is not a coincidence that happened to hold on the day it was checked. **A
+skipped gate cannot produce a PASS at merge**; the only shapes available to it are `BLOCKED` (executed=false,
+which the validator explicitly permits) or `FAIL`. §1070's empirical five-of-thirteen is what construction
+guarantees.
+
+### The near-miss, and it is the fifth of its kind
+
+My first search for the validator's callers was `git grep 'gateResultProblem' -- tools/release/*.ts`, filtered
+to lines that looked like call sites. It returned **nothing outside tests**, and the sentence forming in my head
+was *"the validator that rejects a fabricated PASS is only wired in unit tests"* — a serious finding, and false.
+
+Two things hid the truth from that probe: the call lives **inside** `evidence.ts` itself (line 92, so my
+filename scope excluded the caller by including only its siblings), and the outer caller is `evaluateEvidence`,
+a **different symbol**, in `run-gate.ts`. Widening the grep to the whole repo showed both in one line each.
+
+That is the fifth probe-shape error this session — after a character class that excluded digits (§1064), a
+prose-vs-backtick form mismatch (§1063), a comment-stripper that ate a `"//"` key (§1060), and a phrasing search
+for a version-shaped fact (§1057). **Every one produced a plausible zero**, and every one was caught only by a
+second instrument disagreeing.
+
+### What this phase says
+
+> **Before building a guard, find out whether the property is already impossible.** §1070 proposed a gate to
+> enforce a correspondence that the evidence contract had already made unbreakable. The gate would have passed
+> forever, looked like diligence, and added a fourth assertion to a property with three — which is exactly the
+> shape §1053 measured and rejected at a 40:1 false-positive rate.
+
+The narrower rule, earned the hard way five times: **a scoped grep is a hypothesis about where the answer
+lives.** `-- tools/release/*.ts` encodes the guess *"the caller is a sibling file"*, and when the caller is the
+file itself, the probe returns a confident, empty, wrong answer.
+
+**STOP.** §1070's property is confirmed structural rather than incidental, with the enforcement located on the
+live merge path; the proposed gate was measured as redundant and **not built**. `test:tools` 1,245 passed /
 3 failed — the REQ-289 baseline · lint clean.
 
