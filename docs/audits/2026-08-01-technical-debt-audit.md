@@ -631,6 +631,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 474 | §1026 | **§1027** | **THE REVERSE-DIRECTION CHECK AT THE DOCUMENT LEVEL — EVERY AUTHORITATIVE DOC IS REACHABLE.** §1026's principle (*every check validates what a claim points AT; none asks what points at NOTHING*) is already CLAUDE.md rule 1's for scope — *traceability blocks orphans BOTH directions* — so where else does a one-way check hide? The doc tree had never been asked. Checked all 63 tracked `docs/**.md` for an inbound reference: **audits 3/0 orphaned · ops 9/0 · security 2/0 · wp 17/0 · plans 32/13.** **Every authoritative document is reachable** — the ledger, release evidence, threat model, pen-test artifact, all sixteen WP close-outs. The 13 orphans are all in `docs/plans/`, the one class §240 already excluded from citation checking (*a plan proposes a path that later lands elsewhere, which is not rot*), and plans are **19 of 32 referenced**, so not uniformly unlinked — the unreferenced cohort is early (07-10 → 07-31), the WP-era plans whose work landed. **A plan becomes unreferenced exactly when its outcome documentation supersedes it**: the inbound link migrating away is EVIDENCE the work completed. §1026's orphans were content that FAILED to function; these are content that has FINISHED functioning |
 | 473 | §1025 | **§1026** | **THE INVERSE OF §1025 — SHIPPED REFERENCE FILES NOTHING POINTS AT.** §1025 found a pointer to something ABSENT; this sweeps for something PRESENT that nothing points at. Ten reference files ship inside `.claude/skills/`: **8 named paths, 0 unresolvable — but 2 of 10 shipped files were never mentioned.** **Method, third instance this session:** my first check used `grep --include=*.md` UNQUOTED, which zsh expands before grep sees it — **a shell error printed as a result** (after §968's `tac` and §959's pathspec). Re-run quoted, both were genuinely unmentioned. **Both substantive, one constitutional:** the 61-line SQL reference explains why `PRAGMA recursive_triggers = 0` makes a **BEFORE-INSERT** guard mandatory — the mechanism behind I3/I7 on D1, and exactly what a reader adding an append-only table needs; the 85-line port skeleton carries *going live is a CONFIRM-gated config flip, not a code change.* **The pair is one defect with two signs:** pointer-without-content is **loud on arrival** (the reader opens it and finds nothing); content-without-pointer is **silent forever** (the reader never opens it). The second survived a grounding note, ratchet enrolment and two prior fixes because **every one of those checks what a claim points AT; none asks what points at NOTHING** |
 | 472 | §1024 | **§1025** | **A SKILL'S PROSE vs ITS OWN SHIPPED REFERENCE — 293 SYMBOLS, 1 THAT NEVER EXISTED.** §1024 found a claim outside the grounding note's scope (a COUNT is neither an example nor a `path:line` citation); the same gap admits **bare identifiers** — the ratchet checks `path:line`, so a named symbol rots silently. **The probe broke first: 0 of 295 missing, worthless**, because my corpus was ALL tracked content **including the skills**, so a symbol named only in a skill matched itself — §1021's rule inverted (there too narrow, here too wide; both give a confident zero). Corrected to 821 code files: **293 checked, 6 absent** — 4 external APIs (MapLibre `minzoom`/`maxzoom`/`Marker`), 2 repo-shaped. **One is a real defect, between a skill and its OWN reference file:** *Factor `consentFor`, `assignmentOf`, `deviceOwnedBy` into one module (see `reference-predicates.ts`)* — but that file, shipped inside the skill, exports `assignmentOf`, `deviceOwnedBy` and **`streamPrior`**, with **no `consentFor` and no consent predicate anywhere in the codebase**; meanwhile the recommendation was already followed (`gate-context.ts`). **The skill was right about the pattern and wrong only about a name** — the error a reader cannot detect without opening the file. Nothing already in place reaches it: the ratchet validates `path:line`, the grounding note scopes to examples and citations, and an identifier is a third thing |
 | 471 | §1023 | **§1024** | **THE SKILLS CORPUS — ONE STALE COUNT, IN THE LINE §170's DISCIPLINE STOPPED SHORT OF.** §1023's rule (*the numbers most likely to rot describe the CONTAINER*) points at `.claude/skills/` — 32 tracked files — where §170 already found this class: *a count in a `description` is neither an example nor a citation, so the grounding note did not reach it … a stale scope statement silently narrows who follows the rule.* The corpus is unusually well defended: **12 files open with a grounding note** declaring their examples and `path:line` citations FROZEN as-of writing — **§1023's stamp discipline applied to a whole corpus before this session named it.** Swept every numeric self-claim in all 32 header regions: **one hit** — *"Only **2 of 13** agents exist (Biller, Concierge)"*, against a tree holding biller/collector/concierge/copilot/migrator plus the queue consumers, and this record's own count of **13 of 13**. **2 → 13**, and the grounding note does not reach it for exactly §170's reason: it scopes to *examples and citations*, and a count is neither. §170 fixed the frontmatter; **the body kept its own instance** — the discipline and the gap in one file. Fixed by DELETION not refresh (*13 of 13* decays on agent fourteen): now *every agent repeats this recipe — the ones that exist and the next one* |
@@ -60520,3 +60521,58 @@ falsifiable if the reference changes, which is §1025's lesson applied forward.
 **Re-open when:** a reference file is added — the pointer is the second half of shipping it, and nothing
 enforces that · a skill's prose is rewritten, since the pointers now describe contents and not just paths ·
 `references/` grows a subdirectory, which the current flat check would still catch but only by basename.
+
+---
+
+## §1027 — PHASE GATE: the reverse-direction check at the document level — every authoritative doc is reachable
+
+§1026 closed with the principle: *every check here validates what a claim points **at**; none asks what points
+at **nothing**.* CLAUDE.md rule 1 already applies it to scope — *"traceability CI blocks orphans (both
+directions)"* — so the question is where else a one-way check hides. The doc tree had never been asked.
+
+Checked every tracked `docs/**.md` for an inbound reference from any other tracked file:
+
+| subtree | docs | orphaned |
+|---|---|---|
+| `docs/audits` | 3 | **0** |
+| `docs/ops` | 9 | **0** |
+| `docs/security` | 2 | **0** |
+| `docs/wp` | 17 | **0** |
+| `docs/plans` | 32 | 13 |
+
+**Every authoritative document is reachable.** The ledger, the release evidence, the threat model, the
+pen-test artifact, all sixteen WP close-outs and the audits themselves are each pointed at by something.
+
+### The 13 are the one class the repo already treats as non-authoritative
+
+All sit in `docs/plans/`, which §240 excluded from citation checking for a stated reason: *"a plan proposes a
+path that later lands elsewhere, which is not rot."* They are also **19 of 32 referenced**, so plans are not
+uniformly unlinked — and the unreferenced ones are the early cohort (2026-07-10 → 07-31), the WP-era plans
+whose work has landed.
+
+That is the correct lifecycle, and it names itself: **a plan becomes unreferenced exactly when its outcome
+documentation supersedes it.** A WP plan is superseded by its close-out in `docs/wp/`; a remediation plan by
+the audit section that records what shipped. The inbound link migrating away is the *evidence* the work
+completed, not evidence it was lost.
+
+### What the sweep is worth
+
+Zero findings, and the shape of the zero is the result. §1026's orphan reference files were content that
+*failed to function*; these are content that has *finished functioning*. The distinction is the subtree, and
+the subtree is already the repo's own boundary — which is why the sweep confirms a classification rather than
+discovering one.
+
+The one thing a reader cannot currently tell from the tree alone is which of the two an orphaned plan is:
+**superseded** or **dropped**. That is not a defect today — all 13 map to completed WPs or landed remediation —
+but it is the ambiguity that would hide a real one, and it is recorded here rather than fixed, because adding
+an index to a directory the repo deliberately treats as archival is a decision, not a correction.
+
+### Phase gating
+
+**STOP.** The reverse-direction question is answered at the document level: **0 orphaned authoritative docs**,
+13 orphaned plans all explained by the archival lifecycle.
+
+**Re-open when:** a doc outside `docs/plans/` loses its last inbound reference — that one is a finding, since
+every authoritative doc has one today · a plan is written for work that does **not** land, since the orphan
+signal then means *dropped* and nothing distinguishes it · `docs/plans/` gains an index, which would make the
+distinction readable and turn this measurement into a gate.
