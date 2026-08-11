@@ -631,6 +631,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 472 | §1024 | **§1025** | **A SKILL'S PROSE vs ITS OWN SHIPPED REFERENCE — 293 SYMBOLS, 1 THAT NEVER EXISTED.** §1024 found a claim outside the grounding note's scope (a COUNT is neither an example nor a `path:line` citation); the same gap admits **bare identifiers** — the ratchet checks `path:line`, so a named symbol rots silently. **The probe broke first: 0 of 295 missing, worthless**, because my corpus was ALL tracked content **including the skills**, so a symbol named only in a skill matched itself — §1021's rule inverted (there too narrow, here too wide; both give a confident zero). Corrected to 821 code files: **293 checked, 6 absent** — 4 external APIs (MapLibre `minzoom`/`maxzoom`/`Marker`), 2 repo-shaped. **One is a real defect, between a skill and its OWN reference file:** *Factor `consentFor`, `assignmentOf`, `deviceOwnedBy` into one module (see `reference-predicates.ts`)* — but that file, shipped inside the skill, exports `assignmentOf`, `deviceOwnedBy` and **`streamPrior`**, with **no `consentFor` and no consent predicate anywhere in the codebase**; meanwhile the recommendation was already followed (`gate-context.ts`). **The skill was right about the pattern and wrong only about a name** — the error a reader cannot detect without opening the file. Nothing already in place reaches it: the ratchet validates `path:line`, the grounding note scopes to examples and citations, and an identifier is a third thing |
 | 471 | §1023 | **§1024** | **THE SKILLS CORPUS — ONE STALE COUNT, IN THE LINE §170's DISCIPLINE STOPPED SHORT OF.** §1023's rule (*the numbers most likely to rot describe the CONTAINER*) points at `.claude/skills/` — 32 tracked files — where §170 already found this class: *a count in a `description` is neither an example nor a citation, so the grounding note did not reach it … a stale scope statement silently narrows who follows the rule.* The corpus is unusually well defended: **12 files open with a grounding note** declaring their examples and `path:line` citations FROZEN as-of writing — **§1023's stamp discipline applied to a whole corpus before this session named it.** Swept every numeric self-claim in all 32 header regions: **one hit** — *"Only **2 of 13** agents exist (Biller, Concierge)"*, against a tree holding biller/collector/concierge/copilot/migrator plus the queue consumers, and this record's own count of **13 of 13**. **2 → 13**, and the grounding note does not reach it for exactly §170's reason: it scopes to *examples and citations*, and a count is neither. §170 fixed the frontmatter; **the body kept its own instance** — the discipline and the gap in one file. Fixed by DELETION not refresh (*13 of 13* decays on agent fourteen): now *every agent repeats this recipe — the ones that exist and the next one* |
 | 470 | §1022 | **§1023** | **THE REST OF THE LIVING REGION — CLEAN, AND THE RULE THAT SEPARATES IT FROM §1022.** §1022 found two rotted values in the rewritten blocks; is there a third? Tractable because this record is append-only — §127's rule: **a number in an append-only record carries its own timestamp, its POSITION**, so a figure inside §843 is a claim about the day §843 was written and cannot rot. **Only the rewritten region can**, lines 1–48. Swept: **one numeric claim, and it is correct** — *57 findings → 12 → 45* is **STAMPED**, the same block opening *HEAD at audit: `0415148`* and closing *Baseline … all PASS at `0415148`*. The nearby *coverage (288/288, drift 7)* proves it: today that is 288/289, and the line is still TRUE because it says *at `0415148`*. **The rule (§294: pin or stamp, neither is not an option) — §1022 is what 'neither' looks like:** stamped claim correct indefinitely; *152 sections* → **1008**; *eight phases* → **52**, contradicted by its own table. Transferable half: **both casualties described the DOCUMENT ITSELF** — the figure nobody thinks to stamp, because a count of your own work feels like a fact about the present rather than a measurement of a moment |
 | 469 | §1021 | **§1022** | **THE FRONT DOOR HAD DECAYED — THE ONE PLACE §162 FIXED, AND THE ONE WAY IT COULD STILL ROT.** §1019 found a stale figure in a gate header; §1020 proved it ungateable; so this asks **where such a figure costs most** — the block every reader lands on first. §162 already fixed this entry point once (*a READ-THIS-FIRST redirect named a SHA re-measured **nine times** since*) with the right rule — **point at the section, never at the value** — and left three values in the surrounding prose. **All three had rotted:** `START HERE` claimed **152 sections** against **1008**; **§4 claimed 'Eight phases have closed' directly above its OWN 24-row table** whose last phase is **52**; and *what blocks release* still pointed at §113 when **§999** is the current verdict. Fixed by **removing the decaying value, not refreshing it** — 1008 would re-arm the same trap — so both sentences are now state-INDEPENDENT, and §4's tells the reader how to find current state themselves (*the last row*), which no growth can falsify. Release pointer leads with §999 → §994, keeping the old three as provenance: **a stale count invites a double-check, a stale POINTER is simply followed.** Third instance of one shape (§1013, §1019): **a fix installs a mechanism; the sentences describing it are not part of the mechanism, and nothing re-reads them** |
@@ -60405,3 +60406,59 @@ The grounding-note discipline covers the rest and is the reason there was only o
 or the number removed, and the note's current wording (*examples and citations*) will not cover it · the
 agent roster changes, which no longer falsifies this file · `.claude/skills/` gains a file without the
 grounding note, since that note is what makes the other 31 safe.
+
+---
+
+## §1025 — PHASE GATE: a skill's prose vs its own shipped reference — 293 symbols, 1 that never existed
+
+§1024 found a claim outside the grounding note's scope: the note freezes *"examples and `path:line`
+citations"*, and a **count** is neither. The same gap admits another class — **symbol names**. The citation
+ratchet checks `path:line`; a skill naming `resolveTenantDb` in prose rots silently if that function is
+renamed, because a bare identifier is not a citation.
+
+### The probe, after I broke it once
+
+First pass: **0 of 295 missing** — worthless, because my corpus was *all tracked content* **including the
+skills themselves**, so a symbol named only in a skill matched itself. That is §1021's rule inverted: there
+the corpus was too narrow, here too wide, and both produce a confident zero.
+
+Corrected to 821 code files with `.claude/skills/` excluded: **293 identifiers checked, 6 absent.** Four are
+external APIs the repo would never define (`Marker`, `minzoom`, `maxzoom` — MapLibre style-spec names — and an
+example variable). Two looked like repo symbols.
+
+### One of the two is a real defect, and it is between a skill and its own reference file
+
+`enforce-server-side-gate-parity` says:
+
+> *"Factor `consentFor`, `assignmentOf`, `deviceOwnedBy` into one module (see `reference-predicates.ts`)."*
+
+Measured: `assignmentOf` and `deviceOwnedBy` **exist** — used across six modules and defined in
+`workers/api/src/gate-context.ts`, so the skill's recommendation has in fact been followed. But
+`reference-predicates.ts`, the file the sentence points at and which ships **inside the skill**, exports
+`assignmentOf`, `deviceOwnedBy` and **`streamPrior`** — there is no `consentFor`, and **no consent-shaped
+predicate exists anywhere in the codebase**.
+
+So the prose names a predicate its own reference does not provide and omits one it does. A reader following the
+pointer opens the file and does not find what they were sent for.
+
+Corrected to name the three the reference actually exports, plus where they landed in this repo.
+
+### Why this class survives everything already in place
+
+This corpus is well defended — a grounding note on twelve files, enrolment in the citation ratchet, §170's
+frontmatter fix, §1024's body fix. **None of them reaches a bare identifier in prose.** The ratchet validates
+`path:line`; the grounding note scopes to examples and citations; and an identifier is a third thing:
+unstamped, uncited, and read as current.
+
+The defect it produced is the smallest kind and the most corrosive to trust — **the skill was right about the
+pattern, right that it should be one module, and right that the repo needed it. It was wrong only about a
+name**, which is exactly the error a reader cannot detect without opening the file.
+
+### Phase gating
+
+**STOP.** 293 identifiers, 4 external, 1 prescriptive-and-correct, 1 fixed. The class is swept.
+
+**Re-open when:** a skill names a symbol that does not yet exist as a **recommendation** — the pattern is
+legitimate, and the guard is naming the file that provides it, as this one did · `reference-predicates.ts`
+gains or loses an export, since the prose now enumerates it exactly · a skill is added, because the grounding
+note it inherits does not cover identifiers.

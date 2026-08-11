@@ -28,7 +28,7 @@ REQUIRED BACKGROUND: `cloudflare:workers-best-practices` (generic auth). This sk
 Same file binds client `p.shipment_id`/`p.device_id` (position.ts:13-14) with **no assignment and no device-ownership check** — whereas `workers/api/src/routes/events.ts:263@assignmentOf` 403s an unassigned driver and `workers/api/src/do/sequencer.ts:1215@deviceOwnedBy` requires the device co-signature to verify before a device may claim a slot. A driver can post GPS for a shipment they aren't on, under any `device_id`.
 
 ## The pattern: one shared predicate, invoked by BOTH paths
-Factor `consentFor`, `assignmentOf`, `deviceOwnedBy` into one module (see `reference-predicates.ts`) so the route and the DO cannot drift. The bypass route re-enforces before its INSERT:
+Factor `assignmentOf`, `deviceOwnedBy` and `streamPrior` into one module (see `reference-predicates.ts`, which exports exactly those three) — in this repo they landed in `workers/api/src/gate-context.ts` so the route and the DO cannot drift. The bypass route re-enforces before its INSERT:
 
 ```ts
 // positions.ts — BEFORE the INSERT OR IGNORE
