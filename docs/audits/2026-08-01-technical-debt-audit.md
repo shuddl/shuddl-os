@@ -631,6 +631,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 459 | §1011 | **§1012** | **IDENTITY BY SHAPE, NOT BY NAME — FOUR MORE PROXIES SWEPT, CORPUS CLEAN.** §1011's line was that a REQ-167 leak *rode in on a portability defect*; the technique it names is **a denylist catches only names someone thought to add, but a SHAPE needs no list.** `absolute-paths` is that idea applied once — this asks what the others are, which matters for a freight product because an **MC or DOT number IS a carrier identifier**. Five shapes over the tracked corpus: **phone 0 · DOT 0 · MC 0** — the three freight-native identifiers absent entirely, the strongest signal here — SCAC 2 (synthetic, one isolation test), email **340**. The email cut, **including a mis-binning I made and corrected**: 176 RFC-2606 reserved + 17 own domain + **66 on the reserved `.example` TLD my first classifier MISSED** (it matched `example.com` but not the TLD — a classifier that under-recognises the synthetic bucket over-reports the risky one, the safe direction, caught by reading the domain list not the total). Precise question: 43 on non-synthetic domains, **exactly 1 person-shaped local part — and it is a regex artifact** (`@grant.exp` is a JWT field path, not a domain). **0 person identifiers**; local parts redacted throughout, since a record that prints one re-commits it. Email measured NOT gated — §240's wall (most are legitimate fixtures) |
 | 458 | §1010 | **§1011** | **§1010's ADVICE WAS NECESSARY AND NOT SUFFICIENT — THE RECORD ALREADY SAID WHY.** Tracing REQ-289's source document to the commit that introduced it (`da475d5`, four days ago) surfaced a qualification written by the phase that fixed a **real REQ-167 violation**: *check:identity uses a DENYLIST … it can only catch a name someone thought to add.* That leak was **39 occurrences across 5 files in `docs/plans/`** — an absolute home path embedding an operator account name — and `docs/plans/` is the **same document class** as `docs/gtm/`. §1010 treated the risk as prospective; **it is precedented.** A GTM corpus is full of names nobody has thought to add yet — the denylist is the wrong shape for its dominant risk. What runs TODAY is the complement `da475d5` built: `absolute-paths.test.ts`, denylist-INDEPENDENT and shape-based, *the only REQ-167 enforcement that runs at all* while the secret is BLOCKED. **And it would fire:** the pending corpus carries the leak shape in **3 files (1 real + its 2 sync-duplicates)** — paths deliberately not reproduced here, since printing them re-commits the identifier. Sequence gains a step-0 that needs no secret: clear the path, bind, delete duplicates, commit. Also clean: **register provenance 76 citations / 0 unresolvable** (§1003's frame on the register); `.claude/plugins/` untracked AND unignored |
 | 457 | §1009 | **§1010** | **WHAT HAPPENS THE DAY `docs/gtm/` IS COMMITTED — AND THE GUARD THAT IS SWITCHED OFF.** §1000 asked what a BLOCKED gate does on the day it unblocks; the same question applies to a **corpus** about to enter the gated tree. `docs/gtm/` + `docs/research/` are untracked, so every gate is blind by construction — and they are an ACTIVE workstream, so the commit is a matter of when. Measured: **72 `.md`, of which 38 are file-sync DUPLICATES** (§997's gate fires the moment one tracked file makes the dir repo-owned) · **2 of 405 table rows** malformed · ~5 `§N` refs (all `§0`, likely genesis-style) · **≤33 of 101 citations** unresolvable — stated as an **upper bound, not a verdict**, since my probe tested plain path existence while the real gate has a partial-path resolver. **The headline is not in that table:** the pending corpus is a GTM workstream — messaging, ICP list, founder call script — i.e. **the single most name-bearing content this repo will ever hold** — and REQ-167's identity gate, which §1002 PROVED detects and redacts, is **BLOCKED** on an unbound denylist. Committing first would put the most name-bearing content into the repo **with the name-checker switched off — not a failure, a silence**, recoverable only by history rewrite. Finding is the SEQUENCE: bind the denylist → delete the 38 duplicates → then commit |
 | 456 | §1008 | **§1009** | **THE WORLD-TIME CLASS, ENUMERATED — 1 HAS A CADENCE, 3 CANNOT GET ONE HERE.** §1008 found the first claim that dies while the tree sits still; this counts the class. **15 external holds, 10 world-querying, and 3 that can change with NO signal**: Dependabot posture, workflow token scope, branch protection — all pure GitHub account settings whose expiry trigger reads *re-run the `gh api` command*, which is **an instruction, not a cadence** (§995: 6 of 17 such triggers had already fired unnoticed). The other seven are provisioning holds and are safe for a structural reason: **the act that clears them is the act that re-runs their proof.** **The asymmetry that matters:** two of the three are known-BAD today, which cannot regress — the risk is the moment branch protection is ENABLED, since §957 calls it *the authority of all 26 gates* and nothing would notice it switched off again. **No automation added, deliberately:** reading those settings needs a scope beyond the `read` default, i.e. a `permissions:` block — and §975 declined one because an explicit block grants exactly what it lists, REMOVING the others, on a CI about to run for the first time. Chasing a monitoring nicety would be the tail wagging the dog. Left owner-held **with the unlock named precisely** rather than as *someone should check sometimes* |
@@ -59604,3 +59605,77 @@ speculative.
 **Re-open when:** `docs/gtm/` becomes tracked — `absolute-paths` fires first, before any denylist question ·
 `IDENTITY_DENYLIST` binds · another `docs/plans`-class document is written, since that is the class with a
 demonstrated leak history and the leak rode in on a *portability* defect rather than a naming mistake.
+
+---
+
+## §1012 — PHASE GATE: identity by SHAPE, not by name — four more proxies swept, corpus clean
+
+§1011's transferable line was that a REQ-167 leak *"rode in on a portability defect — the leak and the bug
+were the same edit."* That generalises into a technique this record had used once without naming:
+
+> A denylist can only catch a name someone thought to add. **A SHAPE needs no list** — so where a mechanical
+> pattern correlates with a constitutional violation, gate the shape and the denylist becomes the backup
+> rather than the front line.
+
+`absolute-paths.test.ts` is that idea applied to one shape. This asks what the others are, which matters
+because for a freight product some identities are *structurally* recognisable: an MC or DOT number **is** a
+carrier identifier, and no denylist is required to spot one.
+
+### Five shapes, measured across the tracked corpus
+
+| shape | occurrences | verdict |
+|---|---|---|
+| US phone number | **0** | clean |
+| DOT number | **0** | clean |
+| MC number | **0** | clean |
+| SCAC code | 2 | both in `workers/translator/test/isolation.test.ts` — synthetic test values |
+| email address | **340** across 68 files | needs the cut below |
+
+**The three freight-native identifiers are absent entirely**, which is the strongest single signal here: those
+are the shapes a real carrier record would carry, and there are none.
+
+### The email cut, including a mis-binning I made and corrected
+
+340 looks alarming and is not. Classifying by domain:
+
+```
+RFC-2606 reserved (example.com/.org/.net, test, invalid, localhost)   176
+the project's own domain                                               17
+the `.example` reserved TLD                                            66   ← my first classifier MISSED these
+vendor + universal placeholders (anthropic.com, resend.dev,
+  acme.com, evil.com) and regex artifacts                             remainder
+```
+
+My first pass binned the 66 `.example` addresses (`shipper.example`, `consignee.example`, `tenant.example`) as
+*"neither reserved nor own"* because the regex matched `example.com` but not the reserved **TLD**. A
+classifier that under-recognises the synthetic bucket over-reports the risky one — the safe direction, and
+caught only by reading the domain list rather than the total.
+
+Then the precise question, since a domain is not an identity but a local part can be: **43 addresses sit on
+non-synthetic domains; exactly 1 has a person-shaped local part** (`firstname.lastname`), and that one is a
+**regex artifact** — `@grant.exp` is not a domain but a JWT grant-expiry field path inside a table cell
+(*"expired — fail-closed even if KV still holds it"*).
+
+**0 person identifiers in the tracked corpus.** Local parts are redacted throughout this section, for the
+reason `da475d5` recorded: a record that prints the identifier re-commits it.
+
+### Why the email shape is measured and not gated
+
+It is the §240 wall, exactly. 340 addresses of which the overwhelming majority are **legitimate test
+fixtures** — a gate would fire on `shipper.example` forever, and its allowlist would have to enumerate every
+synthetic domain a future test invents. §997's rule decides it: *an audit that gates everything it examines is
+decorating.* The three freight identifiers are the opposite case — **zero occurrences, no legitimate use, and
+a gate would be silent until the day it mattered** — but a gate whose corpus has never contained a single
+positive has no evidence it works, which is the §1002 problem in advance.
+
+**Recorded as a measurement with a trigger**, consistent with §1006.
+
+### Phase gating
+
+**STOP.** The denylist-independent half of REQ-167 is now enumerated rather than represented by its one
+implemented instance: 1 shape gated (`absolute-paths`), 4 swept clean, 1 measured-not-gated with the reason.
+
+**Re-open when:** a tracked file gains an MC/DOT/SCAC occurrence — that is the day the freight-identifier gate
+stops being speculative and acquires a positive to prove itself against · `docs/gtm/` is committed, since a
+GTM corpus is where a real email or carrier number would first appear · `IDENTITY_DENYLIST` binds, at which
+point the name-based half joins the shape-based half already running.
