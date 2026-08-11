@@ -631,6 +631,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 450 | §1002 | **§1003** | **CAN ANYONE ELSE BUILD THIS? — A FRESH CLONE, AND THE GATE THE CWD SWEEP MISSED.** 1,018 commits nobody else has seen; nothing had asked whether the tracked tree is self-sufficient. Cloned it (1,001 files) and ran the standalone gates with `repoRoot()` resolving there: **3 of 4 clean on tracked content alone**; `invariants.ts` crashed on a missing workspace package — **a harness artifact** (no `node_modules`), recorded because it reads like a defect. Full answer needs a network install (§973 says impossible here), so I measured the decidable half: **47 non-test tool modules, exactly ONE untracked literal path** (`workers/mcp/dist/api/index.js`) — and the runner BUILDS it if absent. **Reading that line found the real defect:** `tools/acceptance/run.ts` was never anchored — `missingSpineFiles()` returns **0 from root, 4 from any subdirectory**, so `pnpm test:acceptance` from a package dir reports the five acceptance demos as broken. **It survived the sweep that anchored sixteen siblings because it fails CLOSED** — that sweep hunted gates reporting OK over nothing, and *wrong-and-loud* does not match a search for *wrong-and-silent*. **The tell was in the TEST**: `demos.test.ts:80` already passed `repoRoot()` explicitly, routing around the default instead of failing on it — **a test that compensates for a bad default is a known, unfixed defect that is green by construction.** Both defaults fixed, pinned by a `chdir` test, 2 mutations RED |
 | 449 | §1001 | **§1002** | **THE IDENTITY-LEAK GATE, EXERCISED FOR THE FIRST TIME.** CLAUDE.md forbids any tenant/person/customer name in any repo artifact (REQ-167), and that gate has sat BLOCKED since it was written — **it had never detected anything.** Unlike the other four holds it is exercisable without the secret (the loader takes `IDENTITY_DENYLIST` **or** a gitignored `.identity-denylist.local`). Three probes with a synthetic term: clean tree → **PASS**; term planted in a TRACKED file → **FAIL naming the file and REDACTING the term** (`Z***********` — a gate that echoed the name would republish what it exists to prevent); corpus blinded → **FAIL** *"denylist present but ZERO files scanned … a broken gate reporting on nothing."* **CLEAN NEGATIVE on all three axes.** Boundary stated, not a gap: my first probe used an UNTRACKED file and read clean — correct, since the corpus is `git ls-files` and REQ-167 governs repo artifacts, but worth recording because §997 found 46 untracked docs in a sibling workstream. **Method, twice:** my first corpus mutation was a NO-OP (`execSync`, not `execFileSync`) and printed `clean` — the script's own `assert` caught it. **A mutation script needs an assertion that the mutation applied**, or a no-op reads as a passing gate. 2 of 5 BLOCKED gates now proved sound on unblock |
 | 448 | §1000 | **§1001** | **THE SEVEN HARD BUDGETS, PROVED BY VIOLATING EACH — AND ONE NEARLY READ AS UNENFORCED.** CLAUDE.md line 15 is headed *CI-enforced*, and this record caught that heading lying once (§245: one of seven had **no pin at all**). The budgets gate proves the STATED number equals the ENFORCING constant — a lockstep, not a rejection. So I planted a real violation of every family: **7 for 7 RED** — 23 tables → `I8 VIOLATION`; a fourth `apps/` dir → `UNREGISTERED surface`; a 36th event kind (**zero headroom**); a 13th view; a 6th token; a 3rd font; and shadow/radius/raw-hex/rgba in a CONSUMING component → 4 REDs each naming its REQ. **CLEAN NEGATIVE by violation rather than by reading.** The near-miss: the first table probe produced ONE failure line and it was the *classification* rule, not the budget — I was ready to file it. Classifying the probe tables properly surfaced `23 > 22`: the classification rule fires FIRST and shadows the budget on the same input. Mirror of §1000 one phase later — **attribute the RED and attribute the GREEN; a verdict is about the run until your subject is the only variable.** Boundary stated: a 6th token is caught by the lockstep, NOT `audit:design`, whose palette is *derived* from the tokens — the two enforce different halves and neither is redundant |
 | 447 | §999 | **§1000** | **WHAT THE BLOCKED GATES DO ON VENDORING DAY — CLEAN, AND I NEARLY FILED THE OPPOSITE.** §999 proved nothing on the board is repo-owned *today*; this asks the owner's real question: when the nine fixtures arrive, do those gates **verify** them or merely **find** them? A presence-only gate would turn five honest BLOCKEDs into five false PASSes on the one day nobody re-checks. Probed the branch absent from the 12 existing cases — **`vendored` with a null `sha256`**, the state all nine are in RIGHT NOW. Deleting its guard left **12 tests green**, and I nearly filed *an undefended guard on the exact transition the owner will perform*. **Two further probes said otherwise:** `typecheck` REDs (`TS18047: possibly null`, and typecheck is a merge gate), and with the type error suppressed the downstream branch **still rejects** (`pinned null… actual 79253e8…`) because a real digest is never null. **Three defences, unplanned but real — CLEAN NEGATIVE.** The lesson mirrors one already here: **attribute the GREEN before condemning it** — *the tests did not catch this* is a claim about the tests, not the code, in a repo with 26 gates. Also re-verified L410: **0 coverage providers, 0 of 12 configs** — genuinely external |
@@ -58996,3 +58997,81 @@ blocked, but demonstrated to work when the inputs arrive.
 
 **Re-open when:** `IDENTITY_DENYLIST` is bound — re-run and expect `PASS` with `terms > 0`, never `PENDING` ·
 `identity-leak.ts`'s corpus query changes · any of the nine fixtures is vendored.
+
+---
+
+## §1003 — PHASE GATE: can anyone else build this? — a fresh clone, and the gate the cwd sweep missed
+
+Ten phases have audited what this repository asserts about itself. None asked the question a second machine
+would: **the tracked tree has 1,018 commits nobody else has ever seen — is it self-sufficient?**
+
+Cloned it (`git clone --local`, 1,001 tracked files, HEAD `69e8298`) and ran the standalone gates against the
+clone with `repoRoot()` resolving there. Three of four ran clean on tracked content alone:
+`citation-links` OK, `audit:design` clean, `identity-leak` correctly skipping. The fourth,
+`invariants.ts`, crashed on `Cannot find package '@shuddl/ledger'` — **a harness artifact, not a finding**: the
+clone has no `node_modules`, so workspace links do not exist. Recorded plainly because it is exactly the shape
+that reads as a defect.
+
+**The full question is not answerable here.** It needs a real `pnpm install`, and §973 established no network
+install works in this environment. What *is* decidable is the half that matters most — does any gate depend on
+untracked state? Scanned all **47 non-test tool modules** for literal repo paths absent from `git ls-files`:
+
+```
+untracked literal paths referenced by gate code = 1
+  workers/mcp/dist/api/index.js   tools/acceptance/run.ts:15
+```
+
+One, and it is handled: if the bundle is missing the runner **builds it** (`pnpm --filter @shuddl/mcp run
+pretest`) and exits 1 with a named error if that build fails. Self-healing on a fresh clone.
+
+### But reading that line found the real defect
+
+`MCP_API_BUNDLE` is a bare relative path, which raised the question the earlier cwd sweep was supposed to have
+settled. It had not:
+
+```
+missingSpineFiles()   from <root>                 → 0 missing
+                      from <root>/tools/checks    → 4 missing
+                      from <root>/packages/ledger → 4 missing
+```
+
+**`tools/acceptance/run.ts` was never anchored** — zero `repoRoot()` references in the runner, against three
+in its test. Both `missingSpineFiles(cwd = process.cwd())` and `packageDirs(cwd = process.cwd())` resolve
+against the shell. Running `pnpm test:acceptance` from any package directory reports the acceptance spine —
+the five demos that define *"done enough to show"* — as broken.
+
+**Why it survived a sweep that anchored sixteen siblings: it fails CLOSED.** It cries wolf rather than passing
+vacuously, and that sweep was hunting gates that reported OK over nothing. A gate that is merely *wrong and
+loud* does not match the search that finds gates that are *wrong and silent*.
+
+### The tell was in the test, not the code
+
+```ts
+missingSpineFiles(repoRoot()),   // demos.test.ts:80 — passing explicitly, to work around the default
+```
+
+The test already knew. It routed around the defect instead of failing on it, which is why nothing ever went
+red. **A test that passes an argument to compensate for a bad default is evidence the defect is known and
+unfixed** — and it is invisible, because the suite is green by construction.
+
+Fixed both defaults to `repoRoot()`, keeping the parameter (a caller may legitimately scope to a fixture
+tree). The explicit `repoRoot()` at `demos.test.ts:80` is now redundant and deliberately kept, so the
+parameter stays exercised while a new no-argument call pins the default.
+
+**Pinned and mutation-proved** — a test that `chdir`s into a subdirectory, asserts both functions still
+resolve, and restores in `finally`:
+
+| mutation | result |
+|---|---|
+| revert `missingSpineFiles` default to `process.cwd()` | **RED** |
+| revert `packageDirs` default to `process.cwd()` | **RED** |
+| fixed point | **green, 10/10** |
+
+### Phase gating
+
+**STOP.** The fresh-clone question is answered as far as this environment permits: **one** untracked
+dependency in 47 gate modules, and it self-heals; three of four standalone gates run on tracked content alone.
+
+**Re-open when:** a network install becomes possible — then run `pnpm install && pnpm verify:merge` in a
+clone, which is the only complete answer · a new tool module lands (check its path defaults against §1003) ·
+`tools/acceptance/run.ts` gains another `cwd` parameter.

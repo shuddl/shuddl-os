@@ -83,6 +83,28 @@ describe("REQ-119 §607: every registered spine file exists", () => {
     ).toEqual([]);
   });
 
+  it("§1003: resolution is anchored to the REPO, not to the shell's directory", () => {
+    // The default was `process.cwd()`, so `pnpm test:acceptance` run from any subdirectory reported the
+    // acceptance spine as broken — 0 missing from the root, 4 from `packages/ledger`. Fail-CLOSED, which is
+    // why it survived the sweep that anchored sixteen other gates: it cried wolf instead of passing vacuously.
+    //
+    // The tell was in THIS file: the assertion above passes `repoRoot()` explicitly, working around the
+    // default rather than fixing it. That argument is now redundant and deliberately kept, so the parameter
+    // stays exercised while the no-argument call below pins the default.
+    const here = process.cwd();
+    try {
+      process.chdir(`${repoRoot()}/tools/checks`);
+      expect(
+        missingSpineFiles(),
+        "missingSpineFiles() resolved against the SHELL's directory rather than the repo. Restore the " +
+          "`repoRoot()` default in run.ts — a gate that means the repo must never ask where you are standing.",
+      ).toEqual([]);
+      expect(packageDirs().size, "packageDirs() resolved no workspace packages from a subdirectory").toBeGreaterThanOrEqual(10);
+    } finally {
+      process.chdir(here);
+    }
+  });
+
   it("counts what the registry declares (non-vacuity)", () => {
     // If spineByPackage() ever returned nothing, missingSpineFiles() would return [] and the test above
     // would pass over an empty spine — the exact vacuity class this section exists to close.

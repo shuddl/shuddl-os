@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, globSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
+import { repoRoot } from "../checks/repo-root.js";
 import { DEMOS, spineByPackage, spineFileCount } from "./demos.js";
 
 // `pnpm test:acceptance` — runs EXACTLY the five doc-00 acceptance SPINE tests (REQ-119 DoD), as the
@@ -36,8 +37,15 @@ function ensureMcpApiBundle(): void {
   }
 }
 
-/** Workspace package name → its directory, from the three globs in pnpm-workspace.yaml. */
-export function packageDirs(cwd: string = process.cwd()): Map<string, string> {
+/**
+ * Workspace package name → its directory, from the three globs in pnpm-workspace.yaml.
+ *
+ * §1003 — same fix as `missingSpineFiles` below, and the second instance of one idiom: a `cwd` parameter
+ * defaulting to the shell's location in a gate that always means the repo. Left unfixed it would resolve ZERO
+ * packages from a subdirectory, and `missingSpineFiles` would then report every spine package as
+ * *"no workspace package declares this name"* — a true statement about the wrong directory.
+ */
+export function packageDirs(cwd: string = repoRoot()): Map<string, string> {
   const out = new Map<string, string>();
   for (const p of globSync("{apps,workers,packages}/*/package.json", { cwd })) {
     const name = (JSON.parse(readFileSync(`${cwd}/${p}`, "utf8")) as { name?: string }).name;
@@ -60,7 +68,21 @@ export function packageDirs(cwd: string = process.cwd()): Map<string, string> {
  * That is the §572 shape — a check whose floor bounds the hits it found instead of the corpus it read — in
  * the one gate whose entire job is the five doc-00 demos that define "done enough to show".
  */
-export function missingSpineFiles(cwd: string = process.cwd()): string[] {
+/*
+ * §1003 — the default is repoRoot(), not process.cwd().
+ *
+ * The parameter stays (a caller may scope the check to a fixture tree), but the DEFAULT must be the repo, not
+ * the shell's location. Measured at §1003: `missingSpineFiles()` returned **0 from the repo root and 4 from
+ * any subdirectory**, so running `pnpm test:acceptance` from `packages/…` reported the acceptance spine as
+ * broken. Fail-CLOSED, so it cried wolf rather than passing vacuously — which is why it survived the sweep
+ * that anchored sixteen other gates to `repoRoot()`.
+ *
+ * The tell was in the test, not the runner: `demos.test.ts:80` already called `missingSpineFiles(repoRoot())`,
+ * passing explicitly to work around this default. A test that compensates for a defect is evidence the defect
+ * is known and unfixed — the argument there is now redundant, and deliberately kept so the parameter stays
+ * exercised.
+ */
+export function missingSpineFiles(cwd: string = repoRoot()): string[] {
   const dirs = packageDirs(cwd);
   const missing: string[] = [];
   for (const [pkg, files] of spineByPackage()) {
