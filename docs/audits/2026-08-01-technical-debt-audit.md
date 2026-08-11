@@ -595,6 +595,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 400 | §952 | **§953** | **RULE 6 SAYS "FIXTURES GATE MERGES" — THREE OF ITS FOUR WERE NOT BEING RUN.** §842 proved each named gate is REAL (mapped to a manifest fixture). Nobody asked whether it is REACHED. The airplane-mode soak (`workers/api`), the QB-export penny reconcile and the legacy-export replay (`packages/ledger`) all live in the **package suites** — the exact half §940 proved was not executing while `test`'s `&&` short-circuited on REQ-289. **§940's defect stated in constitutional units: 3 of the 4 gates named in CLAUDE.md's own fixture rule.** Nothing was broken only because every package suite was green. Re-verified post-§940/§949: all three now execute, exit 0. Real ≠ reached — two gates, two claims, and the space between them had no owner; cross-referenced in §842's gate |
 | 401 | §953 | **§954** | **RULE 8's ISOLATION SUITE — 105 OF 112 PROOFS WERE NOT EXECUTING, AND ITS OWN GATE SAID OTHERWISE.** *"A cross-tenant read anywhere is a build failure"* (REQ-025) is the most security-critical sentence in CLAUDE.md. Its suite splits: **7** roster cases in `tools/` (ran) and **105** runtime proofs across api/mcp/translator (did NOT — the §940 dark half). So a DELETED isolation file was caught; a cross-tenant REGRESSION inside one was not. `isolation-suite.test.ts` (§614) asserts *"It does run … executes under the `unit-tests` merge gate"* — **false when written**, and disprovable from the baseline quoted three paragraphs lower in the same comment (`3 failed`), confirmed at `48ef386` where `test` still carried the `&&`. §614 **rejected a named isolation gate on that premise.** Worse than §940's case: that rejection was overtaken by later evidence, this one was contradicted by evidence already in the file. Closed by §940/§949; premise and rejection corrected in place |
 | 402 | §954 | **§955** | **THE CONSTITUTIONAL SWEEP COMPLETED — STRUCTURE WAS ENFORCED, BEHAVIOUR WAS NOT.** Rules 4/5/6/8 enumerated individually: rule 4's cross-surface schema parity ran while *missing physics ⇒ UNKNOWN* did not; rule 5 had **1 of 15** REQ-040 files running; rule 6 3 of 4 (§953); rule 8 105 of 112 cases (§954). **Headline: CLAUDE.md calls the $222,084/35-lb anomaly regression PERMANENT — `it("…flags over_per_lb — forever")` — and 10 of the 11 files enforcing it were dark.** The shape: `tools/` proves STRUCTURE, `packages/`+`workers/` prove BEHAVIOUR, and for the whole §940 window every structural claim was verified and no behavioural one was. A repo can hold complete static enforcement and ZERO behavioural enforcement while every gate reports green, because the halves are separated by one `&&` that no gate named. Closed by §940/§949; no new gate — the value is the statement |
+| 403 | §955 | **§956** | **THE LAST LINK IS OPEN — `main` HAS NO BRANCH PROTECTION.** Walked the chain from *a test file exists* to *its failure stops a merge*: links **1–6 are each gated** (`test-collection` · §709 · §941 unconditional-run · §949 `--no-bail` · §656 polarity · §807 roster-by-name · §691 CI invokes `verify:merge`). Link 7 is a GitHub setting the audit had only ever ASSUMED — *"the branch protection this repo assumes is outside it"*. **Measured: `gh api …/branches/main/protection` → `{"message":"Branch not protected","status":404}`.** CI runs and computes the full 26-gate verdict; the verdict has no authority. Rule 7's *a violation fails the merge*, rule 8's *a cross-tenant read is a build failure* and rule 1's *CI blocks orphans* are true of the COMMAND and untrue of the REPOSITORY. `docs/ops/` carried **no** mention of branch protection — now an External hold with the measured verdict, a named owner and a 2-second re-check. **NOT enabled by the audit** — governance is the owner's call |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -56261,3 +56262,55 @@ corrected the one comment that had asserted the boundary was safe.
 
 **No new gate here.** The finding is a synthesis of four already-closed measurements, and its value is the
 statement — that a green board could coexist with zero behavioural enforcement — not another check.
+
+## §956 — PHASE GATE: the last link is open — `main` has no branch protection, so no gate blocks anything
+
+§955 found a runner boundary with no owner. This walks the whole chain from *"a test file exists"* to *"its
+failure stops a merge"*, link by link, and asks which links are gated.
+
+| # | link | gated by |
+|---|---|---|
+| 1 | the file is collected by some vitest config | `test-collection.test.ts` — *"every test file matches an include of the runner that owns it"* |
+| 2 | its package declares a `test` script (else `--if-present` skips it) | §709, same file |
+| 3 | the recursive runner reaches every package | §941 (unconditional) + §949 (`--no-bail`) |
+| 4 | the script's exit propagates | §656/§941 polarity |
+| 5 | `unit-tests` is on the merge roster **by name** | §807 `MERGE_ROSTER` |
+| 6 | CI actually invokes `verify:merge` | §691 |
+| **7** | **a failing check blocks the merge** | **nothing** |
+
+Links 1–6 are each enforced by a gate this repo already owns. Link 7 is a GitHub setting, and the audit had
+noted in passing that *"the branch protection this repo assumes is outside it."* **Assumed, never measured.**
+
+### Measured
+
+```
+gh api repos/shuddl/shuddl-os/branches/main/protection
+→ {"message":"Branch not protected","status":"404"}
+```
+
+**`main` is unprotected.** No required status checks, so nothing prevents a merge — or a direct push — while
+`verify:merge` is red. CI *does* run (`on: pull_request` and `push: [main]`) and it *does* compute the full
+26-gate verdict; that verdict simply has no authority.
+
+So the constitution's enforcement verbs are, at the GitHub layer, not enforced: rule 7's *"a violation **fails
+the merge**"*, rule 8's *"a cross-tenant read anywhere is a **build failure**"*, rule 1's *"traceability CI
+**blocks** orphans"*. Each is true of the *command* and untrue of the *repository*.
+
+### Why this is the right shape of finding, and the right non-action
+
+This is **not** a repo defect — every in-repo link is correctly built, and §938–§955 spent eleven phases
+proving links 3 and 4 in particular. It is a one-setting external hold that the operator-facing ledger did not
+carry: `git grep -i 'branch protection' docs/ops/` returned **nothing**. An operator reading
+`GO-LIVE-CHECKLIST` finds nine private fixtures, secrets, DNS and monitors — and not the single setting on
+which every one of those gates' authority depends.
+
+**I did not enable it.** Turning on branch protection is an outward-facing change to repository governance with
+immediate effect on everyone who pushes; that is the owner's call, not a side effect of an audit. Filed as an
+external hold with the measured verdict, a named owner, and the exact command to re-check.
+
+### The pattern this closes
+
+§955 said a gate's authority can be broken by a boundary nobody owns. §956 is the same statement at the outermost
+boundary — and it is the one place where **the whole 26-gate apparatus rests on a fact stored outside the repo**,
+which is precisely the kind of fact [[record-holds-with-expiry-triggers]] says decays unwatched. It is now
+watched: the row's expiry names the command, and the command takes two seconds.
