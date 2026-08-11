@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 494 | §1046 | **§1047** | **EVERY OPEN ROW NAMES ITS BLOCKER — AND MY CHECK READ THE WRONG CELL.** §1046 rested on the property that *each row states what it is blocked on*, verified on four rows; eighteen are open, so it was a hypothesis until counted. **The single-cell check flagged 6 of 18 as bare, and all six are wrong**: L421 names *without an opt-in marker*, L431 names *NOT diagnosed: a single non-reproducing failure cannot locate a cause*, L426/L427 carry posture in Status and blocker in Owner, and L411/L418 — whose Status is literally `OPEN` — name theirs in **Owner** (*register owner (denylist contents) / infrastructure (the secret)*) and **Expires** (*on binding `IDENTITY_DENYLIST`*). **18 of 18 name their blocker.** The schema is the reason and it is a good one: **Status carries the verdict, Owner who can move it, Expires what event unblocks it** — a bare `OPEN` is not incomplete, it is not where that lives. **A checker that reads one field of a structured record will find it under-specified, and be wrong** — same class as §1039's structural-vs-behavioural and §1040's vocabulary narrowness: **the instrument's shape decided the finding.** Fourth consecutive phase where the record was ahead of the probe |
 | 493 | §1045 | **§1046** | **§1045's LESSON TURNED ON THE LEDGER — §1041 WAS THE EXCEPTION, NOT THE PATTERN.** §1045 closed a filed row by noticing its deferred judgement was arithmetic, and stated: **before filing a decision, check whether it is a measurement.** A rule earned on one instance is a hypothesis until counted — so I examined every decision-shaped row. **None is a disguised measurement.** L408 (*duplicate-vs-strand*) is a **genuine** design decision, both answers correct engineering with different failure modes · L410 (coverage) is external + scope, §1006 having measured **0 installable providers** · L426 (the signup 409) is a genuine product call, the row itself saying *accepted-for-now, recorded so the pre-GA pen-test row inherits it knowingly* · **L398 was already prepared** — it names the exact replacement text, and I verified the number rather than trusting it: `CANONICAL_VIEWS` declares **11** against `MAX_CANONICAL_VIEWS = 12`, so *(11 used, one spare)* is right and the owner's action is a copy-paste. **The author of that row got there before the rule was written.** **A well-kept ledger's 'decisions' are mostly real decisions** — filing a measurement as a judgement is a mistake an auditor makes under time pressure, not a property of the record; and it is only visible because each row states WHAT IT IS BLOCKED ON |
 | 492 | §1044 | **§1045** | **§1041 CLOSED — THE DEFERRED JUDGEMENT WAS NOTHING TO DECIDE.** §1041 measured REQ-025's enforcer absorbing the loss of any single glob (union floor `> 180` over 316 files) and **filed** it, reasoning that adopting `scanCorpus` needed a `mayBeEmpty` decision per glob on a build-failure law. **Re-examined: which globs are empty is MEASURABLE, not a judgement.** All ten match files (99/48/116/35/8/4/59/47/53/38), so **`mayBeEmpty` needs no entries** — the deferred decision was nothing to decide, and deferring cost the owner attention that one command resolves. Fixed: `scanCorpus(globs, root, {excludeTests:true})`, whose filter is **byte-identical** to the one it replaced (corpus unchanged, guarantee added) and which judges emptiness on the RAW result before the test filter. Mutation-proved on three globs with the RED **attributed**: exit **1**, *scan glob matched ZERO files: …*, at COLLECTION time so the gate refuses to run rather than running blind. The `> 180` floor is KEPT — it defends §572's *collapse*, `scanCorpus` the *amputation*, neither subsumes the other. **Refinement: before filing a decision, check whether it is a MEASUREMENT** — a row asking an owner to decide something a command can answer spends their attention on work the audit could have finished |
 | 491 | §1043 | **§1044** | **THE LAST THREE BLOCKED HOLDS — THE INHERITED CLAIM, TESTED.** §1000/§1002 exercised two of the five BLOCKED gates; the other three carried a claim from §159 — *three of the four buy real-data EVIDENCE for a mechanism already proved in-repo on synthetic data* — which is the difference between *we cannot run this gate* and *we do not know whether this works*, **and which I had been repeating without testing** (§804: a claim you inherit is a claim you are making). The gates report honestly: all three **PENDING, executed:false, assertions:0**, each naming its absent fixture. And each mechanism is green in-repo: **rater 166 passed** (including `sweep.test.ts`, the 7-zone × 72-weight property sweep CLAUDE.md rule 4 names) · **ledger money 34** (`iif` + `money-projection`, what the penny reconciliation compares) · **agents parse 37** (the parser the parity harness drives). **The inherited claim holds, now measured rather than quoted.** That completes the BLOCKED half: **nothing in that column is an unknown** — every one is a named external input with the machinery behind it demonstrated |
@@ -61730,3 +61731,53 @@ helpful, instrumentation vs scope — is what makes them decidable by someone wh
 **Re-open when:** a row is filed whose blocker is a number — that is the shape §1045 caught, and it is cheap
 to check at filing time · L398's views entry gains its eight words, which closes it · a decision row stops
 naming its alternatives, since that is what makes it decidable at all.
+
+---
+
+## §1047 — PHASE GATE: every open row names its blocker — and my check read the wrong cell
+
+§1046 concluded that the ledger's decisions are genuine, and rested that on a property: *"it is only visible
+because each row states what it is blocked on."* That was verified on four rows. There are eighteen open, so
+the property is a hypothesis until counted.
+
+### The single-cell check produced six false alarms
+
+Scanning each open row's **Status** cell for a named blocker flagged **6 of 18** as bare. Reading them, all
+six are wrong:
+
+- **L421** — *"and now measured twice as not-worth-building **without an opt-in marker**"* — names the blocker;
+  my pattern lacked the word.
+- **L431** — *"**NOT diagnosed**: a single non-reproducing failure cannot locate a cause"* — names why.
+- **L426**, **L427** — carry their posture in Status and their blocker in Owner.
+- **L411**, **L418** — Status is literally `OPEN`, and both name the blocker elsewhere:
+
+| row | Owner | Expires |
+|---|---|---|
+| L411 | *register owner (denylist contents) / infrastructure (the secret)* | *on binding `IDENTITY_DENYLIST`…* |
+| L418 | *register owner (owner-signed amendment)* | *when `genesis/09…csv` or `active-wps.json` changes* |
+
+**18 of 18 name their blocker somewhere in the row.**
+
+### The schema is the reason, and it is a good one
+
+The ledger's eight fields distribute the answer deliberately: **Status** carries the *verdict*, **Owner**
+carries *who can move it*, **Evidence expires** carries *what event unblocks it*. A Status cell reading plain
+`OPEN` is not incomplete — it is not where that information lives.
+
+> **A checker that reads one field of a structured record will find it under-specified, and be wrong.** My
+> probe asked "does Status name a blocker?" when the schema's answer is *Owner + Expires*. Same error class as
+> §1039's structural-vs-behavioural and §1040's vocabulary narrowness: **the instrument's shape decided the
+> finding**, and the record was better than the reading of it.
+
+This is the fourth consecutive phase where the record turned out to be ahead of the probe (§1044's inherited
+claim held; §1046's L398 was already prepared; §1045's deferred judgement was the one real slip). That ratio
+is itself a measurement: **one authoring error against three confirmations, in a ledger of eighteen rows.**
+
+### Phase gating
+
+**STOP.** The actionability property is counted, not sampled: **18/18 open rows name a blocker across
+Status/Owner/Expires**, and zero are unactionable.
+
+**Re-open when:** a row is filed whose Owner cell is empty or generic — that is the field carrying the answer
+for the two rows whose Status is bare · a row's Expires cell stops naming an event, which is what makes the
+blocker checkable rather than merely stated.
