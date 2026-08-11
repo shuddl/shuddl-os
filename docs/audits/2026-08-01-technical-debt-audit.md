@@ -631,6 +631,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 461 | §1013 | **§1014** | **THE SELF-CONFIRMING-TEST CLASS — SWEPT, CLEAN, AND THE DETECTOR THAT COULD NOT HAVE TOLD ME.** §1013 cited three instances of one shape (§186 fixture-built-with-the-function, §819 client-vs-its-own-drawing, §858 suite-mocks-what-it-composes), which is past the threshold for counting. **Mock-detectable half CLEAN: 367 test files, 20 use `vi.mock`, ZERO mock their own subject.** Only two mock 2+ siblings and both survive: `GatedFlow` is §858's known, remediated instance; `App.test.tsx` mocks map/session/api to assert the portal NEVER falls back to demo data — **asserting a mock was NOT called is a legitimate use of one.** The §186 half is not mock-detectable, so I wrote a detector for its signature (same function both sides): **55 hits, and reading three showed it conflated three different claims** — a sign-mirror INVARIANT (`f(-x)` vs `f(x).map(negate)`), a fail-closed EQUIVALENCE (`effectiveOrigins('')` vs `('prod')`), and bare determinism that is sound because its suite pins real values elsewhere. **The method failure is the finding:** my classifier reported 21 paired + 30 naked out of 34 total — **51 classified out of 34** — so I refused to report from it and read samples instead. **A probe whose counts do not add up has already told you its verdict is unusable**; publishing anyway and letting the reader filter is how §240's 95%-false sweep would have entered this record |
 | 460 | §1012 | **§1013** | **TIME ZONES AND DST — A BOUND, NOT A DISCOVERY.** Freight windows belong to a FACILITY, not a server, and a clock that drifts an hour fails in the world while passing in one-zone tests. `daylight` returns 0 in both the record and the code — clean or unexamined, and measured it is clean. **0 local-time getters in product code** (the two `toLocaleString` hits are MONEY formatting with an explicit locale) · **1 day-boundary derivation** (`anchor.ts:59@dayOf` `toISOString().slice(0,10)` — **UTC by construction**, DST-immune) · **1 genuinely local module** (`appointment-window.ts`, IANA zones via `Intl.DateTimeFormat`, throws on a malformed facility tz rather than falling back) · **3 DST cases green**, including the one people forget — **spring-forward, where 02:00 does not exist** (`07:30Z → 03:30 EDT, not 02:30`), which a fixed-offset implementation fails. **The better lesson is historical:** §186 is titled *the appointment suite was blind to DST because its fixture calls the converter it tests* — **a self-confirming fixture is a mirror, not a test**, the same shape as §819's client-checked-against-its-own-drawing and §858's suite mocking what it composed |
 | 459 | §1011 | **§1012** | **IDENTITY BY SHAPE, NOT BY NAME — FOUR MORE PROXIES SWEPT, CORPUS CLEAN.** §1011's line was that a REQ-167 leak *rode in on a portability defect*; the technique it names is **a denylist catches only names someone thought to add, but a SHAPE needs no list.** `absolute-paths` is that idea applied once — this asks what the others are, which matters for a freight product because an **MC or DOT number IS a carrier identifier**. Five shapes over the tracked corpus: **phone 0 · DOT 0 · MC 0** — the three freight-native identifiers absent entirely, the strongest signal here — SCAC 2 (synthetic, one isolation test), email **340**. The email cut, **including a mis-binning I made and corrected**: 176 RFC-2606 reserved + 17 own domain + **66 on the reserved `.example` TLD my first classifier MISSED** (it matched `example.com` but not the TLD — a classifier that under-recognises the synthetic bucket over-reports the risky one, the safe direction, caught by reading the domain list not the total). Precise question: 43 on non-synthetic domains, **exactly 1 person-shaped local part — and it is a regex artifact** (`@grant.exp` is a JWT field path, not a domain). **0 person identifiers**; local parts redacted throughout, since a record that prints one re-commits it. Email measured NOT gated — §240's wall (most are legitimate fixtures) |
 | 458 | §1010 | **§1011** | **§1010's ADVICE WAS NECESSARY AND NOT SUFFICIENT — THE RECORD ALREADY SAID WHY.** Tracing REQ-289's source document to the commit that introduced it (`da475d5`, four days ago) surfaced a qualification written by the phase that fixed a **real REQ-167 violation**: *check:identity uses a DENYLIST … it can only catch a name someone thought to add.* That leak was **39 occurrences across 5 files in `docs/plans/`** — an absolute home path embedding an operator account name — and `docs/plans/` is the **same document class** as `docs/gtm/`. §1010 treated the risk as prospective; **it is precedented.** A GTM corpus is full of names nobody has thought to add yet — the denylist is the wrong shape for its dominant risk. What runs TODAY is the complement `da475d5` built: `absolute-paths.test.ts`, denylist-INDEPENDENT and shape-based, *the only REQ-167 enforcement that runs at all* while the secret is BLOCKED. **And it would fire:** the pending corpus carries the leak shape in **3 files (1 real + its 2 sync-duplicates)** — paths deliberately not reproduced here, since printing them re-commits the identifier. Sequence gains a step-0 that needs no secret: clear the path, bind, delete duplicates, commit. Also clean: **register provenance 76 citations / 0 unresolvable** (§1003's frame on the register); `.claude/plugins/` untracked AND unignored |
@@ -59723,3 +59724,67 @@ that must be local is IANA-correct, fails loud on a bad zone, and is DST-tested 
 is the template · a facility timezone becomes tenant-configurable data rather than fixture data, since a
 malformed value then arrives from outside · any day-boundary derivation is added, because there is currently
 exactly one and it is UTC by construction.
+
+---
+
+## §1014 — PHASE GATE: the self-confirming-test class — swept, clean, and the detector that could not have told me
+
+§1013 named a shape and cited three instances: §186 (a fixture built with the function under test), §819 (a
+client checked against its own hand-copied drawing of the server), §858 (a suite mocking the components whose
+composition was the point). Three instances is past the threshold where this record stops citing and starts
+counting.
+
+### The mock-detectable half: clean
+
+```
+test files                      367
+files using vi.mock              20   (31 mocks)
+files mocking their OWN subject    0
+```
+
+Only two files mock two or more siblings, and both survive inspection:
+
+- `GatedFlow.test.tsx` mocks all three children — **§858's known instance**, already remediated there with six
+  cases covering REQ-064's *ADVANCE is dead until the glass holds ink*.
+- `App.test.tsx` mocks map/session/api to assert the portal **never** falls back to synthetic demo data.
+  Asserting that a mock was *not* called is a legitimate use of one; the mock is the instrument, not the
+  subject.
+
+### The §186 half: my detector conflated three different claims
+
+The fixture-builds-its-own-oracle shape is not mock-detectable, so I wrote a detector for its signature — the
+same function on both sides of an assertion. **55 hits.** Reading three of the highest-value ones:
+
+| flagged | what it actually is |
+|---|---|
+| `split.test.ts:78` `allocateCents` | a **sign-mirror invariant** — `f(-x)` against `f(x).map(negate)`. Different inputs, transformed output |
+| `cors.test.ts:107` `effectiveOrigins` | an **equivalence** claim — `("")` against `("prod")`, the fail-closed law, with a discriminating assertion two lines down |
+| `price.test.ts:136` `priceShipment` | genuinely bare determinism — but its suite pins real values elsewhere, so the function cannot be a constant |
+
+**The detector could not distinguish determinism, equivalence and invariant claims**, and all three look
+identical to a regex. Only the third is even the shape I was hunting, and it is sound in context.
+
+### The method failure is the finding
+
+My classifier reported `34 total, 21 paired, 30 naked` — **51 classified out of 34**, because the `paired`
+counter incremented in two branches. The numbers did not reconcile, so I refused to report from it and read
+samples instead.
+
+> **A probe whose counts do not add up has already told you its verdict is unusable.** The temptation is to
+> publish the list anyway and let the reader filter — which is how §240's 95%-false citation sweep would have
+> entered this record as a finding.
+
+Same wall as §1012's email shape, one level more abstract: this class is **defined semantically** — is the
+expected value independent of the thing under test? — and no regex reaches it.
+[[invert-a-detector-whose-boundary-is-english]] applies exactly.
+
+### Phase gating
+
+**STOP.** The mechanically-detectable half is swept and clean (0/367 self-mocking, both multi-mock files
+justified). The semantic half stays where §1013 left it: **found by reading, three times, each in a phase
+auditing something else** — which is the honest account of how that class has ever been caught here.
+
+**Re-open when:** a test file mocks its own subject — the one form a gate could catch, currently 0 · a new
+`GatedFlow`-shaped composition test appears (2+ sibling mocks), since that is the reviewable proxy · a
+determinism assertion is written into a suite that pins no real values, which is the only genuinely vacuous
+version of the shape.
