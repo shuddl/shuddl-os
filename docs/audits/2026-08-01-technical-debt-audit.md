@@ -631,6 +631,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 470 | §1022 | **§1023** | **THE REST OF THE LIVING REGION — CLEAN, AND THE RULE THAT SEPARATES IT FROM §1022.** §1022 found two rotted values in the rewritten blocks; is there a third? Tractable because this record is append-only — §127's rule: **a number in an append-only record carries its own timestamp, its POSITION**, so a figure inside §843 is a claim about the day §843 was written and cannot rot. **Only the rewritten region can**, lines 1–48. Swept: **one numeric claim, and it is correct** — *57 findings → 12 → 45* is **STAMPED**, the same block opening *HEAD at audit: `0415148`* and closing *Baseline … all PASS at `0415148`*. The nearby *coverage (288/288, drift 7)* proves it: today that is 288/289, and the line is still TRUE because it says *at `0415148`*. **The rule (§294: pin or stamp, neither is not an option) — §1022 is what 'neither' looks like:** stamped claim correct indefinitely; *152 sections* → **1008**; *eight phases* → **52**, contradicted by its own table. Transferable half: **both casualties described the DOCUMENT ITSELF** — the figure nobody thinks to stamp, because a count of your own work feels like a fact about the present rather than a measurement of a moment |
 | 469 | §1021 | **§1022** | **THE FRONT DOOR HAD DECAYED — THE ONE PLACE §162 FIXED, AND THE ONE WAY IT COULD STILL ROT.** §1019 found a stale figure in a gate header; §1020 proved it ungateable; so this asks **where such a figure costs most** — the block every reader lands on first. §162 already fixed this entry point once (*a READ-THIS-FIRST redirect named a SHA re-measured **nine times** since*) with the right rule — **point at the section, never at the value** — and left three values in the surrounding prose. **All three had rotted:** `START HERE` claimed **152 sections** against **1008**; **§4 claimed 'Eight phases have closed' directly above its OWN 24-row table** whose last phase is **52**; and *what blocks release* still pointed at §113 when **§999** is the current verdict. Fixed by **removing the decaying value, not refreshing it** — 1008 would re-arm the same trap — so both sentences are now state-INDEPENDENT, and §4's tells the reader how to find current state themselves (*the last row*), which no growth can falsify. Release pointer leads with §999 → §994, keeping the old three as provenance: **a stale count invites a double-check, a stale POINTER is simply followed.** Third instance of one shape (§1013, §1019): **a fix installs a mechanism; the sentences describing it are not part of the mechanism, and nothing re-reads them** |
 | 468 | §1020 | **§1021** | **CORPUS NARROWER THAN SUBJECT — SWEPT ACROSS 17 GATES, CLEAN.** §1020's own detector had that defect (docs-only corpus while gates quote SOURCE comments); this turns it on shipped gates. **§120's precedent, in the gate's own words:** *this scanned packages + workers, .ts only — so **4 of 6 (tree × extension) cells were blind**; check:chokepoint already scanned `apps/` for the same class, and **the two gates guard I3 together and disagreed about where it could live**.* Two mechanisms, one invariant, differing in SCOPE with nothing failing. Fixed by making the corpus **shared** — `source-corpus.ts` exports `SOURCE_SCAN_GLOBS` + `isTestPath` + `stripComments`, and **9 gates import it**. The part worth copying is `EXPECTED_EMPTY_GLOBS`: **a glob that legitimately matches nothing is DECLARED**, so a glob that UNEXPECTEDLY matches nothing can fail — §968's `checked=0` law, fourth instrument (after §1015's discarded 90% probe and §1017's Playwright JSON stats). Swept all 17: the 8 `.ts`-only gates are narrow **because their subjects are** — `workers/` has no `.tsx` (declared empty, not merely absent), contracts/rater have no React, `syntax-ban-inheritance` reads a config file, and `and-chain-or-parens` governs **SQL** chains with its scope stated and measured. **No shipped gate has a corpus narrower than its subject** |
 | 467 | §1019 | **§1020** | **CAN §1019's DEFECT BE GATED? — NO, AND THE DETECTOR PROVED IT ON ITSELF.** §1019 found a gate header quoting *"Unbounded list reads — 7 sites"* while the doc said 9. Is that a class, and is it detectable? **First detector: 185 quoted phrases, 75 'missing' — a 40% miss rate that describes the DETECTOR**, since the misses are the gate's own error strings, format strings and rhetorical questions. Not reported. **Narrowed to the repo's own `*"…"*` quotation marker: 22 marked, 6 unresolved — small enough to read, and ALL SIX ARE FALSE POSITIVES** in three ways: two quote a gate's own error/output, one quotes a **superseded comment deliberately**, two are **verbatim in the audit behind backticks** (my normaliser stripped whitespace but not MARKDOWN), and one quotes a **source** comment (`spark-meter.ts:18`) while my corpus was docs-only. **Zero confirmed stale quotations besides §1019's.** No gate is possible: the marker means *this is a quotation*, not *this must still be true* — and a superseded-comment quote that stops resolving is **the point of quoting it**. Third time at this boundary (§1012, §1014). Two transferable detector defects recorded: **normalise both sides to the same alphabet**, and **the corpus must be as wide as the thing QUOTED, not as wide as the thing audited** |
@@ -60297,3 +60298,53 @@ the current verdict.
 one edit no gate will demand · a value re-enters `START HERE` or §4's head, which is the shape that decayed
 twice · the phase table's last row stops being the current one, which would falsify the new wording rather
 than merely age it.
+
+---
+
+## §1023 — PHASE GATE: the rest of the living region — clean, and the rule that separates it from §1022
+
+§1022 found two rotted values in this document's rewritten blocks. The obvious completion: **is there a third?**
+
+This record has a property that makes the question tractable. It is append-only, so — as §127 established — *a
+number in an append-only record carries its own timestamp: its position.* A figure inside §843 is a claim
+about the day §843 was written and cannot rot. **Only the region that gets rewritten can.**
+
+That region is lines 1–48: the header, `START HERE`, and §4's head. Swept every numeric claim in it.
+
+### One survivor, and it is correct
+
+```
+Counts: 57 findings raised → 12 Critical/High candidates verified → 12 confirmed, 0 refuted → 45 medium/low.
+```
+
+Not stale — **stamped**. The same block opens *"HEAD at audit: `0415148`"* and closes *"Baseline before the
+audit: … all PASS at `0415148`"*. Those counts describe the originating 19-agent run at a named commit, and a
+claim bound to a commit cannot decay; it can only become historical, which it already announces.
+
+The nearby *"coverage (288/288, drift 7)"* is the proof: today it is 288/289 with the owner's uncommitted row,
+and the line is still **true**, because it says *at `0415148`*.
+
+### The rule that separates the survivor from §1022's two casualties
+
+§294 stated it — *pin or stamp, and neither is not an option.* §1022 is what "neither" looks like:
+
+| claim | pinned? | stamped? | outcome |
+|---|---|---|---|
+| *"57 findings raised → 12 → 45"* | no | **yes** (`0415148`) | correct, indefinitely |
+| *"This document is 152 sections"* | no | no | **rotted 152 → 1008** |
+| *"Eight phases have closed"* | no | no | **rotted 8 → 52**, contradicted by its own table |
+
+Both casualties described **the document itself**, which is exactly the figure nobody thinks to stamp: a
+count of your own work feels like a fact about the present rather than a measurement of a moment. That is the
+transferable half — **the numbers most likely to rot are the ones describing the container rather than the
+contents**, because a reader stamps what they measured and forgets that "how much have I written" was also a
+measurement.
+
+### Phase gating
+
+**STOP.** The living region is swept: 1 numeric claim, stamped, correct. §1022's two were the only rot, and
+both are now state-independent rather than freshly-numbered.
+
+**Re-open when:** a value enters lines 1–48 — it needs a commit stamp or a pin before it lands, and the third
+option (state-independent phrasing) is what §1022 chose · the header's `0415148` stamp is edited, since that
+one SHA is what keeps five separate figures true.
