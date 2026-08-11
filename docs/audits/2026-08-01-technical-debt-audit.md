@@ -582,6 +582,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 387 | §939 | **§940** | **THE UNIT-TESTS GATE WAS RUNNING A QUARTER OF THE TESTS.** `test` is `test:tools && pnpm -r run test`; `test:tools` fails on the owner's REQ-289 row, so the recursive half has not run in the merge gate for as long as that row has been open. Measured: a planted `packages/ledger` regression is **invisible** (0 hits) under `&&` and visible (3) when both exit codes are aggregated. **3,269 tests across 17 suites, all green, were not being run** — the failure mode is silence, not noise, and a real regression was indistinguishable from the known row. §656's `&&` bought polarity at the cost of completeness when the first half could not fail; that mechanism is superseded (its property is kept and still enforced). `--no-bail` REJECTED on evidence: workerd socket exhaustion cascades false failures. Residual named: `pnpm -r` still bails per package |
 | 388 | §940 | **§941** | **THE SAME SHORT-CIRCUIT IN `typecheck`, CLOSED BEFORE IT COULD BITE.** Counted rather than guessed: of **30** gate specs in `gatesFor()`, exactly **two** chain internally — `test` (§940) and `typecheck`. Planted type errors in both halves: under `&&` only the tools error is reported and the recursive half never runs; aggregating, both do. It passes today, so nothing was masked — the point is that **`&&` is safe only while the first half has no persistent red**, which is a property of the repo's ledger of open rows, not of the script. First probe was a FALSE CLEAN (grepped the planted identifier; tsc prints `file(line,col): error TS2322` and never the symbol). gate-wiring now asserts the CLASS over a roster checked against `gatesFor()` |
 | 389 | §941 | **§942** | **NOTHING STOPS A SURFACE DEPLOYING WITHOUT ITS CONTRACT CHECK.** §941's detector matches `pnpm -r --if-present run`; **4** scripts recurse and it matches **2** — the others spell it `pnpm --filter`. Both are outside `gatesFor()` so the rule is correctly scoped, but reading them found the `deploy:surfaces` pipeline enforced by a **comment**. Naive probe looks guarded: deleting `check:surfaces` REDs — as the §289 ORPHAN check, incidentally, because the deploy chain is its sole invoker. The three routes that keep it invoked are **all silent**: run it after the deploy, `&&`→`;`, or drop `-- --built` (checks sources, not the shipped bundles). Each deploys a live production surface past its contract gate. Also states the scope boundary: `&&` is wrong for INDEPENDENT halves, right for a DEPENDENT pipeline — this one is fail-closed and must stay |
+| 390 | §942 | **§943** | **THE "PRINTS ITS REFUSAL, EXITS 0" CLASS, ENUMERATED AND CLOSED — AND MY OWN MECHANISM CORRECTED.** §938/§939 said *"sentinel and exit code disagree, CI believes the exit code."* Wrong: `reconcileSentinel` already reconciles them **pessimistically** (a sentinel may degrade an exit-0 run, never upgrade a failing one). Measured why both survived it — **neither gate emitted a sentinel at all** (0 and 0). The true rule is sharper: *it protects gates that SPEAK, not a gate that goes QUIET*, and suppression is conditional on the same `local` mode where the exit code is wrong. Class enumerated two-sided: **10 mode-aware entrypoints / 14 script bindings, every one has a mode source, zero default to local.** Clean negative with a REAL positive control — reverting §938's one-line fix makes the probe print NONE |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -55215,6 +55216,8 @@ gates:      run-gate · dev-loop-parity · gate-wiring · runtime-contract · cw
 That is C2's original defect restored verbatim, and it is **worse than a plain regression**: the sentinel says
 BLOCKED while the exit code says 0, so a human reading logs sees the refusal and CI reading `$?` sees success.
 The two channels disagree and the machine believes the wrong one — [[two-mechanisms-disagreeing-is-the-finding]].
+
+> **MECHANISM CORRECTED (§943).** ~~The two channels disagree and CI believes the exit code.~~ run-gate reconciles them **pessimistically** — `run-gate.ts:118@reconcileSentinel`, where a sentinel may degrade an exit-0 run but never upgrade a failing one. This defect survives it because the gate emits **no sentinel at all** in `local` mode (measured: 0), leaving nothing to reconcile. The finding and its severity are unchanged; the mechanism is *a gate that goes quiet*, not *a gate that is disbelieved*.
 A §688 **passing corpus**: no test's corpus contains the script's argv. `run-gate.test.ts:76` looked like
 coverage and is not — it asserts the release profile *runs* `test:surfaces`, never what that script *is*.
 [[a-gates-green-certifies-less-than-its-name]].
@@ -55304,9 +55307,11 @@ budget, the §252 probe — and ran the audit under each mode:
 | `advisory` (one word) | **0** | `design audit: 2 violation(s) [mode=advisory]` — *same violation, still printed* |
 
 So a one-word edit to a four-line JSON file repeals rule 7, and the design audit keeps **reporting every
-violation while exiting 0**. This is §938's C2 defect exactly — the sentinel says one thing, the exit code
-says another, and CI believes the exit code — but on pixel law rather than a field gate, and reachable
-without touching a single line of code or test. `git log` would show a JSON one-liner.
+violation while exiting 0**. This is §938's C2 defect exactly — ~~the sentinel says one thing, the exit code
+says another, and CI believes the exit code~~ **MECHANISM CORRECTED (§943): run-gate reconciles sentinel
+against exit code *pessimistically* (`run-gate.ts:118@reconcileSentinel`); what defeats it here is that the
+advisory path emits NO sentinel at all (measured: 0), so there is nothing to reconcile** — but on pixel law
+rather than a field gate, and reachable without touching a single line of code or test. `git log` would show a JSON one-liner.
 
 **Why this survived §252 and §258.** Both *proved the gate works* — §252 planted a shadow, a radius and a raw
 hex and watched them go RED; §258 verified the mode file says `blocking`. Both are true and neither is this
@@ -55515,3 +55520,63 @@ in the failure message that this `&&` is deliberate, so the §940/§941 lesson i
 
 Scope, honestly: this pins the **chain**, not the checker. Whether `surface-contract.ts` actually validates
 the built bundle is a separate claim with its own tests, and this gate does not re-derive it.
+
+## §943 — PHASE GATE: the "prints its refusal, exits 0" class, enumerated and closed
+
+§938, §939 and §942 each found a gate that reported a violation and returned 0. Three accidents make a class
+worth enumerating rather than a pattern worth naming. Enumerating it first required correcting my own
+mechanism, which was wrong in a way that mattered.
+
+### Correcting §938/§939's stated mechanism
+
+I wrote, in both sections, that *"the sentinel and the exit code disagree and CI believes the exit code."*
+**run-gate does not work that way.** `run-gate.ts:118@reconcileSentinel` reconciles them **pessimistically** in
+the dangerous direction: a sentinel may DEGRADE an exit-0 run but may never upgrade a failing one, so
+`##SHUDDL-GATE## {"status":"BLOCKED"}` with exit 0 is recorded **BLOCKED**. That safety net is well built and
+already carries its own comment explaining the nested-child case it was written for.
+
+So why did both defects survive it? Measured, not reasoned:
+
+| case | sentinel emitted |
+|---|---|
+| §938 — `test:surfaces` with no `--mode`, no base | **0** |
+| §939 — design audit, advisory, planted `box-shadow` | **0** |
+
+**Neither gate spoke at all.** run-gate had nothing to reconcile and fell through to `synthesize()`, which
+reads the exit code alone. The conclusions in §938/§939 stand; the mechanism I gave for them was wrong, and
+the true one is sharper and more useful:
+
+> **`reconcileSentinel` protects gates that SPEAK. It cannot protect a gate that goes QUIET.** A missing
+> sentinel is not "no information" — it is indistinguishable from a pass. And suppression is conditional on
+> exactly the mode where the exit code is also wrong: `if (mode !== "local") console.log(formatGateResult(…))`
+> in `backup.ts:517`, `preflight.ts:713`, `restore-verify.ts:377,408`.
+
+### The class, enumerated two-sided
+
+The defect shape is now exact: **a mode-aware entrypoint that never receives a mode** defaults to `local`,
+goes advisory, suppresses its sentinel, exits 0, and is synthesized as PASS. So the question is decidable —
+cross every `parseMode` consumer against every place a mode could come from (baked into the script,
+`modeArg: true` in `gatesFor()`, or an explicit `--mode` in a workflow).
+
+**10 mode-aware entrypoints, 14 script bindings, and every one has a mode source. Zero default to `local`.**
+`identity-leak`, `fixtures`, both rater parities, `concierge-parse`, `preflight`, `restore-verify`,
+`staging-smoke` — run-gate. `backup` — the nightly workflow (`nightly.yml:61`, `--mode release`). The four
+browser gates — run-gate *and* CI. `test:surfaces` — its own script, which is §938's fix.
+
+`backup-manifest` is `kind: "external"` and runs no script, so it is out of scope by construction rather than
+by omission.
+
+### The clean negative has a positive control, and it is this session's own defect
+
+A sweep returning nothing is worth exactly what its detection power is worth
+([[a-false-clean-invites-no-follow-up]]), so I ran the control rather than asserting it: **reverting §938's
+one-line fix** — deleting the baked `--mode release` — makes the probe print
+`test:surfaces mode source -> *** NONE ***`. The instrument detects the defect it claims to have found zero
+of, and the proof is a real defect that existed in this repo four commits ago.
+
+`mode-source-coverage.test.ts` makes it permanent: it derives the `parseMode` consumers from source and
+requires each bound script to have a mode source, so a **new** mode-aware tool added without one fails on
+arrival instead of silently reporting PASS on the release path. Division of labour is stated and asserted:
+this gate is the **discovery** half (every mode-aware entrypoint is accounted for);
+`playwright-mode-parity.test.ts` (§938) owns the **exclusivity** rule (never both, never neither) for the
+playwright family.
