@@ -631,6 +631,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 484 | §1036 | **§1037** | **THE FIGURES I WAS RESTATING — TWO STALE, AND BOTH STALE BECAUSE OF ME.** §1036 re-earned the board; the same question applies to every recurring figure, and §1032 named the mechanism (*this audit is its own churn source*). Re-measured all eight: **unpushed commits 1,018 → 1,097** (I added 45 while quoting the size) and **open repo-owned rows 17 → 18** (§998 filed the flake row while I kept quoting §994) are **STALE**; ledger rows 35 → 36, same cause. Confirmed unchanged: board 19/2/5, tests 4,535/3, pending fixtures 9, BLOCKED 5, pull requests 0. **Neither stale figure decayed because the world moved — both decayed because I ACTED.** §1023's rule with the container being **my own output**: *the figures most likely to be stale in a summary are the ones the summariser is actively changing*, and it is invisible from the inside because each restatement felt like a citation rather than a claim. **The two survivors sharpen it** — `0 pull requests` and `5 BLOCKED` are exactly the figures nothing in this session could move. Remedy is §1022's: cite the SECTION that measured a figure, or re-measure at the point of restatement |
 | 483 | §1035 | **§1036** | **THE BOARD RE-MEASURED AT HEAD — THE VERDICT I HAD BEEN REPEATING PAST ITS EVIDENCE.** §999 measured the board at `1e2ec98`; every phase since quoted **19/2/5** while **37 commits landed**. This record built §995's gate because *nothing could distinguish still-true from nobody-looked*, and §1029 showed a proof covers only the text that existed when it ran — **a board verdict is subject to both, and I had been restating one without re-earning it.** Re-ran: `verify:merge` at `40f69a8`, 297s. **19 PASS · 2 FAIL · 5 BLOCKED · 22 suites · 374 files · 4,535 tests · 3 failing · 99.934%** — identical to §999 except the one test this session added. Every failure attributed again, not assumed: the same three in `tools/traceability`, all the owner's uncommitted REQ-289 row, and **21 of 22 suites have zero failures**, so `unit-tests`' red masks nothing. **What re-running bought is not a changed number but a RE-EARNED one** — 37 commits including nine new/widened gates, two skill edits, a CLAUDE.md correction and a nightly job could each have broken something. **The cost of re-measuring is bounded and knowable; the cost of quoting a stale verdict is not.** §994's wedge deferral now overruled twice, wedge absent both times |
 | 482 | §1034 | **§1035** | **STOPPING POINT VI — EVERY ONE OF THE TEN LAWS HAS A NAMED ENFORCER.** §1033/§1034 verified the two rules whose enforcement is not a command; this resolves ALL ten to a named artifact rather than summarising (§127: a derived record is usually less accurate than its source). **Ten rules, ten enforcers — eight commands or pinned tests, two verified by measurement this session.** `check:invariants` · `check:chokepoint` · `check:rater-purity` · `check:fixtures` · `audit:design` · `isolation-suite.test.ts` · the adapters pair for rule 10 · and **rule 5's model pin**: `anomaly.test.ts` — *the 35-lb $222,084 quote flags `over_per_lb` — **forever***, driven by the frozen fixture `the-222084-case.json` asserted by id, **with the intent in the test title where anyone deleting it must read it.** **The two ungated rules differ:** rule 1 HAS a gate that has never been given input (`check:pr`, 0 PRs) and converts to machine enforcement on the push; **rule 9 has no possible gate** — no command can establish a swarm occurred, only that a document says so, which is why §1034's convention split was worth writing down. Constitution now measured end to end: budgets by violation, stack by presence, rules-as-written by proof-ancestry, rule 1 by history, rule 9 by reading, all ten mapped |
 | 481 | §1033 | **§1034** | **RULE 9 HONOURED 16/16 — AND THE CONVENTION THAT CHANGED UNDER THE CHECKER.** §1033 verified rule 1 from history because its gate never runs; **rule 9 has no gate at all** — *adversarial audit swarm at every WP exit, no open Criticals at close* — and its only evidence is sixteen close-outs. **Three measurements, and only the third is the answer.** A keyword matcher said **16/16** — the §968 shape, since *no critical* also matches *no critical path*. The structural check said **11/16**, reporting WP-12…16 as missing, **which reads as rule 9 lapsing over the final third of the build**. Reading resolved it: those five record their swarm under a DIFFERENT heading — `## WP-exit audit swarm (REQ-119)` for WP-01–11, `## REQ-119 exit audit — CLEAR-TO-CLOSE` for WP-12–15, `launch audit` for WP-16 — and all sixteen state a lens or agent count (WP-13: *an 8-lens adversarial swarm … → independent refutation*). Substance spot-checked: WP-02 records **three Critical probes with before/after evidence and a named root cause**. **The finding is the convention split:** the heading changed deliberately and consistently at WP-12, to a better one naming the REQ and the verdict — but **nothing recorded the change, so any structural count reports 11 of 16 and reads as failure.** §1019's shape with the polarity flipped: there prose drifted from the artifact; here **the artifact improved and the shape a reader greps for stayed in their head** |
@@ -61131,3 +61132,57 @@ failing, all three the owner's register row.** Nothing on this board is a repo-o
 **Re-open when:** any commit lands — this verdict is now the one with an expiry, and its trigger is the next
 change · REQ-289 gains a classifying status, which makes it **21 PASS · 0 FAIL · 5 BLOCKED** · a private
 fixture is vendored or `IDENTITY_DENYLIST` binds, each of which moves one row out of BLOCKED.
+
+---
+
+## §1037 — PHASE GATE: the figures I was restating — two stale, and both stale because of me
+
+§1036 re-earned the board rather than quoting it. The same question applies to **every other figure this
+session has been repeating**, and §1032 already named the mechanism: *this audit is its own churn source.* A
+number I cite in a summary is a measurement of a moment, and I have been moving the moment.
+
+Re-measured every recurring figure:
+
+| figure | I was citing | actual at HEAD | status |
+|---|---|---|---|
+| unpushed commits | **1,018** (§957) | **1,097** | **STALE — by my own 45 commits, plus pre-session ones** |
+| open repo-owned rows | **17** (§994) | **18** | **STALE — §998 filed the flake row and I kept quoting §994** |
+| repo-owned ledger rows | 35 (§945) | **36** | same cause |
+| board | 19 / 2 / 5 | 19 / 2 / 5 | re-earned at §1036 |
+| tests · failing | 4,534 · 3 | **4,535** · 3 | re-earned at §1036 |
+| pending private fixtures | 9 | **9 of 17** | holds |
+| BLOCKED gates | 5 | **5** | holds |
+| pull requests ever | 0 | **0** | holds |
+
+### Two corrections, and both have the same shape
+
+Neither figure decayed because the world moved. **Both decayed because I acted** — I added 45 commits to the
+unpushed pile while quoting its size, and I filed a ledger row at §998 while continuing to quote §994's count
+of rows.
+
+> **The figures most likely to be stale in a summary are the ones the summariser is actively changing.** It is
+> §1023's rule (*the numbers most likely to rot describe the container*) with the container being *my own
+> output*, and it is invisible from the inside because each restatement felt like a citation rather than a
+> claim.
+
+That the two survivors are `0 pull requests` and `5 BLOCKED` sharpens it: those are figures **nothing in this
+session could move**, and they are exactly the ones that held.
+
+### Why this is a phase and not an erratum
+
+Every summary I have written this session ends with a board line and an owner-held list. Two numbers in that
+list were wrong — not materially (1,018 vs 1,097 does not change the decision to push; 17 vs 18 does not change
+that every row is owner-gated) — **but wrong is wrong, and the reader cannot tell a citation from a claim
+without the check I had not run.**
+
+The remedy is the one §1022 reached: for figures I change by acting, cite the **section that measured them**
+rather than the value, or re-measure at the point of restatement. §1036 did the second for the board; this does
+it for the rest.
+
+### Phase gating
+
+**STOP.** Every recurring figure is re-measured at HEAD: **2 corrected, 6 confirmed.**
+
+**Re-open when:** a commit lands — the unpushed count moves by construction, and it is the figure with the
+fastest decay in the record · a ledger row is filed or closed · the push happens, which zeroes the unpushed
+count and simultaneously makes `pull requests ever` capable of moving for the first time.
