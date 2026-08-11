@@ -631,6 +631,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 465 | §1017 | **§1018** | **THE EXEMPTION SURFACE — 12 ALLOWLISTS, 0 THAT OUTLIVED THEIR SUBJECT.** §1017 swept suppressions; an allowlist is the same hazard with the opposite sign — **worse, because a suppression is visible where it silences while an exemption sits in a file nobody opens.** 12 allowlists across 16 gate files, every path-like entry checked against the tracked tree: **0 dead.** **§672 already asks this question on the one that matters most:** `append-chokepoint`'s `ALLOWED` is a **`Map<path, reason>`** (justification structurally inseparable from the entry), **2 entries only**, exported so the test pins the **exact key set**, requires every reason to exceed **40 chars**, and asserts *every allowlisted path still exists AND still writes events — no exemption outlives its subject*. **Two corrections to my own reading:** the reason-bearing-vs-bare split (5/7) was a **parser artifact** — I classified by declaration SYNTAX, and reading CONTENTS dissolves it, since every allowlist here carries prose reasons; and 3 'ungated' ones needed no gate because `ALLOWED_FONT`/`_TRANSFORM`/`_HEX` are **value** allowlists — the constitutional budgets themselves, proved by violation at §1001, and a value cannot outlive its subject. Design note: `KNOWN_UNPAGINATED` entries double as **filed debt** (*Remedy needs a REQ row*), so the exemption cannot be read without reading why it is temporary |
 | 464 | §1016 | **§1017** | **THE SUPPRESSION SURFACE — NINE FORMS SWEPT, ONE WAS §1016's FINDING, THE REST CLEAN.** §1016 found its finding by asking *which decision in this file is unexplained?* — mechanised here, since **every suppression is a decision and an unexplained one is indistinguishable from a silenced failure**. **0 `@ts-expect-error` · 0 `@ts-ignore` · 0 `istanbul ignore` · 0 `skipIf`/`.todo`** — zero type-checker suppressions in a strict, no-`any` codebase is the number worth recording, because a growing bank of `@ts-ignore` is the usual way a repo accumulates silent debt. `.only` ×2 and 3 of 4 `.skip` are **fixtures inside `no-focused-tests.test.ts`, the gate that BANS focused tests**; 5 `eslint-disable` are the standard `env.d.ts` module-augmentation idiom. **The one real skip is the model:** `prod-surface.spec.ts:30` skips on an unset `PROD_SURFACE_BASE`, and `test:surfaces` **bakes `--mode release`** so an all-skipped run is BLOCKED, never exit 0 — the guard reading Playwright's JSON stats because *it exits 0 both for '42 passed' and for '4 skipped', so the exit code alone cannot distinguish proof from silence.* **§968's rule discovered independently at the browser layer** — three instruments, one law |
 | 463 | §1015 | **§1016** | **THE DISABLED CONTRAST RULE — A REGISTER BOUNDARY, AND THE MEASURED COST OF DEFERRING IT.** The a11y spec explains every decision at length except one: `.disableRules(["color-contrast"])`, silent — the rule that matters most for a driver in sunlight. **I was reading toward an undocumented silencing. The register says otherwise:** **REQ-149** (`F0-SPEC'D`, BUILT) is *A1 deep-red small text ≥4.5:1 locked by CI*, and `audit.ts:75`'s single assertion is not a thin implementation of full-surface contrast — **it is a COMPLETE implementation of REQ-149**, pinning the tightest PASSING pair (4.58:1, 0.08 above threshold). Full-surface axe contrast is **REQ-285 — `vNEXT`, deferred.** Enabling the rule would not catch a defect; it would build vNEXT scope. **But the cost was unmeasured, so I measured it:** enabled → **10 serious findings** (command 7 · portal 2 · driver 1) in three classes — and **two of the three failing colours are NOT tokens** (`#ec8778`, `#983428`): opacity-composited variants. **The design CI reads the five DECLARED tokens; the browser renders them AT OPACITY; those are different colours** — no token-pair check reaches that class however many pairs it enumerates. Disable now carries the reasoning + the number; rule stays OFF (the remedy is a design decision under a constitutional 5-token budget) |
 | 462 | §1014 | **§1015** | **FAULT-INJECTION COVERAGE — A BOUND, AND A PROBE THROWN AWAY FIRST.** 4,534 tests prove the happy paths; failure branches fail precisely when they matter, and this had never been swept as a unit. **The first probe was broken and said so by being too GOOD** — *files touching dep X that also contain a failure verb* gave **93/105 D1, 99/106 R2, 134/144 DO**, a ~90% hit rate, i.e. §968's rule firing on any file containing the word *fail*. Discarded before reporting. Honest count of **deliberate** constructs (`mockRejected*`, throwing implementations, `faultSeam`/`BrokenDb`): **42 sites across 21 of 367 files** — and the DISTRIBUTION is the result: `anchor.test.ts` holds **15 (36% of all injection in the repo)**, the rest are 1–2 each. Not automatically a gap: most failure paths are covered by Zod at every boundary, `GateError` throws and the error-envelope suite, and injection earns its cost only where a failure must be **survived** rather than propagated — which is anchoring's job. **The one critical thin path is already an open row that is MORE CURRENT than my sweep:** L422's trigger was found FIRED today by §944 (the provider IS bound in staging, so the unsurfaced-failure branch is reachable), with the contradicting `wrangler.toml` header corrected and a gate built for that claim class. **I went looking for a gap and found the record ahead of me** |
@@ -59973,3 +59974,62 @@ either a fixture of the gate that bans it, a standard idiom, or conditional with
 decision worth a comment and a reviewer · a `.skip` lands outside `no-focused-tests.test.ts` · a second
 `disableRules` is added, since the first took a full phase to establish was a register boundary rather than a
 silencing.
+
+---
+
+## §1018 — PHASE GATE: the exemption surface — 12 allowlists, 0 that outlived their subject
+
+§1017 swept suppressions. Its inverse is the same hazard wearing the opposite sign: **an allowlist entry is a
+decision too, and one that outlives its reason is a permanent hole** — worse than a suppression, because a
+suppression is visible at the site it silences while an exemption sits in a file nobody opens.
+
+**12 allowlists across 16 gate files.** Checked every path-like entry against the tracked tree:
+
+```
+entries that no longer resolve to a real subject : 0
+```
+
+### §672 already asks the question, on the allowlist that matters most
+
+`append-chokepoint.ts` governs who may write the `events` table — an exemption there bypasses I3/I7 and every
+gate. It is the strongest allowlist design in the repo and worth copying:
+
+- a **`Map<path, reason>`**, not a list — the justification is structurally inseparable from the entry
+- **two entries only**: the sequencer DO (*"THE chokepoint"*) and the seed loader (*"not reachable by API"*)
+- exported *"so the test can assert it stays deliberate rather than growing quietly"*, and the test pins the
+  **exact key set**, requires every reason to exceed **40 characters**, and asserts
+  **§672 — *"every allowlisted path still exists AND still writes events — no exemption outlives its
+  subject"***, with the failure message *"delete the entry"*
+
+Three of the twelve carry that staleness assertion (`append-chokepoint`, `authority-population`,
+`claude-md-budgets`). The rest do not — and none has rotted, so the gap is structural rather than live.
+
+### Two corrections to my own reading
+
+**The reason-bearing/bare-list split was a parser artifact.** I classified 5 as reason-bearing (`Map`/object)
+and 7 as bare (`Set`/array) by reading *declaration syntax*. Reading their *contents* dissolves it: entries in
+the "bare" lists carry prose like *"THE composition root — event insert + every projection statement in one
+`db.batch()` (I1)"* and *"nonceFence mints an UNPREDICTABLE per-call nonce … determinism here would be the
+vulnerability"*. **Every allowlist in this repo carries reasons; only the syntax differs.** Classifying a
+discipline by the shape of its container was the mistake.
+
+**And three "ungated" entries needed no gate.** `ALLOWED_FONT`, `ALLOWED_TRANSFORM` and `ALLOWED_HEX` are
+**value** allowlists — they *are* the constitutional budgets (2 fonts, 5 colours), proved by violation at
+§1001. A value cannot outlive its subject the way a path can, so staleness is not a question there.
+
+### One design observation worth keeping
+
+`KNOWN_UNPAGINATED` entries double as **filed debt**: *"FILED — the ninth unbounded read (§823). Every approval
+of a status, no cursor. Remedy needs a REQ row."* The allowlist is simultaneously the exemption and the ledger
+row, so the exemption cannot be read without reading why it is temporary. That is the opposite of the failure
+mode this phase went looking for.
+
+### Phase gating
+
+**STOP.** The exemption surface is swept: 12 allowlists, 0 stale entries, every one reason-bearing in content,
+3 with an explicit staleness assertion and §672 as the pattern for any fourth.
+
+**Re-open when:** an allowlist gains an entry — §672's test is the template, and the 40-character reason floor
+is the cheap half · a path-bearing allowlist is added without a staleness assertion, which is the only
+structural gap left here · `KNOWN_UNPAGINATED`'s filed entries get their REQ rows, at which point those
+exemptions should shrink rather than persist.
