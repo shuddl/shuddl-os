@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 522 | §1074 | **§1075** | **THE SLA CADENCE ROW RE-VERIFIED — AND ITS OWN PRECEDENT WAS UNDERSTATED.** L426 (Med, blocks R3): a 4h SLA policed by a daily sweep. Every input confirmed at HEAD — `SLA_REPLY_WINDOW_MS = 4h`, and `crons = ["0 1 * * *"]` in **all three environments**, not just the default. The row argues sub-daily is *precedented by billing's hourly cron*; measured, it is far stronger: **`agents` is the ONLY cron-bearing worker still on a daily tick** — billing hourly, and `mcp` + `translator` every FIVE MINUTES. Technical risk ≈ 0. **The real cost is the one the code names:** all **8** contained sweeps ride that single tick (count re-measured at HEAD; the comment is exact), so the question is *8 sweeps × frequency*, not *can we*. Reframed from a technical unknown to a cost decision — still the owner's. My sweep count read **2** first (a grep window too small to see the `contain(...)` list); caught before reporting because it disagreed with the code's own figure. |
 | 521 | §1073 | **§1074** | **§275's REACHABILITY CLAIM RE-VERIFIED — 0 BEHAVIOURAL MODULES UNREACHED — AND MY PROBE GAVE THREE DIFFERENT ANSWERS BEFORE IT WAS RIGHT.** L412 (*no line/branch coverage anywhere*) is correctly owner-held: **no coverage provider is installed**, so measuring it means ADDING A DEPENDENCY, which is the "new tooling scope" the row reserves. But the row cites a reachability measurement, and that is inheritable — so it was re-run at HEAD. **212 source modules, 209 reached, 3 unreached**, and all three are explained: `ledger/index.ts` (1 re-export, 0 logic) and `map/index.ts` (8 re-exports, 0 logic) are barrels that tests BYPASS via the `"./*"` exports map, and `map/demo.ts` is the deterministic fleet generator exercised by the perf harness and the 5 blessed screenshots — playwright `.spec.ts` files my seed list excluded. **Zero behavioural modules unreached.** The probe read 9, then 3, then 0-of-consequence as its resolver and seeds were corrected; each intermediate number was a plausible finding. |
 | 520 | §1072 | **§1073** | **THE LIVE-ROW CITATION SURFACE, CLOSED — AND 1 OF 3 WAS ROTTED.** §1072 re-keyed one drifted citation and measured 129 bare ones. Scoping to what still makes a CLAIM — bare citations inside **live OPEN rows** — the surface is **3, not 129**; the other 37 in-table ones sit in closed/struck rows where a line number is historical record. Checked all three by opening what they point at: **`ci.yml:49` was ROTTED** — the row says *"CI binds it at"* that line, but `IDENTITY_DENYLIST` is bound at **`:61`** and `:49` is an unrelated `if: ${{ !cancelled() }}`. Two re-keyed to snippets. The third is left line-keyed **deliberately**: it points into a MIGRATION, and §1052 proved an edit to a committed migration REDs `check:invariants` — the one file class whose line numbers are frozen by construction. |
 | 519 | §1071 | **§1072** | **A MED SECURITY ROW RE-VERIFIED, AND A CITATION THAT ROTTED IN A 2-COMMIT FILE.** L428 (the `/pub/signup` email-enumeration oracle, blocks R4) re-verified in four parts: the `EMAIL_TAKEN` → 409 mapping is still there; the route is behind `PROVISIONING_ENABLED`; the check is `=== "true"` (EXACT, so no truthy value opens it); and the flag is **absent from `wrangler.toml` entirely**. Darkness pinned across **5 test files**. The oracle is unreachable; the response shape stays a founder UX call. **The defect found was the row's own citation** — it cited `signup.ts:94`, the case is at `:93`. Re-keyed to the SNIPPET. Then measured the class: **59 anchored vs 129 bare** citations, and the ratchet that governs bare ones covers 11 hand-curated high-churn files. `signup.ts` has **2 commits — tied for the LOWEST** of the eleven. Churn predicts where rot is LIKELY, never where it is POSSIBLE: one edit above a line is enough. |
@@ -63853,4 +63854,73 @@ framework conventions — and they are also the files whose absence from a cover
 **STOP.** L412 stays owner-held with its reason confirmed (no provider installed; measuring it is a dependency
 decision), and the reachability claim it cites is re-verified at HEAD: **212 modules, 3 unreached, all
 structural, 0 behavioural**. `test:tools` 1,245 passed / 3 failed — the REQ-289 baseline · lint clean.
+
+## §1075 — PHASE GATE: the SLA cadence row, and a precedent stronger than the row claimed
+
+**Why this phase.** L426 is **Med** and blocks **R3** (pilot): `SLA_REPLY_WINDOW_MS` is four hours, and the
+only thing that reads `sla_due_ts` is a sweep riding the agents worker's single daily cron. An inbound arriving
+at 02:00 is due at 06:00 and surfaces at 01:00 the next day. The row is owner-held — it *needs a REQ row
+first*, because REQ-095's DoD is *"Timer events fire"*, which a daily tick satisfies as written — so the
+decision is not mine. **Its inputs are.**
+
+### Every input re-verified at HEAD
+
+| claim | measured |
+|---|---|
+| `SLA_REPLY_WINDOW_MS` is 4h | ✓ `4 * 60 * 60 * 1000` |
+| the agents cron is daily | ✓ `crons = ["0 1 * * *"]` — and in **all three environments**, not just the default |
+| the defect is visible at the code | ✓ `sla-sweep.ts` carries a CADENCE HOLD comment naming it |
+
+The three-environment check is the part worth having done: a row saying "the cron is daily" would still be true
+if only `dev` were daily and prod were hourly, and the exposure would be nil. It is daily in dev, staging **and**
+prod.
+
+### The row understates its own precedent
+
+L426 argues sub-daily is feasible because *"`workers/billing` already runs an HOURLY cron … so sub-daily is
+precedented."* Measured across every worker:
+
+| worker | cron |
+|---|---|
+| `billing` | `0 * * * *` — hourly |
+| `mcp` | `*/5 * * * *` — **every 5 minutes** |
+| `translator` | `*/5 * * * *` — **every 5 minutes** |
+| `agents` | `0 1 * * *` — **daily** |
+| `api` | (none) |
+
+**`agents` is the only cron-bearing worker still on a daily tick**, and two siblings run at a cadence *twelve
+times finer than hourly*. The technical risk of a finer expression is not "precedented once" — it is the norm
+here, three times over.
+
+### And the real cost is the one the code already names
+
+The sweep's own comment: *"all EIGHT contained sweeps ride it."* Re-counted at HEAD from the `contain(...)`
+calls — **sla · collector · recon · credit-recon · watchtower · retention · mirror · watchtower-snapshots** —
+the figure is exact.
+
+So the trade-off is not *can the platform do sub-daily* (it plainly can) but **8 sweeps × frequency**: a
+5-minute expression would run all eight 288 times a day. That is a cost decision about seven unrelated sweeps,
+which is precisely why it needs a REQ row rather than a config edit — and the row is right to hold. What
+changes is that the owner now has both numbers instead of one.
+
+### The seventh probe-shape error, caught before it was written
+
+My first sweep count returned **2**. I had grepped a 24-line window after `async scheduled`, and the
+`contain(...)` calls extend past it — the window was a hypothesis about how the handler is laid out.
+
+It was caught because **2 disagreed with the code's own comment saying eight**, and the comment had a date and a
+section reference. That is the seventh instance this session of a probe's shape deciding an answer, and the
+first where the disagreeing instrument was **the source file's own prose**. A comment that states a count is
+not decoration — it is a second measurement, and it earned its keep here.
+
+### What this phase says
+
+> **Verify the argument, not just the claim.** L426's *claim* (4h window, daily cron) was accurate. Its
+> *argument* — that sub-daily is precedented — was true but weak, and the stronger version changes how the
+> decision reads: from "one other worker does this" to "this worker is the last one that doesn't." A row can be
+> factually correct and still under-sell its own case, and nobody re-reads a supporting clause.
+
+**STOP.** L426 re-verified in three parts across three environments, its precedent measured across all five
+workers, and its true cost (8 sweeps on one tick) confirmed at HEAD. Decision unchanged and still the owner's,
+now with both numbers. `test:tools` 1,245 passed / 3 failed — the REQ-289 baseline · lint clean.
 
