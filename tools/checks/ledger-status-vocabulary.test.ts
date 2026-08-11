@@ -86,6 +86,53 @@ describe("§945: the repo-owned debt ledger is machine-countable", () => {
     ).toEqual([]);
   });
 
+  it("§981: the EXTERNAL-holds table uses its own vocabulary, and that is why this file scopes to repo-owned", () => {
+    // WHY THIS GATE READS ONE SECTION, asserted rather than assumed (§980's rule turned on §945).
+    //
+    // Both tables share the eight-field schema, so scoping to one looked arbitrary. It is not. MEASURED AT
+    // §981: of 15 external-hold rows, 11 carry statuses OUTSIDE the repo-owned vocabulary — `BLOCKED`,
+    // `CLEARED`, `NARROWED`. That is correct, and the section header says so itself: "Every one of these is
+    // BLOCKED, not failed, and none may be relabelled PASS."
+    //
+    // The two track different KINDS of thing and therefore have different lifecycles. A repo-owned defect is
+    // OPEN until a commit closes it. An external hold is BLOCKED on someone else's action, may be NARROWED
+    // as its scope shrinks, and is CLEARED when the outside world changes. Forcing one vocabulary on both
+    // would either mislabel external reality as a repo defect or drop the distinction that makes the ledger
+    // readable.
+    //
+    // So this asserts the SEPARATION rather than merging the tables: repo-owned rows must not adopt external
+    // words, and external rows must not adopt repo-owned ones. If the conventions ever converge deliberately,
+    // this fails and the decision gets made on purpose.
+    const lines = md.split("\n");
+    const start = lines.findIndex((l) => l.startsWith("## External holds"));
+    expect(start, "the `## External holds` section is gone — re-scope this gate deliberately").toBeGreaterThan(0);
+    const rows: string[] = [];
+    for (let i = start + 1; i < lines.length; i += 1) {
+      const l = lines[i] as string;
+      if (l.startsWith("## ")) break;
+      if (!l.startsWith("| ") || l.startsWith("|--")) continue;
+      const c = cells(l);
+      // Skip the header by its own 6th cell rather than by matching the first cell's prose, which is
+      // long, em-dashed, and was already wrong once here.
+      if (c.length !== FIELDS || c[5] === "Status") continue;
+      rows.push((c[5] as string).replace(/~~.*?~~/g, "").trim());
+    }
+    expect(rows.length, "no external-hold rows parsed — the scan is broken, not the section").toBeGreaterThanOrEqual(10);
+
+    const EXTERNAL = ["BLOCKED", "CLEARED", "NARROWED", "OPEN"];
+    const stray = rows.filter((st) => !EXTERNAL.some((v) => new RegExp(`\\b${v}\\b`).test(st)));
+    expect(
+      stray,
+      "external-hold row(s) whose status uses neither the external vocabulary (BLOCKED / CLEARED / NARROWED / " +
+        "OPEN) nor anything recognisable:\n  " +
+        stray.map((s2) => s2.slice(0, 70)).join("\n  ") +
+        "\n\nAn external hold is BLOCKED on someone else's action, NARROWED as its scope shrinks, and CLEARED " +
+        "when the outside world changes — it is never FIXED by a commit, which is what the repo-owned words " +
+        "mean. Keep the two vocabularies separate, or converge them deliberately and update both this " +
+        "assertion and the section header that promises 'none may be relabelled PASS'.",
+    ).toEqual([]);
+  });
+
   it("counting open rows is unambiguous (no row claims two terminal states at once)", () => {
     // A status reading "CLOSED … reopened, now OPEN" is countable two ways, which is how a ledger silently
     // acquires two different sizes. The strike convention exists so exactly one verdict is ever live.

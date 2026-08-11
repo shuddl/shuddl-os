@@ -620,6 +620,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 425 | §977 | **§978** | **§962's FIX PROTECTED THE CONSUMERS, NOT THE GATES THAT FEED THEM.** §977's job-isolation insight turned on `merge-gate`: **steps checked=14, guarded=4, sequential=10** — and the four guarded were the three §962 fixed plus the PR-only one. **All four browser gates were sequential**, so a `visual` failure would skip a11y, e2e AND perf — three verdicts lost. That the real failure was `perf`, the LAST of the four, is why only one was lost: **luck, not design.** The gates' own contract settles it — step 39 is titled *an absent browser BLOCKS, **never skips***, so being skipped is the one outcome its title forbids. Guarded all four (`4 → 8`). Deliberately left sequential: `build` and `playwright install`, whose failure makes later steps **meaningless rather than merely unreported** — an independent verdict gets a guard, a genuine prerequisite does not |
 | 426 | §978 | **§979** | **THE STEP-ORDERING RULE, GATED IN BOTH DIRECTIONS.** §978 fixed four unguarded browser gates and stated the line — *an independent verdict gets a guard; a genuine prerequisite does not* — and nothing enforced it: a fifth gate would be unguarded by default and yesterday's four guards could be removed silently, the same *unpinned fix* shape §938 opened this session with. `workflow-step-guards.test.ts`: **3/3 mutations RED** — removing a browser gate's guard (§978's defect, names `ci.yml:42`), removing the merge-evidence guard (§962's defect), and **guarding a PREREQUISITE** (*"gained a guard. It is a PREREQUISITE, not a verdict"*). The third is the one worth having: *add guards* invites completing the pattern by guarding everything, and **a boundary that is only in prose erodes**. Verdict set identified by BEHAVIOUR — `run:` containing `--mode merge` / `verify:merge` / `audit --prod` — not by name |
 | 427 | §979 | **§980** | **WHY §979 READS ONLY ONE WORKFLOW, ASSERTED INSTEAD OF ASSUMED.** §974's pinning gate reads BOTH workflows; §979's ordering gate reads only `ci.yml`, and that asymmetry was justified nowhere. It is correct: **every action ref is equally a supply-chain risk**, but **step ordering only bites when one job holds several INDEPENDENT verdicts**. Measured — `nightly.yml` has no such job: `orphan-audit` is **1 step alone in its job**, and `backup`'s 3 steps are one operation plus two CONSEQUENTS (showing a manifest never written, retaining a backup never made) where skipping is *correct*. §978's prerequisite-vs-verdict line applied to another file, landing on the opposite answer. Added a **scope tripwire** rather than widening the scan: if a nightly job grows past the measured shape the gate REDs and says to re-check. **A gate whose scope is a judgement should assert the judgement** |
+| 428 | §980 | **§981** | **TWO LEDGERS, TWO VOCABULARIES — AND THAT IS WHY §945 SCOPED TO ONE.** §980's question aimed at §945: it reads only the repo-owned section while External holds carries the SAME eight-field schema. Measured: repo-owned **35/35 canonical**, external **11 of 15 NON-canonical** — `BLOCKED`, `CLEARED`, `NARROWED`. They are right, and the section header says so: *"Every one of these is BLOCKED, not failed, and none may be relabelled PASS."* Different KINDS: a repo defect lives until a commit closes it (OPEN → FIXED); an external hold lives until the world changes (BLOCKED → NARROWED → CLEARED). **§945's scope was correct for a reason nobody had written down.** Asserted the SEPARATION rather than merging — 2/2 mutations RED. Net: the whole ledger is now machine-countable, 35 rows by one vocabulary and 15 by another, each with its own floor |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -57489,3 +57490,48 @@ file must cover nightly.yml too."* Proved by mutation: adding a second verdict s
 reader inherits a boundary with no way to tell whether it was reasoned or accidental — and this session has
 now found three boundaries of exactly that kind (§953's real-vs-reached, §961's semantic half, §978's
 prerequisite line).
+
+## §981 — PHASE GATE: two ledgers, two vocabularies — and that is why §945 scoped to one
+
+§980 turned on §979 and asked why it read one workflow. The same question aimed at §945: the ledger-status
+gate reads **only** the repo-owned section, while the External-holds table carries the **same eight-field
+schema** one heading away. That scope was never justified.
+
+### Measured — the vocabularies genuinely differ
+
+```
+Repository-owned failures    checked=35   canonical-status=35   non-canonical=0
+External holds               checked=15   canonical-status= 4   non-canonical=11
+```
+
+The eleven are `BLOCKED`, `CLEARED`, `NARROWED` — and they are **right**. The section header says so in its
+own words: *"Every one of these is BLOCKED, not failed, and none may be relabelled PASS."*
+
+The two tables track different **kinds** of thing, so they have different lifecycles:
+
+| | repo-owned defect | external hold |
+|---|---|---|
+| lives until | a commit closes it | the outside world changes |
+| states | OPEN → FIXED / RESOLVED / TRIPWIRED | BLOCKED → NARROWED → CLEARED |
+
+Forcing one vocabulary on both would either mislabel someone else's unfinished work as a repo defect, or drop
+the distinction that makes the ledger readable at a glance. **§945's scope was correct for a reason nobody had
+written down** — which is exactly §980's complaint, one gate over.
+
+### Asserted, not merged
+
+Added the separation as an assertion: repo-owned rows keep their vocabulary, external rows keep theirs, and
+neither may adopt the other's words. 2/2 mutations RED — relabelling an external `BLOCKED` as `TRIPWIRED`
+fails, and renaming the section fails the non-vacuity floor. If the conventions are ever converged, that is now
+a deliberate edit to an assertion rather than a drift nobody notices.
+
+**Net effect: the whole ledger is machine-countable now** — 35 repo-owned rows by one vocabulary, 15 external
+holds by another, each with its own floor. §945's stated goal was *"how much repo-owned debt is open?"* as one
+correct command; the external half now has the same.
+
+### A parser bug of my own, caught by the fixed point
+
+The first version excluded the header row by matching its first cell's prose — long, em-dashed, and wrong. The
+gate reported the header's literal `"Status"` as a stray value. Fixed by excluding on the **6th cell being
+`Status`**, which is the reliable signal. Third time this session that matching prose where a structural
+signal exists has cost a cycle (§961's basenames, §968's `checked=`, this).
