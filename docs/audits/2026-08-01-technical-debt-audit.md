@@ -631,6 +631,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 443 | §995 | **§996** | **I CITED A GATE THAT DOES NOT EXIST, IN THE EVIDENCE TABLE OF A STOPPING POINT.** `pnpm -s <missing>` exits **1 printing NOTHING** (`-s` swallows the error), so inside a redirect an absent gate is indistinguishable from a clean one — and §994's verification table recorded `check:docs` as *clean · 5/5*. There is no `check:docs`. **Third instance of a trap this record documents twice** (`check:design`→`audit:design`; `check:append-chokepoint`, never existed): **knowing a trap is not a defence against it.** No commit was gated on it — the chained preconditions all exist and all ran. Then the interesting part: checklist L421 rejected a near-identical gate TWICE on a ~95% FP rate (§240), so the instinct was that this dies too. Measured, it does not — **456 citations, 19 unresolvable, 15 mechanical/prose/plans, leaving THREE known lines** a marker handles, versus §240's open-ended semantic residual. Same hazard, opposite verdict, decided by the residual's SIZE and STABILITY. The gate then **found a bug in itself** (`-w` misfiled as taking an argument → reported `node`), failing toward a false ALARM, the safe direction. Mutation-proved 5 ways incl. that the ignore-marker cannot swallow the corpus |
 | 442 | §994 | **§995** | **SIX FIXES WHOSE EVIDENCE HAD ALREADY EXPIRED — ALL SIX HELD, AND NOTHING COULD HAVE TOLD US.** §994 rested on the rows' own words, so this asked the inverse question: **is what the ledger calls CLOSED still closed?** Every terminal row carries an `Evidence expires` trigger and **nothing evaluated them**. Compared each row's newest date against the last-commit date of the files its own trigger names: **6 of 17 expired** — L400 by **one day** (and it sat that way two weeks), L429 by seven, L414 by ten. All six re-verified: L400's three subjects re-run **19/19 + 17/17**, L406 still builds its context independently of the record, L429's static-roster refusal survives `provision.ts`'s later change and is EXERCISED not merely present. **Zero regressions** — which is the finding, because *still true* and *nobody looked* are identical right up until they aren't. **The gate beat my own hand-sweep on its own corpus**: I checked eight rows manually and missed L400; the gate read every trigger and produced it immediately. `evidence-expiry.test.ts` is self-refreshing (the newest date in the row IS the clearance, so no second list can drift), mutation-proved 4 ways. Near-miss recorded: I began repointing L404's rotted citations before seeing they sit in a **struck** span — frozen superseded text. §811's trap, caught mid-edit |
 | 441 | §993 | **§994** | **STOPPING POINT IV — THE REPO-OWNED LEDGER HOLDS 17 OPEN ROWS AND ZERO NEGLECTED ONES.** Classified all 17 by what blocks them (four read in full): **6 need a CLAUDE.md/register amendment · 4 say *needs a REQ row* · 2 a design decision · 1 a founder UX call · 1 a tooling call · 1 measured-and-rejected TWICE · 2 blocked on measured preconditions**. **checked=17, neglected=0** — not one row is open because nobody looked. The two plain `backend` rows are the two hardest: **427**'s fix was written, REVERTED (§12), then re-measured (§882) as *necessary but not sufficient* (a UNIQUE partial index meets the same harness wall one step earlier — 66 api files share one D1 under `isolatedStorage:false`, forced by a DO's `.sqlite-shm` sidecar); **430 fails CLOSED and is correct**, waiting on the deferred REQ-069 seam. So: **10 waiting on one owner, 7 on measured preconditions.** Behind the ten sits §795's precedent — *filed, not amended, while REQ-289 is uncommitted* — **4 explicit deferrals at `HEAD~1`**, and I nearly reported **10** before noticing six were sentences §993 wrote an hour earlier: **a citation of my own edit is not evidence of a pattern**. REQ-289 is the head of the deferral chain, gating a Med–High reliability defect. `verify:merge` deliberately NOT re-run (the uninterruptible workerd wedge costs days; the four owning gates are green) — a judgement written down so it can be overruled cheaply |
 | 440 | §992 | **§993** | **THE ONE-FIELD FIX THAT WASN'T — AND A DEFERRAL'S *RECORDED HOME* COULD BE AN INCIDENTAL MENTION.** REQ-289 is both of the board's FAILs; §960 proved a remediation instruction can be WRONG, so I measured this one. **Status-keyed deferrals win before `wp` is read** — one field fixes it and `GTM-0` stays, which the gate's own message obscures by inviting a `wp` edit. The three deferrals are NOT interchangeable: run through `computeCoverage`, `F0-DEPLOY-NOTE` is clean, `vNEXT` passes but adds a permanent drift line, and **`CONFIRM-GATED` STILL EXITS 1** (`confirmCited` sets `failed`). Then the real defect: `scanRecordedHomes` accepted `REQ-\d{3,}` ANYWHERE, and REQ-289's three 'homes' are all the phrase *"while REQ-289 is uncommitted"* inside rows about OTHER defects — a deferral would have gone **green on an accounting that does not exist**. Counted before calling it a defect: **104 deferred · 88 manifest-keyed · 16 on prose · 0 incidental** — loose mechanism, clean corpus. Tightened to the document's own `Item`/`Source` columns (legit rows max cell 1, REQ-289 at cell 3 — a margin, not a boundary): **16/16 preserved, the hole rejected**. That made the owner's path LONGER, so the repo-owned half is done here — an external-holds row whose subject IS REQ-289, restoring the one-field remedy as a genuine accounting |
@@ -16109,7 +16110,7 @@ next audit stop asking about it, provided the bound was mutation-proved rather t
 ## §289 — A gate nobody runs, and the second time a character class hid a list
 
 §288's finding class was **silent absence**: something that exists and never executes. A test nobody
-collects is one instance; a **gate nobody runs** is the same shape one layer up. `pnpm check:foo` exists,
+collects is one instance; a **gate nobody runs** is the same shape one layer up. `pnpm check:foo` exists, <!-- script-check: ignore -->
 passes by hand, gets cited in a runbook, and enforces nothing — and no gate can observe that, because the
 failure IS the absence of an invocation.
 
@@ -33412,7 +33413,7 @@ negative**, and a better one than a silent pass would have been: the enforcement
 
 ### Two measurement errors, both mine
 
-- **`pnpm -s check:append-chokepoint` exits 1 with a zero-byte log** — because that script does not exist; it is
+- **`pnpm -s check:append-chokepoint` exits 1 with a zero-byte log** — because that script does not exist; it is <!-- script-check: ignore -->
   `check:chokepoint`. For several minutes this looked like a gate failing on a clean tree. Fourth occurrence of
   the *script-that-doesn't-exist* class. The tell was the empty output: a gate that fails always says why.
 - **The non-counterexample above.** Recorded rather than discarded, because it produced the phase's only real
@@ -37830,7 +37831,7 @@ anyway. Recorded as an owner-facing observation rather than resolved by my own p
 
 ### Measurement note
 
-`pnpm -s check:design` exited **1 with no output** — the script is `audit:design`, and pnpm fails silently on
+`pnpm -s check:design` exited **1 with no output** — the script is `audit:design`, and pnpm fails silently on <!-- script-check: ignore -->
 an unknown name under `-s`. That read as *"the design gate is failing at baseline"*, which is a far more
 alarming result than the truth. Third instance of §"when a gate looks wrong, suspect the measurement", and the
 second time in this audit that a non-existent script name produced a fake red.
@@ -58319,7 +58320,7 @@ What this phase actually ran, stated so nobody inherits a stronger claim than wa
 | `pnpm test:tools` | **1210 passed / 3 failed** — baseline-identical; all three are the owner's uncommitted register row |
 | `pnpm typecheck:tools` | exit 0 |
 | `pnpm check:citations` | 1541 resolve · ratchet exactly at the frozen baseline |
-| `pnpm check:docs`, `phase-index` | clean · 5/5 |
+| ~~`pnpm check:docs`, `phase-index`~~ **`phase-index` only** | ~~clean · 5/5~~ **CORRECTED §996 — `check:docs` DOES NOT EXIST.** `pnpm -s check:docs` exits **1 with no output**, because `-s` swallows *Command not found*; run inside a redirect block it looked like a silent pass and I recorded it as one. The `phase-index` half is real and was 5/5. **Third** instance of a trap this record documents twice — written, this time, into the evidence table of a stopping point. No commit was gated on it: the chained preconditions were `check:citations`, `typecheck:tools`, `phase-index` and `section-refs`. <!-- script-check: ignore --> |
 
 **`pnpm verify:merge` was NOT run this phase, deliberately.** The board's last full measurement stands at
 **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs being REQ-289. Re-running it would spawn the vitest-pool-workers
@@ -58411,3 +58412,89 @@ inside a `~~struck~~` span: **deliberately frozen superseded text**, preserved b
 strike rather than delete. "Fixing" it would have destroyed a historical record to satisfy a gate that does not
 even read it. §811 named this exact trap — *a prior that everything has a gap is how a clean artifact gets
 improved into a worse one* — and it took catching myself mid-edit to believe it.
+
+---
+
+## §996 — PHASE GATE: I cited a gate that does not exist, in the evidence table of a stopping point
+
+§995 asked whether the record's *expiry triggers* were ever evaluated. The same question applies to the other
+checkable column: every hold's proof is a **command**, and this record's own §244 rule says an observable claim
+should not stay a sentence.
+
+It found a defect in the previous phase — mine.
+
+### The trap, and the third time this record has hit it
+
+```
+$ pnpm -s check:docs
+$ echo $?
+1
+```
+
+**Exit 1, printing nothing.** `-s` swallows `Command "check:docs" not found`. Run inside a `{ … } > log 2>&1`
+block, an absent gate is indistinguishable from a silent, clean one — and §994's verification table recorded
+it as exactly that: *"`pnpm check:docs`, `phase-index` | clean · 5/5"*. The `phase-index` half was real, which <!-- script-check: ignore -->
+is what made the row read as green.
+
+This record already documents the same trap **twice** — `pnpm -s check:design` (the script is `audit:design`) <!-- script-check: ignore -->
+and `pnpm -s check:append-chokepoint` (never existed). I had read both. **Knowing a trap is not a defence <!-- script-check: ignore -->
+against it**, and that is the entire argument for the gate rather than for more care.
+
+Blast radius, stated precisely: no commit was gated on it. The chained preconditions were `check:citations`,
+`typecheck:tools`, `phase-index` and `section-refs`, all of which exist and all of which ran. What was false
+was a sentence in the audit, now struck and corrected in place.
+
+### Why this gate is buildable when the path-only citation gate is not
+
+Checklist row L421 records a near-identical idea — verify path-only citations — **measured and rejected
+twice**, its residual running ~95% false (§240). The instinct is that this one dies the same way. It does not,
+and the difference is measurable rather than aesthetic:
+
+| | path-only citations (L421) | cited `pnpm` scripts (here) |
+|---|---|---|
+| corpus | 710 checked | **456 checked** |
+| unresolvable | 22 | **19** |
+| after mechanical filters | 21 still false | **4 remain** |
+| residual shape | open-ended semantics — generic illustrations, shorthand, aspirational paths, quotations of known-bad values | **three known lines**, each a deliberate negative example |
+| markable? | no — the set is unbounded and prose-defined | **yes** |
+
+The 15 removed were: 11 from my own matcher (`exec` capturing `vitest`/`tsx` as script names), 3 prose spans
+merely containing the word, 1 `docs/plans` proposal — plans propose scripts that land under other names, the
+same exclusion §240 established. Requiring the span to **start** with `pnpm` and treating `exec`/`dlx` as
+terminal removes all of them.
+
+So the rule from [[semantic-false-positives-need-a-marker]] holds in both directions: filters never fix
+semantic noise — but when the semantic residual is *three stable lines*, a marker is precisely the right
+instrument, and `<!-- script-check: ignore -->` mirrors the existing `citation-check: ignore` convention
+(deliberately a separate name, so it cannot widen that escape).
+
+### The gate found a bug in itself
+
+First run reported `node` missing, from `` `pnpm -w exec node -e 'process.cwd()'` ``. I had filed `-w` among
+the flags that carry an argument; it is **boolean**, so the parser skipped past `exec` and read `node` as a
+script. Fixed, with both spans pinned as unit cases. It failed toward a **false alarm** rather than a false
+clean — the safe direction, and the only reason I saw it.
+
+**Mutation-proved five ways**, fixed point green on both sides:
+
+| mutation | result |
+|---|---|
+| cite a nonexistent gate | **RED** |
+| cite a *renamed* script (`check:citation` for `check:citations`) — the real-world shape | **RED** |
+| break the corpus glob | **RED** — non-vacuity |
+| make the ignore-marker match every line | **RED** — non-vacuity |
+| restore | **green, 3/3** |
+
+The fourth matters most: it bounds the escape hatch the way §272 bounds `citation-check: ignore`. A marker that
+can silently swallow the corpus is a worse defect than the one the gate closes.
+
+**Scope, stated:** existence only. That a script exists says nothing about whether it still emits the verdict
+the row claims — that is the row's expiry trigger, and §995's gate owns it. Two halves of one question, kept
+apart because one is decidable and the other is a judgement.
+
+### What §994's stopping point looks like now
+
+Unchanged in substance and better in evidence. The claim that failed was not about the code — it was about
+**which gates I had run**, in the section asserting the work was done. Three phases in a row have now found
+the defect in the record's own claims rather than in the build, which is what a converged audit looks like:
+the cheapest remaining defects are the ones asserting that there are none.
