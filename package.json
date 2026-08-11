@@ -56,7 +56,8 @@
     "verify:release": "tsx tools/release/run-gate.ts --profile release",
     "verify": "pnpm verify:dev",
     "check:bundles": "tsx tools/checks/bundle-ratchet.ts",
-    "check:section-refs": "tsx tools/checks/section-refs.ts"
+    "check:section-refs": "tsx tools/checks/section-refs.ts",
+    "reap": "tsx tools/testing/reap-orphans.ts"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.12.1",

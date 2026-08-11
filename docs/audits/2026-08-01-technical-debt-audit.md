@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 508 | §1060 | **§1061** | **THE ORPHAN LEAK, MEASURED BOTH WAYS — AND §1054's CAUSE CORRECTED.** §1054 cleared 37 workerd orphans (19h, 159 MB, PPID 1) and implied sandboxes accumulate from normal operation. Measured both conditions: a suite that RUNS TO COMPLETION leaks **0**; the runner killed mid-flight leaks **1+**. So the leak is a property of ABNORMAL termination only. The chain is `pnpm` → `node (vitest)` → `workerd`: killing the wrapper leaves the node alive HOLDING workerd, and when that node dies workerd reparents to launchd — which is exactly the PPID-1 population found. Mitigated with `pnpm reap`, scoped by two refusals that matter more than the reap: **PPID 1 only** (a live run's workerd has a live parent, so it cannot kill a running suite or its own caller) and **this checkout's absolute path only**. 5 unit cases pin both refusals; proved end-to-end on a manufactured orphan. Filed OPEN, not FIXED — a remedy is not a prevention. |
 | 507 | §1059 | **§1060** | **THE LOOSENING SWEEP — 20/20 CLEAN, AND MY OWN PROBE ALMOST HID THE 20th.** §1059's rule (*a loosening must justify itself with a number*) applied to the 19 configs extending the base: **0 weaken any of its five decisions.** But the first run parsed only 19 of 20 — `packages/map/tsconfig.json` came back *"Invalid control character"*, and I nearly reported a clean sweep with the 20th silently excluded. The file is fine: **my own comment-stripper matched the `//` INSIDE a quoted `"//"` key** and truncated the line. That falsifies a premise I wrote at §1058 — *"JSON cannot carry a comment"* — and **this repo disproves it in five tracked files**. The gate is still the right home (a `"//"` note is documentation CI cannot check), but the stated MECHANISM was wrong; corrected in place, and the root `package.json` now carries a JSON-legal pointer. |
 | 506 | §1058 | **§1059** | **THE COMMENT-LESS-FORMAT SWEEP — AND `skipLibCheck` MEASURED INSTEAD OF ASSUMED.** §1058's corollary said to look for undocumented decisions wherever the format forbids prose. Swept the tracked JSON configs and found the sharpest case is a file whose format ALLOWS comments and used none: **`tsconfig.base.json` carried ZERO comments while 19 packages extend it**, against `tsconfig.tools.json`'s 33. Four of its eleven options are real decisions — three STRICTER than `strict`, and one loosening. `skipLibCheck: true` measured by flipping it: **722 errors, 0 of them in repo source** (415 `@cloudflare/workers-types`, 150 `miniflare`, 104 TS's own libs; TS2717×264 / TS2687×80 — the Workers-globals-vs-DOM-lib collision). So it is load-bearing AND safe, and its cause is a dependency, which gives it a version and therefore an expiry now written beside it. |
 | 505 | §1057 | **§1058** | **THE PIN SWEEP — 163 DECLARATIONS, 3 DECISIONS, 2 UNDOCUMENTED.** §1057's rule (*a correct, load-bearing, undocumented pin is debt while green*) made measurable: `^` is npm's DEFAULT and carries no intent, so the decisions are exactly the non-caret ranges. Measured across every tracked manifest: **163 declarations, 3 non-caret pins.** One is exemplary — `chai: "5.3.3"` names the failing export and the runtime in three lines, because YAML let its author write it where the pin lives. The other two had NO written reason anywhere. Both are load-bearing and now say why: `@playwright/test = 1.61.1` is EXACT because 5 blessed screenshots compare at a 2% pixel tolerance and chromium rasterization drifts between builds; `@axe-core/playwright` is peer-coupled to it. New gate keys reasons to LIVE manifests, so an undocumented pin REDs **and** a reason outliving its pin REDs — both mutation-proved. |
@@ -62888,4 +62889,74 @@ failure ever contradicts it.
 **STOP.** Every config extending the base is confirmed to keep or tighten it, 20 of 20 parsed rather than 19 of
 20 assumed. One false premise corrected at its source and one JSON-legal pointer added. `test:tools` 1,234
 passed / 3 failed — the REQ-289 baseline · lint clean · typecheck clean.
+
+## §1061 — PHASE GATE: the orphan leak, measured in both directions
+
+**Why this phase.** §1054 cleared 37 orphaned `workerd` processes — 19 hours old, PPID 1, 159 MB idle — and
+wrote that *"orphaned test sandboxes outlive their runner and accumulate silently."* That sentence explains the
+observation and was never tested against the alternative. It also mattered: those strays are ambient load, and
+ambient load is what turned §1052's 3.5 s assertion into a 5.08 s timeout.
+
+### Both conditions, measured
+
+| condition | leaked |
+|---|---|
+| a workerd suite that **runs to completion** | **0** |
+| the runner **killed mid-flight** (closed terminal, hung session) | **1+** |
+
+Normal operation leaks **nothing** — verified by counting before and after a clean `billing` run, and again 20
+seconds later in case of a delayed reap. So §1054's implication is wrong: sandboxes do not accumulate from
+ordinary use, and a reader acting on that sentence would have gone looking for a bug in the test teardown that
+does not exist.
+
+The real chain, traced rather than guessed: `pnpm` → `node (vitest)` → `workerd`. Killing the `pnpm` wrapper
+leaves the **node process alive holding workerd** (measured: PPID 254, still running 30 s later). When that node
+eventually dies, workerd reparents to `launchd`. That is precisely the PPID-1 population §1054 found, and it
+explains the 19-hour age: nothing reaps it, because nothing owns it.
+
+### The mitigation, and why its refusals matter more than its action
+
+`pnpm reap` (`tools/testing/reap-orphans.ts`) signals orphans, and the interesting part is what it declines to
+touch:
+
+| refusal | why it is load-bearing |
+|---|---|
+| **PPID 1 only** | a live run's workerd has a live vitest parent, so without this the reaper kills the suite currently running — including, if invoked from a test, **its own caller** |
+| **this checkout's absolute `node_modules` path only** | another repo's workerd on the same machine is the same binary in the same state; only the path distinguishes them |
+
+Five unit cases pin both refusals — a live-parent process, another checkout's orphan, an unrelated orphan under
+this repo, and a realistic mixed table. Those are the cases no clean run can exercise, which is exactly why
+they are pinned rather than trusted.
+
+Then proved **end-to-end**, because unit tests pin parsing and not behaviour: manufactured a real PPID-1 orphan
+(started the api suite, killed its vitest parent, watched workerd reparent), ran `pnpm reap`, and it signalled
+that process and no other. Zero remaining.
+
+### Filed OPEN, not FIXED
+
+The row records the honest state: **a completed run leaks nothing, so there is no bug in normal operation**, and
+a wrapper's death not propagating to grandchildren is ordinary process behaviour this repo cannot change. What
+exists now is a **remedy** — not a prevention and not a detector. `FIXED` would claim the leak cannot recur; it
+can, on the next interrupted session.
+
+The vocabulary gate enforced that distinction twice while I wrote it: first rejecting `MITIGATED` as
+non-canonical, then rejecting a status that contained the word `FIXED` inside the sentence explaining why it
+was *not* fixed. Both correct — the status field is what every count of this ledger reads, and it cannot carry
+two verdicts even rhetorically.
+
+### What this phase says
+
+> **An explanation that fits the evidence is not a measurement of the cause.** §1054's sentence accounted for
+> every observed fact — 37 processes, orphaned, old — and was still wrong about when it happens. The
+> discriminating experiment was cheap (run a suite to completion; count) and I did not run it, because the
+> explanation already felt complete. **Completeness is the feeling that precedes an untested cause.**
+
+The corollary, from the reaper: **a tool that kills things is defined by what it refuses.** The reap is three
+lines; the two refusals are the design, and a reaper without them is a footgun that would have found its first
+victim in the suite that invoked it.
+
+**STOP.** The leak is characterised in both directions rather than one, §1054's stated cause is corrected at
+its source, and the mitigation is scoped by two refusals that are unit-pinned and proved end-to-end on a real
+orphan. Filed OPEN with an expiry trigger. `test:tools` 1,238 passed / 3 failed — the REQ-289 baseline · lint
+clean.
 
