@@ -61,6 +61,54 @@ describe("§988: a scoped no-restricted-syntax block restates the repo-wide bans
     expect(wide, `no repo-wide no-restricted-syntax block found in ${CFG} — if the repo-wide bans moved into a scoped block, this gate must be re-scoped deliberately`).toBeDefined();
   });
 
+  it("§989: `no-restricted-globals` scopes stay DISJOINT — the reason it needs no inheritance rule", () => {
+    // THE THIRD RULE NAME IN THE SAME FAMILY, and the only one with no inheritance hazard — because its
+    // blocks never overlap. §815 recorded that as prose ("three blocks, DISJOINT scopes — no replacement
+    // possible") and nothing kept it true.
+    //
+    // It matters more than the other two: this is where REQ-024's `fetch` ban lives. A fourth block scoped to
+    // anything broader — `packages/**`, or a second ledger scope — would REPLACE the ledger's entry and delete
+    // the ban that makes the RFC-3161 TSA client the ledger's only network egress. No lint would fail; the
+    // rule name would simply resolve to someone else's options.
+    //
+    // MEASURED AT §989 — and §815's prose was slightly wrong. There are FOUR declarations, not three, and
+    // two of them OVERLAP:
+    //
+    //     packages/ledger/**          fetch banned (REQ-024)
+    //     packages/ledger/src/tsa/**  "no-restricted-globals": "off"   ← overlaps the line above, ON PURPOSE
+    //     packages/driver-core/**     fetch/timers/DOM banned
+    //     packages/rater/**           fetch banned (REQ-004/024)
+    //
+    // The overlap is the SANCTIONED EXCEPTION, not a defect: the TSA subtree is the ledger's one permitted
+    // egress, and last-writer-wins is exactly the mechanism granting it. The config says why it is safe —
+    // `HttpTsaClient` takes an injectable `fetchImpl`, and a timestamp authority's response is verified
+    // (imprint + nonce), so it is a protocol, not a model.
+    //
+    // So the property is not "disjoint" but "the ONLY overlap is the named TSA exemption". General
+    // glob-overlap is undecidable here, so this asserts the INPUTS to that judgement — the exact scope list,
+    // in order. Any addition, removal or reorder fails, and whoever made it re-runs the argument rather than
+    // inheriting a claim from 2026-08. A second `"off"` appearing in this list is the thing to fear.
+    const scopes = [...cfg.matchAll(/"no-restricted-globals":/g)].map((m) => {
+      const before = cfg.slice(0, m.index);
+      const files = [...before.matchAll(/files:\s*\[([^\]]*)\]/g)];
+      return (files.length > 0 ? (files[files.length - 1]?.[1] ?? "") : "(repo-wide)").replace(/\s+/g, " ").trim();
+    });
+    expect(scopes.length, "no no-restricted-globals blocks parsed — the scan is broken, not the config").toBeGreaterThanOrEqual(3);
+    expect(
+      scopes,
+      "the `no-restricted-globals` scope set changed. It is the one rule in this family with NO inheritance " +
+        "gate, and that is only safe while its blocks are disjoint. Re-check that no two scopes can match the " +
+        "same file — especially against `packages/ledger/**`, whose entry is REQ-024's `fetch` ban (the TSA " +
+        "client is the ledger's only sanctioned egress). If they now overlap, the later block must restate the " +
+        "earlier's bans, exactly as §988 requires for no-restricted-syntax.",
+    ).toEqual([
+      '"packages/ledger/**/*.ts"',
+      '"packages/ledger/src/tsa/**/*.ts"', // the sanctioned egress exemption — the only deliberate overlap
+      '"packages/driver-core/**/*.ts"',
+      '"packages/rater/**/*.ts"',
+    ]);
+  });
+
   it("every scoped block carries the repo-wide ImportExpression bans", () => {
     const required = (wide?.selectors ?? []).filter((s) => s.startsWith("ImportExpression"));
     expect(required.length, "the repo-wide block declares no ImportExpression ban — has REQ-163's dynamic half been removed?").toBeGreaterThan(0);

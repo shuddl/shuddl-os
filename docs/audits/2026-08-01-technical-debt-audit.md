@@ -628,6 +628,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 433 | §985 | **§986** | **THREE MORE BANS HAD §985's HOLE; TWO CLOSED, AND THE REPO'S OWN GATE STOPPED ME CLOSING THE THIRD.** Counted: 3 `no-restricted-imports` blocks, 4 bans — **every static caught, every dynamic MISSED**. Closed REQ-163's dynamic form in **both** scopes it needs (the ledger copy is not redundant: flat config REPLACES, so the ledger block was deleting the repo-wide ban — measured, `import("lumina-core")` passed in ledger and was caught in contracts). **§814 and §815 both failed my first attempt and were right to**: they parse this file's TEXT, so my shared-constant refactor was invisible to them — **the repo's chosen mechanism is *duplicate and gate the parity*, not *extract a builder***. Then §815 fired again when the adapters+edi block would have dropped three determinism selectors. **checked=5, closed=3, residual=2** (REQ-035/127 dynamic, edi) — named, not forced: closing them means restructuring three overlapping scopes |
 | 434 | §986 | **§987** | **THE RESIDUAL CLOSED — AND §986's OWN FIX HAD OPENED A FOURTH HOLE.** Probing before fixing: `await import("lumina-core")` was caught in `edi` and **PASSED in `adapters`** — that scope declares its own `no-restricted-syntax` (determinism selectors), which REPLACED the repo-wide REQ-163 dynamic ban §986 had just added. **§815 could not see it**: it compares the adapters-only block to the SHARED agents+adapters block, and the repo-wide block is a third participant never in that comparison — two gates for last-writer-wins, and the case that bit fell between them. Closed by APPENDING to the adapters-only block (superset holds by construction) and adding an **edi-only** block that overlaps nothing. **checked=9, caught=9, missed=0** across every ban × scope, plus a regression proving `Date.now()` is still caught in adapters. Fourth appearance in three phases: **adding a rule to a scoped block is a deletion somewhere else, invisible at the edit site** |
 | 435 | §987 | **§988** | **FIVE MORE SCOPES WERE DELETING THE REPO-WIDE BAN — CLOSED, AND NOW GATED.** §987 left a 4-instance rule with no gate. Swept every `no-restricted-syntax` block: **parse predicted 5 missing, probe found 3** — both right, because the probe wrote NEW files and two blocks are scoped to NAMED files (`build-214.ts`, `contacts.ts`) a new file can never match. Probing inside `build-214.ts` confirmed those too. **The parse was more precise than the behavioural check here — the reverse of the usual direction.** All five restated (restating can never weaken a scope, so no judgement and no exemption list): **checked=5, caught=5, holes=0**. `syntax-ban-inheritance.test.ts` gates the edge §814/§815 leave uncovered — and writing it exposed that **my §986 repo-wide block was formatted inconsistently**, so the parser swallowed the ledger block and demanded REQ-024 everywhere. A formatting inconsistency became a correctness bug in a gate |
+| 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -57898,3 +57899,52 @@ selector and flagged exactly the five real cases.
 earlier while fixing a different hole. Caught because the required-set looked wrong, not because anything
 failed: the gate was RED either way, and only reading *what it demanded* separated a true finding from a
 parser artefact. [[attribute-the-red-before-crediting-it]], applied to a gate's own output.
+
+## §989 — PHASE GATE: the third rule name, and §815's "three disjoint blocks" was four with a deliberate overlap
+
+§988 gated the `no-restricted-syntax` inheritance edge. The family has a third member, and §815 had recorded
+it in prose: *"`no-restricted-globals` (three blocks, DISJOINT scopes — no replacement possible)."* A
+measurement with an expiry, guarding the rule that carries **REQ-024's `fetch` ban** — the one that makes the
+RFC-3161 TSA client the ledger's only network egress.
+
+### Re-measured, and the prose was wrong in a way that matters
+
+```
+"packages/ledger/**/*.ts"          fetch banned (REQ-024)
+"packages/ledger/src/tsa/**/*.ts"  "no-restricted-globals": "off"   ← OVERLAPS the line above
+"packages/driver-core/**/*.ts"     fetch / timers / DOM banned
+"packages/rater/**/*.ts"           fetch banned (REQ-004/024)
+```
+
+**Four blocks, not three, and two of them overlap.** My own first scan also said three — it matched only
+array-valued rules and missed `"off"`, which is the *strongest* form of deletion. Two independent counts
+agreed on the wrong number because both looked for the same shape.
+
+The overlap is **correct**: the TSA subtree is the sanctioned exemption, and last-writer-wins is precisely the
+mechanism granting it. The config already says why it is safe — `HttpTsaClient` takes an injectable
+`fetchImpl`, and a timestamp authority's response is verified (imprint + nonce), *"a protocol with a verified
+response, not a model."*
+
+So the true property is not *"the scopes are disjoint"* but **"the only overlap is the named TSA exemption"** —
+a materially different claim, because the first invites a reader to assume any new overlap would be caught,
+and nothing was checking either version.
+
+### Gated as the judgement's inputs
+
+General glob-overlap is undecidable here, so the tripwire asserts the **exact scope list, in order**. Any
+addition, removal or reorder fails and forces the argument to be re-run rather than inherited. Mutation-proved:
+inserting a second `"off"` block for `packages/ledger/src/gl/**` goes **RED**.
+
+**A second `"off"` is the thing to fear** — it is a one-line, plausible-looking edit that silently returns raw
+`fetch` to part of the ledger, and no test anywhere would have failed.
+
+### The family is now closed
+
+| rule | hazard | gated by |
+|---|---|---|
+| `no-restricted-imports` | repo-wide → scoped | §814 |
+| `no-restricted-syntax` | shared → adapters · repo-wide → scoped | §815 · §988 |
+| `no-restricted-globals` | only the named TSA overlap is permitted | **§989** |
+
+Three rule names, four gates, one hazard — and the hazard's own shape is why it took four phases to see: every
+instance is individually obvious, and the class is invisible because the config reads as additive.
