@@ -631,6 +631,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 445 | §997 | **§998** | **THREE GATES, THREE BLIND SPOTS, ONE SHAPE.** §997 ended with *a gate written from one observed instance covers that instance's shape* — instance #1. Turned it on the two siblings written this session: **three for three.** **§996** read inline backticks only, while **52 pnpm citations live in FENCED blocks** — and fenced is this record's canonical proof layout (`pnpm verify:merge → exit 1`). **§995** scoped by TABLE when the rule follows the TRIGGER: the external CORS hold names `tests/e2e/prod-surface.spec.ts`, which moved 2026-08-01 against a row dated 2026-07-31 — **a SEVENTH expired row**, invisible for exactly the reason the other six were. Re-verified: HOLDS (`cors.ts:21` lists all four origins; `prod-surface.spec.ts:66` still asserts no foreign host). Both widened and mutation-proved **in the newly-covered region**, not by re-running the old one. **Near-miss on the proof itself:** my first external-row mutation stayed GREEN and I nearly credited the gate — the mutation was wrong (I rolled back one date while the sentence I had just authored carried another). **A green mutation is as ambiguous as a red one.** Six phases now, zero product defects, every finding in the machinery that asserts the product is sound |
 | 444 | §996 | **§997** | **SIX STALE COPIES OF MY OWN GATES, INVISIBLE TO EVERY GIT-BASED CHECK.** Chasing cited commit SHAs gave a clean negative — **151/160 resolve locally**, the 9 misses being money values (`22208400`), account ids and `abc1234` placeholders — so **no gate**, for L421's reason. But two misses sat in `… 2.md` files: this checkout syncs through iCloud, which writes `name 2.ext` beside the original. **52 duplicates, six of them stale copies of gates written earlier in this audit, in `tools/checks/`.** All UNTRACKED — `git status` hides them and every git-based gate is blind by construction; zero TRACKED duplicates is why the repo looked clean. Verified before deleting: 5 byte-identical, 1 an older snapshot that was a strict SUBSET (`comm` → 0 unique lines). Removing them left `test:tools` bit-identical, so they were **inert — and only by luck of the glob** (`…test 2.ts` misses `*.test.ts`); a duplicated SOURCE file matches every `**/*.ts` scanner and would be COUNTED against the CLAUDE.md budgets. Gate is **self-scoping** (a dir counts iff it holds a tracked file), so the 46 in an untracked sibling workstream are correctly ignored and were NOT deleted. Mutation-proved 4 ways incl. **proving the exclusion is a boundary, not a blind spot**. Three phases, four claim-forms, three gated and one refused. **CORRECTED same session:** reconciling against §867 (which measured vitest DOES collect a duplicate) showed both records right about DIFFERENT shapes — `foo.test 2.ts` is not collected, `foo 2.test.ts` is collected, executed and **passes** — and **my own gate had the same blind spot**, covering the harmless form and missing the silently-green one. Widened and re-proved on 4 shapes + the `x2.sql` negative control. **A gate written from one observed instance covers that instance's shape** |
 | 443 | §995 | **§996** | **I CITED A GATE THAT DOES NOT EXIST, IN THE EVIDENCE TABLE OF A STOPPING POINT.** `pnpm -s <missing>` exits **1 printing NOTHING** (`-s` swallows the error), so inside a redirect an absent gate is indistinguishable from a clean one — and §994's verification table recorded `check:docs` as *clean · 5/5*. There is no `check:docs`. **Third instance of a trap this record documents twice** (`check:design`→`audit:design`; `check:append-chokepoint`, never existed): **knowing a trap is not a defence against it.** No commit was gated on it — the chained preconditions all exist and all ran. Then the interesting part: checklist L421 rejected a near-identical gate TWICE on a ~95% FP rate (§240), so the instinct was that this dies too. Measured, it does not — **456 citations, 19 unresolvable, 15 mechanical/prose/plans, leaving THREE known lines** a marker handles, versus §240's open-ended semantic residual. Same hazard, opposite verdict, decided by the residual's SIZE and STABILITY. The gate then **found a bug in itself** (`-w` misfiled as taking an argument → reported `node`), failing toward a false ALARM, the safe direction. Mutation-proved 5 ways incl. that the ignore-marker cannot swallow the corpus |
 | 442 | §994 | **§995** | **SIX FIXES WHOSE EVIDENCE HAD ALREADY EXPIRED — ALL SIX HELD, AND NOTHING COULD HAVE TOLD US.** §994 rested on the rows' own words, so this asked the inverse question: **is what the ledger calls CLOSED still closed?** Every terminal row carries an `Evidence expires` trigger and **nothing evaluated them**. Compared each row's newest date against the last-commit date of the files its own trigger names: **6 of 17 expired** — L400 by **one day** (and it sat that way two weeks), L429 by seven, L414 by ten. All six re-verified: L400's three subjects re-run **19/19 + 17/17**, L406 still builds its context independently of the record, L429's static-roster refusal survives `provision.ts`'s later change and is EXERCISED not merely present. **Zero regressions** — which is the finding, because *still true* and *nobody looked* are identical right up until they aren't. **The gate beat my own hand-sweep on its own corpus**: I checked eight rows manually and missed L400; the gate read every trigger and produced it immediately. `evidence-expiry.test.ts` is self-refreshing (the newest date in the row IS the clearance, so no second list can drift), mutation-proved 4 ways. Near-miss recorded: I began repointing L404's rotted citations before seeing they sit in a **struck** span — frozen superseded text. §811's trap, caught mid-edit |
@@ -58426,6 +58427,7 @@ It found a defect in the previous phase — mine.
 
 ### The trap, and the third time this record has hit it
 
+<!-- script-check: ignore -->
 ```
 $ pnpm -s check:docs
 $ echo $?
@@ -58610,3 +58612,116 @@ The lesson is not about globs. **A gate written from one observed instance cover
 had six real duplicates in front of me, all the same form, and generalised from them. The dangerous variant was
 recorded in this repo's own memory, in a section I had read, and only a cross-check against a *disagreeing
 measurement* surfaced it. Same finding as §996, one level up: the record already knew.
+
+---
+
+## §998 — PHASE GATE: three gates, three blind spots, one shape — turning §997's lesson on its siblings
+
+§997 ended with a rule earned the hard way: **a gate written from one observed instance covers that
+instance's shape.** That is instance #1, and this record's own discipline says at instance #2 you stop fixing
+and start counting. So I turned the question on the other two gates written this session.
+
+**Three for three.**
+
+### §996 could not see where commands are actually cited
+
+`cited-scripts-exist` read **inline backticks only** — the shape that prompted it. Measured after:
+
+```
+52 pnpm script citations live inside FENCED blocks
+```
+
+And the fenced form is not an edge case; it is this record's canonical evidence layout:
+
+```text
+pnpm verify:merge   →   exit 1
+pnpm test:acceptance   →   exit 0
+```
+
+A gate for *"cited commands must exist"* that cannot read the block where commands are cited is the §997 shape
+exactly. Widened to fenced blocks, with a whole-block exemption on the fence line or the line above (an HTML
+comment inside a fence renders literally, so a line-local marker cannot work there).
+
+Two findings fell out of the widening, both mine: `pnpm typecheck: exit 0` was reported as script
+`typecheck:` — trailing prose punctuation, now stripped from the token rather than the span, and a colon
+*inside* a name is still preserved (`check:docs`) — and §996's own worked example needed the fence marker.
+
+### §995 scoped by TABLE when the rule follows the TRIGGER
+
+`evidence-expiry` read only the repo-owned ledger, reasoning that external holds expire on world events no
+gate can observe ("at reboot", "when counsel signs"). Mostly true, and it hid a row:
+
+> **CORS origins** — trigger: *"when `cors.ts` changes (SHA) …"* plus `tests/e2e/prod-surface.spec.ts`, which
+> moved **2026-08-01** against a row dated **2026-07-31**.
+
+**A seventh expired row**, invisible for the same reason as the other six were invisible before §995 —
+nothing evaluated it. Re-verified and it HOLDS: `cors.ts:21` still lists all four `shuddl.tech` browser
+origins, and `prod-surface.spec.ts:66` still asserts from a real browser that no surface calls a foreign host.
+
+Scoping by *table* rather than by *trigger shape* was the error. External rows naming no file still produce no
+paths and are still correctly ignored — the exemption is now a consequence of the rule instead of a boundary
+drawn around it.
+
+### Mutation-proved, and a near-miss on the proof itself
+
+| mutation | result |
+|---|---|
+| fenced citation of a ghost script | **RED** — §996's blind spot, now covered |
+| same, with the fence marker | **green** — the exemption works |
+| every date on the EXTERNAL row rolled back | **RED** — §995's blind spot, now covered |
+| all dates stripped from it | **RED** — the undated assert |
+| fixed points | **green, 3/3 and 7/7** |
+
+**The near-miss:** my first attempt at the external-row mutation left the gate green, and for about a minute
+I read that as *"no gap after all."* The mutation was wrong — I rolled back only the `2026-08-11` stamp, while
+the sentence I had just written contained `2026-08-01`, which still matched the file's commit date. **A green
+mutation is as ambiguous as a red one**: it means either the guard is redundant *or the mutation missed*.
+§(a-silent-mutation-has-two-explanations) is the standing note; this is the same trap wearing the opposite
+colour, and the tell was that I had authored the text I was mutating.
+
+### The widening produced two more defects, both in my own work
+
+**1. Prose inside a fence is not a command.** Matching `pnpm` anywhere on a fenced line caught §998's own
+sentence — *"52 pnpm script citations live inside FENCED blocks"* — and reported a script named `script`.
+Fixed by anchoring on **command position**: line start (after an optional `$ ` prompt) or immediately after a
+shell separator. Stated trade: a pnpm named mid-sentence inside a fence is now skipped, including prose chains
+like `ci.yml → pnpm verify:merge → gatesFor("merge")`. Those describe a call path rather than a runnable line,
+and admitting them means admitting every English sentence in a fence.
+
+**2. One floor over a two-branch corpus hides a blind branch.** The non-vacuity check asserted
+`total ≥ 100` — and the inline half alone is **432**, so the fenced branch could silently fall to **zero**
+while the gate stayed green. Exactly the failure this session keeps finding, now in the guard against it. Split
+into per-branch floors (inline ≥ 100, fenced ≥ 20) and proved: blinding the fenced branch entirely goes RED.
+
+Measured coverage after both fixes: **inline 432 · fenced 35**.
+
+### Two more, found while filing the results
+
+**A flake, recorded rather than triaged.** One full `test:tools` run failed `§702 GUARDED_FNS` (5071 ms — the
+suite's slowest assertion). It did **not** reproduce in two further full runs and passes in isolation both
+with and without this session's changes, and it scans tenant entry points that nothing here touched. Filed as
+a Low repo-owned row, explicitly **not diagnosed**: one non-reproducing failure cannot locate a cause, and
+guessing one puts a wrong remediation in the record (§960's shape). The row exists so the *second* occurrence
+is recognised as a pattern instead of re-triaged from zero — which is the entire cost of an unrecorded flake.
+
+**And filing it hit §934's trap.** I appended the row after the last `|` line in the section, which is the
+2-cell header of a **nested sub-table**, producing an 8-cell row under a 2-cell header. The table-shape gate
+caught it — the second time this session that gate has caught a malformed row I wrote (§996 was the first,
+from a strike wrapped across a cell separator). Both times the defect was invisible in the source and would
+have silently dropped cells at render.
+
+### Phase gating
+
+**The shape is now closed for this session's gates**: all three were written from one instance, all three have
+been widened by asking *what other forms can the thing they guard take?*, and each widening was proved by a
+mutation in the newly-covered region rather than by re-running the old one.
+
+**Re-open when:** a fourth gate is added — ask the same question before it lands, not two phases later · the
+checklist grows a third table · a duplicate-file generator other than iCloud appears (the shapes differ, and
+§997's correction is the precedent).
+
+**What the last six phases converge on.** §993 through §998 found no defect in the product. Every one was in
+the *machinery that asserts the product is sound* — a coverage gate accepting an incidental mention, six
+expired verdicts, a cited gate that does not exist, six stale gate copies git cannot see, and now three gates
+each blind to the majority of their own subject. That is not a detour from production-readiness; a gate that
+cannot see its subject is indistinguishable, from the outside, from a clean build.

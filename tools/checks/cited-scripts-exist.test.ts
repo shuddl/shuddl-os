@@ -73,23 +73,61 @@ export function citedScript(span: string): string | null {
     if (t === "run") { i += 1; continue; }
     break;
   }
-  const name = tokens[i];
-  if (name === undefined || SUBCOMMANDS.has(name)) return null;
+  // Strip TRAILING prose punctuation only. A colon INSIDE the name is part of it (`check:docs`,
+  // `verify:merge`); a trailing one is the sentence's — `pnpm typecheck: exit 0` cites `typecheck`, and §998's
+  // first fenced run reported `typecheck:` as missing.
+  const name = tokens[i]?.replace(/[.,;:)\]]+$/, "");
+  if (name === undefined || name === "" || SUBCOMMANDS.has(name)) return null;
   return /^[a-z][a-z0-9:_-]*$/.test(name) ? name : null;
 }
 
-interface Citation { file: string; line: number; script: string; span: string }
+interface Citation { file: string; line: number; script: string; span: string; fenced: boolean }
 
+/**
+ * §998 — FENCED BLOCKS TOO, which is where the proof form actually lives.
+ *
+ * §996 read inline backticks only, because that is the shape that prompted it. Measured after: **52 pnpm
+ * citations sit inside fenced blocks** — and they are the canonical evidence form this record uses,
+ * `pnpm verify:merge   →   exit 1`. A gate for "cited commands must exist" that cannot see the block where
+ * commands are cited is the §997 shape exactly: written from one observed instance, covering that instance.
+ *
+ * A whole block is exempted by putting the marker on the fence's opening line or the line immediately before
+ * it — an HTML comment inside a fence would render literally, so a line-local marker cannot work there.
+ */
 function citations(root: string): Citation[] {
   const out: Citation[] = [];
   for (const rel of tracked(root, "*.md").concat(tracked(root, "**/*.md"))) {
     if (rel.startsWith(PLANS)) continue;
-    const text = readFileSync(`${root}/${rel}`, "utf8");
-    text.split("\n").forEach((line, idx) => {
+    const lines = readFileSync(`${root}/${rel}`, "utf8").split("\n");
+    let fenced = false;
+    let fenceIgnored = false;
+    lines.forEach((line, idx) => {
+      if (line.trimStart().startsWith("```")) {
+        if (!fenced) fenceIgnored = line.includes(IGNORE) || (lines[idx - 1] ?? "").includes(IGNORE);
+        fenced = !fenced;
+        return;
+      }
       if (line.includes(IGNORE)) return;
+      if (fenced) {
+        if (fenceIgnored) return;
+        // Inside a fence the command is bare, not backticked — so anchor on COMMAND POSITION: the start of the
+        // line (after an optional `$ ` prompt) or immediately after a shell separator. Matching `pnpm`
+        // anywhere caught prose that happens to sit in a fence — §998's own line *"52 pnpm script citations
+        // live inside FENCED blocks"* reported a script named `script`.
+        //
+        // SCOPE this trades away, deliberately: a pnpm named mid-sentence inside a fence is skipped, including
+        // prose chains like `ci.yml → pnpm verify:merge → gatesFor("merge")`. Those describe a call path
+        // rather than a runnable line, and admitting them means admitting every English sentence in a fence.
+        // Trailing prose punctuation is stripped from the token, so `pnpm typecheck: exit 0` cites `typecheck`.
+        for (const m of line.matchAll(/(?:^|(?:&&|\|\||;|\|)\s*|^\s*\$\s+)\s*(pnpm\b[^\n#|]*)/g)) {
+          const script = citedScript((m[1] as string).trim());
+          if (script !== null) out.push({ file: rel, line: idx + 1, script, span: (m[1] as string).trim().slice(0, 60), fenced: true });
+        }
+        return;
+      }
       for (const m of line.matchAll(/`([^`]+)`/g)) {
         const script = citedScript(m[1] as string);
-        if (script !== null) out.push({ file: rel, line: idx + 1, script, span: (m[1] as string).slice(0, 60) });
+        if (script !== null) out.push({ file: rel, line: idx + 1, script, span: (m[1] as string).slice(0, 60), fenced: false });
       }
     });
   }
@@ -122,12 +160,23 @@ describe("§996: every cited `pnpm <script>` resolves to a defined script", () =
     // This gate exists because an ABSENT thing read as a clean one. It must not do that itself: a broken glob,
     // a renamed docs tree, or a marker applied too widely would otherwise certify every proof in the repo.
     expect(scripts.size, "no package scripts collected — the package.json scan is broken, not the repo").toBeGreaterThanOrEqual(20);
+    // TWO floors, not one on the total. §998 widened this gate to fenced blocks, and a single floor over the
+    // sum would stay green if the fenced half silently dropped to zero — the inline half alone is ~432. Floor
+    // the INPUT each branch reads, so a regex change that blinds one branch cannot hide behind the other.
+    const inline = cited.filter((c) => !c.fenced).length;
+    const fenced = cited.filter((c) => c.fenced).length;
     expect(
-      cited.length,
-      "no backticked `pnpm <script>` citations found across the docs. The corpus, the glob or the backtick " +
-        "matcher broke — and a scan for bad citations finds none in an empty corpus, which is the exact " +
-        "failure this gate was written to stop.",
+      inline,
+      "no INLINE-backtick `pnpm <script>` citations found. The corpus, the glob or the backtick matcher " +
+        "broke — and a scan for bad citations finds none in an empty corpus, which is the exact failure this " +
+        "gate was written to stop.",
     ).toBeGreaterThanOrEqual(100);
+    expect(
+      fenced,
+      "no FENCED `pnpm <script>` citations found. §998 added that branch because 52 citations lived in code " +
+        "fences — this record's canonical proof layout. If the command-position anchor or the fence tracker " +
+        "broke, this half goes silently blind while the inline count keeps the total looking healthy.",
+    ).toBeGreaterThanOrEqual(20);
   });
 
   it("no document cites a script that does not exist", () => {

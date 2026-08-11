@@ -60,20 +60,45 @@ function lastCommitDate(root: string, rel: string): string | null {
   }
 }
 
+/** A row's newest date and the repo files its expiry trigger names. */
+function measure(root: string, raw: string, line: number, status: string): Terminal {
+  const dates = [...raw.matchAll(ISO_DATE)].map((m) => m[1] as string).sort();
+  const expires = cells(raw)[EXPIRES_CELL] ?? "";
+  const paths = [...expires.matchAll(BACKTICKED_PATH)]
+    .map((m) => (m[1] as string).replace(/[:#].*$/, ""))
+    .filter((p) => p.includes("/") && existsSync(`${root}/${p}`));
+  return { line, status, newestDate: dates[dates.length - 1] ?? null, paths: [...new Set(paths)] };
+}
+
+/**
+ * §998 — BOTH tables, because the rule follows the TRIGGER, not the table.
+ *
+ * §995 read only the repo-owned ledger, on the reasoning that external holds expire on world events ("at
+ * reboot", "when counsel signs") that no gate can observe. Mostly true, and it hid a real row: the CORS hold
+ * names `tests/e2e/prod-surface.spec.ts` in its trigger, and that file moved 2026-08-01 against a row dated
+ * 2026-07-31. A file-change trigger is equally checkable wherever it is written, and scoping by TABLE rather
+ * than by trigger shape is what made it invisible. External rows naming no file are still correctly ignored —
+ * they simply produce no paths.
+ */
 function terminalRows(root: string): Terminal[] {
   const md = readFileSync(`${root}/${CHECKLIST}`, "utf8");
   const lines = md.split("\n");
-  return ledgerRows(md)
+  const out = ledgerRows(md)
     .filter((r) => TERMINAL.test(r.status))
-    .map((r) => {
-      const raw = lines[r.line - 1] as string;
-      const dates = [...raw.matchAll(ISO_DATE)].map((m) => m[1] as string).sort();
-      const expires = cells(raw)[EXPIRES_CELL] ?? "";
-      const paths = [...expires.matchAll(BACKTICKED_PATH)]
-        .map((m) => (m[1] as string).replace(/[:#].*$/, ""))
-        .filter((p) => p.includes("/") && existsSync(`${root}/${p}`));
-      return { line: r.line, status: r.status, newestDate: dates[dates.length - 1] ?? null, paths: [...new Set(paths)] };
-    });
+    .map((r) => measure(root, lines[r.line - 1] as string, r.line, r.status));
+
+  const start = lines.findIndex((l) => l.startsWith("## External holds"));
+  if (start >= 0) {
+    for (let i = start + 1; i < lines.length; i += 1) {
+      const l = lines[i] as string;
+      if (l.startsWith("## ")) break;
+      if (!l.startsWith("| ") || l.startsWith("|--")) continue;
+      const c = cells(l);
+      if (c.length !== 8 || c[5] === "Status") continue; // header, by its own 6th cell (§981's method)
+      out.push(measure(root, l, i + 1, c[5] as string));
+    }
+  }
+  return out;
 }
 
 describe("§995: an evidence-expiry trigger is evaluated, not merely written", () => {
