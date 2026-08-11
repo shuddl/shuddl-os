@@ -610,6 +610,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 415 | §967 | **§968** | **THE BLAST RADIUS WAS EXACTLY FOUR — AND THE PROBE LIED TWICE BEFORE SAYING SO.** Checked out **all 30 commits this session** and ran the three cheap doc gates at each: **4 RED, all `citations`, all the §963–§966 already known, none other.** Bounded and closed. But the probe reported CLEAN twice first: `tac` does not exist on macOS (empty list → *silence = all green*), then **zsh does not word-split unquoted `$commits`** so `for c in $commits` iterated once and every checkout failed (→ `red=0`) — the same zsh trap memory recorded after §938, **second occurrence this session**, both times a FALSE CLEAN. The separator was one number: `checked=0 red=0` vs `checked=30 red=4`. **A finding count without its denominator cannot be falsified** — same shape as §959's pathspec, §965's prune, §961's printf and §967's stale file, all of which failed by producing LESS. Adopted: every sweep now reports `checked=N` |
 | 416 | §968 | **§969** | **THE DENOMINATOR RULE, APPLIED FIRST TO MY OWN MOST RECENT CLEAN NEGATIVE.** §968 adopted *every sweep reports `checked=N`*; a rule adopted and not immediately applied is a resolution, not a practice. **§965 published three bare zeros** — the exact shape §968 condemned, one phase earlier, same author. Re-run: `checked=906 refs bad=0`, `checked=994 files clashes=0`, `checked=994 files dups=0`. **The zeros hold** and are now falsifiable; §965's table backfilled in place with a note. Reviewed all 30 session sections for clean-negative claims: **1 of 30 lacked a denominator**, now supplied; §943/§947/§952/§961/§964/§968 each already carried theirs. **A rule that exempts the work that motivated it is a rule with a survivorship hole** |
 | 417 | §969 | **§970** | **THE HARD BUDGETS, MEASURED AGAINST THEIR OWN DECLARATIONS.** The other constitutional list, unchecked this session. All are gated from `tools/` — the half that never went dark — so **unlike rules 4/5/6/8 (§955) the budgets held through the §940 window.** Values counted from the rosters, not greps: tables **21/22**, surfaces **3/3**, canonical views **11/12**, event kinds **35/35** (`EVENT_KINDS` checked=35 entries, 35 distinct), colours **5 base + 4 derived**, fonts **2**, shadows/gradients/radius `design audit: clean`. **Operational fact: event kinds have ZERO headroom** — CLAUDE.md's *additions = register amendment* is now the live constraint, and *within budget* vs *at the ceiling* read identically in a green gate. Two probes returned `checked=0` (a token regex assuming a `--color-*` convention this repo does not use) and were re-run rather than published — §968's rule, working |
+| 418 | §970 | **§971** | **RULE 1's GATE HAS NEVER RUN — NOT ONCE, IN THE REPOSITORY'S HISTORY.** Completing the rule sweep: rules **2, 3, 10** are gated from `tools/` (append-only 14 files, REQ-030 authority, migrator no-silent-drop) so they held through the §940 window. Rule 1 has two clauses — the ORPHAN half is enforced (`check:traceability`, green), the **PR half is `check:pr`, guarded `if: github.event_name == 'pull_request'`**. Measured: last 8 ci runs **all `event=push` on main**, **pull requests ever = 0**, step 7 SKIPPED on the last run. The audit had filed this as *a policy question… the branch protection this repo assumes is outside it* — **§956 measured that assumption false**, so the deferred question is answered unfavourably. Counterweight, measured: **199 of 200 commits reference a REQ-ID (99%)** — the law is held by hand. Which is the point: **a practice sustained by one author's discipline is not one sustained by a gate** |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -57009,3 +57010,58 @@ repo does not use. By §968's rule that is a broken probe, not an empty file, so
 (1,419 bytes, 11 declarations) rather than publishing a zero. Earlier in the same phase a design-audit grep
 returned nothing because the tool prints only `design audit: clean` on success — the same shape, same fix:
 **checked=0 is a question, never an answer.**
+
+## §971 — PHASE GATE: rule 1's gate has never run — not once, in the repository's history
+
+Completing the constitutional sweep (§953 rule 6, §954 rule 8, §955 rules 4/5, §939 rule 7, §970 the budgets)
+with rules **1, 2, 3, 10**. Three are unremarkable and one is not.
+
+### Rules 2, 3, 10 — enforced from the half that ran
+
+Append-only (rule 2) is gated by `check:invariants` + `check:chokepoint` (14 files under `tools/`); REQ-030's
+authority registry (rule 3) by `check:authority-coverage`; the migrator's no-silent-drop law (rule 10) by three
+`tools/` checks. All in `tools/`, which `test:tools` runs first and which never went dark — so, like the
+budgets and unlike rules 4/5/6/8, these held throughout the §940 window.
+
+### Rule 1: the gate has never executed
+
+> *"Every PR references REQ-IDs; traceability CI blocks orphans."*
+
+Two clauses. The **orphan** half is enforced — `check:traceability` runs inside `verify:merge` and again in the
+nightly, and it is green. The **PR** half is `check:pr`, and:
+
+```yaml
+- name: traceability — PR REQ-IDs (REQ-118)
+  if: github.event_name == 'pull_request'
+```
+
+Measured:
+
+```
+ci runs, last 8      : event=push, branch=main   (all of them)
+pull requests, ever  : 0
+step 7 on the last run: SKIPPED
+```
+
+**This repository has never had a pull request**, so a step gated on `pull_request` has **never run** — not
+once, in its entire history. The audit had already noticed the conditional and filed it as *"a policy question,
+not a defect — the branch protection this repo assumes is outside it."* §956 measured that assumption: `main`
+is **not protected**, so direct pushes are permitted, and they are the only mechanism anyone has used.
+
+**The deferred policy question is answered, and the answer is the unfavourable one.** Same shape as §944's
+fired trigger: a note parked pending an external fact, where the external fact was never checked.
+
+### The counterweight, measured rather than assumed
+
+The *law* is being obeyed even though its gate never fires:
+
+```
+commits examined: checked=200   referencing a REQ-ID: 199 (99%)
+without: 1  — 90ec125 "docs(audit): content-anchor §805's sequencer citation"
+```
+
+So the convention is held by hand, essentially without exception. That is the honest full picture, and it is
+also precisely why the gap matters: **a practice sustained by one author's discipline is not the same as a
+practice sustained by a gate**, and rule 1 was written to survive the second kind of change. Recorded, not
+"fixed" — making `check:pr` run on pushes is a governance decision about how work reaches `main` (§956's row),
+not a workflow edit an audit should make unilaterally.
