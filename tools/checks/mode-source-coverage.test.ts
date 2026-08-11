@@ -37,7 +37,21 @@ const CI_WORKFLOWS = [".github/workflows/ci.yml", ".github/workflows/nightly.yml
 
 /** Tool entrypoints that branch on `--mode`, discovered from source — never a hand-kept list. */
 function modeAwareEntrypoints(root: string): string[] {
-  const out = execFileSync("git", ["grep", "-l", "--", "parseMode", "tools/"], { cwd: root, encoding: "utf8" });
+  // §964 — `git grep` EXITS 1 WHEN NOTHING MATCHES, and `execFileSync` throws on a non-zero exit. The first
+  // version let that propagate, which made the non-vacuity floor below UNREACHABLE in the exact case it was
+  // written for: a renamed `parseMode` would surface as a raw "exit 1" from a child process instead of this
+  // file's own message naming what broke. Fail-closed either way — but a guard that cannot fire in its own
+  // scenario is the §963 shape (a check made unreachable by something upstream), found by auditing this
+  // session's gates against §963's lesson rather than by anything failing.
+  let out = "";
+  try {
+    out = execFileSync("git", ["grep", "-l", "--", "parseMode", "tools/"], { cwd: root, encoding: "utf8" });
+  } catch (err) {
+    // exit 1 = no matches (a real answer: zero entrypoints). Anything else — git missing, not a repo — is a
+    // broken measurement and must not be read as an empty corpus.
+    const status = (err as { status?: number }).status;
+    if (status !== 1) throw err;
+  }
   return out
     .split("\n")
     .filter(Boolean)

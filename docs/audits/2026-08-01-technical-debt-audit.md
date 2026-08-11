@@ -603,6 +603,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 408 | §960 | **§961** | **THE MECHANICAL HALF OF §960's CLASS IS EMPTY — AND MY FIRST COUNT WAS A FALSE ALARM.** §960 was instance #3 of *a remediation that does not fix the thing*, so I counted: **53 checkable artifacts named in Action cells, 0 unresolvable.** Every file and script a remediation names exists. So §960's defect was SEMANTIC, not referential — *Configure OIDC* names nothing broken, it points at a mechanism the code does not use, and **no detector reaches that**. The class has two halves with opposite properties: the referential half is checkable and clean at 53/53; the semantic half is uncheckable and has produced 3 defects, all found by reading. **Near-miss:** the first pass reported **27 of 53 unresolvable** (51%), every one wrong — it read a bare basename as a repo-root path. A false ALARM, the opposite of this session's usual false cleans, and the asymmetry is the lesson: a false clean is corrected by nobody, a false alarm by whoever checks item one |
 | 409 | §961 | **§962** | **CI's 26-GATE SURFACE WAS *SKIPPED* — THE SAME SHORT-CIRCUIT, AT A THIRD LEVEL.** CI has failed every run since 2026-07-23 (last green 07-22). In the final run — at `0415148`, **the commit production runs** — step 14 `strict performance` FAILED and step 15 *merge evidence gate — the complete non-skippable surface* was **SKIPPED**, not failed. Three consecutive runs ended that way. Third level of the §940 idiom (package `&&` → `pnpm -r` bail → **GitHub step ordering**) and the worst, because the one step running all 26 gates sits AFTER four browser gates: locally `perf:map` passes at p95 **12.00ms** vs an **18.18ms** budget, and **a slower CI runner was enough to silence all 26 gates**. Fixed with `if: !cancelled()` — the job stays red, the surface reports. Also corrected L35: *CI binds the secret* is false (§960, 0 secrets) — referencing is not binding |
 | 410 | §962 | **§963** | **WHAT ACTUALLY BROKE CI WAS A VACUITY FLOOR, NOT A PERFORMANCE BUDGET.** §962 fixed the consequence; this is the cause. CI's perf step failed with `frames=29` against `expect(frames.length).toBeGreaterThan(30)` — while its own log said **enforcing FPS here = false** and the long-task budget was NOT ASSERTED. `perf.spec.ts` carries TWO hardware-awareness mechanisms (`softwareRasterizer`, `isReferenceMachine`) and the vacuity floor used **neither**, though frames-in-a-fixed-window is exactly as hardware-dependent as the numbers they decline to assert. **The guard against a vacuous pass became the only thing that could fail, on the machine where everything it guards was already switched off.** Fixed: floor 10 under a software rasterizer. Reproduced CI's shape locally — frames=21 PASSES with the fix and FAILS at the hard 30 — so the CI failure was reproduced and removed, not reasoned about. **Five phases from *the board says 19 PASS* to one ungated `> 30`** |
+| 411 | §963 | **§964** | **§963's LESSON TURNED ON THIS SESSION'S OWN GATES.** Swept every numeric floor in a browser-executed spec — the only floors over RUNTIME-measured quantities: **9 of 10 are `> 0`** (*did this happen at all*, which cannot depend on machine speed); the single magnitude floor was §963's defect. **The convention was right and there was one deviation** — the reasonable prior (*this class is everywhere*) is false. Then audited my own seven gates (27 cases): all read repo content except `mode-source-coverage`, which shells out. `git grep` **exits 1 on no-match** and `execFileSync` THROWS on non-zero — verified both — so its non-vacuity floor was **unreachable in the exact case it was written for**. Fixed (exit 1 = zero matches; anything else re-throws) and proved. Also stated plainly: **these seven gates have never run in CI**, because §962's step was skipped in all three last runs |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -56677,3 +56678,56 @@ A vacuity floor I would have written myself — this session added several — w
 It failed on a GPU-less runner, which skipped the merge-evidence step (§962), which meant the 26-gate surface
 never ran, on the commit production serves (§959), with nothing requiring otherwise (§956). **Five phases to
 walk from "the board says 19 PASS" to a single ungated `> 30`.**
+
+## §964 — PHASE GATE: §963's lesson turned on this session's own gates
+
+§963 found a vacuity floor that was hardware-dependent by accident, and I noted it was *"the kind this session
+added several of."* That is a claim about my own work, so it gets measured.
+
+### The class, swept: the convention was right and there was one deviation
+
+Every numeric floor in a **browser-executed** spec — the only place a floor is over a *runtime-measured*
+quantity rather than repo content:
+
+| floor | form |
+|---|---|
+| `perf.spec.ts:158` interactions | `> 0` |
+| `driver-offline-sync` ×3 | `> 0` (two behind `expect.poll`, 15s/60s timeouts) |
+| `portal-isolation` ×2 | `> 0` (poll, 20s) |
+| `prod-surface` ×3 | `> 0` |
+| **`perf.spec.ts` frames** | **`> 30`** ← §963's defect |
+
+**Nine of ten are `> 0`** — *"did this happen at all"*, which cannot depend on how fast the machine is. The one
+expressed as a magnitude is the one that broke CI for three weeks. The repo's convention was correct; §963 was
+a single deviation from it, not a systemic blind spot. Worth recording, because the opposite conclusion — *"this
+class is everywhere"* — was the reasonable prior and is false.
+
+### My own seven gates, audited against the same lesson
+
+The gates added in §938–§956 (27 cases) read **repo content**, which is environment-independent — except one.
+`mode-source-coverage.test.ts` shells out:
+
+```ts
+execFileSync("git", ["grep", "-l", "--", "parseMode", "tools/"], …)
+```
+
+`git grep` **exits 1 when nothing matches**, and `execFileSync` throws on a non-zero exit. Verified both:
+`git grep … zzz_no_such_pattern` → exit 1; the same call under `execFileSync` → THREW.
+
+So the non-vacuity floor two functions below — written *precisely* for "the pattern found nothing" — **was
+unreachable in that exact case.** A renamed `parseMode` would have surfaced as a raw child-process exit 1
+rather than the message naming what broke. Fail-closed either way, so nothing was at risk; but a guard that
+cannot fire in its own scenario is §963's shape one file over.
+
+Fixed by treating exit 1 as the answer *zero matches* and re-throwing anything else — git missing, not a
+repository — because those are broken measurements and must not read as an empty corpus. Proved: renaming the
+pattern now yields *"no mode-aware entrypoints found — parseMode was renamed or the scan is broken, not the
+repo cleaned up"* instead of an opaque throw.
+
+### One thing worth stating plainly
+
+**These seven gates have never run in CI.** They live in `test:tools` → `verify:merge`, and §962 established
+that step was SKIPPED in each of the last three CI runs. They pass locally on macOS; their first execution on
+a Linux runner will be the first time §962's fix lets the merge-evidence step run at all. That is not a
+defect and not a reassurance — it is the honest status of eleven phases of gate-building, and the reason
+§962's one-line `if: ${{ !cancelled() }}` matters more than any gate added after it.
