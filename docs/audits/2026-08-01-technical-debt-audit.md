@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 520 | §1072 | **§1073** | **THE LIVE-ROW CITATION SURFACE, CLOSED — AND 1 OF 3 WAS ROTTED.** §1072 re-keyed one drifted citation and measured 129 bare ones. Scoping to what still makes a CLAIM — bare citations inside **live OPEN rows** — the surface is **3, not 129**; the other 37 in-table ones sit in closed/struck rows where a line number is historical record. Checked all three by opening what they point at: **`ci.yml:49` was ROTTED** — the row says *"CI binds it at"* that line, but `IDENTITY_DENYLIST` is bound at **`:61`** and `:49` is an unrelated `if: ${{ !cancelled() }}`. Two re-keyed to snippets. The third is left line-keyed **deliberately**: it points into a MIGRATION, and §1052 proved an edit to a committed migration REDs `check:invariants` — the one file class whose line numbers are frozen by construction. |
 | 519 | §1071 | **§1072** | **A MED SECURITY ROW RE-VERIFIED, AND A CITATION THAT ROTTED IN A 2-COMMIT FILE.** L428 (the `/pub/signup` email-enumeration oracle, blocks R4) re-verified in four parts: the `EMAIL_TAKEN` → 409 mapping is still there; the route is behind `PROVISIONING_ENABLED`; the check is `=== "true"` (EXACT, so no truthy value opens it); and the flag is **absent from `wrangler.toml` entirely**. Darkness pinned across **5 test files**. The oracle is unreachable; the response shape stays a founder UX call. **The defect found was the row's own citation** — it cited `signup.ts:94`, the case is at `:93`. Re-keyed to the SNIPPET. Then measured the class: **59 anchored vs 129 bare** citations, and the ratchet that governs bare ones covers 11 hand-curated high-churn files. `signup.ts` has **2 commits — tied for the LOWEST** of the eleven. Churn predicts where rot is LIKELY, never where it is POSSIBLE: one edit above a line is enough. |
 | 518 | §1070 | **§1071** | **§1070's PROPERTY IS ENFORCED BY CONSTRUCTION, NOT BY LUCK — AND NO NEW GATE WAS NEEDED.** §1070 called `verify:dev`'s disclosure *"prose in a shell string with no gate behind it"* and measured its correspondence empirically. Wrong about the mechanism: `evidence.ts:70-71` REFUSES `PASS && !executed` (*"a PASS that never ran is fabricated"*) and `PASS && assertions<=0` (*"the skip masquerading as green"*), and that runs on the LIVE merge path — `run-gate.ts:200` → `evaluateEvidence` → `gateResultProblem` per gate. So a locally-skipping gate **cannot** emit PASS at merge; the correspondence holds by construction. I nearly filed the opposite: a grep scoped to `tools/release/*.ts` returned no callers and I was one step from *"the validator is only wired in tests"* — **fifth probe-shape error this session.** No gate built (§1053's redundancy rule). |
 | 517 | §1069 | **§1070** | **THE LOCAL CHAIN'S HONESTY, MEASURED — 5 OF 13 SKIP, AND THE SET IS EXACTLY THE MERGE-BLOCKED SET.** §1069 found `check:identity` exits 0 while printing *Lint SKIPPED*, inside `verify:dev`. The general question — how many of the chain's gates can exit 0 without executing — turned out to be **answered by the artifact itself**: `verify:dev`'s step 18 already prints *"Gates that are BLOCKED on absent inputs report PENDING here and still exit 0. Run pnpm verify:merge for the shippable verdict."* Verified rather than trusted: all 13 gates run individually, **exactly 5 emit skip/pending language** (identity, fixtures, rater-parity, invoice-parity, concierge-parity) and they are **precisely the 5 the merge board reports BLOCKED** — no sixth, and the other 8 execute for real. `recall` also showed the *exits 0* class already carries **30 prior verdicts** including a Confirmed Critical, so the sweep I was about to run would have been §1067's error again. |
@@ -63725,4 +63726,66 @@ everywhere, and this phase found its counter-example in the least likely place.
 test files, its rotted citation re-keyed to be rot-proof, and the anchoring class measured (59 / 129 / 11
 targets) with the ratchet's curation confirmed sound rather than widened. `test:tools` 1,245 passed / 3 failed —
 the REQ-289 baseline · lint clean.
+
+## §1073 — PHASE GATE: the live citation surface, and the one file where a line number is safe
+
+**Why this phase.** §1072 found a citation that had drifted by one line and measured the class at **129 bare
+`path:line` citations** — too many to convert, and converting them all would be a large mechanical edit with
+its own error rate. The useful question is not *how many exist* but **how many still make a claim.**
+
+### Scoping to what is still asserted: 3, not 129
+
+A citation inside a **closed or struck** row is a historical record — the line number was true when written and
+changing it would falsify the history. A citation inside a **live OPEN row** is a live claim. Measured:
+
+| | count |
+|---|---|
+| bare citations in **live OPEN rows** | **3** |
+| bare citations in closed / struck rows | 37 |
+
+The tractable surface was two orders smaller than the raw count. That reframing is the phase: **129 was the
+size of the corpus; 3 was the size of the problem.**
+
+### All three opened — and one was rotted
+
+Not inferred from the address resolving, which is exactly what `check:citations` already does. Each was read:
+
+| citation | claim | verdict |
+|---|---|---|
+| `.github/workflows/ci.yml:49` | *"CI binds it at"* — the `IDENTITY_DENYLIST` secret | **ROTTED** — `:49` is `if: ${{ !cancelled() }}`; the binding is at **`:61`** |
+| `workers/api/vitest.config.ts:30` | runs `isolatedStorage: false` | correct |
+| `db/control/migrations/0003_tenant_pool.sql:26` | the `_pool_01` slot row | correct |
+
+**One of three was wrong**, and materially so: the row tells a reader where CI binds a secret and points at a
+conditional twelve lines early. Combined with §1072's `signup.ts:94 → :93`, that is **two rotted live citations
+in two phases**, both invisible to the gate, both found only by opening the file.
+
+Two are now keyed to their snippets and cannot drift.
+
+### The third is left line-keyed, deliberately
+
+`db/control/migrations/0003_tenant_pool.sql` is a **migration**. Migrations are forward-only, and §1052 proved
+the enforcement empirically: a planted edit to a committed migration REDs `check:invariants`. So that file's
+line numbers are **frozen by construction** — it is the one class of file in this repo where a `path:line`
+citation cannot rot, and the row now says so rather than leaving a reader to wonder why one citation was
+treated differently.
+
+That is worth more than converting it would have been. A blanket rule ("never cite a line") would have deleted
+a true and useful precision; the exception is principled and now written down where it is used.
+
+### What this phase says
+
+> **Scope a cleanup by what still asserts, not by what still matches.** The same regex found 129 hits and 3
+> problems, and the difference is entirely whether anyone is relying on the line today. A record that preserves
+> its own history will always contain far more citations than it depends on, and treating those as debt is how
+> a cleanup becomes a rewrite.
+
+And the narrower one, now twice-earned: **a citation gate proves the address, never the assertion.** Both
+rotted citations resolved perfectly — the file existed, the line existed, the gate was green. The only
+instrument that finds this is a human opening the file, which is why the fix is to make the citation
+self-verifying (a snippet) rather than to add another gate that can only re-check the address.
+
+**STOP.** Every bare citation in a live open row is resolved: two re-keyed to snippets after one was found
+rotted, one left line-keyed with its immutability argument recorded. The 37 historical citations are correctly
+untouched. `test:tools` 1,245 passed / 3 failed — the REQ-289 baseline · lint clean · citations 0 · tables OK.
 
