@@ -71,4 +71,6 @@ The root picks the adapter (`index.ts:67-87`) — the consumer never selects it.
 - **Adapter reads `env` for its key.** Reintroduces the env coupling. The root injects it (`index.ts:71`, `sender.ts:194`).
 - **Keying identity off model output.** The LLM's `party_hint.email` is untrusted; key off the authenticated `from_ref` (`concierge.ts:280`, `:386`, REQ-172).
 
+See `references/three-adapter-port.md` (shipped beside this file) for the port skeleton — one Zod boundary, one typed error, three adapters, with the composition root picking the adapter so going live is a CONFIRM-gated config flip rather than a code change.
+
 REQUIRED BACKGROUND: cloudflare:durable-objects (the sequencer DO mutex is load-bearing across D1 awaits); see also the repo memory note "D1 append-only triggers".

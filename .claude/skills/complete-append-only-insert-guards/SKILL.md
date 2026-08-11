@@ -80,3 +80,5 @@ CREATE TRIGGER events_guard_ins_v2 BEFORE INSERT ON events WHEN EXISTS (
 4. Add the table to `GUARDED_TABLES` and the `FORBIDDEN_REPLACE` alternation.
 5. Add a test that an `INSERT OR REPLACE` conflicting on **each** unique key RAISE(ABORT)s.
 6. Ship as a new forward-only migration; run `pnpm db:lock` + full invariants check.
+
+See `reference-0006_events_guard_ins_complete.sql` (shipped beside this file) for the annotated three-guard migration, including why `PRAGMA recursive_triggers = 0` makes the BEFORE-INSERT guard mandatory rather than optional. It is a reference, not a merge-ready file — author a real, sequentially-numbered migration.
