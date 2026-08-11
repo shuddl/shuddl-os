@@ -621,6 +621,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 426 | §978 | **§979** | **THE STEP-ORDERING RULE, GATED IN BOTH DIRECTIONS.** §978 fixed four unguarded browser gates and stated the line — *an independent verdict gets a guard; a genuine prerequisite does not* — and nothing enforced it: a fifth gate would be unguarded by default and yesterday's four guards could be removed silently, the same *unpinned fix* shape §938 opened this session with. `workflow-step-guards.test.ts`: **3/3 mutations RED** — removing a browser gate's guard (§978's defect, names `ci.yml:42`), removing the merge-evidence guard (§962's defect), and **guarding a PREREQUISITE** (*"gained a guard. It is a PREREQUISITE, not a verdict"*). The third is the one worth having: *add guards* invites completing the pattern by guarding everything, and **a boundary that is only in prose erodes**. Verdict set identified by BEHAVIOUR — `run:` containing `--mode merge` / `verify:merge` / `audit --prod` — not by name |
 | 427 | §979 | **§980** | **WHY §979 READS ONLY ONE WORKFLOW, ASSERTED INSTEAD OF ASSUMED.** §974's pinning gate reads BOTH workflows; §979's ordering gate reads only `ci.yml`, and that asymmetry was justified nowhere. It is correct: **every action ref is equally a supply-chain risk**, but **step ordering only bites when one job holds several INDEPENDENT verdicts**. Measured — `nightly.yml` has no such job: `orphan-audit` is **1 step alone in its job**, and `backup`'s 3 steps are one operation plus two CONSEQUENTS (showing a manifest never written, retaining a backup never made) where skipping is *correct*. §978's prerequisite-vs-verdict line applied to another file, landing on the opposite answer. Added a **scope tripwire** rather than widening the scan: if a nightly job grows past the measured shape the gate REDs and says to re-check. **A gate whose scope is a judgement should assert the judgement** |
 | 428 | §980 | **§981** | **TWO LEDGERS, TWO VOCABULARIES — AND THAT IS WHY §945 SCOPED TO ONE.** §980's question aimed at §945: it reads only the repo-owned section while External holds carries the SAME eight-field schema. Measured: repo-owned **35/35 canonical**, external **11 of 15 NON-canonical** — `BLOCKED`, `CLEARED`, `NARROWED`. They are right, and the section header says so: *"Every one of these is BLOCKED, not failed, and none may be relabelled PASS."* Different KINDS: a repo defect lives until a commit closes it (OPEN → FIXED); an external hold lives until the world changes (BLOCKED → NARROWED → CLEARED). **§945's scope was correct for a reason nobody had written down.** Asserted the SEPARATION rather than merging — 2/2 mutations RED. Net: the whole ledger is now machine-countable, 35 rows by one vocabulary and 15 by another, each with its own floor |
+| 429 | §981 | **§982** | **EVERY PROSE MATCH IN THIS SESSION'S GATES, AND WHETHER ITS GUARD ACTUALLY FIRES.** Prose matching is not always avoidable (headings, conventions, governing sentences); what makes it safe is a companion assertion that fails when the prose MOVES. Audited all nine gates: **checked=9, prose matches=7 across 5 files, non-vacuity assertion present in 9 of 9.** Six guards had been mutation-proven when written; **`wp-blocker-staleness`'s section guard was asserted at §946 and never fired** — *a pin that ships unable to fail*. Exercised here: renaming `### Milestone / CONFIRM gates` goes **RED**. **7 of 7 prose matches now have a guard seen to fire** — no gate can silently stop covering its subject through a rename. Found by turning a just-written rule on my own instruments **before anything broke**: the cheapest place this class has been caught in the whole audit |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -57535,3 +57536,47 @@ The first version excluded the header row by matching its first cell's prose —
 gate reported the header's literal `"Status"` as a stray value. Fixed by excluding on the **6th cell being
 `Status`**, which is the reliable signal. Third time this session that matching prose where a structural
 signal exists has cost a cycle (§961's basenames, §968's `checked=`, this).
+
+## §982 — PHASE GATE: every prose match in this session's gates, and whether its guard actually fires
+
+§981 recorded the third instance of *matching prose where a structural signal exists*. Prose matching is not
+always avoidable — a section heading, a stated convention, a governing sentence in CLAUDE.md are all prose by
+nature. What makes it safe is a **companion assertion that fails when the prose moves**, so the gate cannot
+quietly stop covering its subject. §968's denominator rule, applied to a different kind of silence.
+
+So: every gate added this session, audited against its own standard.
+
+```
+gates audited: checked=9   prose matches found: 7 across 5 files   with a non-vacuity assertion: 9 of 9
+```
+
+| gate | prose it matches | guard |
+|---|---|---|
+| `playwright-mode-parity` | `--mode release`, `modeArg: true`, `pnpm test:surfaces` | corpus floor ≥4 scripts |
+| `mode-source-coverage` | `"BOTH sources supply a mode"` (sibling's message) | division-of-labour tripwire — brittle **by design** |
+| `ledger-status-vocabulary` | `## External holds` | `expect(start).toBeGreaterThan(0)` |
+| `wrangler-absence-claims` | `DELIBERATELY ABSENT` | total ≥2 claims |
+| `wp-blocker-staleness` | `### Milestone / CONFIRM gates` | `expect(start).toBeGreaterThan(0)` |
+| `design-mode-parity`, `deploy-chain`, `workflow-pinning`, `workflow-step-guards` | none — all structural | — |
+
+### Six were mutation-proven when written. One was not.
+
+The guards on `DELIBERATELY ABSENT` (§944 M3), `## External holds` (§981 M2), the playwright corpus (§938 M3),
+the sibling tripwire (§943 M3) and the rest were each exercised by a mutation at the time. **`wp-blocker-
+staleness`'s section guard was asserted at §946 and never fired** — an assertion nobody had watched fail, which
+is precisely the *"a pin that ships unable to fail"* shape this repo's own memory names.
+
+Exercised it here: renaming `### Milestone / CONFIRM gates` → `### Milestone and CONFIRM gates` goes **RED**
+with *"the `### Milestone / CONFIRM gates` section is gone — re-scope this gate deliberately."*
+
+**7 of 7 prose matches now have a guard that has been seen to fire.** Not one of the nine gates can silently
+stop covering its subject through a rename.
+
+### Why this is worth a phase rather than a note
+
+A prose match that stops matching does not fail — it **passes over nothing**, which is the failure mode this
+entire session has been about: §938's unpinned config, §940's short-circuited corpus, §959's empty pathspec,
+§968's `checked=0`. The difference between those and this is that here the exposure was found by auditing my
+own instruments against a rule I had just written down, before anything broke. **That is the cheapest place
+this class has ever been caught in this audit**, and it is the argument for turning every new rule on the work
+that produced it (§969's survivorship point, applied a second time).
