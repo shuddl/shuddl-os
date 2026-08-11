@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 504 | §1056 | **§1057** | **THE DEPENDENCY-DRIFT SWEEP — AND UNRECORDED DEBT: THE WORKSPACE RUNS TWO VITEST MAJORS.** §1056's rule (*a constraint caused by a dependency silently becomes permanent*) implies a sweep: what else is version-pinned? The prose search over-fired on narrative *"is a bug"* and found nothing — the precise form of the shape is a **version number**, not a phrasing. `pnpm outdated -r` reports **63** drifted packages, all within-major EXCEPT the two that matter. Measured by asking each suite its own version rather than reading manifests: **`api`/`ledger`/`billing` run vitest 3.2.7 while `driver`/`command`/tools run 4.1.10.** Five packages hold `~3.2.4` (tilde = patch-only), a deliberate load-bearing pin required by pool-workers 0.9.x — and explained in NO manifest, NO doc, NO checklist row. **2,018 of 2,421 tests run on the older major.** Nothing is broken; the split is INVISIBLE. Filed as a standing row so the next upgrade starts from a measurement. |
 | 503 | §1055 | **§1056** | **THE HIGHEST-SEVERITY OPEN ROW, RE-MEASURED — ITS WALL IS ONE UPSTREAM `assert`, TWELVE MINORS STALE.** L427 (Med, blocks R4) is the only non-Low repo-owned row: pool-binding exclusivity is enforced on ENUMERATION but not on RESOLUTION — the path a WRITE travels. Two prior attempts describe the blocker as a HARNESS property (65→70 api test files sharing one D1, 2 pool slots, standing claimed rows). Measured, it is a DEPENDENCY property: `isolatedStorage: false` is forced by `@cloudflare/vitest-pool-workers` asserting `name.endsWith(".sqlite")` at **two** sites (at two sites in its pool entry point, the storage-stack push and pop), which a SQLite-backed DO's `.sqlite-shm` WAL sidecar violates. **Verified in the installed copy, not inferred from the comment.** Installed **0.9.14**, latest **0.21.0**. That converts the route from *rework 70 test files* to *take an upgrade and re-test*. NOT attempted: six packages pin `^0.9.14` and a `chai: "5.3.3"` override exists for this pool — a seven-manifest change deserving its own runway. |
 | 502 | §1054 | **§1055** | **THE OWNER-HELD LABELS, RE-MEASURED — TWO OF FOUR WERE MINE.** §1054's rule (*a remembered blocker is the least-tested claim you own*) turned on the 22 open rows. Five are genuinely External. Four are labelled `Repo (the governing doc)` and deferred to the register owner; the discriminating question is **does the edit change what is PERMITTED?** L396 (is routes±10% in scope?) and L409 (name the four primitives) — yes, correctly owner-held. **L397 and L398 — no.** L397's own text called the rule *general and CORRECT*, so marking its parenthetical illustrative removes a misreading that NARROWED the law to 3 of 15. L398's *(11 used)* is a MEASUREMENT re-derived every run, not a grant of scope; the ceiling (12) is unchanged. Both fixed. The budgets gate then REFUSED the new number until it was exempted with a written reason — the same route the tables entry's *21 used* already takes — and a planted `7 widgets` still REDs, so the exemption did not widen it. |
 | 501 | §1053 | **§1054** | **THE DECLARED GAP, CLOSED — ALL 11 SUITES MEASURED, AND A REMEMBERED BLOCKER THAT WAS WRONG.** §1053 named the workspace suites as unswept; this swept them. **All 12 vitest configs run at the 5000ms DEFAULT** (6 on `defineWorkersConfig`). Measured **2,421 tests across 11 suites**: exactly **ONE** at ≥50% — `workers/api`'s keyset-cursor test at 2834ms (57%), now given an explicit 30s timeout. Everything else is ≤43%; workerd per-test costs are tiny (billing's slowest is 33ms) because pool startup is per-FILE, not per-test. **The blocker was the finding:** I nearly skipped the six workerd suites on a remembered hazard — *"uninterruptible, kill -9-proof, reboot-only"*. Measured instead: all six ran exit 0, and the 37 lingering processes were state **S**, PPID 1, 19 hours old — ordinary ORPHANS, cleared by a plain SIGTERM. A real leak (159 MB idle), and a memory whose label was wrong. |
@@ -62587,4 +62588,78 @@ blocker whose expiry nobody was watching.
 **STOP.** The only Med open row is re-measured to its root cause, with both assert sites located and the version
 delta stated. Not fixed, and explicitly not: the route is a coordinated seven-manifest upgrade, now written
 down as such rather than as a vague harness wall. `test:tools` at the REQ-289 baseline · lint clean.
+
+## §1057 — PHASE GATE: the dependency-drift sweep, and debt nobody had written down
+
+**Why this phase.** §1056 ended on a rule: *a constraint attributed to your own code, but caused by a
+dependency, silently becomes permanent* — because your code is re-read constantly and a pinned dependency's
+limitation is re-read never. That is a class, so this phase looked for the rest of it.
+
+### The prose search failed, and the failure is instructive
+
+The obvious sweep is textual: find comments attributing a constraint to a library. It returned nine hits and
+**every one was a false positive** — the pattern `is a bug` matches narrative (*"a flaky failure you can
+reproduce is a bug, one you cannot is a rumour"*), and `does not support` matches a test name about a legacy
+mirror. Zero real instances from the phrasing.
+
+The reason is worth keeping: **the shape is not a phrasing, it is a version number.** §1056's finding was
+identifiable because the constraint had an expiry — `0.9.x` — and expiry is what makes it re-checkable. A
+constraint described purely in prose has none, so searching prose is searching the wrong attribute. This is
+§1053's rule (*do not gate a proxy when the real quantity is measurable*) arriving in a search rather than in a
+gate.
+
+### The measurable form: 63 drifted packages, and the two that matter
+
+`pnpm outdated -r` reports **63** rows. Almost all are within-major and unremarkable (React 19.2.7 → 19.2.8,
+eslint 10.6.0 → 10.8.1, wrangler 4.107.1 → 4.120.1). Two are not:
+
+| package | current | latest |
+|---|---|---|
+| `@cloudflare/vitest-pool-workers` | **0.9.14** | **0.21.0** |
+| `vitest` | **3.2.7** | **4.1.10** |
+
+The second is a **major**, and it prompted the check that produced this phase's finding.
+
+### The finding: two vitest majors, and most of the tests are on the old one
+
+Measured by asking each suite **its own** version rather than reading manifests — the §"compare artifacts,
+don't reason about them" discipline, and it mattered, because the root config reports 4.1.10 and that is what a
+casual check would have recorded:
+
+| suite | vitest | declared |
+|---|---|---|
+| `api`, `ledger`, `billing` (+ `agents`, `mcp`, `translator`) | **3.2.7** | `~3.2.4` |
+| `driver`, `command`, `portal`, `map`, `design`, tools | **4.1.10** | `^4.1.10` |
+
+**Five packages hold a tilde pin — patch-only, deliberately — because `vitest-pool-workers@^0.9.14` requires
+vitest 3.x.** That is also why `pnpm-workspace.yaml` carries `chai: "5.3.3"`. The pin is load-bearing and
+correct.
+
+It is also **explained in no manifest, no doc, and no checklist row.** JSON cannot carry a comment, and nobody
+wrote the note anywhere else. A reader upgrading vitest workspace-wide would break six suites and learn the
+reason from the failure.
+
+And the proportion is the part that makes it debt rather than trivia: **2,018 of the 2,421 tests measured at
+§1054 run on the older major** — the ledger's invariants, the api's lens and gate parity, the translator's EDI
+paths. The newer major covers the surfaces.
+
+Nothing is broken. Both majors are green, each suite runs independently, and no gate is weakened. What is
+missing is that the split is **invisible**: `pnpm outdated -r` reports it, and nothing reads that output because
+Dependabot is disabled (L354, external). Filed as a standing row with its own expiry trigger.
+
+### What this phase says
+
+> **A pin that is correct, load-bearing and undocumented is debt even while everything is green.** Its cost is
+> not a failure today; it is that the next person to touch it pays the discovery cost again, from a broken
+> build rather than from a note. Correctness and legibility are separate properties, and only one of them is
+> tested by CI.
+
+The connection to §1056 closes a loop: L427's fix needs the pool upgraded, the pool upgrade moves vitest 3 → 4
+for six suites, and the tilde pins are what makes that a coordinated change rather than a version bump. Three
+phases ago that was *"a harness wall"*; it is now a dependency, a version delta, and a written list of the
+seven manifests involved.
+
+**STOP.** The drift sweep is complete: 63 packages measured, the prose search recorded as a **failed method**
+with its reason, and one piece of previously unrecorded debt filed with a measurement, a proportion, and a
+trigger. `test:tools` at the REQ-289 baseline · lint clean · tables OK.
 
