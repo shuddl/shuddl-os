@@ -615,6 +615,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 420 | §972 | **§973** | **VALIDATING §962's CI FIX AS FAR AS THIS ENVIRONMENT ALLOWS.** §972 recommends PUSH, and that rests on §962's edit being syntactically valid — a malformed `ci.yml` produces **no run at all**, so the action would appear to succeed and verify nothing. **Stated first: no parse was possible** — `yaml`, `js-yaml`, `pyyaml` and `actionlint` all absent, and an `npm install` into a temp dir failed. Three structural checks instead: (1) the diff is **two `if:` lines + comments**, no step added/removed/reordered; (2) **the construct is already proven in this file** — line 63's pre-existing `if: ${{ always() }}` is on a step that ran **`success`** in the last CI run, and `cancelled()` is the same status-function family; (3) indentation is uniform (`- name:` 6, all others 8) and both additions sit at 8. Residual named: run `actionlint` or `gh workflow view ci` after the push |
 | 421 | §973 | **§974** | **THE SUPPLY-CHAIN CLAIM WAS TRUE AND ENFORCED BY NOTHING.** Both workflow headers state *"Every action is pinned to an immutable commit SHA with its release tag in the trailing comment"* — a security claim in a comment with no gate behind it. **Measured: checked=16 `uses:` refs, 16 SHA-pinned, 16 with the tag comment, 0 exceptions** — fourth clean positive of the session. But `uses: actions/checkout@v4` would have drawn no objection from any of the 26 gates, and that matters here because the tag keeps resolving, the workflow keeps passing, and **the code running inside a job that holds `CLOUDFLARE_API_TOKEN` and `IDENTITY_DENYLIST` changes underneath it** — a compromise indistinguishable from a green run. `workflow-pinning.test.ts`: 3/3 mutations RED (`@v4`, bare SHA, `@main`). Deliberately a **text scan** — no YAML parser is installable here (§973), so it cannot fail for the reason §973 could not be completed |
 | 422 | §974 | **§975** | **THE TOKEN POSTURE IS CORRECT, EXTERNAL, AND RECORDED NOWHERE.** The other half of the workflows' supply-chain surface: what the job's token can DO. Measured — **no `permissions:` block in either workflow**, repository `default_workflow_permissions: "read"`, `can_approve_pull_request_reviews: false`. **The posture is the safe one** and the jobs work within it. But it is correct by REPOSITORY SETTING, not by anything in the repository: flip that default to `write` in the UI and both workflows silently gain `contents: write` — no file change, no review, no signal — and `git grep -i 'workflow permission' docs/ops/` returns **nothing**. **Explicit `permissions:` blocks NOT added:** `"read"` grants a SET of read scopes while `permissions: contents: read` grants exactly one, **removing the others** — a narrowing that would hit the artifact upload and a third-party scanner, on a CI about to run for the first time in three weeks. Filed as an external hold |
+| 423 | §975 | **§976** | **NOTHING WAS WATCHING DEPENDENCIES AT ALL.** §967 found 4 prod vulnerabilities by running the audit BY HAND; the question that matters more is what was supposed to find them. Measured: `vulnerability-alerts` → **404**, `dependabot/alerts` → **403 disabled**, `automated-security-fixes` → **`{"enabled":false}`**. The only other mechanism, `pnpm audit --prod` (ci.yml step 16), has been **SKIPPED since 2026-07-23** (§962). **Zero mechanisms were surfacing dependency vulnerabilities** while four sat in the dependency graph of the API and the MCP surface. Half is already fixed — §962's `!cancelled()` was applied to the audit step too, so **one skipped step was hiding two entirely different classes of finding**. Half is the owner's, filed with the two options distinguished: **alerts only** (no workflow impact) vs **automated fixes** (opens PRs, in a repo with 0 PRs ever) |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -57270,3 +57271,52 @@ next person can apply it deliberately and watch the run.
 `GO-LIVE-CHECKLIST` external holds gains a row: the setting, its current value, the two commands to re-check
 it, and the in-repo hardening as a named option with its risk. **Currently safe; currently unguarded** — which
 is precisely the pair that decays without a written trigger.
+
+## §976 — PHASE GATE: nothing was watching dependencies at all — the §967 vulnerabilities were found by hand
+
+§967 found four production vulnerabilities by running `pnpm audit --prod` manually. That raises the question
+that matters more than the four: **what was supposed to have found them?**
+
+### Measured
+
+```
+GET /repos/shuddl/shuddl-os/vulnerability-alerts    →  404          (alerting NOT enabled)
+GET /repos/shuddl/shuddl-os/dependabot/alerts       →  403 "Dependabot alerts are disabled"
+GET /repos/shuddl/shuddl-os/automated-security-fixes →  {"enabled": false, "paused": false}
+```
+
+**Dependabot is off, and automated security fixes are off.** So GitHub was surfacing nothing.
+
+The only other mechanism is `pnpm audit --prod` — `ci.yml` step 16 — and §962 measured that it has been
+**SKIPPED in every CI run since 2026-07-23**, because a failed browser gate skipped every later step.
+
+### The complete picture
+
+| mechanism | state |
+|---|---|
+| Dependabot alerts | **disabled** |
+| automated security fixes | **disabled** |
+| `pnpm audit --prod` in CI | present, and **skipped since 2026-07-23** |
+| any local pre-commit hook | none |
+
+**Zero mechanisms were surfacing dependency vulnerabilities.** Four sat in the production dependency graph of
+`workers/api` and `workers/mcp` — the API and the MCP surface — until a manual command in §967. That is not a
+near miss; it is the absence of the thing that turns a near miss into a signal.
+
+### Half of it is already fixed
+
+§962's `if: ${{ !cancelled() }}` was applied to **both** the merge-evidence step and the dependency audit, so
+the in-repo half runs again the moment CI does. That was not the reason for §962 — it was a side effect of
+fixing the skip generally, and it is worth noting because it is the strongest argument for that one-line
+change: **one skipped step was hiding two entirely different classes of finding.**
+
+### Half of it is the owner's
+
+Dependabot is a repository setting, so it gets §956's treatment — measured, filed, not flipped. Two distinct
+options, and the distinction matters for a repo with **zero pull requests** (§971):
+
+- **Alerts only** — surfaces advisories, opens nothing. No workflow impact.
+- **Automated security fixes** — opens PRs. In a repo that has never had one and pushes directly to `main`
+  (§971), that changes the working model, not just a setting.
+
+Filed with both named, so the choice is made deliberately rather than by accepting whatever the toggle does.
