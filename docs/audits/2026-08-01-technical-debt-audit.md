@@ -629,6 +629,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 434 | §986 | **§987** | **THE RESIDUAL CLOSED — AND §986's OWN FIX HAD OPENED A FOURTH HOLE.** Probing before fixing: `await import("lumina-core")` was caught in `edi` and **PASSED in `adapters`** — that scope declares its own `no-restricted-syntax` (determinism selectors), which REPLACED the repo-wide REQ-163 dynamic ban §986 had just added. **§815 could not see it**: it compares the adapters-only block to the SHARED agents+adapters block, and the repo-wide block is a third participant never in that comparison — two gates for last-writer-wins, and the case that bit fell between them. Closed by APPENDING to the adapters-only block (superset holds by construction) and adding an **edi-only** block that overlaps nothing. **checked=9, caught=9, missed=0** across every ban × scope, plus a regression proving `Date.now()` is still caught in adapters. Fourth appearance in three phases: **adding a rule to a scoped block is a deletion somewhere else, invisible at the edit site** |
 | 435 | §987 | **§988** | **FIVE MORE SCOPES WERE DELETING THE REPO-WIDE BAN — CLOSED, AND NOW GATED.** §987 left a 4-instance rule with no gate. Swept every `no-restricted-syntax` block: **parse predicted 5 missing, probe found 3** — both right, because the probe wrote NEW files and two blocks are scoped to NAMED files (`build-214.ts`, `contacts.ts`) a new file can never match. Probing inside `build-214.ts` confirmed those too. **The parse was more precise than the behavioural check here — the reverse of the usual direction.** All five restated (restating can never weaken a scope, so no judgement and no exemption list): **checked=5, caught=5, holes=0**. `syntax-ban-inheritance.test.ts` gates the edge §814/§815 leave uncovered — and writing it exposed that **my §986 repo-wide block was formatted inconsistently**, so the parser swallowed the ledger block and demanded REQ-024 everywhere. A formatting inconsistency became a correctness bug in a gate |
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
+| 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -57948,3 +57949,46 @@ inserting a second `"off"` block for `packages/ledger/src/gl/**` goes **RED**.
 
 Three rule names, four gates, one hazard — and the hazard's own shape is why it took four phases to see: every
 instance is individually obvious, and the class is invisible because the config reads as additive.
+
+## §990 — PHASE GATE: the substitutive-config hazard on production infrastructure — clean, after three wrong probes
+
+§989 closed the ESLint family. Its meta-lesson — *a config that reads additive but is substitutive* — has a
+higher-stakes instance: **Wrangler's `[env.X]` blocks do not inherit bindings.** `vars`, `d1_databases`,
+`kv_namespaces`, `r2_buckets`, `queues` and `durable_objects` must each be repeated per environment, and one
+omission means a worker **deploys to prod without that binding**. §944 already found one false claim in these
+same files.
+
+### The record first
+
+`tools/deploy/binding-parity.test.ts` exists — 10 cases: queue produced/consumed parity per scope, logical
+resource-name agreement across workers, physical database-id agreement in staging and prod. Substantial, and
+aimed at a **different** hazard: it compares workers to each other, not top-level to env. The
+present-at-top-level-and-absent-in-prod case was ungated.
+
+### Measured — and three probes were wrong before one was right
+
+| attempt | result | what was wrong |
+|---|---|---|
+| 1 | **13 of 13 scopes "missing" bindings** | the section regex matched `[[env.staging.d1_databases]]`, set the scope, and `continue`d — never recording the kind on that same line |
+| 2 | 13 scopes, **0 missing kinds** | correct at KIND level, but a kind can be present with instances missing |
+| 3 | **4 "gaps"** | compared `queue = "shuddl-agent-triggers-dev"` — the PHYSICAL resource name, which correctly differs per env |
+| 4 | **0 missing** | compared `binding = "…"` — the code-facing name, which is the actual invariant |
+
+**Attempt 1's 100% hit rate is what saved it.** Thirteen of thirteen is not a finding, it is a broken probe —
+§968's rule, and the only reason the first number was never written down. Attempt 3 is the subtler lesson: it
+found four real *differences* that were not *defects*, because I compared the field that is supposed to vary.
+
+### The result
+
+```
+env scopes checked=13   deployable scopes missing a code-facing binding: 0
+top-level bindings: agents 7 · api 9 · billing 6 · mcp 2 · translator 6
+```
+
+**Every `[env.staging]` and `[env.prod]` block repeats every code-facing binding its top level declares.** The
+configs are correct on the hazard that would have been invisible until a prod deploy failed at runtime — and
+`no such binding` is exactly the failure that surfaces after the deploy, not during it.
+
+Not gated: `binding-parity.test.ts` already owns the cross-worker half, and a fourth measurement of the same
+files would need its own careful scoping (the physical-name field *must* differ, which is what tripped attempt
+3). Recorded as verified with its date, method, and the three ways the method can be got wrong.
