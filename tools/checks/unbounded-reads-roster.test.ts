@@ -5,8 +5,12 @@ import { repoRoot } from "./repo-root.js";
 
 // REQ-197/010 §794 — THE UNBOUNDED-READ HOLD, KEPT HONEST.
 //
-// `docs/ops/GO-LIVE-CHECKLIST.md` carries a filed, deliberately-unfixed hold: *"Unbounded list reads — 7
-// sites, no LIMIT and no cursor"* (audit §183, re-verified §470). Every row a tenant has ever accumulated is
+// `docs/ops/GO-LIVE-CHECKLIST.md` carries a filed, deliberately-unfixed hold: *"Unbounded list reads — 9
+// sites, no LIMIT and no cursor"* (audit §183, re-verified §470; count corrected to 8 then 9 at §823, when
+// enumerating every API list endpoint found `GET /v1/approvals` walking past the roster). The quote above
+// read "7 sites" until §1019 — **this file exists to stop exactly that drift, and its own header had it**:
+// the assertion below compares the doc's number to `ROSTER.length` and was green throughout, because a
+// header comment is prose and no gate reads it. Every row a tenant has ever accumulated is
 // loaded into one 128 MB Worker response. The decision to file rather than fix is the owner's and stands;
 // what did NOT exist was anything keeping the record true.
 //

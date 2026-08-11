@@ -631,6 +631,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 466 | §1018 | **§1019** | **THE DRIFT GATE HAD DRIFTED — IN THE ONE PLACE NO GATE READS.** §1018 found `KNOWN_UNPAGINATED` entries are **filed debt**, raising the question whether the ledger an owner reads knows about them. **It does, and the join is gated better than expected:** `unbounded-reads-roster.test.ts` extracts the doc's NUMBER (`/Unbounded list reads — (\d+) sites/`) and asserts it equals `ROSTER.length`, with *whichever moved, move the other in the SAME commit* — earned at §823, whose row records *this row said '7 sites' while already citing 8, and the agreement test matched only the TITLE, so the disagreement was invisible for two audits*; plus §822's discovery half (*a roster watches what it knows; a ninth site walks past it*). **And its own header still said seven.** The doc says 9; the file's opening paragraph quoted 7. **The file whose entire purpose is stopping doc↔code count drift had drifted, in its own first paragraph** — and nothing could fail, because the assertion reads the DOC and a header comment is prose. Corrected to 9 with provenance kept. **A gate cannot audit its own prose**, so the most rigorous file in a repo is exactly as prone to a stale sentence as the least |
 | 465 | §1017 | **§1018** | **THE EXEMPTION SURFACE — 12 ALLOWLISTS, 0 THAT OUTLIVED THEIR SUBJECT.** §1017 swept suppressions; an allowlist is the same hazard with the opposite sign — **worse, because a suppression is visible where it silences while an exemption sits in a file nobody opens.** 12 allowlists across 16 gate files, every path-like entry checked against the tracked tree: **0 dead.** **§672 already asks this question on the one that matters most:** `append-chokepoint`'s `ALLOWED` is a **`Map<path, reason>`** (justification structurally inseparable from the entry), **2 entries only**, exported so the test pins the **exact key set**, requires every reason to exceed **40 chars**, and asserts *every allowlisted path still exists AND still writes events — no exemption outlives its subject*. **Two corrections to my own reading:** the reason-bearing-vs-bare split (5/7) was a **parser artifact** — I classified by declaration SYNTAX, and reading CONTENTS dissolves it, since every allowlist here carries prose reasons; and 3 'ungated' ones needed no gate because `ALLOWED_FONT`/`_TRANSFORM`/`_HEX` are **value** allowlists — the constitutional budgets themselves, proved by violation at §1001, and a value cannot outlive its subject. Design note: `KNOWN_UNPAGINATED` entries double as **filed debt** (*Remedy needs a REQ row*), so the exemption cannot be read without reading why it is temporary |
 | 464 | §1016 | **§1017** | **THE SUPPRESSION SURFACE — NINE FORMS SWEPT, ONE WAS §1016's FINDING, THE REST CLEAN.** §1016 found its finding by asking *which decision in this file is unexplained?* — mechanised here, since **every suppression is a decision and an unexplained one is indistinguishable from a silenced failure**. **0 `@ts-expect-error` · 0 `@ts-ignore` · 0 `istanbul ignore` · 0 `skipIf`/`.todo`** — zero type-checker suppressions in a strict, no-`any` codebase is the number worth recording, because a growing bank of `@ts-ignore` is the usual way a repo accumulates silent debt. `.only` ×2 and 3 of 4 `.skip` are **fixtures inside `no-focused-tests.test.ts`, the gate that BANS focused tests**; 5 `eslint-disable` are the standard `env.d.ts` module-augmentation idiom. **The one real skip is the model:** `prod-surface.spec.ts:30` skips on an unset `PROD_SURFACE_BASE`, and `test:surfaces` **bakes `--mode release`** so an all-skipped run is BLOCKED, never exit 0 — the guard reading Playwright's JSON stats because *it exits 0 both for '42 passed' and for '4 skipped', so the exit code alone cannot distinguish proof from silence.* **§968's rule discovered independently at the browser layer** — three instruments, one law |
 | 463 | §1015 | **§1016** | **THE DISABLED CONTRAST RULE — A REGISTER BOUNDARY, AND THE MEASURED COST OF DEFERRING IT.** The a11y spec explains every decision at length except one: `.disableRules(["color-contrast"])`, silent — the rule that matters most for a driver in sunlight. **I was reading toward an undocumented silencing. The register says otherwise:** **REQ-149** (`F0-SPEC'D`, BUILT) is *A1 deep-red small text ≥4.5:1 locked by CI*, and `audit.ts:75`'s single assertion is not a thin implementation of full-surface contrast — **it is a COMPLETE implementation of REQ-149**, pinning the tightest PASSING pair (4.58:1, 0.08 above threshold). Full-surface axe contrast is **REQ-285 — `vNEXT`, deferred.** Enabling the rule would not catch a defect; it would build vNEXT scope. **But the cost was unmeasured, so I measured it:** enabled → **10 serious findings** (command 7 · portal 2 · driver 1) in three classes — and **two of the three failing colours are NOT tokens** (`#ec8778`, `#983428`): opacity-composited variants. **The design CI reads the five DECLARED tokens; the browser renders them AT OPACITY; those are different colours** — no token-pair check reaches that class however many pairs it enumerates. Disable now carries the reasoning + the number; rule stays OFF (the remedy is a design decision under a constitutional 5-token budget) |
@@ -60033,3 +60034,70 @@ mode this phase went looking for.
 is the cheap half · a path-bearing allowlist is added without a staleness assertion, which is the only
 structural gap left here · `KNOWN_UNPAGINATED`'s filed entries get their REQ rows, at which point those
 exemptions should shrink rather than persist.
+
+---
+
+## §1019 — PHASE GATE: the drift gate had drifted — in the one place no gate reads
+
+§1018 noticed that `KNOWN_UNPAGINATED`'s entries are **filed debt** carrying text like *"FILED — the ninth
+unbounded read (§823). Remedy needs a REQ row."* Debt filed inside a gate's allowlist raises an obvious
+question: **does the ledger an owner actually reads know about it?**
+
+It does, and the join is already gated — better than I expected, with the failure it prevents written into it.
+
+### The doc↔roster agreement is real, and it was earned the hard way
+
+`GO-LIVE-CHECKLIST:202` files *"Unbounded list reads — 9 sites, no LIMIT and no cursor"*, and
+`unbounded-reads-roster.test.ts` pins it **numerically**:
+
+```ts
+const claimed = /Unbounded list reads — (\d+) sites/.exec(doc);
+expect(Number(claimed![1]), "…the roster holds ${ROSTER.length}. Whichever moved, move the other in the SAME
+  commit.").toBe(ROSTER.length);
+```
+
+The row itself records why that number is extracted rather than the heading matched:
+
+> *"count CORRECTED 2026-08-09 §823 — this row said '7 sites' while already citing 8, and the roster test
+> pinned 8; **the agreement test matched only the title, so the disagreement was invisible for two audits.**
+> The 9th, `GET /v1/approvals`, was found by enumerating every API list endpoint instead of re-reading the
+> known ones."*
+
+Both halves are present: §823's numeric comparison, and §822's **discovery** half — *"a roster watches what it
+knows; a ninth site walks past it."*
+
+### And its own header still said seven
+
+```
+docs/ops/GO-LIVE-CHECKLIST.md  →  "Unbounded list reads — 9 sites"
+unbounded-reads-roster.test.ts →  header quotes "Unbounded list reads — 7 sites"
+```
+
+**The file whose entire purpose is stopping doc↔code count drift had drifted, in its own opening paragraph.**
+Nothing failed, and nothing could: the assertion reads the *doc*, and a header comment is prose. The gate was
+green throughout, correctly, about a different string.
+
+Corrected to 9, with the provenance kept (§183 filed, §470 re-verified by hand, §823 corrected 7→8→9) and the
+irony recorded in place rather than quietly overwritten.
+
+### Why this is worth a section
+
+It is [[check-what-a-discipline-stops-one-line-short-of]] in its purest form. The discipline here is
+exceptional — a numeric pin, a discovery half, a failure message naming the same-commit obligation — and it
+stops at the boundary of what a gate can read. **A gate cannot audit its own prose**, so the most rigorous
+file in a repository is exactly as prone to a stale sentence as the least.
+
+The general form, and the reason it recurs: **every gate has an unreachable region — its comments — and that
+region is where its authors explain what it protects.** §1013 found the same edge (a fixture whose comment
+reasoned correctly about DST while the suite it belonged to had been self-confirming), and §1016 found the
+inverse (a correct decision with no comment at all).
+
+### Phase gating
+
+**STOP.** The allowlist-as-filed-debt question resolves cleanly: the ledger knows, the join is numerically
+gated both ways, and the one drift was in prose no gate reads.
+
+**Re-open when:** the roster changes — the doc's number and `ROSTER.length` move in the same commit by
+assertion, but this file's header is on nobody's list · a second gate quotes a checklist figure in its header,
+which is the shape that just bit · `KNOWN_UNPAGINATED`'s filed entries get REQ rows, at which point both the
+roster and the row shrink together.
