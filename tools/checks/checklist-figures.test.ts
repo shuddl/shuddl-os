@@ -27,6 +27,52 @@ import { repoRoot } from "./repo-root.js";
 
 const CHECKLIST = "docs/ops/GO-LIVE-CHECKLIST.md";
 
+/**
+ * §1077 — the number of sweeps riding the agents worker's single cron, DERIVED from the containment calls.
+ *
+ * Added because this figure drifted for ~800 sections in the way §1076 caught: `watchtower-snapshots` became
+ * the eighth sweep, §248 corrected the count in `sla-sweep.ts`, and the SIBLING copy in `do/sequencer.ts` kept
+ * saying "seven". The corrected file even carried a note about having been corrected — and nothing connected
+ * the two. That is §797's pin-the-siblings rule failing in its usual direction, and a roster gate is the only
+ * thing that makes the copies unable to disagree.
+ *
+ * MATCHER: `[^"]+`, NOT `[a-z-]+`. Measured at §1077 — the first version used a lowercase-and-hyphen class,
+ * and a planted ninth sweep named `probe9` was INVISIBLE to it: the gate stayed GREEN while the comments
+ * were stale. That is §1064's character-class bug reproduced in a gate written ONE PHASE after documenting
+ * it — a class chosen from the names that exist today, excluding one the generator can emit.
+ *
+ * The count matters beyond tidiness: two open rows (the 4h SLA policed by a daily tick, and the unbackstopped
+ * booking trigger) both argue FROM it — "all N sweeps ride this one cron" is the cost side of the cadence
+ * decision, and "none of the N crons reconciles bookings" is the completeness claim.
+ */
+function containedSweeps(root: string): number {
+  const src = readFileSync(`${root}/workers/agents/src/index.ts`, "utf8");
+  return new Set([...src.matchAll(/contain\("([^"]+)"/g)].map((m) => m[1] as string)).size;
+}
+
+/** Every file that STATES the sweep count in prose. A copy not listed here is the next §1076. */
+const SWEEP_COUNT_FILES = [
+  "workers/agents/src/sla-sweep.ts",
+  "workers/api/src/do/sequencer.ts",
+] as const;
+// SOURCE FILES ONLY, and the checklist is EXCLUDED deliberately — measured at §1077, not assumed. Including it
+// produced 2 hits and BOTH were false: a closed row saying "10 of 11 sweeps" (a different population — the
+// repo-wide count, which itself says "the eight in workers/agents/src/index.ts"), and §1076's own stamp
+// QUOTING the corrected-away "seven" to document the fix. That is the irreducible semantic floor a
+// count-matcher hits on prose: a record that preserves its history necessarily contains its own wrong numbers,
+// and no filter distinguishes a stale claim from a quoted one. A gate at a 50% false-positive rate is a gate
+// people silence (§1053), so this one is scoped to where the count is a LIVE assertion rather than a citation.
+
+const WORD: Readonly<Record<string, number>> = { six: 6, seven: 7, eight: 8, nine: 9, ten: 10 };
+
+/** Stated counts of the form "EIGHT sweeps" / "seven crons" / "8 contained sweeps". */
+function statedSweepCounts(root: string, rel: string): number[] {
+  const text = readFileSync(`${root}/${rel}`, "utf8");
+  return [...text.matchAll(/\b(six|seven|eight|nine|ten|\d+)\s+(?:contained\s+)?(?:sweeps|crons)\b/gi)]
+    .map((m) => WORD[(m[1] as string).toLowerCase()] ?? Number(m[1]))
+    .filter((n) => Number.isFinite(n));
+}
+
 /** Count `CONFIRM-GATED` rows in the register — the authority, not a copy of it. */
 function confirmGatedRows(root: string): number {
   const csv = readFileSync(`${root}/genesis/09-REQUIREMENTS-REGISTER.csv`, "utf8");
@@ -96,5 +142,31 @@ describe("§933: the checklist's numeric claims are re-derived, not remembered",
         "is FALSE — parity.ts carries one and says it IS rule 6's routes gate. Do not re-assert it without " +
         "resolving whether that comment is right or over-claims.",
     ).toContain("EVIDENCE CORRECTED 2026-08-10 (audit §932)");
+  });
+
+  it("§1077: every stated sweep count equals the containment calls that produce it", () => {
+    const derived = containedSweeps(root);
+    // Non-vacuity first: a broken matcher would derive 0 and then agree with nothing, silently.
+    expect(derived, "no contain(...) calls parsed from the agents worker — the scan broke, not the worker").toBeGreaterThanOrEqual(5);
+
+    const wrong: string[] = [];
+    let stated = 0;
+    for (const rel of SWEEP_COUNT_FILES) {
+      for (const n of statedSweepCounts(root, rel)) {
+        stated += 1;
+        if (n !== derived) wrong.push(`${rel} states ${n}`);
+      }
+    }
+    // The roster must actually FIND statements — otherwise a reworded comment silently empties this gate.
+    expect(stated, `no sweep-count statements found across the ${SWEEP_COUNT_FILES.length} rostered SOURCE files — the phrasing changed and this gate went blind`).toBeGreaterThanOrEqual(2);
+    expect(
+      wrong,
+      `file(s) stating a sweep count that disagrees with the ${derived} contain(...) calls in ` +
+        "workers/agents/src/index.ts:\n  " +
+        wrong.join("\n  ") +
+        "\n\n§1076 found exactly this: §248 corrected the figure in sla-sweep.ts and the sibling copy in " +
+        "do/sequencer.ts kept saying seven, with the corrected file carrying a note about being corrected and " +
+        "nothing connecting the two. Update every copy, or add a newly-stating file to SWEEP_COUNT_FILES.",
+    ).toEqual([]);
   });
 });

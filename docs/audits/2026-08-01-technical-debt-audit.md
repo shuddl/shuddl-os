@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 524 | §1076 | **§1077** | **THE DRIFTED COUNT IS NOW CI-DERIVED — AND I WROTE §1064's BUG AGAIN, ONE PHASE LATER.** §1076 fixed a sweep count stated in two files and corrected in only one. The durable fix extends the EXISTING figures roster (§1053: no rival gate) so the copies cannot disagree. **Two things it caught immediately.** (1) Including the checklist gave **2 hits, both FALSE** — a closed row counting a different population (*repo-wide* sweeps) and §1076's own stamp QUOTING the corrected-away *seven*. A record that preserves its history necessarily contains its own wrong numbers; scoped to source, where the count is a LIVE assertion. (2) The deriver matched `contain\("([a-z-]+)"` — a planted 9th sweep named `probe9` was **INVISIBLE** and the gate went GREEN. **That is §1064's character-class bug, reproduced one phase after documenting it.** Widened to `[^"]+`; both directions now RED. |
 | 523 | §1075 | **§1076** | **THE Med–HIGH BOOKING ROW RE-VERIFIED — 1 OF 3, NOT 1 OF 2 — AND A STALE COUNT ITS SIBLING HAD ALREADY FIXED.** L427: `quote.accepted` commits, the fire-and-forget `AGENT_QUEUE.send` fails, the shipment stays UNBOOKED forever. Confirmed at HEAD; §131's log correction held (*"NO SWEEP RECOVERS THIS"*). The row compares only to `pod.signed`, but the sequencer has **THREE** such enqueues and this is **the ONLY one unbackstopped** — `pod.signed` names REQ-169 (`queries/unbilled.ts`, present), the concierge trigger names the SLA sweep (present). **Found while checking the argument:** its comment said *"none of the seven crons"* — there are **eight**; the identical stale figure §248 fixed in `sla-sweep.ts` and never carried to this sibling. **And fixing it broke 8 anchored citations** by shifting lines — so it was redone IN PLACE at the same line count. The `path:line@symbol` form caught the drift instantly, which is precisely what §1073 said bare citations cannot do. |
 | 522 | §1074 | **§1075** | **THE SLA CADENCE ROW RE-VERIFIED — AND ITS OWN PRECEDENT WAS UNDERSTATED.** L426 (Med, blocks R3): a 4h SLA policed by a daily sweep. Every input confirmed at HEAD — `SLA_REPLY_WINDOW_MS = 4h`, and `crons = ["0 1 * * *"]` in **all three environments**, not just the default. The row argues sub-daily is *precedented by billing's hourly cron*; measured, it is far stronger: **`agents` is the ONLY cron-bearing worker still on a daily tick** — billing hourly, and `mcp` + `translator` every FIVE MINUTES. Technical risk ≈ 0. **The real cost is the one the code names:** all **8** contained sweeps ride that single tick (count re-measured at HEAD; the comment is exact), so the question is *8 sweeps × frequency*, not *can we*. Reframed from a technical unknown to a cost decision — still the owner's. My sweep count read **2** first (a grep window too small to see the `contain(...)` list); caught before reporting because it disagreed with the code's own figure. |
 | 521 | §1073 | **§1074** | **§275's REACHABILITY CLAIM RE-VERIFIED — 0 BEHAVIOURAL MODULES UNREACHED — AND MY PROBE GAVE THREE DIFFERENT ANSWERS BEFORE IT WAS RIGHT.** L412 (*no line/branch coverage anywhere*) is correctly owner-held: **no coverage provider is installed**, so measuring it means ADDING A DEPENDENCY, which is the "new tooling scope" the row reserves. But the row cites a reachability measurement, and that is inheritable — so it was re-run at HEAD. **212 source modules, 209 reached, 3 unreached**, and all three are explained: `ledger/index.ts` (1 re-export, 0 logic) and `map/index.ts` (8 re-exports, 0 logic) are barrels that tests BYPASS via the `"./*"` exports map, and `map/demo.ts` is the deterministic fleet generator exercised by the perf harness and the 5 blessed screenshots — playwright `.spec.ts` files my seed list excluded. **Zero behavioural modules unreached.** The probe read 9, then 3, then 0-of-consequence as its resolver and seeds were corrected; each intermediate number was a plausible finding. |
@@ -63989,4 +63990,60 @@ eight citations, and keeping the line count fixed is cheaper than repointing the
 stale sweep count corrected in the sibling that §248 missed; the resulting citation drift caught by the anchored
 form and resolved by making the edit line-neutral. Still owner-held — building the sweep needs a REQ row.
 `test:tools` 1,245 passed / 3 failed — the REQ-289 baseline · lint clean · citations 0.
+
+## §1077 — PHASE GATE: the count made CI-derived, and my own lesson unlearned in one phase
+
+**Why this phase.** §1076 found a sweep count stated in two source files, corrected in one, with the corrected
+copy carrying a note about having been corrected and nothing connecting it to its sibling. Fixing the instance
+is not the work; **making the copies unable to disagree** is.
+
+### Extended the existing roster rather than adding a rival
+
+`checklist-figures.test.ts` already exists for exactly this — *"a roster, deliberately"* of figures **derived
+from source** and compared against what the record states. It covers the CONFIRM-GATED count and the
+canonical-view usage. The sweep count is the same shape, so it joins that roster; §1053's rule is explicit
+that a fourth gate over a property with three is worse than none.
+
+### Two things the gate caught on its own first runs
+
+**(1) The checklist cannot be in the roster.** Including it produced **2 hits, both false**: a *closed* row
+reading *"10 of 11 sweeps"* — a **different population**, the repo-wide count, which itself says *"the eight in
+`workers/agents/src/index.ts`"* — and **§1076's own stamp**, quoting the corrected-away *"seven"* in order to
+document the correction.
+
+That is the irreducible semantic floor a count-matcher hits on prose: **a record that preserves its history
+necessarily contains its own wrong numbers**, and no filter distinguishes a stale claim from a quoted one. At a
+50% false-positive rate this would be a gate people silence, so it is scoped to the two **source** files where
+the count is a live assertion. Measured, not assumed — the scoping decision is recorded next to the roster.
+
+**(2) The deriver had §1064's bug.** It matched `contain\("([a-z-]+)"`. A planted ninth sweep named **`probe9`**
+was invisible to it — the digit fell outside the class — so the gate reported 8, agreed with both comments, and
+went **GREEN while the comments were stale**. Exactly the failure it exists to prevent.
+
+**§1064 documented this bug thirteen phases ago**, in a tally regex that dropped `a11y` and `e2e` because they
+contain digits. I wrote it again, in a gate whose entire purpose is counting, **one phase after quoting the
+lesson**. Widened to `[^"]+`.
+
+Both directions now proved:
+
+| mutation | result |
+|---|---|
+| sibling comment reverted to *"seven"* | **RED** — names `do/sequencer.ts states 7` |
+| a 9th sweep added, comments unchanged | **RED** — names both files as `states 8` |
+
+### What this phase says
+
+> **Knowing a bug class does not immunise you against it; only a probe does.** §1064's character-class lesson
+> was written, quoted, and re-committed inside thirteen phases, and I still shipped the same regex. The
+> difference between the two outcomes was not memory — it was that this time I planted a violation and watched
+> the gate fail to see it.
+
+The narrower one, for count gates specifically: **derive from the generator's grammar, not from today's
+instances.** `contain("…")` accepts any string; the names that exist today are lowercase and hyphenated by
+convention, and a convention is not a constraint. Matching what the code *can* emit is the only version that
+survives the next commit.
+
+**STOP.** The sweep count is now derived from `contain(...)` calls and compared against every source copy, with
+the checklist deliberately excluded on a measured false-positive rate, and both drift directions
+mutation-proved. `test:tools` at the REQ-289 baseline · lint clean.
 
