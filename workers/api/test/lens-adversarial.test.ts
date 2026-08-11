@@ -636,6 +636,11 @@ describe("firehose GET /v1/events", () => {
     expect(res.events.some((e) => e.stream_id === `s:${FIRE_1}` && (e.seq as number) <= 2)).toBe(false);
   });
 
+  // §1054 — EXPLICIT TIMEOUT. Measured 2834ms = 57% of vitest's 5000ms default, the ONLY test in 2,421
+  // measured across all eleven workspace suites to cross half the bound. §1052's flake was an assertion
+  // at 5080ms against this same default, and the difference between 57% and 100% is ambient machine load.
+  // The cost is inherent: this walks a keyset cursor across the WHOLE tenant corpus, so it scales with the
+  // fixture set rather than with a fixed page. 30s follows the convention set at cwd-parity.test.ts.
   it("paginates with a keyset cursor across the whole tenant with no dropped or duplicated rows", async () => {
     const ops = await opsTok();
     const seen = new Set<string>();
@@ -654,7 +659,7 @@ describe("firehose GET /v1/events", () => {
     }
     // our six firehose rows are all present exactly once
     for (const shp of [FIRE_1, FIRE_2]) for (let s = 0; s < 3; s++) expect(seen.has(`s:${shp}:${s}`)).toBe(true);
-  });
+  }, 30_000);
 
   it("surfaces a bad cursor mode (after_seq without a shipment scope) as a clean 400, not a 500", async () => {
     const res = await SELF.fetch("https://api.local/v1/events?after_seq=1", { headers: { Authorization: `Bearer ${await opsTok()}` } });

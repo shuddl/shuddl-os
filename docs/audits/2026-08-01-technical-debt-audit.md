@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 501 | §1053 | **§1054** | **THE DECLARED GAP, CLOSED — ALL 11 SUITES MEASURED, AND A REMEMBERED BLOCKER THAT WAS WRONG.** §1053 named the workspace suites as unswept; this swept them. **All 12 vitest configs run at the 5000ms DEFAULT** (6 on `defineWorkersConfig`). Measured **2,421 tests across 11 suites**: exactly **ONE** at ≥50% — `workers/api`'s keyset-cursor test at 2834ms (57%), now given an explicit 30s timeout. Everything else is ≤43%; workerd per-test costs are tiny (billing's slowest is 33ms) because pool startup is per-FILE, not per-test. **The blocker was the finding:** I nearly skipped the six workerd suites on a remembered hazard — *"uninterruptible, kill -9-proof, reboot-only"*. Measured instead: all six ran exit 0, and the 37 lingering processes were state **S**, PPID 1, 19 hours old — ordinary ORPHANS, cleared by a plain SIGTERM. A real leak (159 MB idle), and a memory whose label was wrong. |
 | 500 | §1052 | **§1053** | **THE PREVENTION SWEEP — AND A STATIC PROXY THAT OVER-FIRES 40:1.** §1052's root cause was an assertion sitting ON vitest's 5000ms default, so the obvious follow-up is: which OTHER tests are near it? Measured every one of 1,234 tools tests by duration. **Four at ≥50% of the default; only ONE (`cwd-parity`, 11.5s) already declared a timeout** — the convention existed and had been applied once. The other three got explicit 30s timeouts with their measurements stamped, plus a fourth added on a TREND rather than a threshold (`evidence-expiry`, 44%, but its cost is one `git log` per ledger row and the ledger only grows). **The negative is the more useful half:** the tempting static gate — *a test that spawns a subprocess must declare a timeout* — was measured at **121 spawning tests vs 3 actually near the boundary, a 40:1 over-fire**. Spawning is not slowness, and the right instrument is duration, not a proxy for it. Recipe recorded instead of a noisy gate. |
 | 499 | §1051 | **§1052** | **THE FLAKE, DIAGNOSED AND CLOSED — AND A GIT-FAILURE SWEEP.** L431 was filed at §998 as an undiagnosed intermittent and observed FOUR times without ever being captured. §1051 sharpened the trigger to *the first full run after `git add` of a new test file*; §1052 **created that condition deliberately** and reproduced it first try. The capture: `Error: Test timed out in 5000ms` — the §702 GUARDED_FNS assertion measured at **5080 ms against vitest's 5000 ms default**. Not a race: it sits ON the boundary (~3.5 s in isolation) and any added load crosses it. `scanCorpus`'s 11 git spawns are 69 ms of that (2%), so §1045 is NOT the cause. Fixed with an explicit 30 s timeout on that assertion — not a raised global default, which would trade a real hang-detector for a flake fix. **Re-verified by re-running the same trigger: 0 timeouts.** Then swept all 14 git call sites in `tools/` for silent failure: 12 fail-closed, 2 collapsed "legitimately absent" with "the measurement failed" — including `committedLock`, whose `{}` makes an EDITED migration pass silently (CLAUDE.md rule 2). No reachable trigger found, so hardened as defence-in-depth, not filed as a defect. |
 | 498 | §1050 | **§1051** | **THE EXEMPTION SWEEP — SCOPE ÷ SUBJECT, ACROSS ALL SIX MECHANISMS.** §1050's rule run repo-wide, asking a DIFFERENT question than the earlier allowlist audit: that one checked for STALE entries (matching nothing); this asks whether an entry that legitimately matches something also matches far MORE. Four mechanisms clean (5 `eslint-disable` all `-next-line` with reasons · 0 real test skips · 4 of 6 global ignores cover ZERO lintable files · site ignores are untracked trees). **One 92× finding:** `no-misused-promises` was off for `**/*.test.ts` + `**/*.test.tsx` — 369 files — while a verified-mutation lint measured its subject as **9 violations, all in `.test.tsx`, 4 files, ZERO in `.test.ts`**. The rule catching detached assertions was off in all 338 ledger/worker/rater suites. Narrowed to `.test.tsx`. **Second find:** 4 tracked skill reference `.ts` files — code written to be COPIED — had never been linted, hidden TWICE (`.claude/**` ignored, AND eslint does not traverse dot-directories, so un-ignoring lints 0 files). 2 real errors; fixed with `void` to keep the signature real; new gate with explicit paths. |
@@ -62342,4 +62343,82 @@ defaults — not swept here, and named rather than left implied.
 stamped, plus one added on a growth argument. The static gate was measured and **rejected on its false-positive
 rate before being written**, which is the cheaper order. `test:tools` 1,231 passed / 3 failed — the REQ-289
 baseline · lint clean.
+
+## §1054 — PHASE GATE: the declared gap closed, and a remembered blocker that was wrong
+
+**Why this phase.** §1053 ended by naming what it had *not* swept: *"the workspace packages run under their own
+configs and pools … separate questions with separate defaults — not swept here, and named rather than left
+implied."* A named gap is a commitment, not a disclaimer. This closes it.
+
+### Static first: every config runs at the default
+
+| configs | pool | `testTimeout` |
+|---|---|---|
+| 6 | node / jsdom | **5000 (default)** |
+| 6 | `defineWorkersConfig` (workerd) | **5000 (default)** |
+
+Twelve for twelve. No suite in the repo has ever raised its bound, so §1052's boundary is every suite's
+boundary — which is exactly why the sweep was worth running rather than assuming the tools suite was special.
+
+### Measured: 2,421 tests across 11 suites
+
+| suite | tests | slowest | % of default |
+|---|---|---|---|
+| `api` | 824 | **2,834 ms** | **57%** |
+| `driver` | 101 | 1,168 ms | 23% |
+| `ledger` | 697 | 512 ms | 10% |
+| `command` / `portal` / `agents` | 97 / 104 / 130 | ≤210 ms | ≤4% |
+| `billing` / `mcp` / `map` / `design` / `translator` | 59 / 185 / 90 / 11 / 123 | ≤71 ms | ≤1% |
+
+**Exactly one test crosses half the bound**, and it now declares a 30 s timeout: `lens-adversarial`'s keyset
+cursor, which walks the whole tenant corpus and so scales with the fixture set rather than with a page.
+
+The workerd result is the structurally interesting one. Those suites *feel* slow — the pool takes seconds to
+boot — but per-test they are the fastest in the repo (billing's slowest assertion: **33 ms**). Pool startup is
+per-**file**, and `testTimeout` bounds a **test**, so the expensive part never counts. The intuition that would
+have flagged them is wrong in the safe direction, and only measuring shows which.
+
+### The blocker was the finding
+
+I nearly skipped the six workerd suites entirely. A prior session left me a hazard note — *workerd suites can
+block uninterruptibly in `UE` state, kill -9-proof, clearable only by reboot* — and acting on it would have
+left half this sweep undone with a plausible-sounding reason. That is the exact shape of
+[[measure-the-blocker-dont-restate-it]], with the blocker in my own notes rather than in the record.
+
+So I measured it, and did it safely: **one** suite first, backgrounded, so a hang could not consume the
+session. It exited 0. Then the remaining five — all exit 0.
+
+What was actually there:
+
+| observation | measured |
+|---|---|
+| lingering workerd processes | **37** |
+| state | **`S`** (sleeping/interruptible) — *not* `UE` |
+| parent | **PPID 1** — reparented to `launchd`, definitively orphaned |
+| age | **19 hours** — all of them, none from this session's runs |
+| resident | **159 MB** idle |
+| cleared by | **plain `SIGTERM`** — no `-9`, no reboot |
+
+A real leak, and a **wrong label**. The hazard was not uninterruptibility; it was that orphaned test sandboxes
+survive their runner and accumulate silently. That matters directly for §1052: ambient load is what turns a
+3.5 s assertion into a 5.08 s timeout, and 37 stray processes are ambient load.
+
+**One correction to my own measurement.** I first reported these as consuming *98.9% CPU*. That snapshot was
+taken **while my own six suites were running**, so it summed active and orphaned processes together; idle, the
+orphans held 159 MB at ~0% CPU. The leak is real, the "burning a core" reading was mine and wrong — recorded
+because [[keep-a-fixed-point-before-scaling-a-probe]] applies to a `ps` snapshot exactly as it does to a gate.
+
+### What this phase says
+
+> **A remembered blocker is the least-tested claim you own.** Records get re-read and gates get re-run, but a
+> note that says *"don't try this"* is self-sealing: obeying it produces no evidence, so it never gets
+> corrected. This one was wrong about the state, wrong about the remedy, and would have cost half a sweep.
+
+The narrower rule, which the workerd numbers make concrete: **know what your timeout actually bounds.** A
+`testTimeout` bounds a test, so per-file setup — however slow — is invisible to it. The suites that look
+dangerous were the safest in the repo, and the one real risk sat in the suite nobody would have suspected.
+
+**STOP.** §1053's declared gap is closed: 12/12 configs read, 2,421 tests measured, one at-risk test fixed,
+and every remaining suite is at ≤43% of its bound. 37 orphaned workerd processes cleared. `test:tools`
+1,231 passed / 3 failed — the REQ-289 baseline · lint clean · `api` 44/44.
 
