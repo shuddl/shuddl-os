@@ -608,6 +608,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 413 | §965 | **§966** | **THE NIGHTLY IS A CLOCK, NOT A CHECK — TEN RUNS, ONE COMMIT.** §952 said a gate that only ever refuses deserves scrutiny; the mirror does too. `nightly`'s `orphan-audit` has been GREEN every night — a real gate (`pnpm check:traceability`), correctly designed to need no credentials. But all ten runs (2026-08-01…08-10) are at **`0415148`, one distinct SHA** = `origin/main`, frozen since 07-31. **Ten greens are one verification re-emitted over byte-identical input; ten reds are one alarm repeated.** A scheduled audit exists to catch drift AS CODE CHANGES — with nothing pushed it structurally cannot. §957's THIRD cost (after the single copy and §958's unresolvable stamps): **the nightly assurance has been inert for ten days while appearing to run**, and the appearance is the problem. No new hold — a third symptom of one cause is not a second problem |
 | 414 | §966 | **§967** | **FOUR COMMITS SHIPPED WITH A RED GATE, BECAUSE MY GUARD READ A STALE FILE.** (1) Ran `pnpm audit --prod` — `ci.yml` step 16, one of the two §962 found SKIPPED since 2026-07-23: **4 vulnerabilities (1 low, 3 moderate), all `hono`** via workers/api + workers/mcp, installed 4.12.28, all patched in >=4.12.34. The declared `^4.10.8` already permitted the fix, so a lockfile refresh, not a dependency decision → **4.13.1, "No known vulnerabilities found"**, api 824/824, mcp 185/185, all 17 suites green. (2) **§963–§966 were each committed while `check:citations` was RED** (verified by checking out all four). My guard chained gates with `&&` but then ran the count after a `;` — so when `verify:docs` failed, `test:tools` never ran and the count read `/tmp/tt.out` **from the previous phase**. §942's *chain them* was necessary and insufficient: **a guard that reads an artifact must prove the artifact is from THIS run** |
 | 415 | §967 | **§968** | **THE BLAST RADIUS WAS EXACTLY FOUR — AND THE PROBE LIED TWICE BEFORE SAYING SO.** Checked out **all 30 commits this session** and ran the three cheap doc gates at each: **4 RED, all `citations`, all the §963–§966 already known, none other.** Bounded and closed. But the probe reported CLEAN twice first: `tac` does not exist on macOS (empty list → *silence = all green*), then **zsh does not word-split unquoted `$commits`** so `for c in $commits` iterated once and every checkout failed (→ `red=0`) — the same zsh trap memory recorded after §938, **second occurrence this session**, both times a FALSE CLEAN. The separator was one number: `checked=0 red=0` vs `checked=30 red=4`. **A finding count without its denominator cannot be falsified** — same shape as §959's pathspec, §965's prune, §961's printf and §967's stale file, all of which failed by producing LESS. Adopted: every sweep now reports `checked=N` |
+| 416 | §968 | **§969** | **THE DENOMINATOR RULE, APPLIED FIRST TO MY OWN MOST RECENT CLEAN NEGATIVE.** §968 adopted *every sweep reports `checked=N`*; a rule adopted and not immediately applied is a resolution, not a practice. **§965 published three bare zeros** — the exact shape §968 condemned, one phase earlier, same author. Re-run: `checked=906 refs bad=0`, `checked=994 files clashes=0`, `checked=994 files dups=0`. **The zeros hold** and are now falsifiable; §965's table backfilled in place with a note. Reviewed all 30 session sections for clean-negative claims: **1 of 30 lacked a denominator**, now supplied; §943/§947/§952/§961/§964/§968 each already carried theirs. **A rule that exempts the work that motivated it is a rule with a survivorship hole** |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -56755,11 +56756,14 @@ filename works here and throws there** — and every one of this session's gates
 
 ### Three checks, all clean
 
-| check | why it would break the first Linux run | result |
-|---|---|---|
-| case-mismatched path references in `tools/`, `packages/`, `workers/`, `apps/` | resolves here, `ENOENT` there | **0** |
-| filenames differing only by case | Linux sees two files, macOS one — globs and counts diverge | **0** |
-| iCloud `name 2.ext` duplicates in tracked or source files | the standing per-session check; they corrupt file-count gates | **0** |
+| check | why it would break the first Linux run | checked | result |
+|---|---|---|---|
+| case-mismatched path references in `tools/`, `packages/`, `workers/`, `apps/` | resolves here, `ENOENT` there | **906 refs** | **0** |
+| filenames differing only by case | Linux sees two files, macOS one — globs and counts diverge | **994 files** | **0** |
+| iCloud `name 2.ext` duplicates in tracked or source files | the standing per-session check; they corrupt file-count gates | **994 files** | **0** |
+
+*(Denominators added 2026-08-11 by §968's rule — this table originally reported three bare zeros, exactly the
+shape §968 condemned. The zeros hold; they are now falsifiable.)*
 
 So the first Linux execution will not fail for any of those reasons. That is a genuinely useful negative,
 because each of the three fails *loudly and confusingly* — an `ENOENT` inside a gate reads as a broken gate,
@@ -56924,3 +56928,40 @@ reason; **the probes I write to audit those gates deserve the same floor**, and 
 
 Adopted for the rest of this audit: any sweep reports `checked=N` alongside its finding count, and a sweep
 whose N is implausible is a broken sweep, not a clean tree.
+
+## §969 — PHASE GATE: the denominator rule, applied first to my own most recent clean negative
+
+§968 adopted a rule: *every sweep reports `checked=N`, and an implausible N is a broken sweep, not a clean
+tree.* A rule adopted and not immediately applied is a resolution, not a practice — and the obvious first
+subject is the phase immediately before it.
+
+**§965 published three bare zeros.** Case-mismatched path references: 0. Case-only filename clashes: 0. iCloud
+duplicates among tracked files: 0. No denominator on any of them — precisely the shape §968 was written about,
+published one phase earlier by the same author who then wrote the rule.
+
+Re-run with denominators:
+
+```
+case-mismatched path refs   checked=906 refs    bad=0
+case-only filename clashes  checked=994 files   clashes=0
+' N.ext' duplicate names    checked=994 files   dups=0
+```
+
+**The zeros hold.** All three probes ran over substantial corpora and found nothing, which is what §965 claimed
+— the difference is that the claim is now *falsifiable*. §965's table is backfilled in place with the
+denominators and a note saying why.
+
+### What this phase is worth
+
+Nothing changed except that three numbers became checkable. That is the whole point: §968's rule cost one
+re-run and converted a *believed* clean into a *demonstrated* one, on the only clean negative in this session
+that lacked its denominator.
+
+The alternative — adopting the rule and applying it only to future sweeps — would have left the most recent
+unfalsifiable claim standing on the strength of having been written before the rule existed. **A rule that
+exempts the work that motivated it is a rule with a survivorship hole**, and the audit already has the
+vocabulary for that: §950's *a rejection is a claim with a lifetime*, applied to a method rather than a verdict.
+
+Checked: 30 session sections reviewed for clean-negative claims; **1** lacked a denominator (§965), now
+supplied. The other clean negatives — §943 (10 entrypoints / 14 bindings), §947 (1,196 tests), §952 (51 cases),
+§961 (53 artifacts), §964 (10 floors), §968 (30 commits) — each already carried theirs.
