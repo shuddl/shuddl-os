@@ -618,6 +618,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 423 | §975 | **§976** | **NOTHING WAS WATCHING DEPENDENCIES AT ALL.** §967 found 4 prod vulnerabilities by running the audit BY HAND; the question that matters more is what was supposed to find them. Measured: `vulnerability-alerts` → **404**, `dependabot/alerts` → **403 disabled**, `automated-security-fixes` → **`{"enabled":false}`**. The only other mechanism, `pnpm audit --prod` (ci.yml step 16), has been **SKIPPED since 2026-07-23** (§962). **Zero mechanisms were surfacing dependency vulnerabilities** while four sat in the dependency graph of the API and the MCP surface. Half is already fixed — §962's `!cancelled()` was applied to the audit step too, so **one skipped step was hiding two entirely different classes of finding**. Half is the owner's, filed with the two options distinguished: **alerts only** (no workflow impact) vs **automated fixes** (opens PRs, in a repo with 0 PRs ever) |
 | 424 | §976 | **§977** | **SECRET DETECTION RUNS AND IS SKIP-PROOF; PREVENTION IS UNAVAILABLE ON THIS PLAN.** `security_and_analysis` is **ABSENT** from the repo response (96 keys returned) — and the cause is decidable: this token holds admin scope (it read branch protection and actions permissions), so the omission is **plan availability**, not permission. Secret scanning and push protection are Advanced Security features and this is a **private repo under a User account** — **push protection cannot be enabled without a plan change**. What DOES exist is strong: `gitleaks` over the **full history** with a repo-owned `.gitleaks.toml`, and it is its **own job** — last run `merge-gate: failure`, **`secrets: success`** — so the §962 skip that swallowed the 26-gate surface AND the dependency audit **never touched secret scanning**. Job isolation did what step ordering did not. Detection sound, prevention absent and unpurchasable here; recorded, not filed |
 | 425 | §977 | **§978** | **§962's FIX PROTECTED THE CONSUMERS, NOT THE GATES THAT FEED THEM.** §977's job-isolation insight turned on `merge-gate`: **steps checked=14, guarded=4, sequential=10** — and the four guarded were the three §962 fixed plus the PR-only one. **All four browser gates were sequential**, so a `visual` failure would skip a11y, e2e AND perf — three verdicts lost. That the real failure was `perf`, the LAST of the four, is why only one was lost: **luck, not design.** The gates' own contract settles it — step 39 is titled *an absent browser BLOCKS, **never skips***, so being skipped is the one outcome its title forbids. Guarded all four (`4 → 8`). Deliberately left sequential: `build` and `playwright install`, whose failure makes later steps **meaningless rather than merely unreported** — an independent verdict gets a guard, a genuine prerequisite does not |
+| 426 | §978 | **§979** | **THE STEP-ORDERING RULE, GATED IN BOTH DIRECTIONS.** §978 fixed four unguarded browser gates and stated the line — *an independent verdict gets a guard; a genuine prerequisite does not* — and nothing enforced it: a fifth gate would be unguarded by default and yesterday's four guards could be removed silently, the same *unpinned fix* shape §938 opened this session with. `workflow-step-guards.test.ts`: **3/3 mutations RED** — removing a browser gate's guard (§978's defect, names `ci.yml:42`), removing the merge-evidence guard (§962's defect), and **guarding a PREREQUISITE** (*"gained a guard. It is a PREREQUISITE, not a verdict"*). The third is the one worth having: *add guards* invites completing the pattern by guarding everything, and **a boundary that is only in prose erodes**. Verdict set identified by BEHAVIOUR — `run:` containing `--mode merge` / `verify:merge` / `audit --prod` — not by name |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -57416,3 +57417,37 @@ this contains no parse. The diff is **four identical `if:` lines**, nothing adde
 indentation stays uniform (`- name:` 6, everything else 8); and the construct is the one GitHub has already
 accepted and executed in this file (`if: ${{ always() }}`, line 66, on a step that ran `success`). The residual
 is one command for whoever has a runner: `actionlint .github/workflows/`.
+
+## §979 — PHASE GATE: the step-ordering rule, gated in both directions
+
+§978 fixed the four unguarded browser gates and stated the line: *an independent verdict gets a guard; a
+genuine prerequisite does not.* Nothing enforced it. A fifth browser gate added tomorrow would be unguarded by
+default, and the four guards added yesterday could be removed with no objection — which is the same
+"unpinned fix" shape §938 opened this session with.
+
+`workflow-step-guards.test.ts` gates it, and gates **both** directions:
+
+| mutation | caught |
+|---|---|
+| remove a browser gate's guard (the §978 defect) | *"steps that produce an independent gate verdict but are SKIPPED…"* — names `ci.yml:42 strict accessibility` |
+| remove the merge-evidence guard (the §962 defect) | same assertion |
+| **guard a prerequisite** (`build every workspace`) | *"gained a guard. It is a PREREQUISITE, not a verdict"* |
+
+3/3 RED against a green fixed point. The third is the one worth having: a rule stated only as *"add guards"*
+invites someone to complete the pattern by guarding everything, and a browser gate run against an unbuilt tree
+emits noise rather than a verdict. **A boundary that is only in prose is a boundary that erodes** — this one is
+now asserted from the other side, so revising the judgement requires editing the assertion that states it.
+
+### How the verdict set is identified
+
+By **behaviour, not by name**: a step counts if its `run:` contains `--mode merge`, `verify:merge` or
+`audit --prod`. A renamed step keeps its guard requirement; a step that stops invoking a gate stops needing
+one. The non-vacuity floor (§968) requires ≥10 steps and ≥6 verdict-producers, so a restructured workflow
+fails loudly instead of certifying the rule over an empty set.
+
+### Division of labour, stated
+
+`workflow-pinning.test.ts` (§974) owns the **supply-chain** half of these files — every action pinned to an
+immutable SHA with its release tag. This owns **step ordering**. Both are text scans for the same reason:
+no YAML parser is installable here (§973), so a gate needing one could not exist, and both are therefore
+immune to the limitation that stopped §973 from completing.
