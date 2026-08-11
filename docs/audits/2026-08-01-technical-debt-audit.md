@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 530 | §1082 | **§1083** | **A ROW THAT CONTRADICTED ITSELF — SEVERITY SAID *LATENT*, STATUS SAID THE TRIGGER FIRED.** L424 (the Biller's permanently-failed EVIDENCE EMAIL): re-verified at HEAD and the row's own argument is exact. **Concierge (REQ-176)** appends a durable note EVENT through the DO append surface; **Biller** does `console.error(…)` and returns `issued_send_pending`, its comment stating it raises **NO anomaly and writes nothing** — one queryable record, one log line. And it IS reachable: `EVIDENCE_FROM` is set under `[env.staging.vars]` (*"staging evidence sending is ON … evidenceSender() returns ResendSender"*), while prod keeps it **DELIBERATELY ABSENT**. So the `— LATENT` qualifier was falsified by the row's own Status, which records the trigger as FIRED. Struck. Blocks R2, and the surfacing still needs a REQ row. |
 | 529 | §1081 | **§1082** | **THE TOOL CAUGHT ME TWICE IN ONE PHASE, AND I COMMITTED OVER THE SECOND.** §1081 built `pnpm delta`; §1082 is what it found. **(1) Before the commit:** my index row quoted bare-count output with an UNESCAPED PIPE — 5 cells against a 4-cell header. Fixed. **(2) After `git add`:** delta reported a new failure and **I committed anyway — the third time.** `tools/testing/delta.ts` contained a literal **NUL byte**: my key function used `` `${file}\0${title}` `` as a separator, which is collision-free and makes the file **BINARY to git** (`section-refs` refused it: *"every diff renders as Bin X -> Y"*). Replaced with `JSON.stringify([file, title])`. The failure was invisible pre-add because the gate walks TRACKED files — §1049's mechanism, now hit for the second time. |
 | 528 | §1080 | **§1081** | **`pnpm delta` — THE BASELINE RULE MECHANISED AFTER FAILING TWICE AT THE SAME STEP.** §1062 wrote *a delta is not explained until it is reproduced*; §1080 reproduced a 4-vs-3 delta **three times and committed anyway**, because reproducing a count is not IDENTIFYING it. *"baseline" appears in **128 prior verdicts** and NOTHING mechanised it.* `delta` runs the suite and answers one question — **what is failing that was not already failing?** — keyed by (file, title), never by count. Proved by replaying §1080's exact defect: the bare run says *"4 failed / 1251 passed"*; `delta` says **`phase-index.test.ts` — "the index points only at real PHASE GATE sections"**. It also reports **HEALED** baseline entries, so a silently-fixed known failure is news too — the direction a count can never see, since a heal and a new break cancel out. 6 unit cases. |
 | 527 | §1079 | **§1080** | **A FAIL-OPEN SKIP ON THE DEPLOY PATH, CLOSED — AND MY FIX LANDED INSIDE THE LOOP.** §1079 showed the deploy preflight parses `wrangler.toml` with its OWN parser, sharing the blind spot of four other gates. Cross-checked it against wrangler's resolver: **0 workers skipped, all 5 prod scopes seen** — the parsers agree at HEAD. But the skip path is fail-OPEN: `if (target.worker.length > 0) push; else console.warn(…)` collapses *genuinely no scope* with *this parser missed it*, and the second **silently drops a worker that WILL deploy** from every check below. Closed with a count floor keyed to §1079's measurement (all 5 resolve in every env), exiting MALFORMED. **My first placement landed INSIDE the for loop** — it fired *"parsed 1 of 5"* on a clean tree, and I nearly read that as preflight dropping 4 of 5 workers. Tenth shape error: I anchored on a brace by indentation. Relocated; mutation-proved (hidden `[env.prod]` → *parsed 4 of 5*, exit 3), clean tree + staging + dev unaffected. |
@@ -64388,4 +64389,57 @@ mattered before spoke up.
 **STOP.** Both defects found by the new tool are fixed — the unescaped pipe before the commit, the NUL byte
 after — with the second recorded as a third override of the same rule rather than filed quietly. `pnpm delta`
 clean · `lint` clean · 14/14 on the delta and section-refs suites.
+
+## §1083 — PHASE GATE: a row whose severity contradicted its own status
+
+**Why this phase.** L424 is the last unexamined product row that touches **demo 1** — *signature at a door →
+invoice + photos in the client's inbox <5s*. If the evidence email permanently fails, the customer never
+receives the thing the demo promises. It is filed **Med** and blocks **R2**.
+
+### The row's argument, verified rather than inherited
+
+Its claim is an asymmetry: the Concierge's equivalent case is built and the Biller's is not. Confirmed at HEAD,
+and it is sharper than the prose suggests:
+
+| agent | permanent-failure path |
+|---|---|
+| **Concierge** (REQ-176) | appends a durable **note event** through the DO append surface — `{ channel: "note", from_ref: "agent:concierge", body_ref: sendHoldBodyRef(…) }` |
+| **Biller** | `console.error(…)`, returns `issued_send_pending` — its own comment: *"raising NO anomaly and writing nothing"* |
+
+One produces a **queryable record**; the other produces a **log line** in a Worker. The biller's comment is
+honest about the consequence — *"'Hold for a human' is the right decision and there is no human to hold it
+FOR."*
+
+### And the severity was falsified by the row's own status
+
+The severity field read **"Med — LATENT"**. The status field, four cells later, read **"TRIGGER FIRED —
+verified 2026-08-11 (audit §944): the provider IS bound in staging."**
+
+Both cannot be true. Verified which:
+
+- `workers/agents/wrangler.toml` sets `EVIDENCE_FROM = "SHUDDL <pod@send.shuddl.tech>"` under
+  `[env.staging.vars]`, and the config's own note says *"staging evidence sending is ON … With RESEND_API_KEY
+  (secret) + this EVIDENCE_FROM both present, `evidenceSender()` returns `ResendSender`."*
+- Prod keeps it **DELIBERATELY ABSENT** — *"Without it `evidenceSender()` stays a `NotConfiguredSender`"* — so
+  production is genuinely unaffected.
+
+**The branch is reachable in staging.** `LATENT` is struck, with the reachability and the prod exemption stated
+in its place. That is not a re-grading: the row had already recorded the event that falsified its own
+qualifier, and nothing propagated it across four cells of the same line.
+
+### What this phase says
+
+> **A row can falsify itself and stay green, because no gate reads two fields against each other.** Every check
+> in this repo validates a cell — the status vocabulary, the expiry date, the citation, the table shape. None
+> asks whether the severity is consistent with the status, and that is the one thing a *reader* does
+> automatically, which is why it survived from §944 to here.
+
+The narrower form: **when a trigger fires, the row it fires in has more than one field to update.** §944
+correctly recorded "TRIGGER FIRED" in Status and correctly left the item and fix alone — and left a severity
+qualifier that the same sentence disproves. A trigger firing is a small edit in the field that noticed it and a
+question about every other field.
+
+**STOP.** L424 re-verified at HEAD in three parts — provider bound in staging, prod deliberately absent, and
+the Concierge/Biller asymmetry exact — with the self-contradicting severity corrected. The surfacing itself
+still needs a REQ row and stays owner-held. `pnpm delta` clean · `check:tables` OK.
 
