@@ -631,6 +631,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 487 | §1039 | **§1040** | **THE NON-VACUITY FLOOR IS BUNDLED — I SEARCHED FOR THE WRONG NAME.** §1039's principle (*bundled vs remembered*) applied to this record's most-repeated lesson, §968's `checked=0`. I concluded *remembered*, and was **wrong twice on the way there.** A numeric-literal regex reported **17 floorless gates including `isolation-suite` — rule 8's enforcer** — which in fact floors against a NAMED CONSTANT plus a per-file *scan is stale* check, and whose header records the attack it survived (*5 `expect(1).toBe(1)` fillers held the total at 149 and left this gate GREEN*). A widened detector left **2 of 51**, and both are correct: one floors on *the file still exists and is still tracked*, the other **is the test for the floor itself**. **0 of 51 corpus scanners lack a floor.** And the helper exists: **`scanCorpus` throws `EmptyGlobError` unless the glob is DECLARED empty via `mayBeEmpty`** — §1021's `EXPECTED_EMPTY_GLOBS` generalised into the scanner. My grep for `*floor*`/`assertNonVacuous`/`nonVacuity` missed it because **the mechanism is named after what it DOES, not what it PREVENTS**. **A grep for a concept finds only the authors who named things the way you would** — three probe failures this session were regex narrowness; this was VOCABULARY narrowness, producing the opposite error. Real finding: **4 adopters against 51 scanners** — the gap is between *available* and *default* |
 | 486 | §1038 | **§1039** | **COMMENT-BLINDNESS — MY PROBES HAVE IT, THE SHIPPED GATES DO NOT.** §1038 named the hazard after hitting it three times: **any regex that does not exclude comments is measuring prose.** Do the shipped gates carry it? **The structural sweep was useless and said so** — *gates reading source that call `stripComments`* returned **7 of 52**, but the 45 'missing' include `backup.ts`, `preflight.ts`, `run-gate.ts`, `citation-links.ts`: deploy tooling and doc scanners that never match a banned pattern against source. **A structural check cannot answer a behavioural question.** Asked behaviourally: appended to `anchor.ts` a **comment** naming `INSERT OR REPLACE INTO events` and `Date.now()` → **invariants 0, chokepoint 0, rater-purity 0**. Control, because a zero is a claim about the instrument — the same string as **code** → **invariants 1**, *REPLACE bypasses the BEFORE DELETE guard (D1 recursive_triggers=0)*. **Comment-blind in the right direction: prose passes, code fails, and the message names the MECHANISM not the pattern.** Why the gates have it and my probes did not: `source-corpus.ts` exports `stripComments` beside `SOURCE_SCAN_GLOBS`, so **adopting the shared corpus adopts comment-stripping with it** — seven gates take it, exactly the seven that need it. **The difference is not carefulness; it is whether correct behaviour arrives bundled or must be remembered per use** |
 | 485 | §1037 | **§1038** | **THE ONBOARDING PATH, AND THE README'S MOST CONSEQUENTIAL CLAIM VERIFIED AT HEAD.** §1033 found rule 1 honoured by one person's discipline and §1037 found my own summaries drifting; both ask whether **someone else could start here, and whether what they read is true.** §1003 checked gates in a fresh clone — this checks what a HUMAN follows. Setup path accurate: pins agree across `.node-version`/`engines`/`packageManager`, `check:runtime` is real and genuinely first in every chain, and both status claims carry *corrected 2026-08-04, audit §172* provenance. **The claim worth re-earning: *Production is provisioned but dark — nothing is armed or sending*** — dated a week ago, never re-checked, while §944 established staging DOES send. Measured across all eight `wrangler.toml`: **`[env.prod.vars]` carries `ENVIRONMENT` (plus `REFERRAL_BASE`) and NO sending or arming key**; staging additionally carries `EVIDENCE_FROM`. **The claim holds exactly**, and the split is why L422 is a STAGING hold — config and ledger row agree, checked against each other rather than each trusted. **Method: third comment-related probe failure this session** — a non-greedy TOML section match truncates on a comment containing `[`, hiding `EVIDENCE_FROM`. **In a repo whose comments are longer than its code, any regex that does not exclude comments is measuring prose** |
 | 484 | §1036 | **§1037** | **THE FIGURES I WAS RESTATING — TWO STALE, AND BOTH STALE BECAUSE OF ME.** §1036 re-earned the board; the same question applies to every recurring figure, and §1032 named the mechanism (*this audit is its own churn source*). Re-measured all eight: **unpushed commits 1,018 → 1,097** (I added 45 while quoting the size) and **open repo-owned rows 17 → 18** (§998 filed the flake row while I kept quoting §994) are **STALE**; ledger rows 35 → 36, same cause. Confirmed unchanged: board 19/2/5, tests 4,535/3, pending fixtures 9, BLOCKED 5, pull requests 0. **Neither stale figure decayed because the world moved — both decayed because I ACTED.** §1023's rule with the container being **my own output**: *the figures most likely to be stale in a summary are the ones the summariser is actively changing*, and it is invisible from the inside because each restatement felt like a citation rather than a claim. **The two survivors sharpen it** — `0 pull requests` and `5 BLOCKED` are exactly the figures nothing in this session could move. Remedy is §1022's: cite the SECTION that measured a figure, or re-measure at the point of restatement |
@@ -61312,3 +61313,66 @@ it.
 that is the only route back in, and §1021's re-open trigger already watches the same import · `stripComments`
 changes, since seven gates inherit its behaviour · a banned pattern is added whose shape can appear in a
 string literal that is *not* a violation, which is the one case stripping cannot decide.
+
+---
+
+## §1040 — PHASE GATE: the non-vacuity floor IS bundled — I searched for the wrong name
+
+§1039 ended on a principle: *correct behaviour either arrives bundled with the corpus, or must be remembered
+at each use.* The obvious test is this record's most-repeated lesson — **§968's rule that `checked=0` is a
+question, not an answer.** Is it bundled, or remembered 97 times?
+
+I concluded "remembered," and I was wrong twice on the way there.
+
+### Two probe corrections, both narrowing what a floor looks like
+
+**First**, a numeric-literal regex (`toBeGreaterThan(N)`) reported **17 gates with no floor**, including
+`isolation-suite.test.ts` — **rule 8's enforcer**. Reading it: it floors against a *named constant*
+(`.toBeGreaterThanOrEqual(MIN_CASES)`) plus a per-file *"no test cases parsed — the scan is stale, not the
+suite"* check, and its header records the attack it was hardened against: *"a file with 5 `expect(1).toBe(1)`
+fillers held the total at 149 and left this gate GREEN."*
+
+**Second**, a widened detector left **2 of 51** corpus-scanning gates floorless. Both are correct too:
+`service-worker-lint.test.ts` opens with *"the file still exists and is still tracked (non-vacuity — a moved
+file must not read as clean)"*, and `scan-corpus.test.ts` needs no floor because **it is the test for the
+floor itself.**
+
+**0 of 51 corpus-scanning gates lack a non-vacuity floor.**
+
+### And the helper exists — under a name I did not search for
+
+```ts
+export function scanCorpus(globs, cwd, opts) {
+  …
+  if (raw === "" && opts.mayBeEmpty?.has(glob) !== true) throw new EmptyGlobError(glob);
+}
+```
+
+`scanCorpus` **enforces per-glob non-vacuity by construction** — an empty glob throws unless it is *declared*
+empty via `mayBeEmpty`, which is §1021's `EXPECTED_EMPTY_GLOBS` idea generalised into the scanner. My search
+for `*floor*`, `assertNonVacuous`, `nonVacuity`, `corpusFloor` found nothing because the mechanism is named
+after **what it does** (scan a corpus) rather than **what it prevents**.
+
+> **A grep for a concept finds only the authors who named things the way you would.** Three of this session's
+> probe failures were regex narrowness; this one was *vocabulary* narrowness, and it produced the opposite
+> error — concluding a discipline was absent when it was bundled.
+
+### The real finding is adoption, not absence
+
+`scanCorpus` has **4 adopters** (`api-conventions`, `error-envelope-coverage`, `event-payload-strictness`,
+`optional-dep-guards`) against **51** corpus-scanning gates. The other 47 implement the floor **correctly but
+by hand** — which is why every one of them carries prose explaining it, and why this record has re-derived
+§968's rule from a different direction at §1015, §1017, §1021, §1034 and §1039.
+
+That is not a defect: 51 of 51 are floored. It is the **§1039 shape stated precisely** — the behaviour is
+available bundled, and 47 authors remembered it instead. The cost is not correctness but repetition, and the
+evidence is the repetition itself.
+
+### Phase gating
+
+**STOP.** Non-vacuity is verified as universal (**51/51 corpus scanners floored**) and available bundled
+(`scanCorpus`, 4 adopters). Nothing is broken; the gap is between *available* and *default*.
+
+**Re-open when:** a corpus-scanning gate is added — `scanCorpus` is the bundled route and `mayBeEmpty` is how
+a legitimately-empty glob is declared · a gate's floor is loosened to a constant that can reach zero · a fifth
+adopter lands, which is the signal the bundled route is becoming the default.
