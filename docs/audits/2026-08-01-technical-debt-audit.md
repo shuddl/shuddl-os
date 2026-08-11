@@ -586,6 +586,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 391 | §943 | **§944** | **A CONFIG SAYS STAGING CANNOT SEND EMAIL, ELEVEN LINES ABOVE WHERE IT TURNS IT ON.** Turned to the documented debt: the checklist's ~~**13**~~ **17 open repo-owned rows** (corrected §945; §804 had already measured 35 rows / 16 OPEN) are open because they are correctly gated (*needs a REQ row first* / *owner tooling call*) — building them would be straying. What IS mine is their reopen triggers. **L417's has FIRED**: `workers/agents/wrangler.toml` declares `EVIDENCE_FROM` *DELIBERATELY ABSENT — NO evidence email is ever sent*, then sets it 11 lines later under `[env.staging.vars]` with *sending is ON*. The row still reads *"Dormant while no provider is bound."* **The identical contradiction was fixed in `DEPLOYMENT.md` on 2026-08-01 — the doc was swept, the config it describes was not.** Swept all 8 absence claims across both configs: 1 false, 7 true-positive controls |
 | 392 | §944 | **§945** | **FOUR WRONG COUNTS OF ONE TABLE, AND THE RECORD ALREADY HAD THE RIGHT ONE.** §944's headline *"13 open repo-owned rows"* is wrong — it is **17** of 35, and **§804 had already published 35 rows / 16 OPEN**, from the section that earned *"a claim you inherit is a claim you are making."* I re-derived it instead of reading it (third time this session). Four ad-hoc parsers, four confident wrong answers: whole-row keywords (`fail-closed` reads CLOSED) → 13; strike MARKERS stripped not struck SPANS (`~~OPEN~~ CLOSED` → OPEN) → 24, **the exact bug fixed in §944's gate an hour earlier**; header counted as data → 36; naive `split("|")` → *"10 malformed rows"*, accusing `check:tables` of a miss when it handles escapes and per-table headers correctly. Trigger sweep: L419 and L421 not fired, L432 is a RESOLUTION row (what seeded the 13). 1 of 13 triggers had fired — L417's |
 | 393 | §945 | **§946** | **TWO LAUNCH-GATE ROWS STILL NAME A BUILD AS THE BLOCKER; THE BUILD SHIPPED IN JULY.** The `acceptance` gate is honest (green = *the code-provable half*; §607 closed its spine silent-drop), which made the real gap findable in the FILMED half's tracking. `GO-LIVE-CHECKLIST` L116 (demo #4) still says action *"Build MCP intake surface (WP-13)"* / status **Deferred WP-13**, and L115 (demo #2) **Depends WP-14** — while `PROJECT-STATE:9,98` states *All sixteen WPs are closed*, both close-outs read *complete*, and demo 4's spine runs **green inside `pnpm test:acceptance`**. The blocker migrated from *build it* to *bind, flip and film it*; the rows did not follow. **Third instance in three phases** (§937 C3, §944 L417). Corrected in place; `wp-blocker-staleness.test.ts` reads PROJECT-STATE's all-sixteen assertion and computes the rule |
+| 394 | §946 | **§947** | **THREE PROBES INTO PRODUCT CODE, THREE CLEAN NEGATIVES — AND THE RECORD GOT CHECKED FIRST.** (1) Staging can email a real person — `resolveRecipient` has no env check or allowlist, and the safety rests on a DATA POLICY not a mechanism. **Already recorded**, more precisely than I'd have written it: `DEPLOYMENT.md:29` (*the only real address wired in staging is an owner test inbox*) + a Med awareness row with a disable procedure + REQ-154's *staging PII audit clean* DoD. (2) Both Biller `issued_send_pending` reasons are covered by 3 test files each, including the Command surface's DunningQueue. (3) `gate-wiring` reads `package.json` cwd-relative, but pnpm sets a script's cwd to its package root — measured from two subdirectories, full 1,196-test suite identical. No gate added: it would be testing pnpm. Each probe's KILL COUNT stated, because a clean negative is worth only its detection power |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -55790,3 +55791,57 @@ a work package"* and scanned the whole row.** The name was the specification and
 
 Scope: it catches a status that names a **WP**. A row whose blocker migrated to something *unnamed* is still
 prose, and no gate reaches that — which is why the two found here were found by reading, not by CI.
+
+## §947 — PHASE GATE: three probes into product code, three clean negatives, and the record got checked first
+
+A short phase, recorded because a negative is only worth its detection power and because **the discipline that
+failed three times earlier in this session worked here**: I checked the record before the code.
+
+### 1. Can staging email a real person?
+
+§944 established staging sending is LIVE. `workers/agents/src/biller.ts:232@resolveRecipient` reads `parties.contacts` and
+sends there — **no environment check, no allowlist, no sandbox mode.** The entire safety argument is REQ-154's
+"staging is synthetic-only", which is a *data policy, not a mechanism*, and that looked like a finding.
+
+It is already recorded, more precisely than I would have written it. `DEPLOYMENT.md:29` carries the analysis
+under its own heading — *"most synthetic parties carry none → `recipient_unresolved`, no send. **The only real
+address wired in staging is an owner test inbox seeded on `party-bill-to`**"* — plus the reversal procedure
+(unset `EVIDENCE_FROM`, redeploy). `GO-LIVE-CHECKLIST:214` files it as **Med (awareness)** with that same
+disable step, and REQ-154's DoD already demands a *"staging PII audit clean."* An accepted, documented residual
+with a named owner action. **Filing it again would have been noise dressed as diligence**
+([[search-the-record-before-the-code]]).
+
+### 2. Are the Biller's send-failure outcomes exercised?
+
+Both `issued_send_pending` reasons are reachable now that a provider is bound, so a hold that nothing tests
+would be the [[presence-tests-cannot-reach-value-constraints]] shape on a money path. Measured — each is
+referenced by three test files: `recipient_unresolved` (`biller.test.ts`, `dunning.test.ts`, `helpers.ts`),
+`send_failed_permanent` (`biller.test.ts`, `dunning.test.ts`, **and the Command surface's
+`DunningQueue.test.tsx`**, i.e. the operator-visible end as well). Covered.
+
+### 3. Do the gates I added this session survive a different working directory?
+
+The real question behind [[gates-that-cannot-fail-for-lack-of-input]], and `gate-wiring.test.ts:21` reads
+`readFileSync("package.json")` **cwd-relative** — a file I extended twice this session (§940, §941).
+
+Safe, and safe by **mechanism** rather than by luck: `pnpm` runs a script with cwd set to its package root.
+Measured both halves — `pnpm -w exec node -e 'process.cwd()'` invoked from `workers/api/` prints the repo root,
+and `pnpm -w run test:tools` invoked from `tools/checks/` runs the **full 1,196-test suite with the identical
+3 known failures**. §559's `cwd-parity` gate already covers the sixteen *scripts*; the test files inherit the
+guarantee from the runner. No gate added — the invariant is enforced by pnpm, and a gate asserting it would
+be testing pnpm.
+
+### Why record a phase that found nothing
+
+**And the phase's own commit was blocked by a gate**, which is the point of chaining them: the citation
+ratchet refused a bare `biller.ts` line-number citation into a high-churn file — *"0 → 1 unanchored citation(s)"* — and demanded `path:line@symbol`. Re-written as
+the anchored form, the ratchet returns to its frozen baseline of 132. A gate I did not write caught a defect
+I introduced while writing about detection power — and then caught it a SECOND time, because the sentence
+*describing* the bad citation quoted it verbatim and so re-created it. Writing about a malformed reference
+reproduces it; the fix is to describe the shape, never to paste the instance.
+
+Because the alternative is that the next reader re-runs these three. Each probe here had demonstrated power:
+probe 1 found the exact live-send fact in §944 one phase earlier, probe 2's method found real gaps at §928–§930,
+and probe 3's class produced sixteen real fixes at §554–§559. **A clean negative from an instrument with a
+known kill count is evidence; a clean negative from an untested one is silence** — and this session has now
+twice written the positive control before believing the negative (§943's mode sweep, §947's three).
