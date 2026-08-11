@@ -631,6 +631,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 448 | §1000 | **§1001** | **THE SEVEN HARD BUDGETS, PROVED BY VIOLATING EACH — AND ONE NEARLY READ AS UNENFORCED.** CLAUDE.md line 15 is headed *CI-enforced*, and this record caught that heading lying once (§245: one of seven had **no pin at all**). The budgets gate proves the STATED number equals the ENFORCING constant — a lockstep, not a rejection. So I planted a real violation of every family: **7 for 7 RED** — 23 tables → `I8 VIOLATION`; a fourth `apps/` dir → `UNREGISTERED surface`; a 36th event kind (**zero headroom**); a 13th view; a 6th token; a 3rd font; and shadow/radius/raw-hex/rgba in a CONSUMING component → 4 REDs each naming its REQ. **CLEAN NEGATIVE by violation rather than by reading.** The near-miss: the first table probe produced ONE failure line and it was the *classification* rule, not the budget — I was ready to file it. Classifying the probe tables properly surfaced `23 > 22`: the classification rule fires FIRST and shadows the budget on the same input. Mirror of §1000 one phase later — **attribute the RED and attribute the GREEN; a verdict is about the run until your subject is the only variable.** Boundary stated: a 6th token is caught by the lockstep, NOT `audit:design`, whose palette is *derived* from the tokens — the two enforce different halves and neither is redundant |
 | 447 | §999 | **§1000** | **WHAT THE BLOCKED GATES DO ON VENDORING DAY — CLEAN, AND I NEARLY FILED THE OPPOSITE.** §999 proved nothing on the board is repo-owned *today*; this asks the owner's real question: when the nine fixtures arrive, do those gates **verify** them or merely **find** them? A presence-only gate would turn five honest BLOCKEDs into five false PASSes on the one day nobody re-checks. Probed the branch absent from the 12 existing cases — **`vendored` with a null `sha256`**, the state all nine are in RIGHT NOW. Deleting its guard left **12 tests green**, and I nearly filed *an undefended guard on the exact transition the owner will perform*. **Two further probes said otherwise:** `typecheck` REDs (`TS18047: possibly null`, and typecheck is a merge gate), and with the type error suppressed the downstream branch **still rejects** (`pinned null… actual 79253e8…`) because a real digest is never null. **Three defences, unplanned but real — CLEAN NEGATIVE.** The lesson mirrors one already here: **attribute the GREEN before condemning it** — *the tests did not catch this* is a claim about the tests, not the code, in a repo with 26 gates. Also re-verified L410: **0 coverage providers, 0 of 12 configs** — genuinely external |
 | 446 | §998 | **§999** | **STOPPING POINT V — THE COMPLETE MERGE VERDICT, RUN RATHER THAN INFERRED.** Six phases rested on a board figure carried forward; §994 declined to re-run `verify:merge` on wedge grounds and wrote that down so it could be overruled cheaply. **Overruled: 300s wall, no wedge, all 22 suites.** At `1e2ec98`: **19 PASS · 2 FAIL · 5 BLOCKED**, **374 files / 4,534 tests / 3 failing (99.934%)**. **All three failures ATTRIBUTED** — the owner's uncommitted REQ-289 row — and `unit-tests` aggregates every workspace, so its red could have masked a real suite failure behind a known one: **it does not, 21 of 22 suites have zero failures.** Settles two claims: the wedge deferral was over-cautious (**a deferral defended by a hazard must be re-tested once that hazard has evidence, or it becomes permanent by habit**), and §962's four skipped browser gates genuinely EXECUTE now (perf/visual/a11y/e2e = 1/5/4/6). **Nothing on this board is a repo-owned defect** — two FAILs are one owner-held register row, five BLOCKED are inputs no commit can supply. Ledger and gate now AGREE, which is the only agreement this audit trusts |
 | 445 | §997 | **§998** | **THREE GATES, THREE BLIND SPOTS, ONE SHAPE.** §997 ended with *a gate written from one observed instance covers that instance's shape* — instance #1. Turned it on the two siblings written this session: **three for three.** **§996** read inline backticks only, while **52 pnpm citations live in FENCED blocks** — and fenced is this record's canonical proof layout (`pnpm verify:merge → exit 1`). **§995** scoped by TABLE when the rule follows the TRIGGER: the external CORS hold names `tests/e2e/prod-surface.spec.ts`, which moved 2026-08-01 against a row dated 2026-07-31 — **a SEVENTH expired row**, invisible for exactly the reason the other six were. Re-verified: HOLDS (`cors.ts:21` lists all four origins; `prod-surface.spec.ts:66` still asserts no foreign host). Both widened and mutation-proved **in the newly-covered region**, not by re-running the old one. **Near-miss on the proof itself:** my first external-row mutation stayed GREEN and I nearly credited the gate — the mutation was wrong (I rolled back one date while the sentence I had just authored carried another). **A green mutation is as ambiguous as a red one.** Six phases now, zero product defects, every finding in the machinery that asserts the product is sound |
@@ -58872,3 +58873,68 @@ worth one phase to establish and does not need re-establishing.
 **Re-open when:** any fixture flips `pending → vendored` (the branch above becomes live — re-run
 `pnpm check:fixtures` and expect PASS with `assertions > 0`, never `executed: false`) · `verify.ts` changes ·
 a coverage provider becomes installable, which turns L410 from external into repo-owned work.
+
+---
+
+## §1001 — PHASE GATE: the seven hard budgets, proved by violating each — and one nearly read as unenforced
+
+§998 established that a gate covers the shape of the instance that prompted it, and closed that question for
+the three gates written this session. It was never asked of the **constitutional budgets** — CLAUDE.md line 15,
+headed *"CI-enforced; exceeding = the PR is wrong"*. This record already caught that heading lying once
+(§245: six of seven budgets pinned, one with no pin at all — *a fourth surface would have passed every gate*).
+
+`claude-md-budgets.test.ts` is thorough, but what it proves is that **CLAUDE.md's number equals the enforcing
+constant** — a lockstep. That is not the same claim as *a violation is rejected*, and the difference is the
+whole of §245. So I planted a real violation of every family.
+
+### Seven for seven
+
+| budget | violation planted | verdict |
+|---|---|---|
+| ≤22 tables | two `CREATE TABLE`s in a migration | **RED** — `I8 VIOLATION: 23 effective tables > budget 22` |
+| 3 surfaces | `apps/probe-surface/` with a real app's shape | **RED** — `UNREGISTERED surface(s): probe-surface … forbids a fourth surface` |
+| 35 event kinds | a 36th entry in `EVENT_KINDS` | **RED** (zero headroom, so this one matters most) |
+| 12 canonical views | `MAX_CANONICAL_VIEWS` → 13 | **RED** |
+| 5 color tokens | a 6th key in `TOKENS` | **RED** |
+| 2 font families | a 3rd key in `FONTS` | **RED** |
+| 0 shadows / gradients / radius>4px | `box-shadow`, `border-radius: 12px`, `#ab12cd`, `rgba(0,0,0,.3)` in a consuming component | **RED ×4**, each naming its REQ |
+
+**CLEAN NEGATIVE across every hard budget**, by violation rather than by reading — including the one §245
+found unpinned, which is now enforced against the *discovered* directory set rather than against a
+hand-maintained roster.
+
+### The one that nearly read as unenforced
+
+The first table probe produced **one** failure line, and it was not the budget:
+
+```
+FAIL unclassified tenant table(s): probe_a, probe_b — is each APPEND-ONLY or MUTABLE? …
+```
+
+Two `CREATE TABLE`s against a 21-used/22-budget ceiling, and no budget message. That is the shape of a real
+finding, and I was ready to write it. Classifying the probe tables properly (adding them to `MUTABLE_TABLES`)
+and re-running gave `I8 VIOLATION: 23 effective tables > budget 22` — **the classification rule simply fires
+first and shadows the budget on the same input.** Both are fail-closed, so a table cannot be added without at
+least one RED; only the *reported reason* changes with how well-formed the addition is.
+
+Same error as §1000, one phase later and in the opposite direction: there I nearly condemned a guard because a
+mutation stayed green; here I nearly condemned one because a **different rule's** RED arrived instead of its
+own. **Attribute the RED, and attribute the GREEN — a verdict is about the run, never about your subject,
+until you have made your subject the only variable.**
+
+### One boundary worth stating so nobody "fixes" it
+
+A 6th color token is caught by the **lockstep**, not by `audit:design` — that gate's palette allowlist is
+*derived* from the tokens (§257), so a newly-added token is legitimately allowed by it. Likewise a raw hex in
+`tokens.css` is not a violation: that file is where colors are defined. The violation shape is a raw hex in a
+**consuming** file, and that is caught (four ways, above). The design audit and the budget lockstep enforce
+different halves of the same law, and neither is redundant.
+
+### Phase gating
+
+**STOP.** Every hard budget in the governing file has now been proved by violation rather than by agreement,
+and the seven results are recorded above so the next reader does not re-derive them.
+
+**Re-open when:** the hard-budgets line changes (a register amendment lands) · `TABLE_BUDGET`,
+`SURFACE_ROSTER`, `MAX_CANONICAL_VIEWS`, `EVENT_KINDS`, `TOKENS` or `FONTS` moves · a budget gains an
+enforcing gate that is not on the roster — §743's completeness floor covers the reverse direction already.
