@@ -583,7 +583,8 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 388 | §940 | **§941** | **THE SAME SHORT-CIRCUIT IN `typecheck`, CLOSED BEFORE IT COULD BITE.** Counted rather than guessed: of **30** gate specs in `gatesFor()`, exactly **two** chain internally — `test` (§940) and `typecheck`. Planted type errors in both halves: under `&&` only the tools error is reported and the recursive half never runs; aggregating, both do. It passes today, so nothing was masked — the point is that **`&&` is safe only while the first half has no persistent red**, which is a property of the repo's ledger of open rows, not of the script. First probe was a FALSE CLEAN (grepped the planted identifier; tsc prints `file(line,col): error TS2322` and never the symbol). gate-wiring now asserts the CLASS over a roster checked against `gatesFor()` |
 | 389 | §941 | **§942** | **NOTHING STOPS A SURFACE DEPLOYING WITHOUT ITS CONTRACT CHECK.** §941's detector matches `pnpm -r --if-present run`; **4** scripts recurse and it matches **2** — the others spell it `pnpm --filter`. Both are outside `gatesFor()` so the rule is correctly scoped, but reading them found the `deploy:surfaces` pipeline enforced by a **comment**. Naive probe looks guarded: deleting `check:surfaces` REDs — as the §289 ORPHAN check, incidentally, because the deploy chain is its sole invoker. The three routes that keep it invoked are **all silent**: run it after the deploy, `&&`→`;`, or drop `-- --built` (checks sources, not the shipped bundles). Each deploys a live production surface past its contract gate. Also states the scope boundary: `&&` is wrong for INDEPENDENT halves, right for a DEPENDENT pipeline — this one is fail-closed and must stay |
 | 390 | §942 | **§943** | **THE "PRINTS ITS REFUSAL, EXITS 0" CLASS, ENUMERATED AND CLOSED — AND MY OWN MECHANISM CORRECTED.** §938/§939 said *"sentinel and exit code disagree, CI believes the exit code."* Wrong: `reconcileSentinel` already reconciles them **pessimistically** (a sentinel may degrade an exit-0 run, never upgrade a failing one). Measured why both survived it — **neither gate emitted a sentinel at all** (0 and 0). The true rule is sharper: *it protects gates that SPEAK, not a gate that goes QUIET*, and suppression is conditional on the same `local` mode where the exit code is wrong. Class enumerated two-sided: **10 mode-aware entrypoints / 14 script bindings, every one has a mode source, zero default to local.** Clean negative with a REAL positive control — reverting §938's one-line fix makes the probe print NONE |
-| 391 | §943 | **§944** | **A CONFIG SAYS STAGING CANNOT SEND EMAIL, ELEVEN LINES ABOVE WHERE IT TURNS IT ON.** Turned to the documented debt: the checklist's **13 open repo-owned rows** are open because they are correctly gated (*needs a REQ row first* / *owner tooling call*) — building them would be straying. What IS mine is their reopen triggers. **L417's has FIRED**: `workers/agents/wrangler.toml` declares `EVIDENCE_FROM` *DELIBERATELY ABSENT — NO evidence email is ever sent*, then sets it 11 lines later under `[env.staging.vars]` with *sending is ON*. The row still reads *"Dormant while no provider is bound."* **The identical contradiction was fixed in `DEPLOYMENT.md` on 2026-08-01 — the doc was swept, the config it describes was not.** Swept all 8 absence claims across both configs: 1 false, 7 true-positive controls |
+| 391 | §943 | **§944** | **A CONFIG SAYS STAGING CANNOT SEND EMAIL, ELEVEN LINES ABOVE WHERE IT TURNS IT ON.** Turned to the documented debt: the checklist's ~~**13**~~ **17 open repo-owned rows** (corrected §945; §804 had already measured 35 rows / 16 OPEN) are open because they are correctly gated (*needs a REQ row first* / *owner tooling call*) — building them would be straying. What IS mine is their reopen triggers. **L417's has FIRED**: `workers/agents/wrangler.toml` declares `EVIDENCE_FROM` *DELIBERATELY ABSENT — NO evidence email is ever sent*, then sets it 11 lines later under `[env.staging.vars]` with *sending is ON*. The row still reads *"Dormant while no provider is bound."* **The identical contradiction was fixed in `DEPLOYMENT.md` on 2026-08-01 — the doc was swept, the config it describes was not.** Swept all 8 absence claims across both configs: 1 false, 7 true-positive controls |
+| 392 | §944 | **§945** | **FOUR WRONG COUNTS OF ONE TABLE, AND THE RECORD ALREADY HAD THE RIGHT ONE.** §944's headline *"13 open repo-owned rows"* is wrong — it is **17** of 35, and **§804 had already published 35 rows / 16 OPEN**, from the section that earned *"a claim you inherit is a claim you are making."* I re-derived it instead of reading it (third time this session). Four ad-hoc parsers, four confident wrong answers: whole-row keywords (`fail-closed` reads CLOSED) → 13; strike MARKERS stripped not struck SPANS (`~~OPEN~~ CLOSED` → OPEN) → 24, **the exact bug fixed in §944's gate an hour earlier**; header counted as data → 36; naive `split("|")` → *"10 malformed rows"*, accusing `check:tables` of a miss when it handles escapes and per-table headers correctly. Trigger sweep: L419 and L421 not fired, L432 is a RESOLUTION row (what seeded the 13). 1 of 13 triggers had fired — L417's |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -55662,3 +55663,59 @@ Final: 4/4 mutations RED against a green fixed point — the real defect, the wi
 compute the other. Scope stated: it verifies the **toml does not set** the var. A secret set out-of-band by
 `wrangler secret put` is invisible to any repo-side check, which is exactly why the prose conclusion
 (*"so NO evidence email is ever sent"*) was able to drift from the mechanism.
+
+## §945 — PHASE GATE: four wrong counts of one table, and the record already had the right one
+
+Continuing §944's trigger sweep. The sweep's remaining results are small and clean; **the finding is that
+§944's own headline number was wrong, and how many ways I got it wrong before noticing.**
+
+### The correction
+
+§944 states *"the checklist's **13 open repo-owned rows**."* The true figure is **17**, of 35 eight-field data
+rows: `OPEN 17 · FIXED 15 · TRIPWIRED 1 · RESOLVED 1 · NOT_APPLICABLE 1`.
+
+**§804 had already measured it** — *"the checklist's Repository-owned failures & debt carries **35 rows — 15
+closed, 20 LIVE, 16 status OPEN**"* — and 35 matches exactly. That section also earned the rule I have quoted
+twice since: *a claim you inherit is a claim you are making.* I did not inherit it. I re-derived it, badly,
+without opening the section that holds it. **Third phase this session of re-deriving a measured fact**
+([[search-the-record-before-the-code]]).
+
+### Four parsers, four confident wrong answers
+
+| # | method | answer | why it was wrong |
+|---|---|---|---|
+| 1 | keyword match over the whole row | **13** | `fail-closed` contains "closed"; struck ORIGINAL text contains "FIXED". Statuses read from the row, not the status FIELD |
+| 2 | status field, strike **markers** stripped | **24** | `~~OPEN~~ **CLOSED**` → `OPEN **CLOSED**` → matches OPEN. **The exact bug I had fixed in §944's own gate one hour earlier** |
+| 3 | struck **spans** removed | **36 rows** | counted the **header** row as data |
+| 4 | naive `split("\|")` | *"10 malformed rows"* | three were **sub-tables with their own headers** — §934's recorded trap, repeated — and `\|` **escapes** inside code spans split as separators |
+
+Answer 4 is the instructive one: it accused `check:tables` of missing ten malformed rows in a governance
+ledger. `check:tables` was right; it handles escapes and per-table headers. **A gate looked broken and the
+measurement was broken** — [[when-a-gate-looks-wrong-suspect-the-measurement]], and the fourth consecutive
+time in one phase.
+
+The through-line is not carelessness about any one of these. It is that **an ad-hoc parser over a governance
+table is a defect generator**, and this repo already contained both a correct parser (`check-table-shape.ts`)
+and a correct measurement (§804). Every wrong answer above was produced in under a minute and stated with
+confidence; only comparing them to each other exposed the drift ([[compare-artifacts-dont-reason-about-them]]).
+
+### The trigger sweep itself — three more, none fired
+
+- **L419** (*"when the agents cron gains a sub-daily expression"*) — `workers/agents/wrangler.toml` still
+  `crons = ["0 1 * * *"]`. Not fired; the 4h SLA is still policed by a 24h detector, as recorded.
+- **L421** (*"when `PROVISIONING_ENABLED` flips"*) — the name appears in **no** wrangler config, only in prose.
+  Not fired. (`signup.ts` lives at `workers/api/src/routes/signup.ts`, not the `pub/` path I first guessed.)
+- **L432** — *not a debt row at all.* It sits in the browser-gate **resolution** table (*"No blessed
+  screenshots | `visual` | five blessed, each opened and reviewed"*), recording a defect that was FIXED. Five
+  blessed PNGs exist under `tests/visual/blessed/` and the board reports `visual — 5 passed`. Counting a
+  resolution row as an open defect is what seeded the wrong 13.
+
+So across §944–§945, **one of thirteen checked triggers had fired** — L417's, and it mattered.
+
+### The durable fix is to make the ledger countable
+
+Measured today: **zero of 35 rows carry an unreadable status**, so a vocabulary is enforceable now rather than
+aspirational. `ledger-status-vocabulary.test.ts` parses the section the way `check:tables` does — escape-aware,
+header-excluded, struck spans removed — and requires every row's live status to open with a canonical token.
+That turns "how much repo-owned debt is open?" into one correct command, so the next reader does not write a
+fifth parser.
