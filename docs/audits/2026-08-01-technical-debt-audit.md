@@ -597,6 +597,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 402 | §954 | **§955** | **THE CONSTITUTIONAL SWEEP COMPLETED — STRUCTURE WAS ENFORCED, BEHAVIOUR WAS NOT.** Rules 4/5/6/8 enumerated individually: rule 4's cross-surface schema parity ran while *missing physics ⇒ UNKNOWN* did not; rule 5 had **1 of 15** REQ-040 files running; rule 6 3 of 4 (§953); rule 8 105 of 112 cases (§954). **Headline: CLAUDE.md calls the $222,084/35-lb anomaly regression PERMANENT — `it("…flags over_per_lb — forever")` — and 10 of the 11 files enforcing it were dark.** The shape: `tools/` proves STRUCTURE, `packages/`+`workers/` prove BEHAVIOUR, and for the whole §940 window every structural claim was verified and no behavioural one was. A repo can hold complete static enforcement and ZERO behavioural enforcement while every gate reports green, because the halves are separated by one `&&` that no gate named. Closed by §940/§949; no new gate — the value is the statement |
 | 403 | §955 | **§956** | **THE LAST LINK IS OPEN — `main` HAS NO BRANCH PROTECTION.** Walked the chain from *a test file exists* to *its failure stops a merge*: links **1–6 are each gated** (`test-collection` · §709 · §941 unconditional-run · §949 `--no-bail` · §656 polarity · §807 roster-by-name · §691 CI invokes `verify:merge`). Link 7 is a GitHub setting the audit had only ever ASSUMED — *"the branch protection this repo assumes is outside it"*. **Measured: `gh api …/branches/main/protection` → `{"message":"Branch not protected","status":404}`.** CI runs and computes the full 26-gate verdict; the verdict has no authority. Rule 7's *a violation fails the merge*, rule 8's *a cross-tenant read is a build failure* and rule 1's *CI blocks orphans* are true of the COMMAND and untrue of the REPOSITORY. `docs/ops/` carried **no** mention of branch protection — now an External hold with the measured verdict, a named owner and a 2-second re-check. **NOT enabled by the audit** — governance is the owner's call |
 | 404 | §956 | **§957** | **THREE MORE ASSUMPTIONS MEASURED — ONE BENIGN, ONE BY-DESIGN, ONE IS 1,016 COMMITS.** (1) Repo is **private** — REQ-167's blast radius is contained, never stated anywhere. (2) The nightly has failed **8 consecutive nights**; the `backup` job exits **2**, which this repo defines as `EVIDENCE_EXIT.PREREQ_BLOCKED` — failing closed on the documented absent-OIDC hold, exactly as designed. Not a defect, but **8 straight reds is how an alarm stops being an alarm**: the first genuinely broken backup will land on a dashboard that has been red for weeks. (3) **`origin/main` is `0415148` (2026-07-31); local is 1,016 commits ahead.** This entire audit exists on one machine, and since `ci.yml` fires on push/PR, **CI has evaluated none of it** — with §956 the gate apparatus has neither authority nor execution over those commits. Both (3) and §956 filed as external holds; **neither pushed nor enabled by the audit** |
+| 405 | §957 | **§958** | **THE EVIDENCE IS ANCHORED TO COMMITS THE REMOTE DOES NOT HAVE — 4% OF THIS AUDIT'S SHAs RESOLVE.** §957's 1,016-commit gap has a second, larger cost: the governing records stamp their measurements with SHAs, and most of those commits exist only on this machine. Measured on `origin/main`: audit **5 of 111 (4%)**, RELEASE-EVIDENCE 5/16, GO-LIVE-CHECKLIST 23/38, PROJECT-STATE 7/12. This repo's epistemics rest on the stamp — the eight-field schema demands *Proof — command → verdict*, §932 says a figure without a re-derivable source rots — and **a stamp is what separates a measurement from an assertion**. Nothing is wrong: every measurement was really taken. But *you can verify this* is false for anyone not at this checkout. Not filed as a new hold — recorded on §957's row, because **a push makes all four 100% with no other action**, which makes it the cheapest open item on the board |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -56364,3 +56365,43 @@ preference; at 1,016 it is the only copy of the work.
 state — one publishes 1,016 commits, the other changes governance for everyone who pushes — and an audit is
 not the event that should trigger either. Both are filed with measured verdicts, named owners, and the exact
 command to re-check. [[measure-the-blocker-dont-restate-it]] got them measured; deciding them is the owner's.
+
+## §958 — PHASE GATE: the evidence is anchored to commits the remote does not have — 4% of this audit's SHAs resolve
+
+§957 filed the 1,016-commit gap as a single-copy risk. It has a second cost that is larger and was not obvious:
+**the governing records anchor their measurements to commit SHAs, and most of those commits exist only on this
+machine.**
+
+Measured — of the SHA-like tokens each record cites, how many resolve on `origin/main`:
+
+| record | resolve locally | on `origin/main` | |
+|---|---|---|---|
+| `2026-08-01-technical-debt-audit.md` | 111 | **5** | **4%** |
+| `RELEASE-EVIDENCE.md` | 16 | 5 | 31% |
+| `GO-LIVE-CHECKLIST.md` | 38 | 23 | 60% |
+| `PROJECT-STATE.md` | 12 | 7 | 58% |
+
+The audit's own provenance is the worst, which follows: it is the record that grew most since 2026-07-31. Every
+*"measured at `X`"*, *"re-measured after the §385–§398 sweep, `331813a`"*, *"verified at `0415148`"* is a
+verifiable claim **on this machine** and an unresolvable reference **from a clone of the remote**.
+
+### Why this is a real cost and not pedantry
+
+This repo's entire epistemics rest on the SHA stamp. The eight-field row schema requires *"Proof — command →
+verdict"*; §932's rule is that a figure without a re-derivable source rots; §948's stopping point is stated as
+a board measured at a named commit. **A stamp is what separates a measurement from an assertion** — and 96% of
+this audit's stamps currently point at nothing a second party could check.
+
+Nothing here is wrong: every measurement was really taken, at a commit that really exists. But *"you can verify
+this"* is presently false for anyone who is not sitting at this checkout, which is exactly the property the
+stamps were adopted to provide.
+
+### Not a new hold
+
+This is the §957 hold's second consequence, so it is recorded there rather than filed again — the row already
+names the fix (a push) and the owner. What §958 adds is the **size of what the push buys**: not merely a
+backup of 1,016 commits, but the auditability of four governing records. **The moment `origin/main` advances,
+all four numbers above become 100% with no other action.**
+
+That also makes this the cheapest open item on the board to close, and the one that most changes what the rest
+of the record is worth — worth knowing when sequencing against nine private fixtures and a counsel CONFIRM.
