@@ -616,6 +616,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 421 | §973 | **§974** | **THE SUPPLY-CHAIN CLAIM WAS TRUE AND ENFORCED BY NOTHING.** Both workflow headers state *"Every action is pinned to an immutable commit SHA with its release tag in the trailing comment"* — a security claim in a comment with no gate behind it. **Measured: checked=16 `uses:` refs, 16 SHA-pinned, 16 with the tag comment, 0 exceptions** — fourth clean positive of the session. But `uses: actions/checkout@v4` would have drawn no objection from any of the 26 gates, and that matters here because the tag keeps resolving, the workflow keeps passing, and **the code running inside a job that holds `CLOUDFLARE_API_TOKEN` and `IDENTITY_DENYLIST` changes underneath it** — a compromise indistinguishable from a green run. `workflow-pinning.test.ts`: 3/3 mutations RED (`@v4`, bare SHA, `@main`). Deliberately a **text scan** — no YAML parser is installable here (§973), so it cannot fail for the reason §973 could not be completed |
 | 422 | §974 | **§975** | **THE TOKEN POSTURE IS CORRECT, EXTERNAL, AND RECORDED NOWHERE.** The other half of the workflows' supply-chain surface: what the job's token can DO. Measured — **no `permissions:` block in either workflow**, repository `default_workflow_permissions: "read"`, `can_approve_pull_request_reviews: false`. **The posture is the safe one** and the jobs work within it. But it is correct by REPOSITORY SETTING, not by anything in the repository: flip that default to `write` in the UI and both workflows silently gain `contents: write` — no file change, no review, no signal — and `git grep -i 'workflow permission' docs/ops/` returns **nothing**. **Explicit `permissions:` blocks NOT added:** `"read"` grants a SET of read scopes while `permissions: contents: read` grants exactly one, **removing the others** — a narrowing that would hit the artifact upload and a third-party scanner, on a CI about to run for the first time in three weeks. Filed as an external hold |
 | 423 | §975 | **§976** | **NOTHING WAS WATCHING DEPENDENCIES AT ALL.** §967 found 4 prod vulnerabilities by running the audit BY HAND; the question that matters more is what was supposed to find them. Measured: `vulnerability-alerts` → **404**, `dependabot/alerts` → **403 disabled**, `automated-security-fixes` → **`{"enabled":false}`**. The only other mechanism, `pnpm audit --prod` (ci.yml step 16), has been **SKIPPED since 2026-07-23** (§962). **Zero mechanisms were surfacing dependency vulnerabilities** while four sat in the dependency graph of the API and the MCP surface. Half is already fixed — §962's `!cancelled()` was applied to the audit step too, so **one skipped step was hiding two entirely different classes of finding**. Half is the owner's, filed with the two options distinguished: **alerts only** (no workflow impact) vs **automated fixes** (opens PRs, in a repo with 0 PRs ever) |
+| 424 | §976 | **§977** | **SECRET DETECTION RUNS AND IS SKIP-PROOF; PREVENTION IS UNAVAILABLE ON THIS PLAN.** `security_and_analysis` is **ABSENT** from the repo response (96 keys returned) — and the cause is decidable: this token holds admin scope (it read branch protection and actions permissions), so the omission is **plan availability**, not permission. Secret scanning and push protection are Advanced Security features and this is a **private repo under a User account** — **push protection cannot be enabled without a plan change**. What DOES exist is strong: `gitleaks` over the **full history** with a repo-owned `.gitleaks.toml`, and it is its **own job** — last run `merge-gate: failure`, **`secrets: success`** — so the §962 skip that swallowed the 26-gate surface AND the dependency audit **never touched secret scanning**. Job isolation did what step ordering did not. Detection sound, prevention absent and unpurchasable here; recorded, not filed |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -57320,3 +57321,50 @@ options, and the distinction matters for a repo with **zero pull requests** (§9
   (§971), that changes the working model, not just a setting.
 
 Filed with both named, so the choice is made deliberately rather than by accepting whatever the toggle does.
+
+## §977 — PHASE GATE: secret detection runs and is unaffected by the skip; prevention is unavailable on this plan
+
+REQ-154 says *"secrets via wrangler+OIDC never in repo"*, and REQ-167 forbids identity leaks. §976 measured
+what watches dependencies; this measures what watches **secrets**.
+
+### GitHub's native controls are not available here
+
+```
+GET /repos/shuddl/shuddl-os  →  "security_and_analysis" key ABSENT   (96 keys returned)
+```
+
+Absent, not null — and the distinction is decidable: this token demonstrably holds admin scope, since it read
+`branches/main/protection` (§956) and `actions/permissions/workflow` (§975), both admin-only. So the omission
+is **plan availability, not permission**: secret scanning and push protection are Advanced Security features,
+and this is a **private repo under a User account** (`private: true`, `owner.type: User`, §957).
+
+**Push protection — the control that stops a secret from ever landing — cannot be enabled here without a plan
+change.** That is a fact about the account, not a defect in the repo, and it bounds what any hardening
+recommendation can achieve.
+
+### The mechanism that does exist is real, and structurally safe
+
+`ci.yml` runs `gitleaks/gitleaks-action` against the **full history**, with a repo-owned `.gitleaks.toml`. Two
+things make it stronger than it first appears:
+
+- It is its **own job**, not a step in `merge-gate`. The last CI run: `merge-gate: failure`, **`secrets:
+  success`**, `design-advisory: success`. So the §962 skip — which swallowed the 26-gate surface and the
+  dependency audit — **never touched secret scanning.** Job isolation did what step ordering did not.
+- History-wide rather than diff-only, so a secret committed and later removed is still caught.
+
+### The honest posture
+
+| | mechanism | state |
+|---|---|---|
+| detection (committed secrets) | gitleaks, full history, own job | **running, green, skip-proof** |
+| prevention (blocking the push) | GitHub push protection | **unavailable on this plan** |
+| local pre-commit | none | — |
+
+**Detection is sound; prevention does not exist and cannot be bought here without changing the account.** The
+gap is real but it is not a repo defect, and the compensating control — a history-wide scan that runs in an
+isolated job — is the right one to have if you can only have one.
+
+Recorded rather than filed as a hold: there is no owner action short of a plan change, and §976's row already
+carries the GitHub-settings class. The value here is the **positive** finding — that the one security job in
+this workflow was structurally immune to the failure that disabled everything else, and that this was
+architecture rather than luck.
