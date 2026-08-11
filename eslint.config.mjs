@@ -272,6 +272,30 @@ export default tseslint.config(
     },
   },
   {
+    // §987 — the DYNAMIC half for packages/edi ONLY. Deliberately edi-scoped: putting these in the
+    // adapters+edi block would create a `no-restricted-syntax` covering packages/adapters, which the
+    // adapters-only block then replaces — §815 fired on exactly that at §986. An edi-only scope
+    // overlaps no other syntax block and therefore joins no replacement chain.
+    files: ["packages/edi/**/*.ts"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: 'ImportExpression[source.value=/lumina|Lumina|shuddl-2023/]',
+          message: "REQ-163: prior codebases are organ banks — no dynamic import() merges into the spine.",
+        },
+        {
+          selector: 'ImportExpression[source.value=/^@shuddl\\u002Fledger|^@shuddl\\u002Frater/]',
+          message: "REQ-035: adapters/edi are edge translators — no dynamic import() of the ledger or rater.",
+        },
+        {
+          selector: 'ImportExpression[source.value=/^(node:)?crypto$/]',
+          message: "REQ-127: no dynamic import() of node:crypto here — hashing belongs to the ledger.",
+        },
+      ],
+    },
+  },
+  {
     // THE LAYERING HALF of the same claims (audit §285). §284 enforced the "no Date/no random" conjunct and
     // stopped there — but the sentences it swept are longer: migrator.ts says "no network, no D1, no ledger/
     // rater import" and "no Date, no crypto, no ledger"; edi/mapping.ts and edi/types.ts say "PURE: no I/O,
@@ -324,6 +348,23 @@ export default tseslint.config(
     rules: {
       "no-restricted-syntax": [
         "error",
+        // §987 — RESTATED, because this block REPLACES the repo-wide `no-restricted-syntax`. Measured:
+        // before this, `await import("lumina-core")` was CAUGHT in packages/edi and PASSED in
+        // packages/adapters — the repo-wide REQ-163 dynamic ban added at §986 was deleted here by
+        // last-writer-wins, and §815 could not see it because it compares this block to the SHARED
+        // agents+adapters block, never to the repo-wide one. Appending keeps the superset true.
+        {
+          selector: 'ImportExpression[source.value=/lumina|Lumina|shuddl-2023/]',
+          message: "REQ-163: prior codebases are organ banks — no dynamic import() merges into the spine.",
+        },
+        {
+          selector: 'ImportExpression[source.value=/^@shuddl\\u002Fledger|^@shuddl\\u002Frater/]',
+          message: "REQ-035: adapters/edi are edge translators — no dynamic import() of the ledger or rater.",
+        },
+        {
+          selector: 'ImportExpression[source.value=/^(node:)?crypto$/]',
+          message: "REQ-127: no dynamic import() of node:crypto here — hashing belongs to the ledger.",
+        },
         {
           selector: 'NewExpression[callee.name="Date"]',
           message: "REQ-024: this layer is deterministic — the caller supplies the instant (see aging.ts: 'the sweep supplies nowMs').",

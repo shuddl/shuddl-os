@@ -626,7 +626,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 431 | §983 | **§984** | **THE APPEND CHOKEPOINT, VERIFIED END-TO-END RATHER THAN AT THE MATCHER.** §983's rule aimed at the repo's most important gate — REQ-030's single-writer law. It uses the **shared** `insertIntoRe` builder (its comment records that §71 fixed the hand-written `INTO\s+` blind spot that let `INSERT INTO"events"` past). Planted **8 bypass forms in a real file** and ran `pnpm check:chokepoint`: **checked=8, caught=8, missed=0**, fixed point clean after removal. **§71's corpus already pins six — but at the MATCHER level** (`re.test(sql)`), which proves the regex and not the PIPELINE (glob → read → comment-strip → allowlist → matcher → exit). A correct matcher behind a pipeline that never reaches it is this session's recurring shape (§940, §963, §983). Both levels now hold. Not pinned permanently: an end-to-end probe must write into the scanned tree, and a crash would leave a file failing the gate for everyone |
 | 432 | §984 | **§985** | **REQ-024's LEDGER BAN WAS BLIND TO `import()` — AND MY FIRST PROBE CREDITED THE WRONG RED.** CLAUDE.md states REQ-024 as *statically linted*. The config is thorough and had already closed the harder route (§53 bans the `fetch` global, since *a model is reachable with raw HTTP and no import at all*, one named TSA exemption). It missed the ORDINARY one: **static import → lint exit 1; `await import("@anthropic-ai/sdk")` → exit 0.** ESLint's `no-restricted-imports` does not inspect an `ImportExpression` — a rule limitation, not a config error, which is why it survived. Closed with `no-restricted-syntax` on `ImportExpression`, same pattern list, adjacent so they cannot drift: **checked=6, caught=6, missed=0** across both forms. **The probe lied first** — a first sweep said 5/5 including the dynamic case; lint had exited non-zero for an unrelated reason. Running the dynamic case ALONE and reading WHICH rule fired exposed it |
 | 433 | §985 | **§986** | **THREE MORE BANS HAD §985's HOLE; TWO CLOSED, AND THE REPO'S OWN GATE STOPPED ME CLOSING THE THIRD.** Counted: 3 `no-restricted-imports` blocks, 4 bans — **every static caught, every dynamic MISSED**. Closed REQ-163's dynamic form in **both** scopes it needs (the ledger copy is not redundant: flat config REPLACES, so the ledger block was deleting the repo-wide ban — measured, `import("lumina-core")` passed in ledger and was caught in contracts). **§814 and §815 both failed my first attempt and were right to**: they parse this file's TEXT, so my shared-constant refactor was invisible to them — **the repo's chosen mechanism is *duplicate and gate the parity*, not *extract a builder***. Then §815 fired again when the adapters+edi block would have dropped three determinism selectors. **checked=5, closed=3, residual=2** (REQ-035/127 dynamic, edi) — named, not forced: closing them means restructuring three overlapping scopes |
-| 433 | §985 | **§986** | **THREE MORE BANS HAD §985's HOLE — AND CLOSING IT REPRODUCED A DEFECT MEMORY ALREADY NAMES.** Counted rather than fixed: **3 `no-restricted-imports` blocks, 4 constitutional bans**. Planted both forms — REQ-163 (organ bank, in CLAUDE.md's *do not build*), REQ-035 (edi→ledger/rater), REQ-127 (edi→node:crypto): **every static caught, every dynamic MISSED.** Fixed with a shared `noDynamicImport(globs, message)` builder per the repo's own share-lint rule, not four copies. **Two loud failures on the way:** an unescaped `/` from `@shuddl/ledger` terminated the selector's regex and killed ESLint with a **fatal exit 2**; and declaring `no-restricted-syntax` in the ledger block **DELETED the repo-wide organ-bank ban** for ledger files (flat config REPLACES, never merges) — [[adding-a-gate-can-delete-a-gate]] verbatim, reproduced by the fix for a different hole, caught only because the corpus tested REQ-163 in BOTH locations. Final: **checked=7, caught=7, missed=0** |
+| 434 | §986 | **§987** | **THE RESIDUAL CLOSED — AND §986's OWN FIX HAD OPENED A FOURTH HOLE.** Probing before fixing: `await import("lumina-core")` was caught in `edi` and **PASSED in `adapters`** — that scope declares its own `no-restricted-syntax` (determinism selectors), which REPLACED the repo-wide REQ-163 dynamic ban §986 had just added. **§815 could not see it**: it compares the adapters-only block to the SHARED agents+adapters block, and the repo-wide block is a third participant never in that comparison — two gates for last-writer-wins, and the case that bit fell between them. Closed by APPENDING to the adapters-only block (superset holds by construction) and adding an **edi-only** block that overlaps nothing. **checked=9, caught=9, missed=0** across every ban × scope, plus a regression proving `Date.now()` is still caught in adapters. Fourth appearance in three phases: **adding a rule to a scoped block is a deletion somewhere else, invisible at the edit site** |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -57791,3 +57791,59 @@ accident — is caught.
 assurance system works**: §815 was written when nothing was broken, purely to keep a superset relationship
 true, and it earned that today against an author who had just re-derived the same hazard from first
 principles and still walked into it.
+
+## §987 — PHASE GATE: the residual closed — and §986's own fix had opened a fourth hole
+
+§986 named a residual (REQ-035/127 dynamic, in `edi`) and said it deserved its own pass. This is that pass,
+and it began by finding that **§986's repo-wide fix had a hole I had not probed for.**
+
+### The hole my own fix opened
+
+```
+await import("lumina-core")   in packages/edi       → caught
+await import("lumina-core")   in packages/adapters  → *** PASSED ***
+import x from "lumina-core"   in packages/adapters  → caught (control)
+```
+
+`packages/adapters/**` declares its own `no-restricted-syntax` (the determinism selectors), which
+**replaces** the repo-wide block — including the REQ-163 dynamic ban §986 had just added. So the fix landed
+everywhere except the one scope that overrides that rule name.
+
+**§815 could not see it.** That gate compares the adapters-only block against the **shared agents+adapters**
+block it replaces — a real hazard, correctly guarded — but the repo-wide block is a *third* participant in the
+same chain and was never in its comparison. Two gates for last-writer-wins (§814 on imports, §815 on syntax),
+and the case that bit was between them.
+
+### Closed, in the shape the config's own structure allows
+
+- **adapters**: the three dynamic bans **appended** to the adapters-only block. Appending keeps §815's superset
+  relation true by construction — the block can only gain.
+- **edi**: a **new edi-only block**. Deliberately not the `adapters + edi` block, because that would create a
+  `no-restricted-syntax` covering adapters which the adapters-only block then replaces — the exact failure
+  §815 caught at §986. An edi-only scope overlaps no other syntax block and joins no replacement chain.
+
+```
+checked=9  caught=9  missed=0
+REQ-163 dyn × adapters · edi · ledger · repo-wide
+REQ-035 dyn × adapters · edi     REQ-127 dyn × adapters · edi     REQ-024 dyn × ledger
+regression: Date.now() in adapters still caught — the superset held
+lint-guards 17/17 · lint exit 0
+```
+
+### What this says about the hazard
+
+This is the **fourth** appearance of last-writer-wins in three phases (§986's ledger override, §986's adapters
++edi attempt, this, plus §814/§815's originals). Each instance is individually obvious and the class is not:
+the config reads as additive, the rule name is the hidden key, and the loser is always the *earlier, broader*
+statement — the one nobody is looking at while editing a scoped block.
+
+The durable form of the lesson, now demonstrated on my own work twice: **in a last-writer-wins config, adding
+a rule to a scoped block is a deletion somewhere else, and the deletion is invisible at the edit site.** The
+only reliable check is behavioural — plant the violation in *every* scope the rule is supposed to cover, not
+in one and infer. §986 probed ledger and contracts and missed adapters; §987 probed all four.
+
+### A record defect this phase also produced, and the gate that found it
+
+The first attempt to file this section failed its index insert, and `phase-index.test.ts` went RED — *every phase gate appears in the index*. The cause was mine and one phase old: at §986 I removed a **draft** section and did not remove its **index row**, so row 433 existed twice. The insert asserts its anchor is unique, so it refused rather than guessing.
+
+Two gates behaved exactly as designed. The uniqueness assert stopped a blind write; the phase-index gate then refused the commit because a section existed with no row. **Neither is clever — both simply decline to proceed on an ambiguous record** — and between them a duplicated row and an unindexed section were caught in the same run. The stale row is deleted; the accurate one stands.
