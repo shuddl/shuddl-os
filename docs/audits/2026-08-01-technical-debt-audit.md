@@ -593,6 +593,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 398 | §950 | **§951** | **THE CORRECTIONS HAD ONE MORE RECORD CLASS — THE ONE THAT OUTLIVES THE SESSION.** §950 swept the audit and missed **memory**, the only artifact reaching a session that never reads this file. Two stale claims, both written earlier today: `a-gate-proved-correct-is-not-proved-durable` still taught the pre-§943 mechanism (*sentinel vs exit code disagree*) and the board memory still carried §940's overturned `--no-bail` rejection. **An audit section is dated by construction; a memory file is presented as a current lesson** — and the first recorded a wrong METHOD, which survives every measurement because it decides which measurements get taken. Rule restated with full scope: enumerate every artifact class (prose · phase index · ops ledger · governing docs · config · gate comments · **memory**). Fifth instance this session — the count is the argument |
 | 399 | §951 | **§952** | **THE FIVE BLOCKED GATES ARE NOT UNPROVEN — ONLY UNINPUTTED.** Each has never run green, which invites the worry that its success path would first execute on a release day. Measured: **51 test cases across 3 files**, each covering BOTH directions — `identity-leak` 18 (incl. *clean + denylist → code 0* and *masks the term so the lint cannot amplify the leak*), `fixtures` 12 (hash verify, PASS with assertions = verified count, filename-vs-content digest), and 21 for all three parity harnesses (*the in-repo SMOKE set passes against the real engine*; *perturbing ONE CENT fails it*). Each harness carries a vendored-in-repo SYNTHETIC smoke set, inline and never under `fixtures/` (REQ-167). **`BLOCKED` means the private INPUT is absent, not that the gate is unproven** — a mirror of *a gate's green certifies less than its name* |
 | 400 | §952 | **§953** | **RULE 6 SAYS "FIXTURES GATE MERGES" — THREE OF ITS FOUR WERE NOT BEING RUN.** §842 proved each named gate is REAL (mapped to a manifest fixture). Nobody asked whether it is REACHED. The airplane-mode soak (`workers/api`), the QB-export penny reconcile and the legacy-export replay (`packages/ledger`) all live in the **package suites** — the exact half §940 proved was not executing while `test`'s `&&` short-circuited on REQ-289. **§940's defect stated in constitutional units: 3 of the 4 gates named in CLAUDE.md's own fixture rule.** Nothing was broken only because every package suite was green. Re-verified post-§940/§949: all three now execute, exit 0. Real ≠ reached — two gates, two claims, and the space between them had no owner; cross-referenced in §842's gate |
+| 401 | §953 | **§954** | **RULE 8's ISOLATION SUITE — 105 OF 112 PROOFS WERE NOT EXECUTING, AND ITS OWN GATE SAID OTHERWISE.** *"A cross-tenant read anywhere is a build failure"* (REQ-025) is the most security-critical sentence in CLAUDE.md. Its suite splits: **7** roster cases in `tools/` (ran) and **105** runtime proofs across api/mcp/translator (did NOT — the §940 dark half). So a DELETED isolation file was caught; a cross-tenant REGRESSION inside one was not. `isolation-suite.test.ts` (§614) asserts *"It does run … executes under the `unit-tests` merge gate"* — **false when written**, and disprovable from the baseline quoted three paragraphs lower in the same comment (`3 failed`), confirmed at `48ef386` where `test` still carried the `&&`. §614 **rejected a named isolation gate on that premise.** Worse than §940's case: that rejection was overtaken by later evidence, this one was contradicted by evidence already in the file. Closed by §940/§949; premise and rejection corrected in place |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -56155,3 +56156,61 @@ gate so the next reader sees both halves rather than assuming one implies the ot
 per REQ-016"* — in-repo by design, not a pending private fixture. The test mints **55** signed offline events
 across **two** devices with `device_seq` monotonic from 0, then syncs under seeded shuffle **and duplicate
 re-sends**, asserting zero loss, zero dupes, and a verifying chain. It meets the spec and exceeds its count.
+
+## §954 — PHASE GATE: rule 8's isolation suite — 105 of 112 proofs were not executing, and its own gate said otherwise
+
+§953 asked *real vs reached* of rule 6. The same question aimed at **rule 8** — *"Tenant isolation suite runs
+on every merge; a cross-tenant read anywhere is a build failure"* (REQ-025), the most security-critical
+sentence in CLAUDE.md — produces the sharpest result of this session.
+
+### The split
+
+| file | cases | executed in the merge gate pre-§940 |
+|---|---|---|
+| `tools/checks/isolation-suite.test.ts` (the roster, §614) | 7 | **yes** |
+| `workers/api/test/isolation.test.ts` | **63** | no |
+| `workers/api/test/platform-tenant-isolation.test.ts` | 9 | no |
+| `workers/api/test/plg-isolation-matrix.test.ts` | 8 | no |
+| `workers/mcp/test/isolation.test.ts` | 15 | no |
+| `workers/translator/test/isolation.test.ts` | 10 | no |
+
+**105 of 112 cases — 94% — were not running.** What ran was the roster: the seven cases that assert every
+member is still tracked and that the aggregate count has not fallen. So **deleting an isolation file would
+have been caught; a cross-tenant regression inside one would not.** Those are very different protections, and
+only the weaker one was live.
+
+### The gate's own comment asserted the opposite, and was falsifiable when written
+
+`isolation-suite.test.ts` (§614) states:
+
+> *"It does run — every file below is collected by its package's vitest config and **executes under the
+> `unit-tests` merge gate**."*
+
+and, three paragraphs later, quotes its own baseline: **`test:tools → 3 failed | 920 passed`**. Those three are
+the REQ-289 trio. Checked at the commit that introduced the sentence — `48ef386`, 2026-08-07 — where
+`package.json` read:
+
+```
+"test": "pnpm run test:tools && pnpm -r --if-present run test"
+```
+
+A failing first half, an `&&`, and therefore a recursive half that did not run. **The premise was false at the
+moment it was written, and disprovable from the very command the same comment quotes.**
+
+### Why that matters more than the outage
+
+§614 **considered a named `isolation` merge gate and rejected it**, reasoning: *"What was missing was never the
+execution; it was the roster."* The rejection is sound only if the execution was in fact present. It was not —
+so a security-critical gate went unbuilt on a premise nobody checked, and the roster that replaced it protects
+the one failure mode (deletion) that was never the risk.
+
+This is §950's finding — *a rejection is a claim with a lifetime* — landing on the highest-stakes rule in the
+repo, and it is worse than the §940 case: §940's rejection was **overtaken** by later evidence, while this one
+was **contradicted by evidence already in the same file**. [[compare-artifacts-dont-reason-about-them]]: the
+comment and the baseline it quoted were never read against each other.
+
+### Status
+
+Closed by §940/§949, not by this phase — all six files now execute under `--workspace-concurrency=1 --no-bail`
+(re-verified §953). §614's comment is corrected in place, and its rejection is re-stated with the premise it
+actually requires, so that a future reader re-opens the named-gate question if the premise fails again.

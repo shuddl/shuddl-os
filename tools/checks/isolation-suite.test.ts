@@ -8,8 +8,17 @@ import { repoRoot } from "./repo-root.js";
 // CLAUDE.md rule 8: "Tenant isolation suite runs on every merge; a cross-tenant read anywhere is a build
 // failure." genesis/14 §07 lists it as a distinct PR gate: "... → traceability → isolation suite".
 //
-// It does run — every file below is collected by its package's vitest config and executes under the
-// `unit-tests` merge gate. What did not exist was any statement of WHAT THE SUITE IS. There is no gate named
+// ~~It does run — every file below is collected by its package's vitest config and executes under the
+// `unit-tests` merge gate.~~ **FALSE WHEN WRITTEN — corrected 2026-08-11 (audit §954).** At the commit that
+// introduced that sentence (`48ef386`, 2026-08-07) `package.json` read
+// `"test": "pnpm run test:tools && pnpm -r --if-present run test"`, and `test:tools` was already failing on
+// the REQ-289 trio — as the baseline quoted BELOW in this very comment shows (`3 failed | 920 passed`). The
+// `&&` short-circuited, so the recursive half did not run: **105 of the 112 isolation cases were NOT
+// executing in the merge gate.** Only the 7 roster cases in this file ran, which catch a DELETED member and
+// not a cross-tenant REGRESSION inside one. Execution was restored at §940/§949 (both halves run
+// unconditionally, `--no-bail`); the claim is true again NOW, and the reason it is true is enforced by
+// `gate-wiring.test.ts`, not by this sentence.
+// What did not exist was any statement of WHAT THE SUITE IS. There is no gate named
 // `isolation` in `gatesFor("merge")`; the suite was a set of files nobody had enumerated, so deleting one
 // removed the proof and nothing said so.
 //
@@ -22,7 +31,10 @@ import { repoRoot } from "./repo-root.js";
 // `check:citations` because some document cites those paths — protection that exists for the cited files and
 // not for the uncited one, which is no protection at all.
 //
-// A NAMED GATE was considered and rejected. Re-running these files under a second runner would duplicate what
+// A NAMED GATE was considered and rejected — **on the premise corrected above, which was false at the time**
+// (§954). The rejection stands only while the recursive half genuinely runs; if `gate-wiring`'s
+// unconditional-run/`--no-bail` assertions are ever relaxed, RE-OPEN the named-gate question rather than
+// inheriting this paragraph. Re-running these files under a second runner would duplicate what
 // `unit-tests` already does across three different vitest pools (api and mcp are vitest-pool-workers,
 // translator is node) — the two-mechanisms trap, where the copy becomes the thing that rots. What was missing
 // was never the execution; it was the roster.
