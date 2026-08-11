@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 533 | §1085 | **§1086** | **THE RE-RUNNABLE-FIGURE SWEEP — 0 OUTSTANDING — AND THE CHARACTER-CLASS BUG A THIRD TIME, IN THE SWEEP ITSELF.** §1085 found 3 of 4 rows carrying stale figures, so: how many rows cite a **re-runnable** `command → number`? (That is the method that worked — §933's roster records that a PROSE discovery sweep produced *8 false positives and zero real ones*.) Answer: **15 rows, 5 of them LIVE, and all 5 re-verified today — zero outstanding.** But my first pass said **7 and 4**: the command matcher used `[a-z0-9:@/ -]+` and `pnpm -F @shuddl/driver test` has a **capital F**, so **8 of 15 were silently missed** — in a sweep whose subject is stale figures. §1064 documented this class, §1077 reproduced it, this is the third. **All three are in AD-HOC probes**; §1078 swept committed gate code and found 8 sites, 0 defects. The class is closed where something checks it. |
 | 532 | §1084 | **§1085** | **STOPPING POINT VII — ALL 17 REPO-OWNED OPEN ROWS VERIFIED AT HEAD, AND FOUR CARRIED STALE FIGURES.** The last four unexamined rows closed: **L425** — its binding trigger has NOT fired (`ANTHROPIC_API_KEY`/`ANTHROPIC_MODEL` in NO wrangler config), so `LATENT` is correct there and was wrong at L424, verified separately rather than re-graded together. **L432** claimed *10 files / 54 tests*; HEAD is **15 / 101**. **L420** claimed *8 status-drift rows*; HEAD is **10** — REQ-045 CLEARED, three are NEW. **L423** claimed *945 citations / 24 anchored*; HEAD is **1,613 / 280** — anchoring grew **11.7×** against a 1.7× corpus, so protection went 2.5% → 17%. Every figure struck, not overwritten. Board unchanged: 19 PASS · 2 FAIL · 5 BLOCKED, both FAILs the owner's one register row. |
 | 531 | §1083 | **§1084** | **THE CROSS-FIELD SWEEP — 55 ROWS, 0 REAL CONTRADICTIONS, AND A GATE DELIBERATELY NOT BUILT.** §1083 found a row whose severity said *LATENT* while its status said the trigger FIRED, and observed that **no gate reads two fields against each other**. Swept all 55 eight-field rows for two shapes (latent-vs-fired, terminal-status-vs-blocks-a-grade). Raw: **2 hits, both FALSE** — L418's `blocks` reads `~~**R0**~~ none`, with R0 STRUCK. Stripping strikethrough: **1 hit, also FALSE** — §1083's own severity cell explaining the fix by QUOTING the word it removed. **Zero real contradictions.** A gate here has a two-layer irreducible FP floor (preserved history + explanatory quoting), which is §1077's finding reproduced exactly; not built, per §1053. |
 | 530 | §1082 | **§1083** | **A ROW THAT CONTRADICTED ITSELF — SEVERITY SAID *LATENT*, STATUS SAID THE TRIGGER FIRED.** L424 (the Biller's permanently-failed EVIDENCE EMAIL): re-verified at HEAD and the row's own argument is exact. **Concierge (REQ-176)** appends a durable note EVENT through the DO append surface; **Biller** does `console.error(…)` and returns `issued_send_pending`, its comment stating it raises **NO anomaly and writes nothing** — one queryable record, one log line. And it IS reachable: `EVIDENCE_FROM` is set under `[env.staging.vars]` (*"staging evidence sending is ON … evidenceSender() returns ResendSender"*), while prod keeps it **DELIBERATELY ABSENT**. So the `— LATENT` qualifier was falsified by the row's own Status, which records the trigger as FIRED. Struck. Blocks R2, and the surfacing still needs a REQ row. |
@@ -64569,4 +64570,76 @@ for proposed scope, two CLAUDE.md scope decisions, and the private fixtures.
 **STOP.** All 17 repo-owned open rows verified against HEAD; four closed in this phase, three of them carrying
 stale evidence now struck and re-measured. Board unchanged at 19/2/5 with zero repo-owned failures.
 `pnpm delta` clean · `check:tables` OK · `check:citations` 0.
+
+## §1086 — PHASE GATE: the re-runnable-figure sweep, and a bug that only recurs where nothing checks
+
+**Why this phase.** §1085 closed four rows and found **three** carrying figures that had drifted — a hit rate
+high enough to ask whether the rest of the ledger is the same. The question needs the right method, and the
+record already measured the wrong one: `checklist-figures.test.ts` states that a **prose** discovery sweep
+(*"find every numeric claim in the checklist"*) produced **eight false positives and zero real ones**.
+
+What worked at §1085 was different: I **re-ran the cited command**. So the tractable population is not "rows
+with numbers" but **rows citing a re-runnable `command → number`** — a figure that can be *checked* rather than
+merely *read*.
+
+### The answer: zero outstanding
+
+| | |
+|---|---|
+| rows citing `pnpm … → <number>` | **15** |
+| of those, in **live OPEN** rows | **5** |
+| re-verified today | **5** — L358, L413, L420, L423, L432 |
+| **outstanding** | **0** |
+
+The other ten sit in closed or struck rows, where the figure is a historical record and re-measuring it would
+falsify the history — the same live-vs-historical distinction §1073 used for citations.
+
+So the class §1085 opened is **closed**: every re-runnable figure in a live row has been run in this session.
+
+### The sweep reproduced the bug it was hunting
+
+My first pass reported **7 rows, 4 live** — and I nearly wrote "the class is exhausted" on it. The command
+matcher was:
+
+```
+`(pnpm [a-z0-9:@/ -]+)`
+```
+
+`pnpm -F @shuddl/driver test` carries a **capital F**. Eight of fifteen rows were silently outside the count,
+including **L432 — the very row §1085 had just caught with a stale figure.**
+
+Corrected to `` `(pnpm [^`]+)` `` — everything up to the closing backtick, which is what the *generator*
+permits rather than what today's commands happen to contain.
+
+**Third occurrence this session.** §1064 documented it (a tally regex dropping `a11y`/`e2e` for containing
+digits), §1077 reproduced it (a deriver missing `probe9`), and this is the third — in a sweep **about stale
+figures**, missing the row that motivated the sweep.
+
+### Where the class is closed, and where it is not
+
+This is the part worth keeping, because it explains the pattern rather than lamenting it:
+
+| context | status |
+|---|---|
+| **committed gate code** | §1078 swept all 8 narrow classes in `tools/` — **0 live defects**, three tested against their generators |
+| **ad-hoc probes** | **all three recurrences** — written once, run once, discarded |
+
+The bug does not recur in code that anything checks. It recurs exclusively in throwaway shell and Python that
+is never reviewed, never linted, and never run twice. §1078's conclusion — *"a bug you have written twice is a
+property of your tools"* — was right about the mechanism and wrong about the population: the tools are fine;
+the **probes** have no tooling at all.
+
+### The durable form, since vigilance has now failed three times
+
+> **Prefer a negated-delimiter class to an enumerated one.** `` [^`]+ ``, `[^"]+`, `[^|]+` encode *"everything
+> the generator can put here, up to the terminator"*. An enumerated class encodes *"the characters I saw in the
+> examples in front of me"*, which is a sample, and a sample of identifiers never contains the capital letter,
+> the digit or the underscore that arrives next week.
+
+That is a habit with a mechanical shape rather than a warning: when writing a matcher for a delimited field,
+the delimiter is known and the contents are not, so match on the thing you know.
+
+**STOP.** Every re-runnable figure in a live checklist row is verified at HEAD — 5 of 5, zero outstanding — and
+the sweep's own instrument is corrected, with the third recurrence localised to ad-hoc probes rather than
+gate code. `pnpm delta` clean · `check:tables` OK · `check:citations` 0.
 
