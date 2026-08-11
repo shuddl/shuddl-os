@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 521 | §1073 | **§1074** | **§275's REACHABILITY CLAIM RE-VERIFIED — 0 BEHAVIOURAL MODULES UNREACHED — AND MY PROBE GAVE THREE DIFFERENT ANSWERS BEFORE IT WAS RIGHT.** L412 (*no line/branch coverage anywhere*) is correctly owner-held: **no coverage provider is installed**, so measuring it means ADDING A DEPENDENCY, which is the "new tooling scope" the row reserves. But the row cites a reachability measurement, and that is inheritable — so it was re-run at HEAD. **212 source modules, 209 reached, 3 unreached**, and all three are explained: `ledger/index.ts` (1 re-export, 0 logic) and `map/index.ts` (8 re-exports, 0 logic) are barrels that tests BYPASS via the `"./*"` exports map, and `map/demo.ts` is the deterministic fleet generator exercised by the perf harness and the 5 blessed screenshots — playwright `.spec.ts` files my seed list excluded. **Zero behavioural modules unreached.** The probe read 9, then 3, then 0-of-consequence as its resolver and seeds were corrected; each intermediate number was a plausible finding. |
 | 520 | §1072 | **§1073** | **THE LIVE-ROW CITATION SURFACE, CLOSED — AND 1 OF 3 WAS ROTTED.** §1072 re-keyed one drifted citation and measured 129 bare ones. Scoping to what still makes a CLAIM — bare citations inside **live OPEN rows** — the surface is **3, not 129**; the other 37 in-table ones sit in closed/struck rows where a line number is historical record. Checked all three by opening what they point at: **`ci.yml:49` was ROTTED** — the row says *"CI binds it at"* that line, but `IDENTITY_DENYLIST` is bound at **`:61`** and `:49` is an unrelated `if: ${{ !cancelled() }}`. Two re-keyed to snippets. The third is left line-keyed **deliberately**: it points into a MIGRATION, and §1052 proved an edit to a committed migration REDs `check:invariants` — the one file class whose line numbers are frozen by construction. |
 | 519 | §1071 | **§1072** | **A MED SECURITY ROW RE-VERIFIED, AND A CITATION THAT ROTTED IN A 2-COMMIT FILE.** L428 (the `/pub/signup` email-enumeration oracle, blocks R4) re-verified in four parts: the `EMAIL_TAKEN` → 409 mapping is still there; the route is behind `PROVISIONING_ENABLED`; the check is `=== "true"` (EXACT, so no truthy value opens it); and the flag is **absent from `wrangler.toml` entirely**. Darkness pinned across **5 test files**. The oracle is unreachable; the response shape stays a founder UX call. **The defect found was the row's own citation** — it cited `signup.ts:94`, the case is at `:93`. Re-keyed to the SNIPPET. Then measured the class: **59 anchored vs 129 bare** citations, and the ratchet that governs bare ones covers 11 hand-curated high-churn files. `signup.ts` has **2 commits — tied for the LOWEST** of the eleven. Churn predicts where rot is LIKELY, never where it is POSSIBLE: one edit above a line is enough. |
 | 518 | §1070 | **§1071** | **§1070's PROPERTY IS ENFORCED BY CONSTRUCTION, NOT BY LUCK — AND NO NEW GATE WAS NEEDED.** §1070 called `verify:dev`'s disclosure *"prose in a shell string with no gate behind it"* and measured its correspondence empirically. Wrong about the mechanism: `evidence.ts:70-71` REFUSES `PASS && !executed` (*"a PASS that never ran is fabricated"*) and `PASS && assertions<=0` (*"the skip masquerading as green"*), and that runs on the LIVE merge path — `run-gate.ts:200` → `evaluateEvidence` → `gateResultProblem` per gate. So a locally-skipping gate **cannot** emit PASS at merge; the correspondence holds by construction. I nearly filed the opposite: a grep scoped to `tools/release/*.ts` returned no callers and I was one step from *"the validator is only wired in tests"* — **fifth probe-shape error this session.** No gate built (§1053's redundancy rule). |
@@ -63788,4 +63789,68 @@ self-verifying (a snippet) rather than to add another gate that can only re-chec
 **STOP.** Every bare citation in a live open row is resolved: two re-keyed to snippets after one was found
 rotted, one left line-keyed with its immutability argument recorded. The 37 historical citations are correctly
 untouched. `test:tools` 1,245 passed / 3 failed — the REQ-289 baseline · lint clean · citations 0 · tables OK.
+
+## §1074 — PHASE GATE: a claim re-verified, and a probe that was wrong twice on the way to right
+
+**Why this phase.** L412 says *"No line/branch coverage is measured anywhere"* and its status says it needs a
+**judgement, not a fix**. §1055's test applies cleanly: measuring coverage here requires **installing a
+provider** — none is present — and adding a dependency to answer a question is new tooling scope, which the row
+correctly reserves to the owner. So the row stands.
+
+But the row also *cites* a prior measurement — *"reachability measured three ways (39 → 14 → 0 as the
+definition tightened)"* — and an inherited measurement is a claim I would be making (§1044). That half is mine.
+
+### Re-verified at HEAD
+
+Transitive reachability from every test file, following both relative and package-name specifiers:
+
+| | |
+|---|---|
+| source modules | **212** |
+| transitively reached | **209** |
+| unreached | **3** |
+
+And all three are accounted for:
+
+| module | why |
+|---|---|
+| `packages/ledger/src/index.ts` | **1 re-export, 0 logic decls** — a barrel |
+| `packages/map/src/index.ts` | **8 re-exports, 0 logic decls** — a barrel |
+| `packages/map/src/demo.ts` | the deterministic synthetic fleet generator, exercised by `perf/fleet-1k.ts` and the 5 blessed screenshots — **playwright `.spec.ts` files, which my seed list excluded** |
+
+The barrels are unimported for a structural reason worth recording: tests use **deep specifiers**
+(`@shuddl/ledger/canonical`), which the package's `"./*": "./src/*.ts"` exports map resolves **directly**,
+bypassing `index.ts` entirely. A barrel that nothing imports is not dead code here — it is the *external*
+entry point, unused by design because the internal consumers have a shorter path.
+
+**Zero behavioural modules unreached.** §275's claim holds.
+
+### The probe was wrong twice, and each wrong answer looked like a finding
+
+| revision | answer | what was wrong |
+|---|---|---|
+| 1 | **9 unreached** | resolver handled only **relative** specifiers — six barrels reached via `@shuddl/…` looked dead |
+| 2 | **3 unreached** | seeds were vitest `.test.ts` only — the perf and visual `.spec.ts` suites were not counted as tests |
+| 3 | **0 of consequence** | — |
+
+Nine unreached modules including `packages/ledger/src/index.ts` would have been a serious-sounding finding, and
+I could have written it after revision 1 with a straight face. What stopped it was the same thing that has
+stopped five earlier probe errors this session: **a number that disagreed with something already known** —
+here, that a repo with 1,248 passing tests does not leave its ledger barrel untested.
+
+### What this phase says
+
+> **A probe's answer is a function of its resolver, and the resolver encodes what you remembered to model.**
+> Mine forgot package-name imports, then forgot that playwright specs are tests. Neither omission was
+> detectable from the output — both produced clean integers with plausible file lists. The only signal was
+> incongruity with prior knowledge, which is not a method, which is why the intermediate numbers are recorded
+> here rather than quietly replaced by the final one.
+
+The narrower rule: **when a reachability probe names a barrel, suspect the probe.** Entry points are the files
+most likely to be reached by a mechanism the probe does not model — package exports maps, bundler config,
+framework conventions — and they are also the files whose absence from a coverage list looks most alarming.
+
+**STOP.** L412 stays owner-held with its reason confirmed (no provider installed; measuring it is a dependency
+decision), and the reachability claim it cites is re-verified at HEAD: **212 modules, 3 unreached, all
+structural, 0 behavioural**. `test:tools` 1,245 passed / 3 failed — the REQ-289 baseline · lint clean.
 
