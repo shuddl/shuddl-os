@@ -583,6 +583,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 388 | §940 | **§941** | **THE SAME SHORT-CIRCUIT IN `typecheck`, CLOSED BEFORE IT COULD BITE.** Counted rather than guessed: of **30** gate specs in `gatesFor()`, exactly **two** chain internally — `test` (§940) and `typecheck`. Planted type errors in both halves: under `&&` only the tools error is reported and the recursive half never runs; aggregating, both do. It passes today, so nothing was masked — the point is that **`&&` is safe only while the first half has no persistent red**, which is a property of the repo's ledger of open rows, not of the script. First probe was a FALSE CLEAN (grepped the planted identifier; tsc prints `file(line,col): error TS2322` and never the symbol). gate-wiring now asserts the CLASS over a roster checked against `gatesFor()` |
 | 389 | §941 | **§942** | **NOTHING STOPS A SURFACE DEPLOYING WITHOUT ITS CONTRACT CHECK.** §941's detector matches `pnpm -r --if-present run`; **4** scripts recurse and it matches **2** — the others spell it `pnpm --filter`. Both are outside `gatesFor()` so the rule is correctly scoped, but reading them found the `deploy:surfaces` pipeline enforced by a **comment**. Naive probe looks guarded: deleting `check:surfaces` REDs — as the §289 ORPHAN check, incidentally, because the deploy chain is its sole invoker. The three routes that keep it invoked are **all silent**: run it after the deploy, `&&`→`;`, or drop `-- --built` (checks sources, not the shipped bundles). Each deploys a live production surface past its contract gate. Also states the scope boundary: `&&` is wrong for INDEPENDENT halves, right for a DEPENDENT pipeline — this one is fail-closed and must stay |
 | 390 | §942 | **§943** | **THE "PRINTS ITS REFUSAL, EXITS 0" CLASS, ENUMERATED AND CLOSED — AND MY OWN MECHANISM CORRECTED.** §938/§939 said *"sentinel and exit code disagree, CI believes the exit code."* Wrong: `reconcileSentinel` already reconciles them **pessimistically** (a sentinel may degrade an exit-0 run, never upgrade a failing one). Measured why both survived it — **neither gate emitted a sentinel at all** (0 and 0). The true rule is sharper: *it protects gates that SPEAK, not a gate that goes QUIET*, and suppression is conditional on the same `local` mode where the exit code is wrong. Class enumerated two-sided: **10 mode-aware entrypoints / 14 script bindings, every one has a mode source, zero default to local.** Clean negative with a REAL positive control — reverting §938's one-line fix makes the probe print NONE |
+| 391 | §943 | **§944** | **A CONFIG SAYS STAGING CANNOT SEND EMAIL, ELEVEN LINES ABOVE WHERE IT TURNS IT ON.** Turned to the documented debt: the checklist's **13 open repo-owned rows** are open because they are correctly gated (*needs a REQ row first* / *owner tooling call*) — building them would be straying. What IS mine is their reopen triggers. **L417's has FIRED**: `workers/agents/wrangler.toml` declares `EVIDENCE_FROM` *DELIBERATELY ABSENT — NO evidence email is ever sent*, then sets it 11 lines later under `[env.staging.vars]` with *sending is ON*. The row still reads *"Dormant while no provider is bound."* **The identical contradiction was fixed in `DEPLOYMENT.md` on 2026-08-01 — the doc was swept, the config it describes was not.** Swept all 8 absence claims across both configs: 1 false, 7 true-positive controls |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -55580,3 +55581,84 @@ arrival instead of silently reporting PASS on the release path. Division of labo
 this gate is the **discovery** half (every mode-aware entrypoint is accounted for);
 `playwright-mode-parity.test.ts` (§938) owns the **exclusivity** rule (never both, never neither) for the
 playwright family.
+
+## §944 — PHASE GATE: a config file says staging cannot send email, eleven lines above where it turns it on
+
+Turning from the assurance system to the documented debt itself. The checklist's repo-owned section carries
+**13 open rows**, and reading them is the first finding: they are open *because they are correctly gated* —
+L419 (SLA cadence) and L420 (lost-booking backstop) both say **"needs a REQ row first"** with owner *backend /
+register owner*, and L405 (coverage instrumentation) says **"NOT a defect… owner (tooling call)"**. CLAUDE.md
+is unambiguous — scope discovery means the owner adds a register row — so those stay recorded, not built.
+`genesis/09` also carries the owner's uncommitted edit right now. **Building them would be the straying the
+working agreement prohibits, not diligence.**
+
+What *is* mine is every row's **reopen trigger**, which §926 established is decidable in the phase that reads
+it. Four name a concrete mechanism. Three are fine: L392's CONFIRM-GATED count is correctly struck
+`~~14~~ 15` and pinned by §933's gate; L405's *"a claim of full coverage"* is dominated by **register**-coverage
+hits, the sense that row explicitly excludes; L418's `ANTHROPIC_API_KEY` is bound nowhere.
+
+**L417's has fired, and nobody noticed.**
+
+### The contradiction, inside one file, eleven lines apart
+
+`workers/agents/wrangler.toml`, the comment introducing the staging environment:
+
+```toml
+# ── STAGING … RESEND_API_KEY / EVIDENCE_FROM / ALLOW_TEST_SEND are
+#    DELIBERATELY ABSENT here — the Biller uses NotConfiguredSender, so NO evidence email is ever sent
+#    from this deployment (real send stays gated) and the /_dev probe stays inert.
+[env.staging]
+…
+[env.staging.vars]
+# GO-LIVE (2026-07-14): staging evidence sending is ON. With RESEND_API_KEY (secret, scoped to
+# send.shuddl.tech) + this EVIDENCE_FROM both present, evidenceSender() returns ResendSender.
+EVIDENCE_FROM = "SHUDDL <pod@send.shuddl.tech>"
+```
+
+`index.ts:237@evidenceSender` returns a `ResendSender` when both are non-empty. **The header is false**, and it
+is false about whether a deployed environment sends real email to whatever address a shipment's party carries.
+An operator who reads the section header and believes staging is inert is exactly the person who would seed a
+real recipient into it.
+
+**This exact defect was already found and fixed — in the other artifact.** `DEPLOYMENT.md:3` carries
+*"evidence sending ~~OFF~~ LIVE (corrected 2026-08-01 — **this header contradicted its own Sending section
+below**)."* Same shape, same subject, same day's audit. The **document** describing the config was corrected;
+the **config** was not. [[n-instances-usually-share-one-idiom]] — the sweep stopped at the artifact where the
+defect was noticed.
+
+### Consequence for L417
+
+L417 is *"a permanently-failed EVIDENCE EMAIL surfaces nowhere"*, status **"Dormant while no provider is
+bound"**, blocking **R2 (staging — it goes live with the provider)**, trigger *"when `RESEND_API_KEY` +
+`EVIDENCE_FROM` bind."* They are bound. **The row is dormant in its own description and live in fact** — the
+unsurfaced-failure branch is reachable in a deployed environment today, which is precisely the state the row
+said would end its dormancy.
+
+### Swept, not spot-fixed
+
+Eight claim-instances across two configs, each checked against its own env block:
+
+| config | env | claim | actual |
+|---|---|---|---|
+| agents | staging | `EVIDENCE_FROM` absent | **PRESENT — false** |
+| agents | staging | `RESEND_API_KEY`, `ALLOW_TEST_SEND` absent | absent ✓ |
+| agents | prod | `EVIDENCE_FROM` absent | absent ✓ |
+| translator | staging + prod | `EDI_TRANSPORT_URL` / `_TOKEN` absent | absent ✓ |
+
+**One of eight.** The other seven are the true-positive controls that make the negative worth something.
+
+### The gate needed three iterations, and the fixed point earned its keep twice
+
+Written honestly because the failures are instructive, not incidental:
+
+1. **Strikes stripped too late.** The corrected header still *names* `EVIDENCE_FROM` while explaining that it IS set; the parser read that mention as a fresh claim. **The unmutated fixed point went red** — the only reason it was caught, since every mutation was red too and would have read as success.
+2. **Run-scoped instead of sentence-scoped.** A live claim about `ALLOW_TEST_SEND` dragged in every ALL-CAPS name in the same comment block, including the one being un-claimed. Fixed point red again.
+3. **Wildcards missed — found by mutation, not by reading.** The translator writes `EDI_TRANSPORT_* are DELIBERATELY ABSENT`. The extractor captured `EDI_TRANSPORT` and matched exactly, so planting `EDI_TRANSPORT_URL` under the env that claim governs stayed **GREEN**. A claim written as a prefix must be checked as a prefix — [[a-prefix-is-not-an-identifier]] inverted, and the third time this session that prefix-vs-identifier has cost something.
+
+Final: 4/4 mutations RED against a green fixed point — the real defect, the wildcard env, the exact-name env, and the non-vacuity floor (renaming the convention).
+
+`wrangler-absence-claims.test.ts` derives the claim from the comment (ALL-CAPS identifiers in a
+`DELIBERATELY ABSENT` block) and checks the env block it introduces — §830's shape again, read one side and
+compute the other. Scope stated: it verifies the **toml does not set** the var. A secret set out-of-band by
+`wrangler secret put` is invisible to any repo-side check, which is exactly why the prose conclusion
+(*"so NO evidence email is ever sent"*) was able to drift from the mechanism.

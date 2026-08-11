@@ -103,9 +103,19 @@ tag = "v1-spark-meter"
 new_sqlite_classes = ["SparkMeter"]
 
 # ── STAGING (synthetic only, REQ-154). Real resources created 2026-07-14; the default above keeps its
-#    local-* ids for tests + `wrangler dev`. RESEND_API_KEY / EVIDENCE_FROM / ALLOW_TEST_SEND are
-#    DELIBERATELY ABSENT here — the Biller uses NotConfiguredSender, so NO evidence email is ever sent
-#    from this deployment (real send stays gated) and the /_dev probe stays inert.
+#    local-* ids for tests + `wrangler dev`.
+#
+#    CORRECTED 2026-08-11 (audit §944). This header read: ~~"RESEND_API_KEY / EVIDENCE_FROM /
+#    ALLOW_TEST_SEND are DELIBERATELY ABSENT here — the Biller uses NotConfiguredSender, so NO evidence
+#    email is ever sent from this deployment (real send stays gated)"~~ — FALSE since the 2026-07-14
+#    go-live. `EVIDENCE_FROM` is set eleven lines below under [env.staging.vars], `RESEND_API_KEY` is a
+#    scoped secret, and `index.ts:237@evidenceSender` returns a ResendSender when BOTH are non-empty.
+#    **Staging sends real evidence email.** Recipients are whatever address a shipment's party carries, so
+#    a synthetic tenant with a real contact address reaches a real inbox.
+#    The identical contradiction was corrected in DEPLOYMENT.md on 2026-08-01 ("this header contradicted
+#    its own Sending section below") and never swept to the config that document describes.
+#    ALLOW_TEST_SEND remains DELIBERATELY ABSENT, so the /_dev probe stays inert (still true, unstruck —
+#    and in the canonical wording so the §944 gate verifies it rather than taking it on trust).
 [env.staging]
 name = "shuddl-agents-staging"
 workers_dev = false
