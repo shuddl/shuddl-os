@@ -127,6 +127,11 @@ describe("§995: an evidence-expiry trigger is evaluated, not merely written", (
     ).toBeGreaterThanOrEqual(5);
   });
 
+  // §1053 — EXPLICIT TIMEOUT, ADDED ON A TREND RATHER THAN A THRESHOLD. Measured 2218ms = 44% of the
+  // 5000ms default, BELOW the >=50% line the other three crossed. It gets one anyway because its cost is
+  // one `git log` PER TERMINAL ROW, and the ledger only grows — so unlike a fixed-corpus scan this one
+  // walks toward the boundary by design. §1052's flake was a 5080ms assertion against this same default;
+  // the difference between 44% and 102% is a few dozen more rows, which is the point of the record.
   it("every terminal row is at least as new as the files its own trigger names", () => {
     const stale = withPaths.flatMap((r) =>
       r.paths
@@ -147,7 +152,7 @@ describe("§995: an evidence-expiry trigger is evaluated, not merely written", (
         "to its Evidence-expires cell. The newest date in the row is what clears this, so the human record " +
         "and the machine clearance are the same edit.",
     ).toEqual([]);
-  });
+  }, 30_000);
 
   it("a row that names a file carries a date at all (the clearance mechanism must be reachable)", () => {
     // If a dated row loses its dates, `newestDate` is null and the assertion above fires on every path it

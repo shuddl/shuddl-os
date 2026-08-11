@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 500 | §1052 | **§1053** | **THE PREVENTION SWEEP — AND A STATIC PROXY THAT OVER-FIRES 40:1.** §1052's root cause was an assertion sitting ON vitest's 5000ms default, so the obvious follow-up is: which OTHER tests are near it? Measured every one of 1,234 tools tests by duration. **Four at ≥50% of the default; only ONE (`cwd-parity`, 11.5s) already declared a timeout** — the convention existed and had been applied once. The other three got explicit 30s timeouts with their measurements stamped, plus a fourth added on a TREND rather than a threshold (`evidence-expiry`, 44%, but its cost is one `git log` per ledger row and the ledger only grows). **The negative is the more useful half:** the tempting static gate — *a test that spawns a subprocess must declare a timeout* — was measured at **121 spawning tests vs 3 actually near the boundary, a 40:1 over-fire**. Spawning is not slowness, and the right instrument is duration, not a proxy for it. Recipe recorded instead of a noisy gate. |
 | 499 | §1051 | **§1052** | **THE FLAKE, DIAGNOSED AND CLOSED — AND A GIT-FAILURE SWEEP.** L431 was filed at §998 as an undiagnosed intermittent and observed FOUR times without ever being captured. §1051 sharpened the trigger to *the first full run after `git add` of a new test file*; §1052 **created that condition deliberately** and reproduced it first try. The capture: `Error: Test timed out in 5000ms` — the §702 GUARDED_FNS assertion measured at **5080 ms against vitest's 5000 ms default**. Not a race: it sits ON the boundary (~3.5 s in isolation) and any added load crosses it. `scanCorpus`'s 11 git spawns are 69 ms of that (2%), so §1045 is NOT the cause. Fixed with an explicit 30 s timeout on that assertion — not a raised global default, which would trade a real hang-detector for a flake fix. **Re-verified by re-running the same trigger: 0 timeouts.** Then swept all 14 git call sites in `tools/` for silent failure: 12 fail-closed, 2 collapsed "legitimately absent" with "the measurement failed" — including `committedLock`, whose `{}` makes an EDITED migration pass silently (CLAUDE.md rule 2). No reachable trigger found, so hardened as defence-in-depth, not filed as a defect. |
 | 498 | §1050 | **§1051** | **THE EXEMPTION SWEEP — SCOPE ÷ SUBJECT, ACROSS ALL SIX MECHANISMS.** §1050's rule run repo-wide, asking a DIFFERENT question than the earlier allowlist audit: that one checked for STALE entries (matching nothing); this asks whether an entry that legitimately matches something also matches far MORE. Four mechanisms clean (5 `eslint-disable` all `-next-line` with reasons · 0 real test skips · 4 of 6 global ignores cover ZERO lintable files · site ignores are untracked trees). **One 92× finding:** `no-misused-promises` was off for `**/*.test.ts` + `**/*.test.tsx` — 369 files — while a verified-mutation lint measured its subject as **9 violations, all in `.test.tsx`, 4 files, ZERO in `.test.ts`**. The rule catching detached assertions was off in all 338 ledger/worker/rater suites. Narrowed to `.test.tsx`. **Second find:** 4 tracked skill reference `.ts` files — code written to be COPIED — had never been linted, hidden TWICE (`.claude/**` ignored, AND eslint does not traverse dot-directories, so un-ignoring lints 0 files). 2 real errors; fixed with `void` to keep the signature real; new gate with explicit paths. |
 | 497 | §1049 | **§1050** | **THE CLOSURE SWEEP — AND AN EXEMPTION WHOSE SCOPE OUTRAN ITS SUBJECT.** §1049's search run over all 21 scope/rule pairs. Most mechanical 'gaps' are NOT defects: the closure question bites for CAPABILITY bans (LLM, network, timers — the capability flows through the import) and not for PROVENANCE bans (REQ-163 lumina — the violation is local, and §988 owns it). The real find was the ledger's `fetch` exemption: scoped `src/tsa/**/*.ts` while its subject is ONE declaration (`fetchImpl: typeof fetch = fetch`, client.ts:76). The config PROMISED *"a second one cannot appear without editing this file"* — a planted `tsa/__p.ts` with a raw fetch linted GREEN, falsifying it. Narrowed to `client.ts`; RED on the plant, clean on the real client, cms/der never needed it. **Also: `\b` is NOT a word boundary in `git grep -E` here** — `\bfetch`→0 where `fetch`→1 — so every `\b` probe this session returned a FALSE ZERO, and one nearly made me delete a live exemption. §1048's verdict survives (it rested on capture-API searches, and the gate uses JS RegExp where `\b` works). |
@@ -62278,4 +62279,67 @@ a gate I wrote myself six phases ago.
 **STOP.** L431 is DIAGNOSED and CLOSED — root cause captured, fix proved against the reproducing condition.
 All 14 git call sites swept; 12 already sound, 2 hardened with all four states verified. `test:tools`
 1,231 passed / 3 failed — the REQ-289 baseline · lint clean.
+
+## §1053 — PHASE GATE: the prevention sweep, and the gate I did not build
+
+**Why this phase.** §1052 diagnosed a flake whose root cause was neither a race nor a logic error: an assertion
+measured at **5080 ms against vitest's 5000 ms default**. That is a property any test can have, so the sweep
+writes itself — *which other tests are already near the line?*
+
+### Measured: every one of 1,234 tools tests, by duration
+
+| test | ms | % of 5000 ms default | declared timeout (before) |
+|---|---|---|---|
+| `cwd-parity` — same verdict from a subdirectory | 11,530 | **231%** | `120_000` ✓ |
+| `tenant-scope` §702 GUARDED_FNS | 4,642 | 93% | `30_000` (added §1052) |
+| `spec-collection` — every spec would RUN | 3,059 | 61% | **none** |
+| `lint-guards` — flags an LLM SDK import | 2,375 | 48% | **none** |
+| `evidence-expiry` — rows newer than their triggers | 2,218 | 44% | **none** |
+
+The `cwd-parity` row is the useful one: at 231% of the default it **must** already carry a timeout, and it does
+— `}, 120_000)`. So the convention existed, was correct, and had been applied exactly once, to the single test
+that could not possibly pass without it. Every test that merely *approaches* the bound was left to chance.
+
+Three got explicit 30 s timeouts with their measured durations stamped in place. The fourth,
+`evidence-expiry`, is **below** the ≥50% line and got one anyway — on a trend rather than a threshold. Its cost
+is one `git log` **per terminal row**, and the ledger only grows, so unlike a fixed-corpus scan it walks toward
+the boundary by construction. The distance between 44% and 102% is a few dozen more rows.
+
+### The negative is the more useful half
+
+The tempting durable gate is static: *a test that spawns a subprocess must declare an explicit timeout.* It is
+decidable, needs no baseline, and every slow test above does spawn one. Measured before building it:
+
+```
+it() blocks: 1035   spawn a subprocess: 121   of those with an explicit timeout: 0
+```
+
+**121 flagged against 3 that are actually near the boundary — a 40:1 over-fire.** Most spawning tests spawn
+once and return in milliseconds; the property that predicts a timeout flake is *duration*, and subprocess
+presence is only weakly correlated with it. Shipping that gate would have added 118 false demands to the repo
+and taught the next reader that timeouts are boilerplate rather than a measurement.
+
+> **Do not gate a proxy when the real quantity is measurable.** This is §1051's rule arriving from the other
+> side: there I detected the violation instead of the claim; here the violation *is* measurable, and the
+> convenient static stand-in is wrong 97.5% of the time. A gate's value is its precision, and a 40:1 over-fire
+> is not a strict gate — it is a gate that will be disabled.
+
+What replaces it is the **one-command recipe**, recorded so the sweep is repeatable rather than remembered:
+
+```
+pnpm exec vitest run --config vitest.tools.config.ts --reporter=json --outputFile=/tmp/dur.json
+# then rank assertionResults[].duration against the config's testTimeout
+```
+
+### Scope, stated
+
+This swept the **tools** suite (1,234 tests), which is where §1052's flake lived and which shares one
+`testTimeout`. The workspace packages run under their own configs and pools (`vitest-pool-workers` for the
+api/mcp suites, node for driver, jsdom for map), so their boundaries are separate questions with separate
+defaults — not swept here, and named rather than left implied.
+
+**STOP.** Every tools test at ≥50% of the default now declares an explicit timeout, each with its measurement
+stamped, plus one added on a growth argument. The static gate was measured and **rejected on its false-positive
+rate before being written**, which is the cheaper order. `test:tools` 1,231 passed / 3 failed — the REQ-289
+baseline · lint clean.
 

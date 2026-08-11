@@ -124,6 +124,12 @@ describe("REQ-158/285/288 §727: every browser spec is claimed by a playwright p
     ).toBe(true);
   });
 
+  // §1053 — EXPLICIT TIMEOUT. Measured 3064ms, which is 61% of vitest's 5000ms
+  // default — §1052's flake was an assertion at 5080ms against that same default, and the only thing
+  // separating this test from that one is load. It scans every spec file against every playwright/vitest config, so the cost is
+  // inherent. 30s follows the convention already set at cwd-parity.test.ts (120_000 for an 11.5s test):
+  // a test whose runtime is a known multiple of seconds should say so where it is written, rather than
+  // relying on a global bound chosen for the other 1,231 tests.
   it("every spec file would actually RUN under some config", () => {
     const collected = new Set<string>();
     for (const c of cfgs) for (const b of collectedBasenames(root, c)) collected.add(b);
@@ -136,5 +142,5 @@ describe("REQ-158/285/288 §727: every browser spec is claimed by a playwright p
         "there), or delete the file:\n  " +
         orphans.join("\n  "),
     ).toEqual([]);
-  });
+  }, 30_000);
 });

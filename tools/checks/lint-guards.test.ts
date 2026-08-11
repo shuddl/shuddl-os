@@ -39,13 +39,19 @@ describe("REQ-118 §566: the lint anchors are real files", () => {
 });
 
 describe("REQ-024: no LLM imports inside packages/ledger", () => {
+  // §1053 — EXPLICIT TIMEOUT. Measured 2426ms, which is 49% of vitest's 5000ms
+  // default — §1052's flake was an assertion at 5080ms against that same default, and the only thing
+  // separating this test from that one is load. It spawns a real eslint run over a planted fixture, so the cost is
+  // inherent. 30s follows the convention already set at cwd-parity.test.ts (120_000 for an 11.5s test):
+  // a test whose runtime is a known multiple of seconds should say so where it is written, rather than
+  // relying on a global bound chosen for the other 1,231 tests.
   it("flags an LLM SDK import in the ledger package", async () => {
     const messages = await lintVirtualFile(
       ANCHORS.ledger,
       'import Anthropic from "@anthropic-ai/sdk";\nexport const x = Anthropic;\n',
     );
     expect(messages.some((m) => m.message.includes("REQ-024"))).toBe(true);
-  });
+  }, 30_000);
   it("allows the same import outside the ledger package", async () => {
     const messages = await lintVirtualFile(
       ANCHORS.agents,
