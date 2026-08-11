@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 498 | §1050 | **§1051** | **THE EXEMPTION SWEEP — SCOPE ÷ SUBJECT, ACROSS ALL SIX MECHANISMS.** §1050's rule run repo-wide, asking a DIFFERENT question than the earlier allowlist audit: that one checked for STALE entries (matching nothing); this asks whether an entry that legitimately matches something also matches far MORE. Four mechanisms clean (5 `eslint-disable` all `-next-line` with reasons · 0 real test skips · 4 of 6 global ignores cover ZERO lintable files · site ignores are untracked trees). **One 92× finding:** `no-misused-promises` was off for `**/*.test.ts` + `**/*.test.tsx` — 369 files — while a verified-mutation lint measured its subject as **9 violations, all in `.test.tsx`, 4 files, ZERO in `.test.ts`**. The rule catching detached assertions was off in all 338 ledger/worker/rater suites. Narrowed to `.test.tsx`. **Second find:** 4 tracked skill reference `.ts` files — code written to be COPIED — had never been linted, hidden TWICE (`.claude/**` ignored, AND eslint does not traverse dot-directories, so un-ignoring lints 0 files). 2 real errors; fixed with `void` to keep the signature real; new gate with explicit paths. |
 | 497 | §1049 | **§1050** | **THE CLOSURE SWEEP — AND AN EXEMPTION WHOSE SCOPE OUTRAN ITS SUBJECT.** §1049's search run over all 21 scope/rule pairs. Most mechanical 'gaps' are NOT defects: the closure question bites for CAPABILITY bans (LLM, network, timers — the capability flows through the import) and not for PROVENANCE bans (REQ-163 lumina — the violation is local, and §988 owns it). The real find was the ledger's `fetch` exemption: scoped `src/tsa/**/*.ts` while its subject is ONE declaration (`fetchImpl: typeof fetch = fetch`, client.ts:76). The config PROMISED *"a second one cannot appear without editing this file"* — a planted `tsa/__p.ts` with a raw fetch linted GREEN, falsifying it. Narrowed to `client.ts`; RED on the plant, clean on the real client, cms/der never needed it. **Also: `\b` is NOT a word boundary in `git grep -E` here** — `\bfetch`→0 where `fetch`→1 — so every `\b` probe this session returned a FALSE ZERO, and one nearly made me delete a live exemption. §1048's verdict survives (it rested on capture-API searches, and the gate uses JS RegExp where `\b` works). |
 | 496 | §1048 | **§1049** | **THE SAME SHAPE ONE LAW OVER — REQ-024's BAN IS DIRECT-IMPORT-ONLY, AND THE LEDGER'S ONLY DEPENDENCY WAS OUTSIDE IT.** `no-restricted-imports` matches SPECIFIERS, so it sees no transitive reach. `packages/ledger` declares exactly ONE first-party dependency — `@shuddl/contracts` — which carried no LLM ban. A planted `@anthropic-ai/sdk` import there was GREEN across eslint, check:invariants, rater-purity and lint-guards, giving the ledger LLM reach with no banned specifier under `packages/ledger`. The assumption was already WRITTEN DOWN in `rater-purity.ts` and enforced by nothing. Fixed by widening the block's `files`; **the repo's own §989 gate rejected the first shape of the fix** (widening every rule widened the `fetch` ban too), so the block is now split by RULE NAME. New `req024-closure.test.ts` COMPUTES the closure so a new ledger dependency cannot silently re-open it. Also: §1048's commit turned a gate red that no pre-commit run could see — **`git grep` reads TRACKED files, so the coverage gate's verdict changes at `git add`, not at file creation**; five verdicts recorded. |
 | 495 | §1047 | **§1048** | **THE ONLY CONFIRM-GATED PROHIBITION WITH AN ADJACENT BUILT CAPABILITY — AND NOTHING GUARDING IT.** CLAUDE.md forbids anything whose REQ row is CONFIRM-GATED while the CONFIRM is open, naming three: Direct merchant, voice recording, escrow settle. All three are unbuilt (0 files each). The asymmetry is the finding: merchant and escrow have NO adjacent code, while voice recording's API is already called in shipping code — `getUserMedia({video:{facingMode:"environment"}})` for REQ-063's forced photo. Planting `audio: true` in that one call left the driver suite, typecheck, lint and check:invariants **ALL FOUR GREEN**. `audio` is absent by AUTHORSHIP, not by ENFORCEMENT. New gate `tools/checks/no-audio-capture.test.ts` derives its authority from the register — it enforces only while REQ-096/REQ-137 are CONFIRM-GATED and RETIRES ITSELF when the owner closes the CONFIRM. Mutation-proved RED on the planted word; 4 tests; suite at its 3-failure REQ-289 baseline (1,230 tests). |
@@ -62092,4 +62093,92 @@ result rather than an error.
 **STOP.** The closure sweep is complete over all 21 scope/rule pairs, with capability and provenance bans
 separated rather than counted together; the one live defect it surfaced is fixed and mutation-proved three
 ways. `pnpm lint` clean · `test:tools` at the REQ-289 baseline.
+
+## §1051 — PHASE GATE: the exemption sweep — scope ÷ subject
+
+**Why this phase.** §1050 ended on a rule: *an exemption is a scope, and its scope is almost never its
+subject.* That is a repo-wide question, and it is **not** the one an earlier phase already answered. That audit
+checked twelve allowlists for **staleness** — entries matching nothing. This asks the opposite: an entry can
+legitimately match something *and* match far more than that, and staleness checks are blind to it.
+
+### Six mechanisms, measured
+
+| mechanism | count | scope vs subject |
+|---|---|---|
+| `eslint-disable` comments | 5 | **clean** — all `-next-line` (narrowest possible form), all with a stated reason, all the same idiom |
+| skipped tests | 3 hits | **clean** — all three are inside the gate that BANS skips, describing the pattern. Zero real skips |
+| eslint rule-`off` blocks | 2 | one is §1050's narrowed TSA client; the other is the finding below |
+| global `ignores` | 11 | `genesis`/`fixtures`/`docs`/`seed` cover **0** lintable files (precautionary); `shuddl-site`/`marketing-site` are entirely **untracked** — correct |
+| `:(exclude)` pathspecs | 12 | each names a file or a governance tree with a written reason (§612's work) |
+| `mayBeEmpty` globs | 12 | staleness-shaped, not breadth-shaped — `scanCorpus` already fails on a glob that matches nothing |
+
+Four of six clean. Reporting them is the point: a sweep that only lists hits cannot tell you whether the class
+is healthy, and §968's denominator rule applies to exemptions exactly as it does to defects.
+
+### The 92× finding
+
+`@typescript-eslint/no-misused-promises` was **off** for `["**/*.test.ts", "**/*.test.tsx"]`. §716 had already
+narrowed this once — from §705's wholesale file exclusion down to a single rule — on the principle that an
+exclusion must be proved against what it drops. **The same question was never asked of the file glob.**
+
+The justification is `waitFor(async () => …)`: React Testing Library, which lives in `.test.tsx`. Measured by
+deleting the block and linting the repo:
+
+| extension | violations | files |
+|---|---|---|
+| `.test.tsx` | **9** | 4 |
+| `.test.ts` | **0** | 0 |
+
+**369 files exempted for a subject of 4 — 92×.** And the rule matters most precisely where it was off: it
+catches an async callback passed where a void-returning one is expected, so the awaited work — *and any
+assertion inside it* — detaches from the test. §713's own words, quoted in that very block: *"a test WITH
+assertions that cannot fail is worse than one with none."* Every worker, ledger, rater and tools suite is
+`.test.ts`.
+
+Narrowed to `["**/*.test.tsx"]`. Repo lint stays clean (the 9 remain exempt), and a planted detached assertion
+in a `.test.ts` now **REDs**. Narrowed by EXTENSION rather than to the 4 named files deliberately: the
+extension tracks where the idiom *can* occur, while a file list rots the moment a fifth component test is
+written.
+
+**The measurement nearly went the other way.** My first attempt to delete the block used a heredoc whose
+indentation I had copied from `sed`-prefixed output; the `assert` fired, the removal never happened, and the
+follow-on script cheerfully reported **"NONE — the exemption has no subject at all."** A no-op mutation and a
+working gate produce byte-identical output, and this one would have argued for deleting a live exemption. The
+`assert` is the only reason it did not — which is the third time this session that verifying the mutation
+applied has been worth more than the mutation.
+
+### The second find: reference code that had never been linted
+
+Four tracked TypeScript files ship inside the skills — `reference-predicates.ts`, `travel-matrix.ts`,
+`stripInternalInPlace.ts`, `shared-target-matcher.ts`. Every one exists to be **lifted into `packages/` or
+`workers/`**, and each teaches a constitutional rule. None had ever been linted, hidden by two independent
+mechanisms:
+
+1. `eslint.config.mjs` global-ignores `.claude/**`.
+2. **ESLint does not traverse dot-directories when expanding `.`** — so even removing that ignore lints
+   nothing. Measured: adding `"!.claude/skills/**"` to the ignores linted **0 files, 0 errors**.
+
+The second is why the fix is a gate with explicit paths and `--no-ignore`, not a config edit. A negated ignore
+*looks* like coverage and delivers none — §1041's shape, in the files whose entire purpose is to be copied into
+the ledger.
+
+Running eslint on them directly: **2 errors**, both `no-unused-vars` in a stub whose body is a `throw`. Small,
+and exactly the kind that matters here — the repo's convention is an `_` prefix, stated in `eslint.config.mjs`,
+so the reference taught a signature the repo's own lint rejects. Fixed with `void db; void shipmentId;`, which
+satisfies the rule while **keeping the parameter names**: `_db` would teach a signature the copier has to undo.
+
+### What this phase says
+
+> **A stale-entry audit and a breadth audit are different audits, and passing one says nothing about the
+> other.** Every exemption here was live — each matched something real, so a staleness sweep would have called
+> all twelve healthy. The defect was in the ratio, and nothing in the repo measured a ratio.
+
+The generalisation: **an exemption should be stated at the granularity of its cause.** `waitFor` is a React
+idiom → the exemption belongs on `.tsx`. A `fetch` default on one class → the exemption belongs on that file
+(§1050). Where the stated cause is narrower than the written scope, the difference is unowned permission — and
+it is granted to files that do not exist yet, which is why it never shows up as a stale entry.
+
+**STOP.** All six exemption mechanisms swept with denominators; four clean, two fixed and mutation-proved.
+`no-misused-promises` restored to 338 test files; skill reference code under a gate for the first time.
+`test:tools` 1,231 passed / 3 failed — the REQ-289 baseline · lint clean.
 

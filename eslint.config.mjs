@@ -525,8 +525,28 @@ export default tseslint.config(
   // MEASURED: `work().then((n) => { expect(n).toBe(999); });` in a test — eslint reports NOTHING and the
   // test PASSES, because the assertion lives in a promise nobody awaited. That is §713's own worst case,
   // stated there and unguarded here: "a test WITH assertions that cannot fail is worse than one with none".
+  // §1051 — NARROWED TO `.test.tsx`, BECAUSE THE SUBJECT IS A REACT IDIOM AND THE SCOPE WAS EVERY TEST.
+  //
+  // §716's reasoning is right and stops one step short of its own conclusion. It narrowed §705's wholesale
+  // file exclusion down to a single rule, on the principle that an exclusion must be proved against what it
+  // drops. The same question was never asked of the FILE GLOB: the justification is `waitFor(async () => …)`,
+  // which is React Testing Library, which lives in `.test.tsx`.
+  //
+  // MEASURED at §1051 by deleting this block and linting the repo: **9 violations, all 9 in `.test.tsx`,
+  // across 4 files — ZERO in `.test.ts`.** The scope covered 369 files for a subject of 4 (92×), and the 338
+  // `.test.ts` files lost a rule none of them needed to lose.
+  //
+  // That matters because of what the rule catches HERE: an async callback passed where a void-returning one is
+  // expected, so the awaited work — and any assertion inside it — detaches from the test. §713's own words:
+  // "a test WITH assertions that cannot fail is worse than one with none." Every worker, ledger, rater and
+  // tools suite is `.test.ts`, so the rule was off in exactly the files where the ledger's invariants are
+  // asserted.
+  //
+  // Narrowed by EXTENSION rather than to the 4 named files deliberately: the extension tracks where the idiom
+  // can occur, while a file list is a set of names that rots the moment a fifth component test is written
+  // (§1050's argument, one mechanism over).
   {
-    files: ["**/*.test.ts", "**/*.test.tsx"],
+    files: ["**/*.test.tsx"],
     rules: { "@typescript-eslint/no-misused-promises": "off" },
   },
   // §730 — THE DRIVER'S SERVICE WORKER IS SHIPPED CODE THAT HAD ZERO STATIC ANALYSIS.

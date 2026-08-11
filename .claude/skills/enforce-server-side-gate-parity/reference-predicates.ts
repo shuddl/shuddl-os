@@ -58,5 +58,11 @@ export async function deviceOwnedBy(
 export async function streamPrior(db: D1Database, shipmentId: string): Promise<readonly LedgerEvent[]> {
   // Same read the DO uses at sequencer.ts:398-406 (SELECT * ... ORDER BY seq, rowToEvent). Reuse
   // rowToEvent so the shape matches what the pure gate expects.
+  //
+  // §1051 — `void` marks both parameters deliberately unused while KEEPING THEIR NAMES. The repo convention
+  // is an `_` prefix, but this is reference code written to be copied: `_db`/`_shipmentId` would teach a
+  // signature the copier has to undo. `void` satisfies the same rule and leaves the signature real.
+  void db;
+  void shipmentId;
   throw new Error("bind rowToEvent from @shuddl/ledger/lens — see sequencer.ts:398-406");
 }
