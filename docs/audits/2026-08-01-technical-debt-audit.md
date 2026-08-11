@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 491 | §1043 | **§1044** | **THE LAST THREE BLOCKED HOLDS — THE INHERITED CLAIM, TESTED.** §1000/§1002 exercised two of the five BLOCKED gates; the other three carried a claim from §159 — *three of the four buy real-data EVIDENCE for a mechanism already proved in-repo on synthetic data* — which is the difference between *we cannot run this gate* and *we do not know whether this works*, **and which I had been repeating without testing** (§804: a claim you inherit is a claim you are making). The gates report honestly: all three **PENDING, executed:false, assertions:0**, each naming its absent fixture. And each mechanism is green in-repo: **rater 166 passed** (including `sweep.test.ts`, the 7-zone × 72-weight property sweep CLAUDE.md rule 4 names) · **ledger money 34** (`iif` + `money-projection`, what the penny reconciliation compares) · **agents parse 37** (the parser the parity harness drives). **The inherited claim holds, now measured rather than quoted.** That completes the BLOCKED half: **nothing in that column is an unknown** — every one is a named external input with the machinery behind it demonstrated |
 | 490 | §1042 | **§1043** | **THE FRONT DOOR, STALE AGAIN — BY MY OWN HAND, TWENTY SECTIONS AFTER I FIXED IT.** §1022 repointed the entry index at §999; §1037 then measured that **the figures most likely to be stale are the ones the summariser is actively changing.** Twenty sections later that applies to the navigation: *what blocks release* still pointed at §999 though **§1036** re-measured the board 37 commits on · *what needs an owner-signed REQ row* named five findings when **§994** classifies EVERY open row · *is the record trustworthy* predated **§1032**'s error rate and **§1030/§1031**'s proof coverage · *what does vendoring buy* predated **§1000** · and **§1035** — *is the constitution actually enforced* — **had no row at all.** Four repointed, one added, §162's rule kept (every cell names a section, none restates it, superseded pointers stay visible). **Third layer of one pattern:** §162 fixed a pointer decayed nine times, §1022 found the VALUES §162 left behind had decayed, and this finds the POINTERS §1022 fixed decayed again — in twenty sections, same author, same session. **A navigation index decays at the rate its document grows, and its author is least able to notice, because every section added feels like an addition rather than a change to what the index should say** |
 | 489 | §1041 | **§1042** | **THE CLASS COUNTED — 6 OF 7 DETECT AN AMPUTATED GLOB, AND THE EXCEPTION IS REQ-025's.** §1041 measured one gate; the rule is to count the class. Seven hand-floored gates scan multiple globs — blinding one glob in each, every mutation asserted: `and-chain-or-parens` **RED** · `llm-agent-metering-trigger` **RED** · `sweep-containment-coverage` **RED** · `invariants` **RED** · `syntax-ban-inheritance` **RED** · `source-corpus` is the corpus's own test · **`tenant-scope` GREEN — the exception.** **6 of 7 detect it, and my structural prediction was wrong for all five I reasoned about.** I predicted `and-chain-or-parens` was MOST vulnerable (floor of **2** against 467 files); it is the opposite — the floor is on **hits**, the repo has exactly two AND-joined chains, blinding `packages/**` removes `lens.ts` and the count drops to 1. **This sharpens §572's rule** (*a floor on HITS cannot detect a scan collapse*) into: **a hits floor cannot detect a collapse WHEN IT HAS SLACK; calibrated at the exact count it detects an amputation BETTER than a corpus floor** — every lost file is a lost hit, while a corpus floor must exceed its slack. **The gates with the smallest floors are the safest**, and the one blind gate has the large, well-reasoned corpus floor — because §572's fix for one blindness introduced the other |
 | 488 | §1040 | **§1041** | **A UNION FLOOR TOLERATES LOSING A WHOLE TREE — MEASURED ON REQ-025's GATE.** §1040 found `scanCorpus` throws per-glob and has 4 adopters against 51 hand-floored scanners; the concrete risk is that **a hand-rolled floor floors the UNION**, so a gate over eight globs cannot see one go dark. **First mutation was a NO-OP and I caught it before publishing:** I blinded a glob in `SOURCE_SCAN_GLOBS`, the gate stayed green, and it looked like the finding — but `tenant-scope` imports only `stripComments` and carries **its own** glob list, so the edit could not reach it (§1002's trap; finding retracted before it was written). Re-run against its own globs with the replacement **asserted** and the diff verified: **blinding `workers/*/src/**/*.ts` (48 files) leaves 7 passed.** Why, exactly: corpus **316**, floor **>180**, so **316−48=268** — the union absorbs it, and the floor tolerates losing **136 files, more than any single glob contributes**. **This is calibration, not oversight:** the floor was built for §572's collapse (132 of 215 files, 61%), and the file says *a floor on HITS cannot detect a scan collapse; the corpus floor below is what catches it.* **A union floor detects a collapse and cannot detect an amputation.** Recorded not changed — switching REQ-025's enforcer to `scanCorpus` needs a `mayBeEmpty` decision per glob, which belongs to the law's owner |
@@ -61549,3 +61550,62 @@ constitution enforced* — now answered by §1035.
 **Re-open when:** a new stopping point supersedes §1036 · a phase adds an owner-facing answer, which is the
 event that adds a row and the one nothing prompts · this index is unchanged for another twenty sections, which
 by the rate measured here means it is stale rather than stable.
+
+---
+
+## §1044 — PHASE GATE: the last three BLOCKED holds — the inherited claim, tested
+
+§1000 and §1002 verified two of the five BLOCKED gates by exercising them: the fixtures gate fails closed on
+every degenerate vendoring state, and the identity gate detects, names and redacts a planted term. The other
+three — `rater-parity`, `invoice-parity`, `concierge-parse` — were left with a claim this record has carried
+since §159:
+
+> *"three of the four buy real-data **evidence** for a mechanism already proved in-repo on synthetic data."*
+
+That is a load-bearing sentence: it is the difference between *"we cannot run this gate"* and *"we do not know
+whether this works."* **And I have been repeating it without testing it** — §804's rule, that a claim you
+inherit is a claim you are making.
+
+### The three gates report honestly
+
+```
+check:rater-parity      PENDING  executed:false  assertions:0
+check:invoice-parity    PENDING  executed:false  assertions:0
+check:concierge-parity  PENDING  executed:false  assertions:0
+```
+
+No gate claims to have run. Each names the absent engagement fixture.
+
+### And each mechanism is green on synthetic data in-repo
+
+| blocked gate | in-repo mechanism | result |
+|---|---|---|
+| `rater-parity` | `packages/rater` — including `sweep.test.ts`, the property sweep CLAUDE.md rule 4 names (7 zones × 72 weights) | **166 passed** |
+| `invoice-parity` | `packages/ledger` — `iif.test.ts` + `money-projection.test.ts`, the journal serialisation and money projection the penny reconciliation compares | **34 passed** |
+| `concierge-parse` | `packages/agents/test/parse.test.ts` — the parser the parity harness drives | **37 passed** |
+
+**The inherited claim holds, now measured rather than quoted.** The mechanisms are proved against data this
+repo controls; what the private fixtures buy is evidence against a tenant's *real* tariffs, invoices and
+emails — the cases nobody synthesised because nobody imagined them.
+
+### Which completes the BLOCKED half
+
+All five now have a verdict earned rather than assumed:
+
+| gate | status | verified how |
+|---|---|---|
+| `fixtures` | BLOCKED | §1000 — fails closed on missing file, null hash, mismatch; three defences |
+| `identity-leak` | BLOCKED | §1002 — detects, names the file, redacts the term; non-vacuity floor fires |
+| `rater-parity` · `invoice-parity` · `concierge-parse` | BLOCKED | **here** — honest PENDING, mechanisms green on synthetic data |
+
+**Nothing in the BLOCKED column is an unknown.** Every one is a named external input, with the machinery
+behind it demonstrated.
+
+### Phase gating
+
+**STOP.** The five BLOCKED gates are fully characterised: two exercised end-to-end, three with their
+mechanisms measured green and their gates honestly abstaining.
+
+**Re-open when:** any engagement fixture is vendored — the gate moves from PENDING to a real verdict, and
+§1000's guarantee is what makes that verdict trustworthy · a synthetic suite backing one of these three goes
+red, which would invalidate the claim this section just earned · a sixth gate is added to the BLOCKED set.
