@@ -51,13 +51,20 @@ function cells(line: string): string[] {
   return line.split(/(?<!\\)\|/).slice(1, -1).map((c) => c.trim());
 }
 
+// §1052 — THE `catch → null` IS GONE, BECAUSE null IS THE FAIL-OPEN VALUE HERE.
+//
+// The consumer filters on `x.committed !== null`, so every null is a row that reports FRESH. That made the
+// two conditions indistinguishable: "this path has no commits" (legitimate — an untracked file the trigger
+// names) and "git failed" (an environment fault). The first is already expressed WITHOUT the catch, because
+// `git log` on a pathspec with no commits exits 0 with EMPTY stdout — so the `out === ""` branch owns it and
+// the catch only ever covered genuine failures, which it then reported as "nothing expired".
+//
+// This is the same shape as §1052's `committedLock` fix one file over, and the same shape as the `{}` policy
+// fallback that opened three gate knobs — catching the exception is not the guarantee; the FALLBACK VALUE is.
 function lastCommitDate(root: string, rel: string): string | null {
-  try {
-    const out = execFileSync("git", ["log", "-1", "--format=%cs", "--", rel], { cwd: root, encoding: "utf8" }).trim();
-    return out === "" ? null : out;
-  } catch {
-    return null;
-  }
+  // Deliberately unguarded: a git failure must surface as a failing gate, not as a clean ledger.
+  const out = execFileSync("git", ["log", "-1", "--format=%cs", "--", rel], { cwd: root, encoding: "utf8" }).trim();
+  return out === "" ? null : out; // no commits for this path — the row cannot be stale against it
 }
 
 /** A row's newest date and the repo files its expiry trigger names. */

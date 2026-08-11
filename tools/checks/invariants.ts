@@ -525,12 +525,49 @@ export function findForbiddenReplaceSources(cwd: string = process.cwd()): string
 // `git show HEAD:<path>` reads the path relative to the repo root (independent of cwd). Any failure
 // (no HEAD lockfile yet, detached/empty tree, not a git checkout) means "nothing pinned" → {}.
 function committedLock(lockPath: string): Record<string, string> {
+  // §1052 — SEPARATE "legitimately absent" FROM "the measurement failed".
+  //
+  // The single `catch → {}` this replaced was correct for its stated case (no HEAD lockfile yet) and
+  // collapsed it with every other failure. `{}` is not a neutral value here: `checkLock` reads it as
+  // "nothing was ever committed", and its forward-only test is `wasCommitted !== undefined && wasCommitted
+  // !== digest` — so an empty map means an EDITED migration passes silently. That is CLAUDE.md rule 2
+  // (append-only, "including migrations") unenforced, with no output.
+  //
+  // HONEST SCOPE: defence-in-depth, NOT a filed defect. §1052 tried to reach it and could not — planting an
+  // edit in `db/tenant/migrations/0001_ledger_core.sql` REDs from the repo root AND from outside it, because
+  // the runner sets cwd to the package root either way. Every remaining realistic trigger (unborn HEAD, lock
+  // not yet committed) IS the legitimate case the `{}` was written for. What is left is that a broken
+  // environment — no `git`, a corrupt object store — degrades this one check to silence while its siblings
+  // throw. That asymmetry is cheap to remove, so it is removed.
+  let head: string;
   try {
-    const raw = execFileSync("git", ["show", `HEAD:${lockPath}`], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+    head = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+  } catch {
+    // No HEAD at all: an unborn branch or a non-checkout. Nothing CAN be pinned, so {} is the true answer.
+    return {};
+  }
+  if (head === "") return {};
+  try {
+    // stderr is PIPED, not ignored: the discriminating text lives there and nowhere else. With
+    // `stdio[2] = "ignore"` Node's `e.message` is only "Command failed: git show …" — measured at §1052,
+    // where the first version of this guard matched on `e.message` and would therefore have THROWN on the
+    // benign case it was written to preserve. The test caught it; the reasoning did not.
+    const raw = execFileSync("git", ["show", `HEAD:${lockPath}`], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
     const parsed: unknown = JSON.parse(raw);
     return parsed && typeof parsed === "object" ? (parsed as Record<string, string>) : {};
-  } catch {
-    return {};
+  } catch (e) {
+    // HEAD resolves, so git works and the tree is readable. The only benign reason `git show` can fail now is
+    // that the lockfile is not in this commit — a new lock, not yet committed. Anything else (a corrupt
+    // object, unreadable JSON) must be loud rather than silently unpinning every migration.
+    // git's exact wording: `fatal: path 'X' does not exist in 'HEAD'`.
+    const err = e as { stderr?: string | Buffer; message?: string };
+    const msg = `${String(err.stderr ?? "")}\n${err.message ?? String(e)}`;
+    if (/does not exist in|exists on disk, but not in/i.test(msg)) return {};
+    throw new Error(
+      `migration lock could not be read from HEAD (${head.slice(0, 8)}:${lockPath}), and the forward-only ` +
+        `anchor is derived from it. Failing loudly rather than returning an empty pin, which reads as ` +
+        `"nothing was ever committed" and lets an EDITED migration pass (audit §1052): ${msg}`,
+    );
   }
 }
 

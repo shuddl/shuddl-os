@@ -200,6 +200,22 @@ describe("REQ-025 §572: every tenant-scoped storage entry point is fed an authe
     expect(callSites(root, positions).length, "no guarded call sites found — the scan is broken, not the tree").toBeGreaterThan(40);
   });
 
+  // §1052 — EXPLICIT TIMEOUT, BECAUSE THIS TEST SAT EXACTLY ON THE DEFAULT.
+  //
+  // Filed at §998 as an undiagnosed intermittent (checklist L431) and observed four times without ever
+  // being captured. §1052 reproduced it ON DEMAND — the trigger is the first full `test:tools` run after
+  // `git add` of a NEW test file — and the captured failure is not a race at all:
+  //
+  //     Error: Test timed out in 5000ms.   ← this assertion, measured at 5080ms
+  //
+  // In isolation it takes ~3.5s of vitest's 5000ms default. It derives every tenant entry point from the
+  // whole source corpus, so that cost is INHERENT, not accidental — measured: the 11 `git ls-files` spawns
+  // `scanCorpus` makes account for 69ms of it (2%), so §1045's per-glob switch is not the cause.
+  // Under full-suite load the same work crosses 5000ms, which is why it looked load-dependent and random.
+  //
+  // 30s, not a raised GLOBAL testTimeout: the default is a good bound for every other test in this repo,
+  // and weakening it everywhere to accommodate one expensive completeness derivation would trade a real
+  // hang-detector for a flake fix. A test whose runtime is a known 3.5s should say so where it is written.
   it("§702: GUARDED_FNS names every derivable tenant entry point (completeness, not just staleness)", () => {
     // §700 derived 19 candidates and could not decide them; §701 found the discriminator — is the FIRST
     // argument an already-SCOPED handle? A `db: D1Database` or `r2: R2Bucket` was scoped upstream by
@@ -237,7 +253,7 @@ describe("REQ-025 §572: every tenant-scoped storage entry point is fed an authe
         "argument is an already-scoped handle the discriminator above should have excluded it:\n  " +
         unguarded.join("\n  "),
     ).toEqual([]);
-  });
+  }, 30_000);
 
   // ── §826 — THE ALLOWLIST IS THE GATE'S WEAK POINT, AND IT WAS UNGUARDED ────────────────────────────
   //

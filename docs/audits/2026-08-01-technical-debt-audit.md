@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 499 | §1051 | **§1052** | **THE FLAKE, DIAGNOSED AND CLOSED — AND A GIT-FAILURE SWEEP.** L431 was filed at §998 as an undiagnosed intermittent and observed FOUR times without ever being captured. §1051 sharpened the trigger to *the first full run after `git add` of a new test file*; §1052 **created that condition deliberately** and reproduced it first try. The capture: `Error: Test timed out in 5000ms` — the §702 GUARDED_FNS assertion measured at **5080 ms against vitest's 5000 ms default**. Not a race: it sits ON the boundary (~3.5 s in isolation) and any added load crosses it. `scanCorpus`'s 11 git spawns are 69 ms of that (2%), so §1045 is NOT the cause. Fixed with an explicit 30 s timeout on that assertion — not a raised global default, which would trade a real hang-detector for a flake fix. **Re-verified by re-running the same trigger: 0 timeouts.** Then swept all 14 git call sites in `tools/` for silent failure: 12 fail-closed, 2 collapsed "legitimately absent" with "the measurement failed" — including `committedLock`, whose `{}` makes an EDITED migration pass silently (CLAUDE.md rule 2). No reachable trigger found, so hardened as defence-in-depth, not filed as a defect. |
 | 498 | §1050 | **§1051** | **THE EXEMPTION SWEEP — SCOPE ÷ SUBJECT, ACROSS ALL SIX MECHANISMS.** §1050's rule run repo-wide, asking a DIFFERENT question than the earlier allowlist audit: that one checked for STALE entries (matching nothing); this asks whether an entry that legitimately matches something also matches far MORE. Four mechanisms clean (5 `eslint-disable` all `-next-line` with reasons · 0 real test skips · 4 of 6 global ignores cover ZERO lintable files · site ignores are untracked trees). **One 92× finding:** `no-misused-promises` was off for `**/*.test.ts` + `**/*.test.tsx` — 369 files — while a verified-mutation lint measured its subject as **9 violations, all in `.test.tsx`, 4 files, ZERO in `.test.ts`**. The rule catching detached assertions was off in all 338 ledger/worker/rater suites. Narrowed to `.test.tsx`. **Second find:** 4 tracked skill reference `.ts` files — code written to be COPIED — had never been linted, hidden TWICE (`.claude/**` ignored, AND eslint does not traverse dot-directories, so un-ignoring lints 0 files). 2 real errors; fixed with `void` to keep the signature real; new gate with explicit paths. |
 | 497 | §1049 | **§1050** | **THE CLOSURE SWEEP — AND AN EXEMPTION WHOSE SCOPE OUTRAN ITS SUBJECT.** §1049's search run over all 21 scope/rule pairs. Most mechanical 'gaps' are NOT defects: the closure question bites for CAPABILITY bans (LLM, network, timers — the capability flows through the import) and not for PROVENANCE bans (REQ-163 lumina — the violation is local, and §988 owns it). The real find was the ledger's `fetch` exemption: scoped `src/tsa/**/*.ts` while its subject is ONE declaration (`fetchImpl: typeof fetch = fetch`, client.ts:76). The config PROMISED *"a second one cannot appear without editing this file"* — a planted `tsa/__p.ts` with a raw fetch linted GREEN, falsifying it. Narrowed to `client.ts`; RED on the plant, clean on the real client, cms/der never needed it. **Also: `\b` is NOT a word boundary in `git grep -E` here** — `\bfetch`→0 where `fetch`→1 — so every `\b` probe this session returned a FALSE ZERO, and one nearly made me delete a live exemption. §1048's verdict survives (it rested on capture-API searches, and the gate uses JS RegExp where `\b` works). |
 | 496 | §1048 | **§1049** | **THE SAME SHAPE ONE LAW OVER — REQ-024's BAN IS DIRECT-IMPORT-ONLY, AND THE LEDGER'S ONLY DEPENDENCY WAS OUTSIDE IT.** `no-restricted-imports` matches SPECIFIERS, so it sees no transitive reach. `packages/ledger` declares exactly ONE first-party dependency — `@shuddl/contracts` — which carried no LLM ban. A planted `@anthropic-ai/sdk` import there was GREEN across eslint, check:invariants, rater-purity and lint-guards, giving the ledger LLM reach with no banned specifier under `packages/ledger`. The assumption was already WRITTEN DOWN in `rater-purity.ts` and enforced by nothing. Fixed by widening the block's `files`; **the repo's own §989 gate rejected the first shape of the fix** (widening every rule widened the `fetch` ban too), so the block is now split by RULE NAME. New `req024-closure.test.ts` COMPUTES the closure so a new ledger dependency cannot silently re-open it. Also: §1048's commit turned a gate red that no pre-commit run could see — **`git grep` reads TRACKED files, so the coverage gate's verdict changes at `git add`, not at file creation**; five verdicts recorded. |
@@ -62181,4 +62182,100 @@ it is granted to files that do not exist yet, which is why it never shows up as 
 **STOP.** All six exemption mechanisms swept with denominators; four clean, two fixed and mutation-proved.
 `no-misused-promises` restored to 338 test files; skill reference code under a gate for the first time.
 `test:tools` 1,231 passed / 3 failed — the REQ-289 baseline · lint clean.
+
+## §1052 — PHASE GATE: the flake diagnosed by manufacturing its trigger
+
+**Why this phase.** §1051 left the flake row at *4 occurrences in 24 runs*, still undiagnosed since §998, with
+one thing it had never had: a **predictable trigger** — the first full `test:tools` run after `git add` of a new
+test file, and never any run after it. The row's own instruction was to instrument it deliberately rather than
+wait. So this phase manufactured the condition.
+
+### It reproduced on the first attempt
+
+A throwaway `__flake_probe.test.ts`, `git add`, one run — and the third failing file appeared, exactly as
+predicted. The capture that four sightings never got:
+
+```
+❯ tools/checks/tenant-scope.test.ts (7 tests | 1 failed) 6641ms
+    × §702: GUARDED_FNS names every derivable tenant entry point   5080ms
+
+Error: Test timed out in 5000ms.
+```
+
+**It was never a race.** The assertion takes ~3.5 s in isolation against vitest's **5000 ms default**, so it
+sits *on the boundary*; anything that adds load crosses it, and "adds load" is exactly what transforming a
+newly-added file does. That is why it looked random, why it correlated with `git add`, and why §1050's
+cache-clear probe came back clean — clearing durations tests a different condition entirely.
+
+**Attributed before crediting.** §1045 was my own change to this file, switching it to `scanCorpus`, which
+spawns `git ls-files` once per glob — an obvious suspect. Measured: **11 spawns cost 69 ms of 3,540 (2%)**. Not
+the cause. The test is inherently expensive because it derives every tenant entry point from the whole source
+corpus, which is the job REQ-025 gives it.
+
+Fixed with an explicit **30 s** timeout on that one assertion, *not* a raised global `testTimeout`: the default
+is a good bound for the other 1,230 tests, and weakening it everywhere to accommodate one expensive
+completeness derivation would trade a real hang-detector for a flake fix.
+
+**Re-verified by re-running the identical trigger — a second staged probe file — and the suite came back at the
+REQ-289 baseline with `timeouts: 0`.** The fix is proved against the condition that produced the bug, not
+against an idle run.
+
+### The sweep that fell out of it
+
+The captured output also carried **5 × `fatal: not a git repository`**, which I had never seen because
+`test:tools` normally swallows stderr. Chasing it produced a bounded, worthwhile question: **can a git failure
+make any gate report clean?** All 14 git call sites in `tools/`:
+
+| verdict | count |
+|---|---|
+| fail-closed (throws, or checks `status`) | **12** |
+| collapses "absent" with "failed" | **2** |
+
+`orphans.ts` is the model: it throws on `result.error` and on any status other than 0 or 1 — 1 being git
+grep's legitimate "no matches". The two exceptions:
+
+**`invariants.ts` `committedLock` → `{}`.** `checkLock`'s forward-only test is
+`wasCommitted !== undefined && wasCommitted !== digest`, so an empty map means *"nothing was ever committed"*
+and **an EDITED migration passes silently** — CLAUDE.md rule 2 ("append-only … including migrations"),
+unenforced, with no output.
+
+**`evidence-expiry.test.ts` `lastCommitDate` → `null`** (my own code, §995). The consumer filters on
+`committed !== null`, so every null is a row reporting FRESH.
+
+### Honest scope: hardened, not filed
+
+**I could not reach either one.** Planting an edited migration REDs from the repo root *and* from outside it,
+because the runner sets cwd to the package root either way — my first probe claimed otherwise and was wrong
+about its own mechanism. Every remaining realistic trigger (unborn HEAD, a lock not yet committed) **is** the
+legitimate case the fallback was written for. What survives is an asymmetry: a broken environment degrades
+these two checks to silence while their twelve siblings throw. That is cheap to remove, so it is removed —
+recorded as defence-in-depth rather than as a defect, because [[attribute-the-green-before-condemning-it]]
+applies exactly as hard when the gap is real but unreachable.
+
+`committedLock` now resolves HEAD first (no HEAD → `{}` is the *true* answer), then treats only git's literal
+*"does not exist in 'HEAD'"* as benign and throws on anything else. `lastCommitDate` drops its catch entirely:
+the legitimate case was already expressed without it, since `git log` on a pathspec with no commits exits **0**
+with empty stdout.
+
+**The first version of that guard was wrong, and the test is the only reason I know.** It matched on
+`e.message` — but with `stdio[2] = "ignore"` Node reports only `Command failed: git show …`, so it would have
+**thrown on the benign case it existed to preserve**. Piping stderr surfaces git's real wording. Verified all
+four states: clean GREEN · edited migration RED · missing lock path → `{}` with no false throw · a corrupt
+object → THROW.
+
+### What this phase says
+
+> **A flake with a known trigger is not a flake — it is a test you have not run on purpose yet.** This one
+> survived four sightings and two sessions because every observation was accidental, made from a summary line
+> after the run finished. The diagnosis took one deliberate reproduction, and the entire cost of the delay was
+> that nobody had tried to *cause* it.
+
+And the narrower rule, which is the third instance this session: **a fallback value is a verdict.** `{}`,
+`null` and `[]` all read as "nothing to report", so a catch that returns one converts an environment fault into
+a clean bill of health — [[fail-closed-is-about-the-fallback-value]], now found in a constitutional gate and in
+a gate I wrote myself six phases ago.
+
+**STOP.** L431 is DIAGNOSED and CLOSED — root cause captured, fix proved against the reproducing condition.
+All 14 git call sites swept; 12 already sound, 2 hardened with all four states verified. `test:tools`
+1,231 passed / 3 failed — the REQ-289 baseline · lint clean.
 
