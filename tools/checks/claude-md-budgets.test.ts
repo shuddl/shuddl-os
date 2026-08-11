@@ -237,6 +237,12 @@ describe("REQ-118 §611: CLAUDE.md's hard budgets match what enforces them", () 
       // file's own header already excludes it, for the §"two mechanisms" reason — re-deriving it here would be
       // a second, weaker copy of a check that exists.
       "21 used",
+      // §1055 — the canonical-views usage, added when CLAUDE.md's views entry adopted the tables entry's
+      // convention. Same category as "21 used" and exempt for the same reason: a RUNTIME figure, not a budget.
+      // `checklist-figures.test.ts` re-derives it from `apps/command/src/views/registry.ts` on every run and
+      // fails if the roster and the ceiling disagree, so re-deriving it here would be the second, weaker copy
+      // of a check that already exists. The BUDGET is the ceiling (12), which the roster entry above covers.
+      "11 used",
       // ZERO-TOLERANCE, proven by PLANTING an artifact rather than by reading an integer: CLAUDE.md rule 7
       // records the design audit refusing a planted shadow, an over-budget radius and a raw hex. There is no
       // constant to compare against, which is exactly why it cannot be a roster entry.

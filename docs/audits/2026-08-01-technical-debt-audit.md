@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 502 | §1054 | **§1055** | **THE OWNER-HELD LABELS, RE-MEASURED — TWO OF FOUR WERE MINE.** §1054's rule (*a remembered blocker is the least-tested claim you own*) turned on the 22 open rows. Five are genuinely External. Four are labelled `Repo (the governing doc)` and deferred to the register owner; the discriminating question is **does the edit change what is PERMITTED?** L396 (is routes±10% in scope?) and L409 (name the four primitives) — yes, correctly owner-held. **L397 and L398 — no.** L397's own text called the rule *general and CORRECT*, so marking its parenthetical illustrative removes a misreading that NARROWED the law to 3 of 15. L398's *(11 used)* is a MEASUREMENT re-derived every run, not a grant of scope; the ceiling (12) is unchanged. Both fixed. The budgets gate then REFUSED the new number until it was exempted with a written reason — the same route the tables entry's *21 used* already takes — and a planted `7 widgets` still REDs, so the exemption did not widen it. |
 | 501 | §1053 | **§1054** | **THE DECLARED GAP, CLOSED — ALL 11 SUITES MEASURED, AND A REMEMBERED BLOCKER THAT WAS WRONG.** §1053 named the workspace suites as unswept; this swept them. **All 12 vitest configs run at the 5000ms DEFAULT** (6 on `defineWorkersConfig`). Measured **2,421 tests across 11 suites**: exactly **ONE** at ≥50% — `workers/api`'s keyset-cursor test at 2834ms (57%), now given an explicit 30s timeout. Everything else is ≤43%; workerd per-test costs are tiny (billing's slowest is 33ms) because pool startup is per-FILE, not per-test. **The blocker was the finding:** I nearly skipped the six workerd suites on a remembered hazard — *"uninterruptible, kill -9-proof, reboot-only"*. Measured instead: all six ran exit 0, and the 37 lingering processes were state **S**, PPID 1, 19 hours old — ordinary ORPHANS, cleared by a plain SIGTERM. A real leak (159 MB idle), and a memory whose label was wrong. |
 | 500 | §1052 | **§1053** | **THE PREVENTION SWEEP — AND A STATIC PROXY THAT OVER-FIRES 40:1.** §1052's root cause was an assertion sitting ON vitest's 5000ms default, so the obvious follow-up is: which OTHER tests are near it? Measured every one of 1,234 tools tests by duration. **Four at ≥50% of the default; only ONE (`cwd-parity`, 11.5s) already declared a timeout** — the convention existed and had been applied once. The other three got explicit 30s timeouts with their measurements stamped, plus a fourth added on a TREND rather than a threshold (`evidence-expiry`, 44%, but its cost is one `git log` per ledger row and the ledger only grows). **The negative is the more useful half:** the tempting static gate — *a test that spawns a subprocess must declare a timeout* — was measured at **121 spawning tests vs 3 actually near the boundary, a 40:1 over-fire**. Spawning is not slowness, and the right instrument is duration, not a proxy for it. Recipe recorded instead of a noisy gate. |
 | 499 | §1051 | **§1052** | **THE FLAKE, DIAGNOSED AND CLOSED — AND A GIT-FAILURE SWEEP.** L431 was filed at §998 as an undiagnosed intermittent and observed FOUR times without ever being captured. §1051 sharpened the trigger to *the first full run after `git add` of a new test file*; §1052 **created that condition deliberately** and reproduced it first try. The capture: `Error: Test timed out in 5000ms` — the §702 GUARDED_FNS assertion measured at **5080 ms against vitest's 5000 ms default**. Not a race: it sits ON the boundary (~3.5 s in isolation) and any added load crosses it. `scanCorpus`'s 11 git spawns are 69 ms of that (2%), so §1045 is NOT the cause. Fixed with an explicit 30 s timeout on that assertion — not a raised global default, which would trade a real hang-detector for a flake fix. **Re-verified by re-running the same trigger: 0 timeouts.** Then swept all 14 git call sites in `tools/` for silent failure: 12 fail-closed, 2 collapsed "legitimately absent" with "the measurement failed" — including `committedLock`, whose `{}` makes an EDITED migration pass silently (CLAUDE.md rule 2). No reachable trigger found, so hardened as defence-in-depth, not filed as a defect. |
@@ -62421,4 +62422,85 @@ dangerous were the safest in the repo, and the one real risk sat in the suite no
 **STOP.** §1053's declared gap is closed: 12/12 configs read, 2,421 tests measured, one at-risk test fixed,
 and every remaining suite is at ≤43% of its bound. 37 orphaned workerd processes cleared. `test:tools`
 1,231 passed / 3 failed — the REQ-289 baseline · lint clean · `api` 44/44.
+
+## §1055 — PHASE GATE: the owner-held labels, re-measured
+
+**Why this phase.** §1054's finding was that a remembered blocker is self-sealing: obeying *"don't try this"*
+produces no evidence, so a wrong one is never corrected. The largest set of such claims in this loop is not in
+my notes — it is the **owner-held** labels on the debt ledger, which I have honoured all session without once
+testing.
+
+### The 22 open rows, split
+
+| owner | rows | verdict |
+|---|---|---|
+| **External** (GitHub settings, the owner's push, the owner's register edit) | 5 | genuinely outside this repo — unchanged |
+| **Repo** (gates, tooling, emit/cadence/response-shape work) | 13 | already correctly mine; several need a REQ row first |
+| **`Repo (the governing doc)`** — deferred to the register owner | **4** | **the question** |
+
+The four governing-doc rows all say some version of *"needs a decision/definition/word, not a fix"* and assign
+it to the register owner. The discriminating test is one question: **does the edit change what is PERMITTED?**
+
+| row | edit | changes scope? |
+|---|---|---|
+| L396 | is *routes ±10%* part of the legacy-export replay, or unscoped work? | **YES** — a scope decision. Owner's. |
+| L409 | name the four primitives the "fifth primitive" rule presupposes | **YES** — defining scope. Owner's. |
+| L397 | mark the CONFIRM-GATED parenthetical illustrative | **no** |
+| L398 | state the views usage, as the tables entry already does | **no** |
+
+Two of four were mislabelled, and **each row's own text says so**.
+
+**L397** records the rule as *"general and CORRECT"* — *"anything whose REQ row says CONFIRM-GATED while the
+CONFIRM is open"* — with a parenthetical naming three of the register's **fifteen** such rows. Left bare, the
+parenthetical reads as the list. Marking it illustrative therefore **widens** the law back to what it already
+says; the only reading it removes is the one that shrank it to 3 of 15. §1048 depended on this being general
+when it audited all three named items and built a gate for the one with adjacent code.
+
+**L398** is a measurement. CLAUDE.md's tables entry already carries `≤22 tables (21 used; the spare requires a
+written deletion)`; the views entry said bare `12 canonical views` while `CANONICAL_VIEWS` declares **11**
+(re-verified at HEAD). Stating the usage grants nothing — the budget is the ceiling, and the ceiling is
+unchanged. The row deferred it as *"a statement about scope"*; a count re-derived from the registry on every run
+by `checklist-figures.test.ts` is a statement about the code.
+
+### The gate refused the fix, correctly
+
+Adding `(11 used, one spare)` immediately failed `claude-md-budgets`:
+
+```
+CLAUDE.md states a hard budget that the BUDGETS roster does not cover…
+  "11 used, one spare) · 35 eve…"
+```
+
+The floor requires **every number** on the budget line to sit inside a roster-matched span or in `EXEMPT` with
+a written reason — because a number on that line is law and every session reads it first. My first instinct was
+that the phrasing was wrong (the tables entry survives because a semicolon terminates its span). That instinct
+was wrong too: `EXEMPT` is the sanctioned route, and the file says so — *"never by widening the pattern until it
+stops matching."* `21 used` is already there, exempt as a **runtime figure** rather than a budget.
+
+`11 used` is the same category, for the same reason, and is now exempt with that reason written next to it.
+**Proved narrow:** a planted `7 widgets` on the budget line still REDs.
+
+### Two more things the gates caught in my own edits
+
+- **`ledger-status-vocabulary`**: writing *"Prior status, preserved: **OPEN — …**"* made both rows claim two
+  live verdicts. The gate said exactly what to do — *strike the superseded verdict so exactly one is live* — and
+  the prior text is now struck rather than quoted. A record that preserves history must still be countable.
+- **`section-refs`**: my `§1055` citations failed until this section existed. The reference gate treats a
+  forward citation as a broken one, which is right: a row pointing at a section nobody has written is a promise,
+  not evidence.
+
+### What this phase says
+
+> **An owner-held label is a claim about authority, and authority is testable.** The question that decides it is
+> not *"is this file sensitive?"* but *"does my edit change what is permitted?"* Under the first question every
+> line of CLAUDE.md is untouchable and the record slowly fills with legibility defects nobody may fix. Under the
+> second, a measurement is mine and a scope decision is the owner's — and the two rows that survive the test are
+> the two the owner genuinely has to answer.
+
+The corollary, which cost me a failing gate: **preserving a superseded verdict is not the same as striking
+it.** History belongs in the row; only one verdict may be live in it.
+
+**STOP.** Four governing-doc rows re-measured against a stated test; two closed by this loop with their prior
+status struck, two left to the owner **with the reason now written down** rather than assumed. `test:tools`
+back at the REQ-289 baseline · lint clean · a planted budget still REDs.
 
