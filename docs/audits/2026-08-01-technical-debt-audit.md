@@ -631,6 +631,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 476 | §1028 | **§1029** | **A LAW EDITED AFTER ITS PROOF — AND THE ONE CONSTITUTIONAL COUNT THAT DECAYED IN HOURS.** The ten non-negotiable rules were mutation-proved at §310/§323/§340/§341, but **a proof only covers the text that existed when it ran**, and CLAUDE.md has been edited three times since. Verified by `git merge-base --is-ancestor` (not inferred from section numbers): all four proof commits are **descendants of `83e32c5`**, the last rule edit — so **the ten laws are proved exactly as they now read**. That leaves ONE piece of constitutional text younger than its proof, the working agreement's `verify:merge` clause — **and its count had decayed in HOURS.** It read *a 16-step chain … it reaches 4 of 16*; today the chain is **18 segments (17 gates + echo)**. Reconstructed: at `8bd4c8b` it was 17 segments = **16 gates + echo, so the claim was CORRECT when written**, and `7b61624` — same day, later — added `check:chokepoint` to the loop. **Accurate when written, invalidated hours later by an improvement.** Sharpest instance yet of why §1022's remedy is deletion not refresh: **writing '17' would have survived less than a day.** Fixed to keep the mechanism (*step 4, and nothing after it*) and drop the total. Constitution now verified in all three factual surfaces: budgets by violation, stack by presence, rules by proof-ancestry |
 | 475 | §1027 | **§1028** | **THE GOVERNING FILE'S STACK LINE — 12/12 PRESENT, AND TWO FALSE FINDINGS I NEARLY FILED.** §1001 proved CLAUDE.md's BUDGETS by violation; its **Stack** line is the other half of the constitution's factual surface and had never been checked. All twelve named technologies are present (Hono 65 · D1 109 · Queues 124 · Zod 145 · Stripe 27 …). **Two numbers look wrong and both are ME misreading:** *TypeScript strict — 1 of 20 tsconfigs* reads as 19 unstrict packages, but **19 of 20 `extends` a base** and that base is the single `"strict": true` declaration — **the count of 1 is the evidence FOR the structure, not against it**. And *self-hosted Protomaps* vs `DEMO_TILE_URL = tiles.openfreemap.org` shipping in BOTH surfaces looks like §1016's shape (a claim describing something unbuilt) — **except the heading already scoped it: `## Stack (decided — do not relitigate)`** is a list of DECISIONS, not an inventory of current state, and the interim third-party basemap is recorded in `threat-model.md:44`, `pen-test-basics.md:131` and `:160` with REQ-075 and a severity. **Read the heading before judging the line** — a statement's tense is set by the block it lives in, and half this record's drift findings turned on tense (§1013, §1019, §1022); this one turns on tense too and comes out the other way |
 | 474 | §1026 | **§1027** | **THE REVERSE-DIRECTION CHECK AT THE DOCUMENT LEVEL — EVERY AUTHORITATIVE DOC IS REACHABLE.** §1026's principle (*every check validates what a claim points AT; none asks what points at NOTHING*) is already CLAUDE.md rule 1's for scope — *traceability blocks orphans BOTH directions* — so where else does a one-way check hide? The doc tree had never been asked. Checked all 63 tracked `docs/**.md` for an inbound reference: **audits 3/0 orphaned · ops 9/0 · security 2/0 · wp 17/0 · plans 32/13.** **Every authoritative document is reachable** — the ledger, release evidence, threat model, pen-test artifact, all sixteen WP close-outs. The 13 orphans are all in `docs/plans/`, the one class §240 already excluded from citation checking (*a plan proposes a path that later lands elsewhere, which is not rot*), and plans are **19 of 32 referenced**, so not uniformly unlinked — the unreferenced cohort is early (07-10 → 07-31), the WP-era plans whose work landed. **A plan becomes unreferenced exactly when its outcome documentation supersedes it**: the inbound link migrating away is EVIDENCE the work completed. §1026's orphans were content that FAILED to function; these are content that has FINISHED functioning |
 | 473 | §1025 | **§1026** | **THE INVERSE OF §1025 — SHIPPED REFERENCE FILES NOTHING POINTS AT.** §1025 found a pointer to something ABSENT; this sweeps for something PRESENT that nothing points at. Ten reference files ship inside `.claude/skills/`: **8 named paths, 0 unresolvable — but 2 of 10 shipped files were never mentioned.** **Method, third instance this session:** my first check used `grep --include=*.md` UNQUOTED, which zsh expands before grep sees it — **a shell error printed as a result** (after §968's `tac` and §959's pathspec). Re-run quoted, both were genuinely unmentioned. **Both substantive, one constitutional:** the 61-line SQL reference explains why `PRAGMA recursive_triggers = 0` makes a **BEFORE-INSERT** guard mandatory — the mechanism behind I3/I7 on D1, and exactly what a reader adding an append-only table needs; the 85-line port skeleton carries *going live is a CONFIRM-gated config flip, not a code change.* **The pair is one defect with two signs:** pointer-without-content is **loud on arrival** (the reader opens it and finds nothing); content-without-pointer is **silent forever** (the reader never opens it). The second survived a grounding note, ratchet enrolment and two prior fixes because **every one of those checks what a claim points AT; none asks what points at NOTHING** |
@@ -60644,3 +60645,68 @@ recorded in the threat model with a REQ.
 nothing does it automatically · the basemap is self-hosted, which closes REQ-075 and makes the stack line
 descriptive as well as decided · `tsconfig.base.json` stops declaring `strict`, which 19 packages inherit
 silently.
+
+---
+
+## §1029 — PHASE GATE: a law edited after its proof — and the one constitutional count that decayed in hours
+
+§1028 checked CLAUDE.md's Stack line. The remaining constitutional surface is the **ten non-negotiable rules**,
+mutation-proved at §310/§323/§340/§341. But a proof only covers the text that existed when it ran, and
+CLAUDE.md has been edited three times since it was written. **A law edited after its proof is a law whose
+proof may not cover it.**
+
+### The ten rules are proved as written
+
+| CLAUDE.md edit | when | what |
+|---|---|---|
+| `b5aa2d0` | 2026-08-02 | rule 4 (the fixtures correction) |
+| `83e32c5` | 2026-08-05 | rule 7 (REQ-158's condition resolved → design CI blocking) |
+| `8bd4c8b` | 2026-08-09 | the **Working agreement**, not a rule |
+
+All four proof commits (`4e0f1b0`, `8164a56`, `ba2920a`, `48298f6`) are **descendants of `83e32c5`** — verified
+with `git merge-base --is-ancestor`, not inferred from section numbers. So the last rule edit precedes every
+proof, and **the ten laws were mutation-proved exactly as they now read.**
+
+That leaves precisely one piece of constitutional text younger than its proof: the working agreement's
+`verify:merge` clause.
+
+### And its count had decayed — in hours
+
+It read: *"`verify:dev`, a **16-step** `&&` chain with `pnpm test` at step 4 … measured, **it reaches 4 of
+16**."*
+
+Measured today: **18 `&&` segments** — 17 gates and a closing `echo`. Reconstructing rather than assuming:
+
+```
+at 8bd4c8b (when written)  17 segments = 16 gates + 1 echo   → "16-step" was CORRECT
+7b61624   (same day, later) added check:chokepoint to the dev loop
+at HEAD                    18 segments = 17 gates + 1 echo   → the claim is now wrong
+```
+
+**The sentence was accurate when written and invalidated by a commit landing hours after it**, in the same
+document-editing session — by a change that was itself an improvement (REQ-030's chokepoint gate had been
+running only in `verify:merge`).
+
+This is §1022's class in the constitution: a value in prose, unpinned and unstamped. It is also the sharpest
+instance yet of *why* §1022's remedy is deletion rather than refresh — **writing "17" would have survived less
+than a day.**
+
+### Fixed by keeping the mechanism and dropping the total
+
+> *"an `&&` chain with `pnpm test` at step 4; while any test fails it **stops there and every later gate never
+> runs**"*
+
+The rule a reader needs is the **position** (step 4) and the **consequence** (nothing after it), and neither
+moves when a gate is appended. The correction is recorded inline with the commit that caused it, so the next
+reader sees the decay mechanism rather than a silently better number.
+
+### Phase gating
+
+**STOP.** The constitution is now verified in all three of its factual surfaces: **budgets by violation
+(§1001), stack by presence (§1028), rules by proof-ancestry (here)** — with the single post-proof claim found
+stale and repaired.
+
+**Re-open when:** CLAUDE.md's rules are edited — the proof no longer covers them, and `git merge-base
+--is-ancestor` against §310/§323/§340/§341 is the check · a gate is added to `verify:dev`, which no longer
+falsifies the text · a new total enters the working agreement, which is the one section with a demonstrated
+decay rate measured in hours.
