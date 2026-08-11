@@ -33,8 +33,20 @@ import { repoRoot } from "./repo-root.js";
 // A duplicate named `positions-old.ts` is ordinary dead code and belongs to a different question.
 
 const SKIP_DIRS = new Set(["node_modules", ".git", "dist", "build", "coverage", "artifacts", ".wrangler", ".turbo", ".vite", ".next"]);
-/** The sync's signature: a space, one or more digits, then the extension. `foo 2.ts`, `_metadata 2.json`. */
-const DUPLICATE = / \d+\.[A-Za-z0-9]+$/;
+/**
+ * The sync's signature: a space, digits, then the remaining extension(s).
+ *
+ * BOTH shapes, and the second is the dangerous one. iCloud inserts before the FINAL extension
+ * (`foo.test.ts` → `foo.test 2.ts`), which vitest's `**\/*.test.ts` glob does NOT collect. Another tool — or a
+ * hand-copy — can produce `foo 2.test.ts`, which vitest DOES collect and execute, and being a byte-copy it
+ * PASSES (audit §867 measured 72→73 files, 1122→1124 tests). Silent and green is worse than noisy.
+ *
+ * §997 shipped with `/ \d+\.[A-Za-z0-9]+$/`, anchoring the digits to the last extension — so it caught the
+ * harmless shape and MISSED the silent one. Found by testing both against vitest rather than reasoning about
+ * the glob. The trailing group repeats, so `foo 2.test.ts` and `foo 2.ts` both match; `x2.sql` (no space) does
+ * not, which is the negative control the `.gitignore` rule also has to honour.
+ */
+const DUPLICATE = / \d+(\.[A-Za-z0-9]+)+$/;
 
 function trackedDirs(root: string): Set<string> {
   const out = new Set<string>();
