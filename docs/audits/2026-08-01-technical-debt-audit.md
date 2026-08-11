@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 503 | §1055 | **§1056** | **THE HIGHEST-SEVERITY OPEN ROW, RE-MEASURED — ITS WALL IS ONE UPSTREAM `assert`, TWELVE MINORS STALE.** L427 (Med, blocks R4) is the only non-Low repo-owned row: pool-binding exclusivity is enforced on ENUMERATION but not on RESOLUTION — the path a WRITE travels. Two prior attempts describe the blocker as a HARNESS property (65→70 api test files sharing one D1, 2 pool slots, standing claimed rows). Measured, it is a DEPENDENCY property: `isolatedStorage: false` is forced by `@cloudflare/vitest-pool-workers` asserting `name.endsWith(".sqlite")` at **two** sites (at two sites in its pool entry point, the storage-stack push and pop), which a SQLite-backed DO's `.sqlite-shm` WAL sidecar violates. **Verified in the installed copy, not inferred from the comment.** Installed **0.9.14**, latest **0.21.0**. That converts the route from *rework 70 test files* to *take an upgrade and re-test*. NOT attempted: six packages pin `^0.9.14` and a `chai: "5.3.3"` override exists for this pool — a seven-manifest change deserving its own runway. |
 | 502 | §1054 | **§1055** | **THE OWNER-HELD LABELS, RE-MEASURED — TWO OF FOUR WERE MINE.** §1054's rule (*a remembered blocker is the least-tested claim you own*) turned on the 22 open rows. Five are genuinely External. Four are labelled `Repo (the governing doc)` and deferred to the register owner; the discriminating question is **does the edit change what is PERMITTED?** L396 (is routes±10% in scope?) and L409 (name the four primitives) — yes, correctly owner-held. **L397 and L398 — no.** L397's own text called the rule *general and CORRECT*, so marking its parenthetical illustrative removes a misreading that NARROWED the law to 3 of 15. L398's *(11 used)* is a MEASUREMENT re-derived every run, not a grant of scope; the ceiling (12) is unchanged. Both fixed. The budgets gate then REFUSED the new number until it was exempted with a written reason — the same route the tables entry's *21 used* already takes — and a planted `7 widgets` still REDs, so the exemption did not widen it. |
 | 501 | §1053 | **§1054** | **THE DECLARED GAP, CLOSED — ALL 11 SUITES MEASURED, AND A REMEMBERED BLOCKER THAT WAS WRONG.** §1053 named the workspace suites as unswept; this swept them. **All 12 vitest configs run at the 5000ms DEFAULT** (6 on `defineWorkersConfig`). Measured **2,421 tests across 11 suites**: exactly **ONE** at ≥50% — `workers/api`'s keyset-cursor test at 2834ms (57%), now given an explicit 30s timeout. Everything else is ≤43%; workerd per-test costs are tiny (billing's slowest is 33ms) because pool startup is per-FILE, not per-test. **The blocker was the finding:** I nearly skipped the six workerd suites on a remembered hazard — *"uninterruptible, kill -9-proof, reboot-only"*. Measured instead: all six ran exit 0, and the 37 lingering processes were state **S**, PPID 1, 19 hours old — ordinary ORPHANS, cleared by a plain SIGTERM. A real leak (159 MB idle), and a memory whose label was wrong. |
 | 500 | §1052 | **§1053** | **THE PREVENTION SWEEP — AND A STATIC PROXY THAT OVER-FIRES 40:1.** §1052's root cause was an assertion sitting ON vitest's 5000ms default, so the obvious follow-up is: which OTHER tests are near it? Measured every one of 1,234 tools tests by duration. **Four at ≥50% of the default; only ONE (`cwd-parity`, 11.5s) already declared a timeout** — the convention existed and had been applied once. The other three got explicit 30s timeouts with their measurements stamped, plus a fourth added on a TREND rather than a threshold (`evidence-expiry`, 44%, but its cost is one `git log` per ledger row and the ledger only grows). **The negative is the more useful half:** the tempting static gate — *a test that spawns a subprocess must declare a timeout* — was measured at **121 spawning tests vs 3 actually near the boundary, a 40:1 over-fire**. Spawning is not slowness, and the right instrument is duration, not a proxy for it. Recipe recorded instead of a noisy gate. |
@@ -62503,4 +62504,87 @@ it.** History belongs in the row; only one verdict may be live in it.
 **STOP.** Four governing-doc rows re-measured against a stated test; two closed by this loop with their prior
 status struck, two left to the owner **with the reason now written down** rather than assumed. `test:tools`
 back at the REQ-289 baseline · lint clean · a planted budget still REDs.
+
+## §1056 — PHASE GATE: the highest-severity open row, and a wall that turned out to be a dependency
+
+**Why this phase.** §1055 sorted the 22 open rows and left 13 as genuinely repo-owned. Twelve are **Low**.
+**L427 is the only Med**, and it is the only open row that names a release gate: *blocks R4*. If any row
+deserves a re-measurement rather than another inheritance, it is that one.
+
+### What L427 says, and what it had already survived
+
+**Pool-binding exclusivity is enforced on ENUMERATION but not on RESOLUTION.** A hand-added duplicate — two
+claimed tenants naming one `pool_binding` — is refused by every sweep, because the guard lives in
+`claimedTenantSlugs` (all four workers). It is **absent** from `resolveClaimedTenantDb`, which is the path a
+**write** travels. Two tenants resolving to one physical D1 is a REQ-025 cross-tenant read, which CLAUDE.md
+rule 8 makes a build failure.
+
+The row has defeated two fixes, and recorded both:
+
+| attempt | what happened |
+|---|---|
+| §12 (2026-08-02) — a COUNT-based refusal on the resolve path | **reverted**: failed six real api tests at READ time |
+| §882 (2026-08-09) — the UNIQUE index named in its own expiry | **extended, not landed**: *"necessary, NOT sufficient"* — it fails at WRITE time and meets the same wall one step earlier |
+
+Both notes attribute the wall to the **harness**: 70 test files sharing one control-plane D1, only two pool
+slots, standing claimed rows on both. The row's stated escape is *"a pool-slot expansion, or per-file control
+DBs in the api harness."*
+
+### Measured: the wall is not the harness, it is one `assert` in a dependency
+
+Pool-slot expansion means more physical D1s and more `wrangler.toml` bindings — infrastructure, and correctly
+external. So the live question is per-file control DBs, i.e. `isolatedStorage`. The config turns it off, and
+the reason is not a preference:
+
+```
+# @cloudflare/vitest-pool-workers, pool entry point — TWO sites, the storage-stack push and pop:
+assert2(name.endsWith(".sqlite"), `Expected .sqlite, got ${namePath}`)
+```
+
+`isolatedStorage` snapshots a test's storage by **copying the backing files**, and asserts every one ends in
+`.sqlite`. A SQLite-backed Durable Object (`ShipmentSequencer`, `new_sqlite_classes`) leaves a `.sqlite-shm`
+WAL sidecar, so the snapshot aborts. **Read in the installed package rather than inferred from the config
+comment** — which is the discipline that mattered, because the comment was right and I had no way to know that
+without opening the file.
+
+So the blocker is a property of `@cloudflare/vitest-pool-workers`, and therefore of a **version**:
+
+| | |
+|---|---|
+| installed | **0.9.14** |
+| latest published | **0.21.0** |
+
+**Twelve minors stale, and nobody has looked.** That reframes the row entirely: route (b) is not *"rework 70
+test files"* — it is *"take a dependency upgrade and re-run the suites."* A different question, and a far
+smaller one.
+
+### Why I did not take it
+
+Not because it is someone else's — by §1055's test it is plainly repo-owned tooling. Because of what it
+touches:
+
+- **six** packages pin `^0.9.14` (`packages/ledger` + all five workers);
+- `pnpm-workspace.yaml` carries `chai: "5.3.3"`, an override that exists **for this pool**;
+- the blast radius is all six workerd suites — 2,018 of the 2,421 tests measured at §1054.
+
+A seven-manifest dependency move across twelve minors, landing on the suites that carry the ledger's
+invariants, is a change that wants a clean runway and its own verification pass — not the tail of a session
+already holding an unrelated register red. Recorded with the exact assert sites and version delta so the next
+session starts from a measurement instead of from this one's summary.
+
+### What this phase says
+
+> **When a blocker has defeated two attempts, re-measure the blocker rather than designing a third fix.** Both
+> prior attempts accepted "the harness cannot support it" and worked around it — one at read time, one at write
+> time. Neither asked *why* the harness cannot support it. The answer was two lines in `node_modules`, and it
+> carries a version number, which means it has an expiry date nobody had checked.
+
+The narrower rule: **a constraint attributed to your own code, but caused by a dependency, silently becomes
+permanent.** Your code is reviewed every time someone reads it; a pinned dependency's limitation is re-read
+never. §1054 found a remembered blocker that was wrong; this is the same shape one layer down — a *correct*
+blocker whose expiry nobody was watching.
+
+**STOP.** The only Med open row is re-measured to its root cause, with both assert sites located and the version
+delta stated. Not fixed, and explicitly not: the route is a coordinated seven-manifest upgrade, now written
+down as such rather than as a vague harness wall. `test:tools` at the REQ-289 baseline · lint clean.
 
