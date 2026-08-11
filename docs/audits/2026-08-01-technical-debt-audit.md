@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 506 | §1058 | **§1059** | **THE COMMENT-LESS-FORMAT SWEEP — AND `skipLibCheck` MEASURED INSTEAD OF ASSUMED.** §1058's corollary said to look for undocumented decisions wherever the format forbids prose. Swept the tracked JSON configs and found the sharpest case is a file whose format ALLOWS comments and used none: **`tsconfig.base.json` carried ZERO comments while 19 packages extend it**, against `tsconfig.tools.json`'s 33. Four of its eleven options are real decisions — three STRICTER than `strict`, and one loosening. `skipLibCheck: true` measured by flipping it: **722 errors, 0 of them in repo source** (415 `@cloudflare/workers-types`, 150 `miniflare`, 104 TS's own libs; TS2717×264 / TS2687×80 — the Workers-globals-vs-DOM-lib collision). So it is load-bearing AND safe, and its cause is a dependency, which gives it a version and therefore an expiry now written beside it. |
 | 505 | §1057 | **§1058** | **THE PIN SWEEP — 163 DECLARATIONS, 3 DECISIONS, 2 UNDOCUMENTED.** §1057's rule (*a correct, load-bearing, undocumented pin is debt while green*) made measurable: `^` is npm's DEFAULT and carries no intent, so the decisions are exactly the non-caret ranges. Measured across every tracked manifest: **163 declarations, 3 non-caret pins.** One is exemplary — `chai: "5.3.3"` names the failing export and the runtime in three lines, because YAML let its author write it where the pin lives. The other two had NO written reason anywhere. Both are load-bearing and now say why: `@playwright/test = 1.61.1` is EXACT because 5 blessed screenshots compare at a 2% pixel tolerance and chromium rasterization drifts between builds; `@axe-core/playwright` is peer-coupled to it. New gate keys reasons to LIVE manifests, so an undocumented pin REDs **and** a reason outliving its pin REDs — both mutation-proved. |
 | 504 | §1056 | **§1057** | **THE DEPENDENCY-DRIFT SWEEP — AND UNRECORDED DEBT: THE WORKSPACE RUNS TWO VITEST MAJORS.** §1056's rule (*a constraint caused by a dependency silently becomes permanent*) implies a sweep: what else is version-pinned? The prose search over-fired on narrative *"is a bug"* and found nothing — the precise form of the shape is a **version number**, not a phrasing. `pnpm outdated -r` reports **63** drifted packages, all within-major EXCEPT the two that matter. Measured by asking each suite its own version rather than reading manifests: **`api`/`ledger`/`billing` run vitest 3.2.7 while `driver`/`command`/tools run 4.1.10.** Five packages hold `~3.2.4` (tilde = patch-only), a deliberate load-bearing pin required by pool-workers 0.9.x — and explained in NO manifest, NO doc, NO checklist row. **2,018 of 2,421 tests run on the older major.** Nothing is broken; the split is INVISIBLE. Filed as a standing row so the next upgrade starts from a measurement. |
 | 503 | §1055 | **§1056** | **THE HIGHEST-SEVERITY OPEN ROW, RE-MEASURED — ITS WALL IS ONE UPSTREAM `assert`, TWELVE MINORS STALE.** L427 (Med, blocks R4) is the only non-Low repo-owned row: pool-binding exclusivity is enforced on ENUMERATION but not on RESOLUTION — the path a WRITE travels. Two prior attempts describe the blocker as a HARNESS property (65→70 api test files sharing one D1, 2 pool slots, standing claimed rows). Measured, it is a DEPENDENCY property: `isolatedStorage: false` is forced by `@cloudflare/vitest-pool-workers` asserting `name.endsWith(".sqlite")` at **two** sites (at two sites in its pool entry point, the storage-stack push and pop), which a SQLite-backed DO's `.sqlite-shm` WAL sidecar violates. **Verified in the installed copy, not inferred from the comment.** Installed **0.9.14**, latest **0.21.0**. That converts the route from *rework 70 test files* to *take an upgrade and re-test*. NOT attempted: six packages pin `^0.9.14` and a `chai: "5.3.3"` override exists for this pool — a seven-manifest change deserving its own runway. |
@@ -62736,4 +62737,87 @@ move elsewhere — it evaporates. Look for undocumented decisions wherever the f
 **STOP.** Every non-caret pin in the workspace now carries a written, CI-enforced reason, with both the missing
 -reason and the stale-reason directions mutation-proved. `test:tools` 1,234 passed / 3 failed — the REQ-289
 baseline · lint clean.
+
+## §1059 — PHASE GATE: the comment-less-format sweep, and a loosening that earned its keep
+
+**Why this phase.** §1058 ended on a mechanical corollary rather than a cultural one: *the reason a decision
+goes unrecorded is usually the file format, not the author.* All three dependency pins were deliberate and all
+three authors knew why; the one in YAML was explained and the two in JSON were not. So: **where else does the
+format forbid the note?**
+
+### The sweep, and the case it actually found
+
+Tracked JSON configs, excluding manifests and data fixtures: seventeen files. Most are data (`fixtures/*`,
+`greige-style.json`, EDI expectations) where "a decision with a reason" does not apply. Two hold decisions and
+already solve the problem the right way — `coverage-manifest.json` makes the **value** the reason
+(`dispositions`, `confirm_citations` are `{id: "why"}` maps), so the justification travels with the entry
+inside strict JSON.
+
+The sharpest case was not a comment-less format at all. It was a file whose format **allows** comments and used
+none:
+
+| file | comments | reach |
+|---|---|---|
+| `tsconfig.tools.json` | **33** | one project |
+| `tsconfig.base.json` | **0** | **19 packages extend it** |
+
+That inverts §1058's corollary in a useful way: the format was never the constraint here. The base config is
+the highest-leverage TypeScript decision in the repo and the least explained, sitting beside a sibling that is
+thoroughly annotated.
+
+### Four of eleven options are decisions
+
+Seven are the stack CLAUDE.md already decided (`target`, `module`, `moduleResolution`, `strict`, `noEmit`, …).
+Four are choices:
+
+**Three are STRICTER than `strict`**, and none is implied by it — `noUncheckedIndexedAccess` (why the codebase
+reads `arr[0] as string` rather than trusting an index, and what made §1000's guard-deletion probe go RED under
+`tsc` when the suite alone stayed green), `exactOptionalPropertyTypes` (the same absent-vs-present-and-null
+boundary the canonical-JSON hash law depends on), and `noFallthroughCasesInSwitch` (the gate and agent code is
+state machines).
+
+**One is a loosening**, and it is the only one — so it now carries a measurement rather than an assertion.
+
+### `skipLibCheck`, measured
+
+Flipped to `false` and typechecked the workspace:
+
+| | |
+|---|---|
+| total errors | **722** |
+| in repo source | **0** |
+| `@cloudflare/workers-types` | 415 |
+| `miniflare` | 150 |
+| TypeScript's own libs | 104 |
+| `@cloudflare/vitest-pool-workers` | 30 |
+
+Dominant kinds: **TS2717 (264)** and **TS2687 (80)** — *"subsequent property declarations must have the same
+type"* / *"all declarations must have identical modifiers"*: the Workers runtime's global declarations
+colliding with the DOM and node libs. Exactly the collision the flag exists for.
+
+So the flag is **load-bearing** (typecheck cannot pass without it) and **safe** (it suppresses nothing we
+wrote). That second half is the part worth having measured — a blanket `skipLibCheck` *could* have been hiding
+our own `.d.ts` errors, and nothing short of running it says which.
+
+Its cause is a dependency, so by §1056's rule it has a version and therefore an expiry. That expiry is now
+written beside it: re-run the measurement when `@cloudflare/workers-types` or `miniflare` moves, and if the
+count reaches zero, **delete the flag** rather than keep a suppression nobody needs — §1050's shape, an
+exemption whose scope outran its subject.
+
+### What this phase says
+
+> **"The format wouldn't let me" is a real cause and a poor excuse — check whether it is even true.** §1058
+> proved the mechanical claim on `package.json`, and I carried it into this phase as a rule. The biggest gap it
+> found was in a file that had allowed comments all along. A correct generalisation still has to be re-tested
+> at each instance, or it becomes the thing it was written to catch: an inherited claim.
+
+The narrower rule: **a loosening must justify itself with a number, and a strictness need only name what it
+protects.** `skipLibCheck: true` is the one option here that makes the build accept more, so it is the one that
+had to be measured; the three that make it accept less are self-defending — the worst case of an over-strict
+flag is friction you can see.
+
+**STOP.** The comment-less-format sweep is complete over seventeen tracked JSON configs; the one real gap was a
+JSONC file using none of its allowance, and its four decision-flags are now annotated — three by what they
+protect, the loosening by 722 measured errors and an expiry. `typecheck` clean · `lint` clean · `test:tools`
+1,234 passed / 3 failed, the REQ-289 baseline.
 

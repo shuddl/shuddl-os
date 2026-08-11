@@ -1,14 +1,50 @@
+// The compiler settings every package inherits (19 tsconfigs extend this file).
+//
+// §1059 — WRITTEN BECAUSE THE FORMAT ALLOWS IT. tsconfig is JSONC, so a reason can live where the decision
+// lives; `package.json` is strict JSON and cannot, which is why §1058 had to put its pin reasons in a gate.
+// Same repo, same authors, same care — the difference was comment syntax (`tsconfig.tools.json` carries 33
+// comments, this file carried ZERO while reaching 19 packages).
+//
+// Only the NON-OBVIOUS entries are annotated. `target`/`module`/`moduleResolution`/`strict`/`noEmit` are the
+// stack decided in CLAUDE.md and need no defence here.
 {
   "compilerOptions": {
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
     "strict": true,
+
+    // The three below are STRICTER than `strict` — each was chosen, none is implied by it.
+    //
+    // Indexing returns `T | undefined`. This is why the codebase reads `arr[0] as string` / `?? fallback`
+    // rather than trusting an index, and it is load-bearing for the ledger: an event stream read by position
+    // must not silently yield `undefined` typed as `T`. It is also what made §1000's guard-deletion probe go
+    // RED under `tsc` (TS18047) when the test suite alone stayed green.
     "noUncheckedIndexedAccess": true,
+    // `{ a?: string }` will not accept `{ a: undefined }`. Zod schemas and D1 rows both distinguish "absent"
+    // from "present and null", and the canonical-JSON hash law depends on that distinction surviving the type
+    // layer — `rowToEvent`'s NULL→undefined rule is the same boundary stated in code.
     "exactOptionalPropertyTypes": true,
+    // A `case` that falls through is a bug in a state machine, and the gate/agent code is state machines.
     "noFallthroughCasesInSwitch": true,
+
     "forceConsistentCasingInFileNames": true,
+
+    // A LOOSENING, and the only one — so it carries its measurement rather than an assertion.
+    //
+    // MEASURED 2026-08-11 (audit §1059) by setting it to `false` and running `pnpm typecheck` workspace-wide:
+    // **722 errors, and 0 of them in repo source.** 415 come from `@cloudflare/workers-types`, 150 from
+    // `miniflare`, 104 from TypeScript's own libs, 30 from `@cloudflare/vitest-pool-workers`. The dominant
+    // kinds are TS2717 (264) and TS2687 (80) — the Workers runtime's global declarations colliding with the
+    // DOM/node libs, which is the collision this flag exists for.
+    //
+    // So it is LOAD-BEARING (typecheck cannot pass without it) and SAFE (it suppresses nothing we wrote).
+    // Its cause is a dependency, which means it has a version and therefore an expiry: re-run the measurement
+    // above when `@cloudflare/workers-types` or `miniflare` moves. If the count reaches zero, delete the flag
+    // rather than keep a suppression nobody needs — a loosening that has stopped loosening anything is the
+    // §1050 shape (an exemption whose scope outran its subject).
     "skipLibCheck": true,
+
     "noEmit": true
   }
 }
