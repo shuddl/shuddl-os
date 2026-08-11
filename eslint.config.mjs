@@ -27,10 +27,13 @@ export default tseslint.config(
       // because §814/§815 parse this file's TEXT — this repo's chosen mechanism for last-writer-wins is
       // "duplicate the list and gate the parity", not "extract a builder". A builder is invisible to those
       // gates and silently defeats them.
-      "no-restricted-syntax": ["error", {
-        selector: 'ImportExpression[source.value=/lumina|Lumina|shuddl-2023/]',
-        message: "REQ-163: prior codebases are organ banks — no dynamic import() merges into the spine.",
-      }],
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: 'ImportExpression[source.value=/lumina|Lumina|shuddl-2023/]',
+          message: "REQ-163: prior codebases are organ banks — no dynamic import() merges into the spine.",
+        },
+      ],
     },
   },
   {
@@ -127,6 +130,13 @@ export default tseslint.config(
       // as a TYPE stays legal.
       "no-restricted-syntax": [
         "error",
+        // §988 — RESTATED because this block REPLACES the repo-wide `no-restricted-syntax`. Flat config
+        // is last-writer-wins per rule NAME, so declaring it here deletes the repo-wide REQ-163
+        // dynamic-import ban for these files. Restating can never weaken a scope.
+        {
+          selector: 'ImportExpression[source.value=/lumina|Lumina|shuddl-2023/]',
+          message: "REQ-163: prior codebases are organ banks — no dynamic import() merges into the spine.",
+        },
         {
           selector: 'NewExpression[callee.name="Date"]',
           message: "REQ-004/REQ-024: an ambient clock is not deterministic — take the instant as a parameter (the callers already inject one).",
@@ -164,6 +174,13 @@ export default tseslint.config(
     rules: {
       "no-restricted-syntax": [
         "error",
+        // §988 — RESTATED because this block REPLACES the repo-wide `no-restricted-syntax`. Flat config
+        // is last-writer-wins per rule NAME, so declaring it here deletes the repo-wide REQ-163
+        // dynamic-import ban for these files. Restating can never weaken a scope.
+        {
+          selector: 'ImportExpression[source.value=/lumina|Lumina|shuddl-2023/]',
+          message: "REQ-163: prior codebases are organ banks — no dynamic import() merges into the spine.",
+        },
         {
           selector: 'MemberExpression[object.name="Date"][property.name="now"]',
           message: "REQ-204: this module's header claims PURE — an AMBIENT clock breaks the determinism the dedupe key depends on. `new Date(explicitMs)` is fine; reading the wall clock is not.",
@@ -200,6 +217,13 @@ export default tseslint.config(
     rules: {
       "no-restricted-syntax": [
         "error",
+        // §988 — RESTATED because this block REPLACES the repo-wide `no-restricted-syntax`. Flat config
+        // is last-writer-wins per rule NAME, so declaring it here deletes the repo-wide REQ-163
+        // dynamic-import ban for these files. Restating can never weaken a scope.
+        {
+          selector: 'ImportExpression[source.value=/lumina|Lumina|shuddl-2023/]',
+          message: "REQ-163: prior codebases are organ banks — no dynamic import() merges into the spine.",
+        },
         {
           selector: 'NewExpression[callee.name="Date"]',
           message: "REQ-024: this module's header claims PURE — the caller supplies the clock. An ambient one makes it untestable without freezing time.",
@@ -228,6 +252,13 @@ export default tseslint.config(
     rules: {
       "no-restricted-syntax": [
         "error",
+        // §988 — RESTATED because this block REPLACES the repo-wide `no-restricted-syntax`. Flat config
+        // is last-writer-wins per rule NAME, so declaring it here deletes the repo-wide REQ-163
+        // dynamic-import ban for these files. Restating can never weaken a scope.
+        {
+          selector: 'ImportExpression[source.value=/lumina|Lumina|shuddl-2023/]',
+          message: "REQ-163: prior codebases are organ banks — no dynamic import() merges into the spine.",
+        },
         {
           selector: 'NewExpression[callee.name="Date"]',
           message: "REQ-024: gates are pure — the caller supplies the clock; an ambient one breaks the property that makes the catalog testable without a DB.",
@@ -256,6 +287,13 @@ export default tseslint.config(
     rules: {
       "no-restricted-syntax": [
         "error",
+        // §988 — RESTATED because this block REPLACES the repo-wide `no-restricted-syntax`. Flat config
+        // is last-writer-wins per rule NAME, so declaring it here deletes the repo-wide REQ-163
+        // dynamic-import ban for these files. Restating can never weaken a scope.
+        {
+          selector: 'ImportExpression[source.value=/lumina|Lumina|shuddl-2023/]',
+          message: "REQ-163: prior codebases are organ banks — no dynamic import() merges into the spine.",
+        },
         {
           selector: 'NewExpression[callee.name="Date"]',
           message: "REQ-024: this layer is deterministic — the caller supplies the instant (see aging.ts: 'the sweep supplies nowMs').",

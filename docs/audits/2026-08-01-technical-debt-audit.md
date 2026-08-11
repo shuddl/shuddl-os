@@ -627,6 +627,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 432 | §984 | **§985** | **REQ-024's LEDGER BAN WAS BLIND TO `import()` — AND MY FIRST PROBE CREDITED THE WRONG RED.** CLAUDE.md states REQ-024 as *statically linted*. The config is thorough and had already closed the harder route (§53 bans the `fetch` global, since *a model is reachable with raw HTTP and no import at all*, one named TSA exemption). It missed the ORDINARY one: **static import → lint exit 1; `await import("@anthropic-ai/sdk")` → exit 0.** ESLint's `no-restricted-imports` does not inspect an `ImportExpression` — a rule limitation, not a config error, which is why it survived. Closed with `no-restricted-syntax` on `ImportExpression`, same pattern list, adjacent so they cannot drift: **checked=6, caught=6, missed=0** across both forms. **The probe lied first** — a first sweep said 5/5 including the dynamic case; lint had exited non-zero for an unrelated reason. Running the dynamic case ALONE and reading WHICH rule fired exposed it |
 | 433 | §985 | **§986** | **THREE MORE BANS HAD §985's HOLE; TWO CLOSED, AND THE REPO'S OWN GATE STOPPED ME CLOSING THE THIRD.** Counted: 3 `no-restricted-imports` blocks, 4 bans — **every static caught, every dynamic MISSED**. Closed REQ-163's dynamic form in **both** scopes it needs (the ledger copy is not redundant: flat config REPLACES, so the ledger block was deleting the repo-wide ban — measured, `import("lumina-core")` passed in ledger and was caught in contracts). **§814 and §815 both failed my first attempt and were right to**: they parse this file's TEXT, so my shared-constant refactor was invisible to them — **the repo's chosen mechanism is *duplicate and gate the parity*, not *extract a builder***. Then §815 fired again when the adapters+edi block would have dropped three determinism selectors. **checked=5, closed=3, residual=2** (REQ-035/127 dynamic, edi) — named, not forced: closing them means restructuring three overlapping scopes |
 | 434 | §986 | **§987** | **THE RESIDUAL CLOSED — AND §986's OWN FIX HAD OPENED A FOURTH HOLE.** Probing before fixing: `await import("lumina-core")` was caught in `edi` and **PASSED in `adapters`** — that scope declares its own `no-restricted-syntax` (determinism selectors), which REPLACED the repo-wide REQ-163 dynamic ban §986 had just added. **§815 could not see it**: it compares the adapters-only block to the SHARED agents+adapters block, and the repo-wide block is a third participant never in that comparison — two gates for last-writer-wins, and the case that bit fell between them. Closed by APPENDING to the adapters-only block (superset holds by construction) and adding an **edi-only** block that overlaps nothing. **checked=9, caught=9, missed=0** across every ban × scope, plus a regression proving `Date.now()` is still caught in adapters. Fourth appearance in three phases: **adding a rule to a scoped block is a deletion somewhere else, invisible at the edit site** |
+| 435 | §987 | **§988** | **FIVE MORE SCOPES WERE DELETING THE REPO-WIDE BAN — CLOSED, AND NOW GATED.** §987 left a 4-instance rule with no gate. Swept every `no-restricted-syntax` block: **parse predicted 5 missing, probe found 3** — both right, because the probe wrote NEW files and two blocks are scoped to NAMED files (`build-214.ts`, `contacts.ts`) a new file can never match. Probing inside `build-214.ts` confirmed those too. **The parse was more precise than the behavioural check here — the reverse of the usual direction.** All five restated (restating can never weaken a scope, so no judgement and no exemption list): **checked=5, caught=5, holes=0**. `syntax-ban-inheritance.test.ts` gates the edge §814/§815 leave uncovered — and writing it exposed that **my §986 repo-wide block was formatted inconsistently**, so the parser swallowed the ledger block and demanded REQ-024 everywhere. A formatting inconsistency became a correctness bug in a gate |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -57847,3 +57848,53 @@ in one and infer. §986 probed ledger and contracts and missed adapters; §987 p
 The first attempt to file this section failed its index insert, and `phase-index.test.ts` went RED — *every phase gate appears in the index*. The cause was mine and one phase old: at §986 I removed a **draft** section and did not remove its **index row**, so row 433 existed twice. The insert asserts its anchor is unique, so it refused rather than guessing.
 
 Two gates behaved exactly as designed. The uniqueness assert stopped a blind write; the phase-index gate then refused the commit because a section existed with no row. **Neither is clever — both simply decline to proceed on an ambiguous record** — and between them a duplicated row and an unindexed section were caught in the same run. The stale row is deleted; the accurate one stands.
+
+## §988 — PHASE GATE: five more scopes were deleting the repo-wide ban — closed, and now gated
+
+§987 ended with a stated rule and four instances: *in a last-writer-wins config, adding a rule to a scoped
+block is a deletion somewhere else, and the deletion is invisible at the edit site.* A rule with four
+instances and no gate is the shape §938 opened this session on, so this closes it.
+
+### The sweep, and where the parse and the probe disagreed
+
+Every `no-restricted-syntax` block, checked for the repo-wide REQ-163 dynamic ban:
+
+```
+parse predicted 5 blocks missing it        probe found 3
+```
+
+Both were right about different things. My probe wrote a **new file** into each scope, so it could only reach
+blocks scoped by **glob** — `packages/rater/**`, `packages/agents/**`, `packages/ledger/src/gates/**`. Two
+blocks are scoped to **named files** (`build-214.ts`, `quarantine.ts`, `contacts.ts`), which a new file can
+never match. Probing *inside* `build-214.ts` confirmed the hole was real there too.
+
+**The parse was more precise than the behavioural check here** — the reverse of the usual direction, and the
+reason to keep both. §987's lesson was *plant in every scope*; the correction is *plant in every scope **the
+scope can contain***, which for a file-scoped block means editing that file.
+
+### Fixed, and the fix is uniform
+
+All five scoped blocks now restate the repo-wide selector. Restating can never weaken a scope, so there is no
+judgement in it and no exemption list to rot. Verified behaviourally across both kinds of scope:
+
+```
+checked=5  caught=5  holes=0
+contracts (control) · rater · agents · ledger/gates · build-214.ts (file-scoped, probed in-file)
+lint exit 0 · lint-guards 17/17
+```
+
+### The gate, and the formatting defect it exposed in my own §986 work
+
+`syntax-ban-inheritance.test.ts` requires every scoped block to carry the repo-wide `ImportExpression` bans —
+the edge §814 (imports) and §815 (shared→adapters superset) leave uncovered.
+
+Writing it found that the repo-wide block I added at §986 was formatted `["error", { … }]` on one line while
+every other block uses the multi-entry form. My parser's block terminator (`\n      ],`) therefore **ran past
+it and swallowed the ledger block**, making REQ-024's ledger-only ban look repo-wide — the gate demanded every
+scope carry it. Normalised the block to the standard form; the gate then identified exactly one required
+selector and flagged exactly the five real cases.
+
+**A formatting inconsistency became a correctness bug in a gate** — and it was mine, introduced two phases
+earlier while fixing a different hole. Caught because the required-set looked wrong, not because anything
+failed: the gate was RED either way, and only reading *what it demanded* separated a true finding from a
+parser artefact. [[attribute-the-red-before-crediting-it]], applied to a gate's own output.
