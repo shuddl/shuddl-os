@@ -599,6 +599,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 404 | §956 | **§957** | **THREE MORE ASSUMPTIONS MEASURED — ONE BENIGN, ONE BY-DESIGN, ONE IS 1,016 COMMITS.** (1) Repo is **private** — REQ-167's blast radius is contained, never stated anywhere. (2) The nightly has failed **8 consecutive nights**; the `backup` job exits **2**, which this repo defines as `EVIDENCE_EXIT.PREREQ_BLOCKED` — failing closed on the documented absent-OIDC hold, exactly as designed. Not a defect, but **8 straight reds is how an alarm stops being an alarm**: the first genuinely broken backup will land on a dashboard that has been red for weeks. (3) **`origin/main` is `0415148` (2026-07-31); local is 1,016 commits ahead.** This entire audit exists on one machine, and since `ci.yml` fires on push/PR, **CI has evaluated none of it** — with §956 the gate apparatus has neither authority nor execution over those commits. Both (3) and §956 filed as external holds; **neither pushed nor enabled by the audit** |
 | 405 | §957 | **§958** | **THE EVIDENCE IS ANCHORED TO COMMITS THE REMOTE DOES NOT HAVE — 4% OF THIS AUDIT'S SHAs RESOLVE.** §957's 1,016-commit gap has a second, larger cost: the governing records stamp their measurements with SHAs, and most of those commits exist only on this machine. Measured on `origin/main`: audit **5 of 111 (4%)**, RELEASE-EVIDENCE 5/16, GO-LIVE-CHECKLIST 23/38, PROJECT-STATE 7/12. This repo's epistemics rest on the stamp — the eight-field schema demands *Proof — command → verdict*, §932 says a figure without a re-derivable source rots — and **a stamp is what separates a measurement from an assertion**. Nothing is wrong: every measurement was really taken. But *you can verify this* is false for anyone not at this checkout. Not filed as a new hold — recorded on §957's row, because **a push makes all four 100% with no other action**, which makes it the cheapest open item on the board |
 | 406 | §958 | **§959** | **THE SURFACES ARE GENUINELY LIVE — AND RUNNING CODE 100 COMMITS BEHIND.** Re-ran the record's own probe against prod after 11 days: `api.shuddl.tech/v1/board` → **401** fail-closed as documented, command/driver/portal/track/mcp → **200**, api and billing roots 404 as expected. **A documented claim about live infrastructure, true in every particular** — recorded because a clean positive is worth its instrument too. But *the surfaces are live* and *the surfaces run current code* are different claims: against `origin/main` (= deployed `0415148`), **100 unpushed commits touch runtime src, 125 source files differ, 0 migrations differ** — every worker and surface, pure application code with no schema divergence. Not a defect (an old fail-closed build is a safe one), but only the first claim was written down. **A false clean caught by a positive control:** the pathspec `packages/*/src` matches ZERO files and reported *0 runtime commits* — the trap this repo's memory records verbatim |
+| 407 | §959 | **§960** | **THE REMEDIATION SAYS OIDC; THE WORKFLOW READS TWO SECRETS THAT DO NOT EXIST.** §957 left the nightly's mechanism inferred. Measured: `gh api …/actions/secrets` → **`{"total_count":0}`** — zero repository secrets, while the workflows reference `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` and `IDENTITY_DENYLIST`. That is the root cause of the 8-night red, and it settles a second question: **`identity-leak` is BLOCKED in CI too, not just local dev — the five BLOCKED gates are blocked everywhere.** **The defect:** `GO-LIVE-CHECKLIST:52` instructs *Configure GitHub Actions OIDC ↔ Cloudflare*, but `nightly.yml` authenticates with repository SECRETS and no workflow requests an `id-token` permission. **An operator would stand up OIDC and the nightly would still exit 2.** Corrected in place, naming both secrets |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -56458,3 +56459,55 @@ The only reason it surfaced is that I ran `git ls-files -- 'packages/*/src' | wc
 zero. **A count of zero and a corpus of zero are indistinguishable in the output and opposite in meaning**
 ([[a-false-clean-invites-no-follow-up]], [[floor-the-input-not-the-output]]). The corrected number is 100
 commits and 125 files — not 0.
+
+## §960 — PHASE GATE: the remediation says OIDC; the workflow reads two secrets that do not exist
+
+§957 recorded the nightly's eight red nights as *"the documented absent-OIDC hold behaving as designed"* and
+left the mechanism inferred. Measuring it produced the root cause **and** a defect in the fix instructions.
+
+### Measured
+
+```
+gh api repos/shuddl/shuddl-os/actions/secrets   →  {"total_count":0,"secrets":[]}
+```
+
+**Zero repository secrets.** The workflows reference four:
+
+| secret | referenced by | exists |
+|---|---|---|
+| `CLOUDFLARE_API_TOKEN` | `nightly.yml:42` | **no** |
+| `CLOUDFLARE_ACCOUNT_ID` | `nightly.yml:43` | **no** |
+| `IDENTITY_DENYLIST` | `ci.yml:49` | **no** |
+| `GITHUB_TOKEN` | `ci.yml:85` | (auto-provided by Actions) |
+
+That is the measured cause of §957's nightly failure — not an inference from a hold row — and it settles a
+second question: **`identity-leak` is BLOCKED in CI too, not only in local dev.** The board's five BLOCKED
+gates are blocked *everywhere*, which is a stronger and more honest statement than "the skip is local-dev only."
+
+### The defect: the fix instruction names the wrong mechanism
+
+`GO-LIVE-CHECKLIST:52` — *Cloudflare **OIDC** creds (F1-A)* — instructs: *"Configure GitHub Actions OIDC ↔
+Cloudflare; unblocks CI deploy + nightly snapshot."* But `nightly.yml` authenticates with **repository
+secrets**, not OIDC:
+
+```yaml
+CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+```
+
+and **no workflow requests an `id-token` permission** — the thing OIDC federation requires. The workflow's own
+header hedges (*"Cloudflare credentials are external (OIDC / repository secrets)"*), and the checklist resolved
+that ambiguity in the direction the code does not implement.
+
+**An operator following the checklist would stand up OIDC federation and the nightly would still exit 2.** A
+remediation instruction that does not fix the thing is worse than a blank one: it converts a five-minute task
+into a debugging session, at the moment someone is finally clearing a data-loss hold. Corrected in place,
+naming both secrets and preserving the struck original.
+
+### Not a defect, and worth saying
+
+`nightly.yml` backs up **staging only**, deliberately, with the reason written where it is made: scheduling a
+prod backup is *"an operator decision (which account's token, which retention, whose pager when it goes red),
+not a default this file may take on their behalf"*, and it notes that until then `preflight --env prod` keeps
+reporting no-backup for production — *"which is the truth."* **That is the standard the rest of this audit has
+been holding everything else to**, written by whoever built it, before anyone asked.
