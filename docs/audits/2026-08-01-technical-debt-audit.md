@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 511 | §1063 | **§1064** | **THE BOARD RE-EARNED AT HEAD — 26 GATES: 19 PASS · 2 FAIL · 5 BLOCKED.** Thirty-seven phases since the last full run (§1036 at `40f69a8`), with ~10 new gates landed in between. Ran `verify:merge` complete at `c59a599`: **identical shape to §1036**, and every verdict attributable. Both FAILs are the ONE uncommitted REQ-289 register row (`1 unaccounted register row(s)` → `unit-tests` + `coverage`); all 5 BLOCKED are absent private fixtures (`identity-leak` needs `IDENTITY_DENYLIST`; the four parity/fixture gates need the engagement vendoring). **Every browser gate is GREEN** — `perf`, `visual` 5, `a11y` 4, `e2e` 6 — alongside `design-audit`, `acceptance`, `invariants`, `append-chokepoint`, `rater-purity`. Zero repo-owned reds. And a fourth probe-shape error: my tally regex `[a-z-]+` silently dropped `a11y` and `e2e` because they contain DIGITS. |
 | 510 | §1062 | **§1063** | **WHAT THE RECORD MAY NOT SAY — MEASURED, AND IT IS EXACTLY TWO THINGS.** §1062 tripped a gate by QUOTING what it forbids, which will recur every time a phase documents a violation. Planted 7 forbidden patterns in a tracked doc: SQL `INSERT OR REPLACE INTO events`, a lumina import, `box-shadow`, a raw hex, an over-budget radius, `it.only`, and a non-existent pnpm script. **First probe fired NOTHING — because I wrote them as plain prose while the scanners read backticks and fenced blocks**, the same covers-the-shape-that-prompted-it error inside my own instrument. Re-run in the real forms: **5 of 7 are safe to quote** (those gates scan source only) and **2 are not** — an absolute home path and a non-existent `pnpm` script. Both already have escapes, and both are now mutation-proved: removing §996's marker REDs. |
 | 509 | §1061 | **§1062** | **I SHIPPED A CONSTITUTIONAL VIOLATION AND CALLED IT A FLAKE — IN THE SAME BREATH AS §1061's OWN LESSON.** §1061's post-add run read **4 failed** against a 3-failure baseline. I reported it as *"a known non-reproducing flake instance"* and committed. Measured after: it reproduces **3/3** and is not a flake — it is `absolute-paths.test.ts` refusing a `/Users/<name>` path, **REQ-167**, introduced by my own fixture (`const ROOT = "/Users/<name>/repo"`). The gate bans the SHAPE regardless of whether the name is real, which is right. So `1bce59f` shipped with a live identity-leak violation, and the sentence that let it through was the exact error §1061 had just named: **an explanation that fits the evidence is not a measurement of the cause.** Fixed (`/srv/checkout`), and the delta-explaining habit is now the finding. |
 | 508 | §1060 | **§1061** | **THE ORPHAN LEAK, MEASURED BOTH WAYS — AND §1054's CAUSE CORRECTED.** §1054 cleared 37 workerd orphans (19h, 159 MB, PPID 1) and implied sandboxes accumulate from normal operation. Measured both conditions: a suite that RUNS TO COMPLETION leaks **0**; the runner killed mid-flight leaks **1+**. So the leak is a property of ABNORMAL termination only. The chain is `pnpm` → `node (vitest)` → `workerd`: killing the wrapper leaves the node alive HOLDING workerd, and when that node dies workerd reparents to launchd — which is exactly the PPID-1 population found. Mitigated with `pnpm reap`, scoped by two refusals that matter more than the reap: **PPID 1 only** (a live run's workerd has a live parent, so it cannot kill a running suite or its own caller) and **this checkout's absolute path only**. 5 unit cases pin both refusals; proved end-to-end on a manufactured orphan. Filed OPEN, not FIXED — a remedy is not a prevention. |
@@ -63114,4 +63115,69 @@ has already deleted. Order matters: unstage first, then remove.
 **STOP.** The set of patterns this record cannot quote is measured rather than guessed — exactly two, both with
 a documented notation, one mutation-proved. `test:tools` 1,239 passed / 3 failed, the REQ-289 baseline · lint
 clean · citations 0 · tables OK.
+
+## §1064 — PHASE GATE: the board re-earned at HEAD
+
+**Why this phase.** The last three phases audited my own instruments. That is worth doing when the instruments
+are wrong, and §1062 proved they were — but it is not the same as knowing where the build stands. The last
+complete `verify:merge` was **§1036 at `40f69a8`**, thirty-seven phases and roughly ten new gates ago. A board
+that old is a memory, not a measurement.
+
+### The result at `c59a599`
+
+| | count |
+|---|---|
+| **PASS** | **19** |
+| **FAIL** | **2** |
+| **BLOCKED** | **5** |
+| total gates | **26** |
+
+Identical in shape to §1036, which is the useful part: ten gates were added in between and none of them
+introduced a red.
+
+**Both FAILs are one thing.** The aggregate names them as `unit-tests` and `coverage`, and both resolve to a
+single upstream cause the run states outright — `FAIL 1 unaccounted register row(s)`. That is the owner's
+uncommitted `REQ-289` row, still `M genesis/09-REQUIREMENTS-REGISTER.csv` in the working tree. Two gate names,
+one register line, zero repo-owned defects.
+
+**All 5 BLOCKED are absent private inputs**, unchanged and correctly BLOCKED rather than passed:
+`identity-leak` (no `IDENTITY_DENYLIST` secret), `fixtures` (six entries pending, not vendored), and the three
+parity gates (`rater-parity`, `invoice-parity`, `concierge-parse`) waiting on engagement fixtures. This is the
+posture CLAUDE.md rule 4 describes, and BLOCKED-not-PASS is the whole point of it.
+
+### What passing actually covers now
+
+Worth stating explicitly, because "19 PASS" is a number and the composition is the fact:
+
+- **Every browser gate is green** — `perf`, `visual` (5 blessed screenshots), `a11y` (4), `e2e` (6). Those were
+  the gates §1041-era work made blocking, and they are passing on their own evidence rather than advisory.
+- **Every constitutional gate is green** — `invariants` (I1–I8), `append-chokepoint`, `rater-purity` (REQ-004 /
+  REQ-024), `design-audit` (blocking since WP-10), `acceptance` (the five doc-00 demos).
+- **Every record gate is green** — `citations`, `table-shape`, `section-refs`, `traceability`,
+  `authority-coverage`, `bundle-ratchet`, `seed`.
+
+### A fourth probe-shape error, in the tally itself
+
+My first count returned **17 PASS**, and the paragraph above nearly said so. It disagreed with a cruder
+`grep -c` that said 19, and that disagreement is the only reason I looked.
+
+The cause: my extraction regex was `[a-z-]+` for the gate name — and **`a11y` and `e2e` contain digits**. Two
+green gates, silently outside the count, in a phase whose entire output is a count.
+
+That is the fourth instance this session of a probe's own shape deciding a finding (§1057's prose search,
+§1060's comment-stripper, §1063's plain-prose planting, this). The pattern across all four is identical: a
+character class or phrasing chosen from the examples in front of me, excluding a member of the class I had not
+pictured. **The defence that worked here was redundancy** — two instruments disagreeing, which is the only
+reason a silent exclusion ever surfaced.
+
+### What this phase says
+
+> **A board is perishable evidence, and the interval is the risk.** Thirty-seven phases of green sub-gates say
+> nothing about the aggregate, because the aggregate is where BLOCKED and skippability are decided. Re-running
+> it cost one command and confirmed that ten new gates landed without a single repo-owned red — which is
+> exactly the claim nobody could have made from the individual runs.
+
+**STOP.** The board is re-earned at HEAD rather than remembered: **26 gates — 19 PASS · 2 FAIL · 5 BLOCKED**,
+both FAILs traced to one owner-held register line, all five BLOCKED to absent private inputs, and zero
+repo-owned failures. `test:tools` 1,239 passed / 3 failed across three runs · lint clean · typecheck clean.
 
