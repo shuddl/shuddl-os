@@ -173,10 +173,42 @@ export function scanConfirmReviewed(): Set<string> {
   return new Set(Object.keys(readManifest().confirm_citations ?? {}));
 }
 
+/**
+ * §993 — A RECORDED HOME MUST BE A ROW *ABOUT* THE REQ, NOT A SENTENCE THAT MENTIONS IT.
+ *
+ * This scan used to accept `REQ-\d{3,}` ANYWHERE in the checklist, which made the accounting requirement
+ * satisfiable by an incidental mention — a REQ cited as the *reason for deferring something else* would
+ * account for its own deferral. MEASURED AT §993 on the row where it bites: REQ-289's only three checklist
+ * mentions are all the phrase "while REQ-289 is uncommitted", inside rows about REQ-076, EDI purpose codes
+ * and a resilience property. Had the owner set it to a deferral, `check:coverage` would have gone green on
+ * an accounting that does not exist — the "false clean invites no follow-up" shape.
+ *
+ * THE RULE, taken from the document's own column convention rather than an arbitrary index: the ID must
+ * appear in the `Item` or `Source … REQ` column (cells 0–1) of a table row. Those are the columns that make
+ * a row ABOUT a REQ; cells 2+ are `Nature` / `Fix` / `Action` / `Proof` — narrative, where a passing
+ * reference proves nothing. Both checklist table shapes agree on the first two columns:
+ *   L32  Item | Source WP/REQ    | Action to complete | Blocks go-live? | Status
+ *   L179 Item | Source file / REQ | Nature            | Fix             | Severity
+ *
+ * NON-BREAKING, MEASURED, NOT ASSUMED: of 104 deferred rows, 88 are manifest-keyed and 16 rest on checklist
+ * prose alone. All 16 name their REQ at cell 0 or 1 (max = 1); REQ-289's best is cell 3. The rule passes
+ * 16/16 and rejects the one hole, with a margin rather than on the boundary.
+ *
+ * The manifest remains the stronger, explicit route: a keyed `dispositions` entry needs no table row.
+ */
+const HOME_CELLS = 2;
+
 export function scanRecordedHomes(): Set<string> {
   const out = new Set<string>();
   if (existsSync(CHECKLIST_PATH())) {
-    for (const m of readFileSync(CHECKLIST_PATH(), "utf8").matchAll(/REQ-\d{3,}/g)) out.add(m[0]);
+    for (const line of readFileSync(CHECKLIST_PATH(), "utf8").split("\n")) {
+      if (!line.startsWith("| ")) continue;
+      // `\|` escapes inside code spans are not separators — the trap §945 recorded four times.
+      const cells = line.split(/(?<!\\)\|/).slice(1, -1);
+      for (const cell of cells.slice(0, HOME_CELLS)) {
+        for (const m of cell.matchAll(/REQ-\d{3,}/g)) out.add(m[0]);
+      }
+    }
   }
   for (const id of Object.keys(readManifest().dispositions ?? {})) out.add(id);
   return out;
