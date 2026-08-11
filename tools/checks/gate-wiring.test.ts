@@ -348,8 +348,8 @@ describe("REQ-118 §656: the test script still chains the tools suite", () => {
   // durable red, which is a property of the repo's ledger of open rows and NOT of the script. Nobody filing a
   // red can be expected to re-derive it, so it is a gate.
   const TWO_HALF_GATES: { script: string; toolsHalf: string; recursiveHalf: string }[] = [
-    { script: "test", toolsHalf: "test:tools", recursiveHalf: "pnpm -r --if-present run test" },
-    { script: "typecheck", toolsHalf: "typecheck:tools", recursiveHalf: "pnpm -r --if-present run typecheck" },
+    { script: "test", toolsHalf: "test:tools", recursiveHalf: "--if-present run test" },
+    { script: "typecheck", toolsHalf: "typecheck:tools", recursiveHalf: "--if-present run typecheck" },
   ];
 
   it("§941: the roster covers every gate script that chains internally (no new instance escapes)", () => {
@@ -358,7 +358,10 @@ describe("REQ-118 §656: the test script still chains the tools suite", () => {
     const gateScripts = [...gatesFor("merge"), ...gatesFor("release")].flatMap((g) => (g.kind === "cmd" ? [g.script] : []));
     const chaining = [...new Set(gateScripts)].filter((s) => {
       const cmd = PKG.scripts[s];
-      return typeof cmd === "string" && cmd.includes("pnpm -r --if-present run");
+      // Match the SHAPE, not one flag order. The first version required the contiguous string
+      // "pnpm -r --if-present run", so adding --no-bail/--workspace-concurrency (§949) made this
+      // discovery half find ZERO chaining scripts — the rule would have silently governed nothing.
+      return typeof cmd === "string" && /pnpm\s+-r\b/.test(cmd) && /--if-present\s+run/.test(cmd);
     });
     const unrostered = chaining.filter((s) => !TWO_HALF_GATES.some((g) => g.script === s));
     expect(
@@ -381,6 +384,24 @@ describe("REQ-118 §656: the test script still chains the tools suite", () => {
         `identically to the first half's failure. §940 measured exactly that on \`test\` — 3,269 tests across ` +
         "17 suites, every one green, not being run, behind the owner's REQ-289 row. Capture both exit codes.",
     ).toBe(false);
+  });
+
+  it.each(TWO_HALF_GATES)("§949: `$script` reports EVERY package, not just up to the first failure", ({ script }) => {
+    // §940 named this residual and accepted it after watching `--no-bail` cascade workerd socket failures.
+    // That experiment changed TWO variables: §949 measured them apart and the cascade was CONCURRENCY, not
+    // no-bail. Without `--no-bail`, `pnpm -r` stops at the first failing package — MEASURED: one planted
+    // failure in `packages/contracts` left only **3 of 17** suites reporting, with api (824 tests), ledger
+    // (697), rater, billing, mcp, translator, agents and all three app surfaces never executed. The gate's
+    // coverage then depends on where in the topological order the first failure lands, not on the gate.
+    const cmd = PKG.scripts[script] as string;
+    expect(
+      cmd,
+      `\`${script}\` does not pass --no-bail to its recursive half (script: "${cmd}"). pnpm then bails at the ` +
+        "first failing package and the rest of the workspace is never run — §949 measured 3 of 17 suites " +
+        "reporting. For `test` this must be paired with --workspace-concurrency=1: running every " +
+        "vitest-pool-workers suite at once exhausts workerd's local sockets and cascades FALSE failures " +
+        "(§940 measured that). `typecheck` needs no-bail alone; tsc binds no sockets.",
+    ).toContain("--no-bail");
   });
 
   it.each(TWO_HALF_GATES)("§656/§940/§941: `$script` fails if EITHER half fails (polarity)", ({ script, toolsHalf }) => {

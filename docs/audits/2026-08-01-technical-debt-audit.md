@@ -588,6 +588,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 393 | §945 | **§946** | **TWO LAUNCH-GATE ROWS STILL NAME A BUILD AS THE BLOCKER; THE BUILD SHIPPED IN JULY.** The `acceptance` gate is honest (green = *the code-provable half*; §607 closed its spine silent-drop), which made the real gap findable in the FILMED half's tracking. `GO-LIVE-CHECKLIST` L116 (demo #4) still says action *"Build MCP intake surface (WP-13)"* / status **Deferred WP-13**, and L115 (demo #2) **Depends WP-14** — while `PROJECT-STATE:9,98` states *All sixteen WPs are closed*, both close-outs read *complete*, and demo 4's spine runs **green inside `pnpm test:acceptance`**. The blocker migrated from *build it* to *bind, flip and film it*; the rows did not follow. **Third instance in three phases** (§937 C3, §944 L417). Corrected in place; `wp-blocker-staleness.test.ts` reads PROJECT-STATE's all-sixteen assertion and computes the rule |
 | 394 | §946 | **§947** | **THREE PROBES INTO PRODUCT CODE, THREE CLEAN NEGATIVES — AND THE RECORD GOT CHECKED FIRST.** (1) Staging can email a real person — `resolveRecipient` has no env check or allowlist, and the safety rests on a DATA POLICY not a mechanism. **Already recorded**, more precisely than I'd have written it: `DEPLOYMENT.md:29` (*the only real address wired in staging is an owner test inbox*) + a Med awareness row with a disable procedure + REQ-154's *staging PII audit clean* DoD. (2) Both Biller `issued_send_pending` reasons are covered by 3 test files each, including the Command surface's DunningQueue. (3) `gate-wiring` reads `package.json` cwd-relative, but pnpm sets a script's cwd to its package root — measured from two subdirectories, full 1,196-test suite identical. No gate added: it would be testing pnpm. Each probe's KILL COUNT stated, because a clean negative is worth only its detection power |
 | 395 | §947 | **§948** | **STOPPING POINT — 19 PASS · 2 FAIL · 5 BLOCKED at `8fc2c53`.** Ten phases closed six classes, all invisible to the 26 gates beforehand: 2/2 config knobs that repealed an enforcement by one token (one of them CLAUDE.md rule 7), 2/2 gate scripts running a fraction of their corpus (`test` reached **1,177 of 4,446 tests**), a deploy ordering enforced by a comment, the go-quiet class enumerated (10 entrypoints, 0 defaulting to local), three rotted summaries, and one miscount. **10 gates · 34 mutations RED · 3 corrections to my own published work.** Remaining is owner-held: REQ-289's classification, 9 private fixtures + `IDENTITY_DENYLIST`, and 17 repo-owned rows each needing a REQ row or an owner decision. Caveat recorded: while REQ-289 is unclassified, `unit-tests` is a BINARY exit code — read the test output, never the board line, to judge whether something new broke |
+| 396 | §948 | **§949** | **§940'S RESIDUAL QUANTIFIED AT 3-OF-17, AND ITS REASONING CORRECTED.** §940 named *"pnpm -r still bails at the first failing package"* and rejected `--no-bail` after watching workerd exhaust sockets. Measured: one planted failure in `packages/contracts` and **only 3 of 17 suites run** — api (824), ledger (697), rater, billing, mcp, translator, agents and all three apps never execute. The gate's coverage is a property of WHERE the first failure lands. **§940 changed two variables and blamed the wrong one:** the cascade came from CONCURRENCY, not no-bail. `--workspace-concurrency=1 --no-bail` → **17/17, zero socket errors, +19s (12%)**. `typecheck` takes `--no-bail` alone (tsc binds no sockets) and names **3** failing packages where the default named 1. Gate now requires `--no-bail` on both |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -55847,7 +55848,7 @@ and probe 3's class produced sixteen real fixes at §554–§559. **A clean nega
 known kill count is evidence; a clean negative from an untested one is silence** — and this session has now
 twice written the positive control before believing the negative (§943's mode sweep, §947's three).
 
-## §948 — STOPPING POINT: the assurance system audited itself, and the remaining work is owner-held
+## §948 — PHASE GATE: STOPPING POINT — the assurance system audited itself, and the remaining work is owner-held
 
 **Measured at `8fc2c53`: 26 gates — 19 PASS · 2 FAIL · 5 BLOCKED**
 (`artifacts/release/8fc2c53…/merge/gate-merge-2026-08-11T01-37-54-593Z.json`). §947 returned a clean negative
@@ -55901,3 +55902,65 @@ Stated as conditions, not intentions, so a future reader can decide mechanically
 Any of: the REQ-289 row gains a classifiable `status`/`wp`; a private fixture is vendored; an owner answers
 L419/L420/L405; a binding event flips a `DELIBERATELY ABSENT` claim. **Nothing on this list is mine, and
 nothing left that is mine is undone.**
+
+## §949 — PHASE GATE: §940's residual quantified at 3-of-17, and §940's reason for accepting it was wrong
+
+§948 called a stopping point on the classes it had closed. This reopens exactly one of them, on the trigger
+§940 wrote for itself: a residual that was **named but never measured**.
+
+§940 fixed the `unit-tests` gate so the package suites run at all (they had not, for as long as REQ-289 has
+been red). It then recorded a remaining limit — *"`pnpm -r` still bails at the first failing package"* — and
+rejected `--no-bail` on evidence: every worker suite ran concurrently and workerd exhausted local sockets,
+cascading false failures. **The rejection was right about what it saw and wrong about why.**
+
+### The residual, measured
+
+Planted one failing test in `packages/contracts` — an early, widely-depended-on package — and ran the gate's
+recursive half:
+
+```
+pnpm -r --if-present run test   →   3 of 17 suites reported
+```
+
+**Fourteen suites never executed**: api (824 tests), ledger (697), rater, billing, mcp, translator, agents, and
+all three app surfaces. So the gate's effective coverage is not a property of the gate — it is a property of
+*where in the topological order the first failure happens to land*. On a red day it can be under 20%.
+
+### Two flags, conflated
+
+§940 tested `--no-bail` **with pnpm's default parallelism**. The socket exhaustion came from running every
+`vitest-pool-workers` suite at once — from **concurrency**, not from no-bail. Separating them:
+
+| | suites reporting | workerd socket errors | wall |
+|---|---|---|---|
+| `--if-present` (today) | **3 of 17** (with an early failure) | 0 | 156s |
+| `--no-bail` + default concurrency (§940) | — | **cascading** | — |
+| `--workspace-concurrency=1 --no-bail` | **17 of 17** | **0** | 175s |
+
+**+19s, ~12%, for a gate that reports every package on every run.** For a merge gate that is not a trade-off
+worth deliberating. The workerd hazard is eliminated rather than mitigated, because sequential execution never
+contends for the sockets in the first place.
+
+`typecheck` gets `--no-bail` alone — `tsc` binds no sockets, so parallelism is safe and the sequential cost is
+unnecessary. Measured with one planted type error in `packages/ledger`: the default bails having named **1**
+failing package; `--no-bail` names **3** (ledger and both consumers that inherit the broken type). One edit,
+three times the diagnostic per run.
+
+### The lesson is about the shape of the earlier evidence
+
+§940's measurement was real, its conclusion followed from it, and it was still wrong — because the experiment
+changed **two variables** and attributed the result to the one I was thinking about.
+[[attribute-the-red-before-crediting-it]] is usually about crediting a mutation for the wrong RED; this is its
+mirror: **crediting a rejection to the wrong cause.** A residual accepted on a two-variable experiment is worth
+re-testing before it is written down as a limit.
+
+**A slip of my own, caught by a gate I wrote three phases ago.** §948's commit shipped RED: I titled it
+`## §948 — STOPPING POINT: …` while adding its index row, and `phase-index.test.ts` checks BOTH directions —
+an index row must name a real `PHASE GATE` heading. It went unnoticed because my precondition chain for that
+commit ran lint, typecheck, `verify:docs` and `check:tables` but **not `test:tools`**, the slowest gate and the
+one that owns this rule. §942's lesson was *chain the gates rather than listing them*; the narrower form is
+**chain the gate that owns the file you edited** ([[run-the-suite-that-owns-the-file]]). Heading normalised to
+`## §948 — PHASE GATE: STOPPING POINT — …`, which is what it always was.
+
+`gate-wiring.test.ts` now requires `--no-bail` on both roster members, so bail-hides-corpus cannot return
+silently — the same file that §940/§941 taught to require both halves now also requires all packages to report.
