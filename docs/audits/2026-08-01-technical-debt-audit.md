@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 516 | §1068 | **§1069** | **`recall` USED, AND IT CAUGHT MY OWN MISREADING — I CALLED A *SKIPPED* GATE *CLEAN*.** First real use of §1068's tool, on the 17 repo-owned OPEN rows. L413 (*REQ-167 unverified in every local run*) contradicted something I had reported at §1066: `check:identity : clean`. Measured — **I had read the EXIT CODE past a message saying the opposite.** Plain run prints *"Lint SKIPPED"* and exits **0**; `--mode merge` emits `executed:false, assertions:0` and exits **2**. `verify:dev` calls the plain form, so a local `pnpm verify` goes green having never checked REQ-167 — precisely what L413 says. Re-verified and stamped; **fully pinned by 18 cases** (local→warn, merge→BLOCKED, release→BLOCKED, CI+no-denylist→fail, empty-denylist→absent). `recall` took three queries to land on §125/§247, which had already characterised it — no re-derivation. |
 | 515 | §1067 | **§1068** | **`pnpm recall` — MAKING A THRICE-BROKEN RULE CHEAP INSTEAD OF WRITING IT AGAIN.** §1067 was the third violation of *search the record before the code*, and §1062 already established that writing a rule down does not install it. The cause is mechanical: the record is **63,390 lines across 1,052 phase sections**, and a raw grep for `NotConfiguredMigrator` returns **8 bare lines, none naming the phase that decided it** — so reading them costs more than re-tracing the code, and re-tracing wins silently every time. `recall` maps each hit to the section heading (or checklist ROW) that OWNS it: the query §1067 should have run now surfaces **§798's actual heading** in one second. 6 tests, including one run against the LIVE record so a rename fails loudly rather than returning empty. |
 | 514 | §1066 | **§1067** | **I RE-DERIVED §798 INSTEAD OF SEARCHING FOR IT — THIRD INSTANCE.** Chasing §1066's loose end (which dormant collaborators lack a degradation test) produced a real correction and a wasted phase. **The correction:** §1066 said the 11 dormant doubles *"throw"*; measured individually, **7 throw and 3 return a benign `null`** — a generalisation from the two files I had open. The verdict survives (both shapes prevent absorption) but the mechanism was invented. **The waste:** `NotConfiguredMigrator` has zero test references, and I traced its call graph to conclude it is opt-in rather than the default — which is **verbatim what §798 concluded**, with a reopen trigger, 269 sections ago. Re-verified that trigger instead: `selectMigrator` still returns `DeterministicMigrator`, still pinned. |
 | 513 | §1065 | **§1066** | **THE TEST-DOUBLE SWEEP — 15 DOUBLES, EXACTLY ONE MASKED A LIVE DEFECT, AND IT IS ALREADY PINNED.** §1065's rule (*a double's correctness can be a defect's camouflage*) applied to every double in the repo. **11 are `NotConfigured*`** — they THROW, so they can absorb nothing. **`RecordingLedger` already does it right**, keeping `events` (deduped) AND `appendCalls` (*"includes redelivered duplicates the sequencer would dedupe"*) — §1065's lesson implemented before I wrote it. **`RecordingSender` dedupes and is FAITHFUL**: the real `ResendSender` sends an `Idempotency-Key` header, so the double models the provider rather than hiding a defect. `FakeTsaClient` absorbs nothing. That leaves `RecordingTransport`, pinned at §1065 — and the severity framing checks out: **no live EdiTransport exists**, only the dormant thrower, so the duplicate harms nobody until one is wired. |
@@ -63457,4 +63458,78 @@ same answer and feels like work.
 **STOP.** The thrice-broken rule now costs one command, with its attribution unit-pinned and its discoverability
 tested against the live record. `test:tools` 1,245 passed / 3 failed — the REQ-289 baseline · lint clean ·
 typecheck clean.
+
+## §1069 — PHASE GATE: the tool's first use catches its author
+
+**Why this phase.** §1068 built `recall` because a rule had failed three times. A tool built to fix a process
+failure is worth exactly what it finds on its first real use, so this phase spent it on the **17 repo-owned
+OPEN rows** — asking the one question the tool is for: *has a later phase already decided this?*
+
+### It caught me, not the ledger
+
+**L413** — *"REQ-167 is unverified in every local run"* — contradicted something I had written **three phases
+ago**. At §1066 I reported, in a verification block:
+
+> `check:identity : clean`
+
+That was wrong, and the way it was wrong matters: I ran the command, got **exit 0**, and printed "clean"
+**without reading its output**. What it actually says:
+
+```
+REQ-167: no denylist available (set IDENTITY_DENYLIST secret or .identity-denylist.local).
+Lint SKIPPED — wire the secret before external contribution
+```
+
+Measured in both modes:
+
+| invocation | output | exit |
+|---|---|---|
+| `pnpm check:identity` | **Lint SKIPPED** | **0** |
+| `pnpm check:identity -- --mode merge` | `status:BLOCKED, executed:false, assertions:0` | **2** |
+
+This is the §1062 failure in a quieter register. There I narrated a numeric delta instead of measuring it; here
+I read a **process exit code as a verdict** while the process was printing the opposite. An exit code is a
+summary the author of the tool chose; here they deliberately chose 0 so a local `verify` is not blocked on a
+secret nobody has locally.
+
+### The exposure L413 names, located precisely
+
+`verify:dev` **does** run `check:identity` (plain form). `verify:merge` does not call it directly — it goes
+through `run-gate.ts --profile merge`, which runs it in merge mode and gets BLOCKED. So:
+
+> **A local `pnpm verify` can go green having never checked REQ-167.**
+
+That is by design and is the same advisory-local / blocking-merge shape CLAUDE.md rule 7 records for the
+design, perf and browser gates. It is not a defect; it is a residual worth knowing about, which is why the row
+exists.
+
+And it is **thoroughly defended** — `identity-leak.test.ts` carries **18 cases**, including `local → warn`,
+`merge → BLOCKED` (*"the skip that used to green"*), `release → BLOCKED`, `CI + no denylist → fail` (*"was exit
+0 — this was the fail-open"*), and **an empty denylist treated as absent** (nothing was actually asserted). The
+asymmetry I nearly mis-reported is pinned from both sides.
+
+Row re-verified and stamped with the measurement rather than closed: the denylist is a secret, so this stays
+owner-held.
+
+### The tool did its job
+
+Three `recall` queries — `check:identity`, `Lint SKIPPED`, and the row's own text — landed on **§125** (*"reports
+'no denylist available … Lint SKIPPED', failing closed"*) and **§247** (*"every local run reports Lint SKIPPED"*).
+Both had characterised this before. **I re-derived nothing.** §1067 spent a phase rebuilding a conclusion the
+record held; this phase read it in seconds and spent the time on what was actually new — that my own §1066
+report was wrong.
+
+### What this phase says
+
+> **An exit code is a claim by the tool's author about what mattered; the output is what happened.** Reading
+> the first as the second is how a SKIPPED gate becomes a green line in a verification table — and it is
+> undetectable afterwards, because "clean" and "skipped" leave the same trace in a summary.
+
+The narrower rule, now twice-earned in eight phases: **when a gate reports, quote it.** §1062 narrated a count
+it had not reproduced; §1066 printed a verdict it had not read. Both were single lines in verification blocks,
+both looked like diligence, and neither cost more than one extra command to get right.
+
+**STOP.** L413 re-verified in both modes and stamped, its 18-case defence confirmed, and a false verification
+line from §1066 corrected at its source. `recall`'s first use found a defect in the auditor rather than the
+audited. `test:tools` 1,245 passed / 3 failed — the REQ-289 baseline · lint clean.
 
