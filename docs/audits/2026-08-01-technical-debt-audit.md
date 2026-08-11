@@ -631,6 +631,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 457 | §1009 | **§1010** | **WHAT HAPPENS THE DAY `docs/gtm/` IS COMMITTED — AND THE GUARD THAT IS SWITCHED OFF.** §1000 asked what a BLOCKED gate does on the day it unblocks; the same question applies to a **corpus** about to enter the gated tree. `docs/gtm/` + `docs/research/` are untracked, so every gate is blind by construction — and they are an ACTIVE workstream, so the commit is a matter of when. Measured: **72 `.md`, of which 38 are file-sync DUPLICATES** (§997's gate fires the moment one tracked file makes the dir repo-owned) · **2 of 405 table rows** malformed · ~5 `§N` refs (all `§0`, likely genesis-style) · **≤33 of 101 citations** unresolvable — stated as an **upper bound, not a verdict**, since my probe tested plain path existence while the real gate has a partial-path resolver. **The headline is not in that table:** the pending corpus is a GTM workstream — messaging, ICP list, founder call script — i.e. **the single most name-bearing content this repo will ever hold** — and REQ-167's identity gate, which §1002 PROVED detects and redacts, is **BLOCKED** on an unbound denylist. Committing first would put the most name-bearing content into the repo **with the name-checker switched off — not a failure, a silence**, recoverable only by history rewrite. Finding is the SEQUENCE: bind the denylist → delete the 38 duplicates → then commit |
 | 456 | §1008 | **§1009** | **THE WORLD-TIME CLASS, ENUMERATED — 1 HAS A CADENCE, 3 CANNOT GET ONE HERE.** §1008 found the first claim that dies while the tree sits still; this counts the class. **15 external holds, 10 world-querying, and 3 that can change with NO signal**: Dependabot posture, workflow token scope, branch protection — all pure GitHub account settings whose expiry trigger reads *re-run the `gh api` command*, which is **an instruction, not a cadence** (§995: 6 of 17 such triggers had already fired unnoticed). The other seven are provisioning holds and are safe for a structural reason: **the act that clears them is the act that re-runs their proof.** **The asymmetry that matters:** two of the three are known-BAD today, which cannot regress — the risk is the moment branch protection is ENABLED, since §957 calls it *the authority of all 26 gates* and nothing would notice it switched off again. **No automation added, deliberately:** reading those settings needs a scope beyond the `read` default, i.e. a `permissions:` block — and §975 declined one because an explicit block grants exactly what it lists, REMOVING the others, on a CI about to run for the first time. Chasing a monitoring nicety would be the tail wagging the dog. Left owner-held **with the unlock named precisely** rather than as *someone should check sometimes* |
 | 455 | §1007 | **§1008** | **REPO-TIME vs WORLD-TIME — THE ONE CLAIM THAT DIES WHILE THE TREE SITS STILL.** §995's expiry gate keys every trigger on a FILE CHANGING; a vulnerability verdict is the opposite — **the tree sits still and the answer changes**, because the advisory database moves underneath it. Exposed a real gap: `pnpm audit --prod` lives in `ci.yml` on `pull_request`+`push`, with **0 PRs ever** and CI having evaluated none of the 1,018 commits; Dependabot is **disabled**; `nightly` ran no world-time check at all. §976 called the in-repo half fixed because §962 restored the step's guard — true and insufficient: **restoring a step that never runs changes nothing; an event-triggered check on an event that does not occur is not a slower mechanism, it is no mechanism.** **And it corrects §966 by half:** *a scheduled audit over a frozen commit is a clock, not a check* is right for the register↔code diff (repo-time: same commit, same answer forever) and **exactly backwards for a world-time check**, where a frozen commit is what holds every variable except the one you are watching. Fix: a `dependency-audit` nightly job mirroring `orphan-audit` (1 named step — §980's tripwire fires above 3 — 3 `uses`, 10/10 refs SHA-pinned), scoped `--prod` so a dev advisory cannot make the job noisy. **Places a mechanism, does not start one:** nightly runs against `origin/main`, 1,016 behind, so it activates on the push |
 | 454 | §1006 | **§1007** | **HAS A SECRET EVER BEEN COMMITTED? — THE SCAN CI WAS CONFIGURED TO RUN AND NEVER HAS.** `ci.yml:95` runs **gitleaks with `fetch-depth: 0`**, and §1005 established CI has evaluated **none** of the 1,018 local commits — so the history-wide secret scan has never executed, on the eve of a push that would publish that history. gitleaks is not installable here, so this is an INDEPENDENT scan, not a substitute. **Tracked tree: 968 files, 10 patterns, 2 hits — both test constants that say so in their own value** (`edi-shared-secret-do-not-use-in-prod`). **History: 1,511 commits, 7 patterns, ZERO.** Both scanners **positive-controlled**, because nine zeros is a claim about the scanner: planting `AKIA…`/`sk_live_…` is DETECTED, and `git log -G` finds a known fixture secret in **12 commits** while returning 0 for the never-committed control — without that middle row, seven zeros were indistinguishable from seven broken invocations (§1002's no-op shape, one layer up). **Scope stated: this REDUCES the probability of a surprise on push, it does not eliminate it** — gitleaks' default ruleset is far larger, and the real verdict arrives when CI runs |
@@ -59460,3 +59461,65 @@ sometimes"*: one `permissions:` block on a new nightly job, decided by whoever w
 good one, and that is when a cadence starts being worth its cost · a `permissions:` block is added for any
 reason, since the marginal cost of the three `gh api` checks then drops to zero · a new external hold's proof
 is a live query with no clearing act attached.
+
+---
+
+## §1010 — PHASE GATE: what happens the day `docs/gtm/` is committed — and the guard that is switched off
+
+§1000 asked what a BLOCKED gate does on the day it unblocks. The same question applies to a **corpus** that is
+about to enter the gated tree, and there is one sitting in this checkout right now: `docs/gtm/` and
+`docs/research/` are untracked, so every gate is blind to them by construction (§1002 confirmed the corpus is
+`git ls-files`). They are also an *active* workstream, which means the commit is a matter of when.
+
+Measured against the gates they would meet:
+
+| what lands | count | which gate |
+|---|---|---|
+| `.md` files total | **72** | — |
+| of which **file-sync duplicates** (` N.md`) | **38** | `no-sync-duplicates` (§997) — fires the moment ONE tracked file makes the directory repo-owned |
+| malformed table rows (cell count ≠ header) | **2** of 405 | `check-table-shape` |
+| `§N` references | 224, ~5 unresolvable | `section-refs` — and the five are all `§0`, almost certainly genesis-style `doc 13 §01` refs rather than audit sections |
+| `path:line` citations | 101, **≤33** unresolvable | `citation-links` — **upper bound, not a verdict**: my probe tested plain path existence while the real gate carries a partial-path resolver (§240), so the true figure is lower. Most are bare basenames (`cors.ts:44`, `App.tsx:278`) rather than repo-relative paths |
+
+None of that is serious. **The headline is what is not in the table.**
+
+### The one content class REQ-167 exists for, meeting a gate that is BLOCKED
+
+CLAUDE.md forbids *"any tenant/person/customer/incumbent-vendor name in any repo artifact (REQ-167
+identity-leak lint)"*. The pending corpus is a go-to-market workstream — messaging, an ICP list, a founding-carrier
+programme, a founder call script, a deposit flow. **Prospect and customer names are exactly what such documents
+contain**; it is the single most name-bearing content class this repository will ever hold.
+
+And §1002 measured the gate that would catch them: it **works** — it detects a planted term in a tracked file,
+names the file and redacts the term — but it is **BLOCKED**, because `IDENTITY_DENYLIST` is unbound. It reports
+`PENDING` locally and `BLOCKED` under merge, and it scans nothing.
+
+> **Committing `docs/gtm/` before binding the denylist would put the most name-bearing content in the project
+> into the repository with the name-checker switched off.** Not a failure — a silence.
+
+That is not a defect in anything today. It is a **sequencing** hazard, and the ordering is the whole finding:
+
+```
+1. bind IDENTITY_DENYLIST        (the gate goes from BLOCKED to enforcing — §1002 proved it detects)
+2. delete the 38 sync-duplicates (or they enter the tracked tree and §997's gate reds on all 38)
+3. THEN commit docs/gtm/
+```
+
+Reversing steps 1 and 3 is recoverable only by a history rewrite, which is the same irreversibility §1007
+weighed for secrets — and for the same reason: a push publishes history, not just the working tree.
+
+### Why the audit does not act on any of this
+
+Every item is in the owner's own untracked workstream. §997 already set that boundary — *untracked files in
+someone else's active work are theirs to remove* — and the sequencing above is a recommendation attached to an
+act only the owner performs. What this phase adds is that the act now has a **measured** cost and a stated
+order, rather than being discovered as 38 red gate findings and an unscanned name corpus after the fact.
+
+### Phase gating
+
+**STOP.** The pending-corpus question is answered for the one corpus that exists.
+
+**Re-open when:** any file under `docs/gtm/` or `docs/research/` becomes tracked — the counts above become
+live and `no-sync-duplicates` is the first gate to fire · `IDENTITY_DENYLIST` binds, at which point step 1 is
+done and the ordering constraint dissolves · another fully-untracked directory appears inside the repo, which
+is the general form of this hazard.
