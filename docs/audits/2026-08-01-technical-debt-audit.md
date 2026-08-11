@@ -598,6 +598,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 403 | §955 | **§956** | **THE LAST LINK IS OPEN — `main` HAS NO BRANCH PROTECTION.** Walked the chain from *a test file exists* to *its failure stops a merge*: links **1–6 are each gated** (`test-collection` · §709 · §941 unconditional-run · §949 `--no-bail` · §656 polarity · §807 roster-by-name · §691 CI invokes `verify:merge`). Link 7 is a GitHub setting the audit had only ever ASSUMED — *"the branch protection this repo assumes is outside it"*. **Measured: `gh api …/branches/main/protection` → `{"message":"Branch not protected","status":404}`.** CI runs and computes the full 26-gate verdict; the verdict has no authority. Rule 7's *a violation fails the merge*, rule 8's *a cross-tenant read is a build failure* and rule 1's *CI blocks orphans* are true of the COMMAND and untrue of the REPOSITORY. `docs/ops/` carried **no** mention of branch protection — now an External hold with the measured verdict, a named owner and a 2-second re-check. **NOT enabled by the audit** — governance is the owner's call |
 | 404 | §956 | **§957** | **THREE MORE ASSUMPTIONS MEASURED — ONE BENIGN, ONE BY-DESIGN, ONE IS 1,016 COMMITS.** (1) Repo is **private** — REQ-167's blast radius is contained, never stated anywhere. (2) The nightly has failed **8 consecutive nights**; the `backup` job exits **2**, which this repo defines as `EVIDENCE_EXIT.PREREQ_BLOCKED` — failing closed on the documented absent-OIDC hold, exactly as designed. Not a defect, but **8 straight reds is how an alarm stops being an alarm**: the first genuinely broken backup will land on a dashboard that has been red for weeks. (3) **`origin/main` is `0415148` (2026-07-31); local is 1,016 commits ahead.** This entire audit exists on one machine, and since `ci.yml` fires on push/PR, **CI has evaluated none of it** — with §956 the gate apparatus has neither authority nor execution over those commits. Both (3) and §956 filed as external holds; **neither pushed nor enabled by the audit** |
 | 405 | §957 | **§958** | **THE EVIDENCE IS ANCHORED TO COMMITS THE REMOTE DOES NOT HAVE — 4% OF THIS AUDIT'S SHAs RESOLVE.** §957's 1,016-commit gap has a second, larger cost: the governing records stamp their measurements with SHAs, and most of those commits exist only on this machine. Measured on `origin/main`: audit **5 of 111 (4%)**, RELEASE-EVIDENCE 5/16, GO-LIVE-CHECKLIST 23/38, PROJECT-STATE 7/12. This repo's epistemics rest on the stamp — the eight-field schema demands *Proof — command → verdict*, §932 says a figure without a re-derivable source rots — and **a stamp is what separates a measurement from an assertion**. Nothing is wrong: every measurement was really taken. But *you can verify this* is false for anyone not at this checkout. Not filed as a new hold — recorded on §957's row, because **a push makes all four 100% with no other action**, which makes it the cheapest open item on the board |
+| 406 | §958 | **§959** | **THE SURFACES ARE GENUINELY LIVE — AND RUNNING CODE 100 COMMITS BEHIND.** Re-ran the record's own probe against prod after 11 days: `api.shuddl.tech/v1/board` → **401** fail-closed as documented, command/driver/portal/track/mcp → **200**, api and billing roots 404 as expected. **A documented claim about live infrastructure, true in every particular** — recorded because a clean positive is worth its instrument too. But *the surfaces are live* and *the surfaces run current code* are different claims: against `origin/main` (= deployed `0415148`), **100 unpushed commits touch runtime src, 125 source files differ, 0 migrations differ** — every worker and surface, pure application code with no schema divergence. Not a defect (an old fail-closed build is a safe one), but only the first claim was written down. **A false clean caught by a positive control:** the pathspec `packages/*/src` matches ZERO files and reported *0 runtime commits* — the trap this repo's memory records verbatim |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -56405,3 +56406,55 @@ all four numbers above become 100% with no other action.**
 
 That also makes this the cheapest open item on the board to close, and the one that most changes what the rest
 of the record is worth — worth knowing when sequencing against nine private fixtures and a counsel CONFIRM.
+
+## §959 — PHASE GATE: the surfaces are genuinely live — and running code 100 commits behind
+
+Continuing the external sweep. `RELEASE-EVIDENCE.md` claims prod went live 2026-07-30/31 with *"five workers +
+three surfaces"*, and §957 established nothing has deployed since. An eleven-day-old claim about the outside
+world is exactly what §956 taught me to measure rather than inherit.
+
+### The claim holds — verified by the record's own probe
+
+| host | HTTP |
+|---|---|
+| `api.shuddl.tech/v1/board` | **401** — fail-closed without a token, exactly as recorded |
+| `command` · `driver` · `portal` · `track` · `mcp` | **200** |
+| `api` (root) · `billing` (root) | 404 — no route at `/`, as expected for an API and a webhook-only worker |
+
+**This is a rare thing in this audit: a documented claim about live infrastructure, re-measured after eleven
+days, and true in every particular.** Recorded as a positive result because §947 established that a clean
+negative is only worth its instrument, and the same applies to a clean positive.
+
+### What is live is not what is written
+
+The surfaces run the **deployed** commit, `origin/main` = `0415148`. Against local `HEAD`:
+
+```
+unpushed commits touching runtime src :  100  (of 1,018)
+runtime source files differing        :  125
+db/ migrations differing              :    0
+```
+
+```
+workers/api 20 · apps/driver 18 · apps/portal 15 · workers/agents 9
+apps/command 9 · workers/translator 7 · workers/mcp 6 · workers/billing 3
+```
+
+So every deployed worker and surface differs from local, and **zero migrations differ** — which matters, because
+it means the gap is pure application code with no schema divergence to sequence. That is the cheap case.
+
+This is not a defect: nothing obliges a deploy, and the fail-closed posture means an old build is a *safe* old
+build. It is recorded because *"the surfaces are live"* and *"the surfaces run the current code"* are different
+claims, and only the first was written down.
+
+### A false clean, caught by a positive control I only ran because memory said to
+
+My first measurement used the pathspec `packages/*/src` and reported **`0` unpushed runtime commits** — a
+reassuring answer I nearly wrote down. The pathspec matches **zero files**: git does not expand it the way the
+shell would, which is a trap recorded verbatim in this repo's own memory (*"`git grep -- 'workers/*/src'` not
+recursing — made credit emitters look unwired"*).
+
+The only reason it surfaced is that I ran `git ls-files -- 'packages/*/src' | wc -l` **before** trusting the
+zero. **A count of zero and a corpus of zero are indistinguishable in the output and opposite in meaning**
+([[a-false-clean-invites-no-follow-up]], [[floor-the-input-not-the-output]]). The corrected number is 100
+commits and 125 files — not 0.
