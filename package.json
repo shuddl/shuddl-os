@@ -1,5 +1,6 @@
 {
   "name": "shuddl-os",
+  "//dependencies": "Two devDependencies are EXACT on purpose, and the reason is enforced in tools/checks/pinned-deps-explained.test.ts (adding a pin without a reason fails; a reason outliving its pin fails). @playwright/test is pinned because 5 blessed screenshots compare at a 2% pixel tolerance and chromium rasterization drifts between builds; @axe-core/playwright is peer-coupled to it. Move them together, and re-bless the screenshots deliberately. (audit \u00a71058/\u00a71059)",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.10.0",

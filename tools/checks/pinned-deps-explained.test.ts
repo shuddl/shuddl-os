@@ -10,8 +10,18 @@ import { repoRoot } from "./repo-root.js";
 // build rather than from a note. Correctness and legibility are separate properties, and CI tests only one.
 //
 // `^x.y.z` is npm's DEFAULT — it carries no intent. An exact version or a `~` is something somebody chose,
-// usually to stop a specific breakage, and the reason lives only in the head of whoever chose it. JSON cannot
-// carry a comment, so there is nowhere in a manifest to write it down; this file is that place.
+// usually to stop a specific breakage, and the reason lives only in the head of whoever chose it.
+//
+// §1059 CORRECTION — the original text here said *"JSON cannot carry a comment, so there is nowhere in a
+// manifest to write it down."* **That mechanism is false, and this repo disproves it**: a `"//"` KEY is legal
+// JSON and is already used in five tracked files (`packages/map/tsconfig.json`, both `greige-style.json`s, two
+// fixtures). Tools ignore unknown keys, so a manifest CAN hold prose.
+//
+// The gate is still the right home, but for a different and better reason: a `"//"` note is documentation CI
+// cannot check, so it drifts the moment a pin moves and nothing notices. Keying the reasons to the LIVE
+// manifests is what makes the two unable to disagree. Getting the mechanism wrong while reaching the right
+// answer is the §"state the mechanism, not the outcome" defect — a comment saying WHY a property holds can be
+// falsified by the code even when the property is true.
 //
 // MEASURED AT §1058 across all tracked manifests: **163 dependency declarations, 3 non-caret pins**, and two
 // of the three had no written reason anywhere in the repo (`git grep` over docs/ and tools/ found the packages

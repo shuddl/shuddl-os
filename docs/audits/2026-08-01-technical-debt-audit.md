@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 507 | §1059 | **§1060** | **THE LOOSENING SWEEP — 20/20 CLEAN, AND MY OWN PROBE ALMOST HID THE 20th.** §1059's rule (*a loosening must justify itself with a number*) applied to the 19 configs extending the base: **0 weaken any of its five decisions.** But the first run parsed only 19 of 20 — `packages/map/tsconfig.json` came back *"Invalid control character"*, and I nearly reported a clean sweep with the 20th silently excluded. The file is fine: **my own comment-stripper matched the `//` INSIDE a quoted `"//"` key** and truncated the line. That falsifies a premise I wrote at §1058 — *"JSON cannot carry a comment"* — and **this repo disproves it in five tracked files**. The gate is still the right home (a `"//"` note is documentation CI cannot check), but the stated MECHANISM was wrong; corrected in place, and the root `package.json` now carries a JSON-legal pointer. |
 | 506 | §1058 | **§1059** | **THE COMMENT-LESS-FORMAT SWEEP — AND `skipLibCheck` MEASURED INSTEAD OF ASSUMED.** §1058's corollary said to look for undocumented decisions wherever the format forbids prose. Swept the tracked JSON configs and found the sharpest case is a file whose format ALLOWS comments and used none: **`tsconfig.base.json` carried ZERO comments while 19 packages extend it**, against `tsconfig.tools.json`'s 33. Four of its eleven options are real decisions — three STRICTER than `strict`, and one loosening. `skipLibCheck: true` measured by flipping it: **722 errors, 0 of them in repo source** (415 `@cloudflare/workers-types`, 150 `miniflare`, 104 TS's own libs; TS2717×264 / TS2687×80 — the Workers-globals-vs-DOM-lib collision). So it is load-bearing AND safe, and its cause is a dependency, which gives it a version and therefore an expiry now written beside it. |
 | 505 | §1057 | **§1058** | **THE PIN SWEEP — 163 DECLARATIONS, 3 DECISIONS, 2 UNDOCUMENTED.** §1057's rule (*a correct, load-bearing, undocumented pin is debt while green*) made measurable: `^` is npm's DEFAULT and carries no intent, so the decisions are exactly the non-caret ranges. Measured across every tracked manifest: **163 declarations, 3 non-caret pins.** One is exemplary — `chai: "5.3.3"` names the failing export and the runtime in three lines, because YAML let its author write it where the pin lives. The other two had NO written reason anywhere. Both are load-bearing and now say why: `@playwright/test = 1.61.1` is EXACT because 5 blessed screenshots compare at a 2% pixel tolerance and chromium rasterization drifts between builds; `@axe-core/playwright` is peer-coupled to it. New gate keys reasons to LIVE manifests, so an undocumented pin REDs **and** a reason outliving its pin REDs — both mutation-proved. |
 | 504 | §1056 | **§1057** | **THE DEPENDENCY-DRIFT SWEEP — AND UNRECORDED DEBT: THE WORKSPACE RUNS TWO VITEST MAJORS.** §1056's rule (*a constraint caused by a dependency silently becomes permanent*) implies a sweep: what else is version-pinned? The prose search over-fired on narrative *"is a bug"* and found nothing — the precise form of the shape is a **version number**, not a phrasing. `pnpm outdated -r` reports **63** drifted packages, all within-major EXCEPT the two that matter. Measured by asking each suite its own version rather than reading manifests: **`api`/`ledger`/`billing` run vitest 3.2.7 while `driver`/`command`/tools run 4.1.10.** Five packages hold `~3.2.4` (tilde = patch-only), a deliberate load-bearing pin required by pool-workers 0.9.x — and explained in NO manifest, NO doc, NO checklist row. **2,018 of 2,421 tests run on the older major.** Nothing is broken; the split is INVISIBLE. Filed as a standing row so the next upgrade starts from a measurement. |
@@ -62820,4 +62821,71 @@ flag is friction you can see.
 JSONC file using none of its allowance, and its four decision-flags are now annotated — three by what they
 protect, the loosening by 722 measured errors and an expiry. `typecheck` clean · `lint` clean · `test:tools`
 1,234 passed / 3 failed, the REQ-289 baseline.
+
+## §1060 — PHASE GATE: the loosening sweep, and a probe that nearly hid its own exception
+
+**Why this phase.** §1059 ended on an asymmetry: *a loosening must justify itself with a number; a strictness
+need only name what it protects.* `skipLibCheck` was measured. The obvious next question is whether anything
+**else** in the repo loosens what the base config sets — a package quietly opting out of
+`noUncheckedIndexedAccess` would be invisible debt of exactly the kind this loop exists to find.
+
+### The result: 20/20, nothing weakened
+
+Every tracked tsconfig, checked against the five decisions in the base:
+
+| | |
+|---|---|
+| tsconfigs | **20** |
+| parsed | **20** |
+| weakening `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noFallthroughCasesInSwitch`, `forceConsistentCasingInFileNames` | **0** |
+
+A clean negative with a full denominator — which it would not have been on the first run.
+
+### The probe nearly hid its own exception
+
+The first pass parsed **19 of 20**. `packages/map/tsconfig.json` returned *"Invalid control character at line 8"*,
+and the temptation was to note it and move on with a 19-file result. That is precisely the shape this session
+has caught repeatedly: **a file that fails to parse contributes nothing to a clean verdict, and could be the one
+violation.** So I opened it.
+
+The file is fine — zero control characters, valid UTF-8. **My own comment-stripper was the bug**: the regex
+`//.*$` matched the `//` *inside* a quoted `"//"` key, truncated the line, and left an unterminated string. The
+fix is ordinary (try strict `JSON.parse` first; only strip whole-line comments as a fallback), but the near-miss
+is the finding — a 5% silent exclusion, produced by the instrument, pointing at the one file that used a
+convention the instrument did not know about.
+
+### And that convention falsifies something I wrote
+
+§1058's gate header states: *"JSON cannot carry a comment, so there is nowhere in a manifest to write it down;
+this file is that place."* **The mechanism is false.** A `"//"` key is legal JSON, tools ignore unknown keys,
+and this repo already uses it in five tracked files — `packages/map/tsconfig.json`, both `greige-style.json`s,
+and two fixtures.
+
+The **conclusion** still holds, for a better reason: a `"//"` note is documentation CI cannot check, so it
+drifts the moment a pin moves and nothing notices. Keying reasons to the live manifests is what makes the two
+unable to disagree. But reaching a right answer through a wrong mechanism is exactly the
+[[state-the-mechanism-not-the-outcome]] defect — a comment explaining *why* a property holds can be falsified
+by the code even when the property is true, and it will be believed by the next reader precisely because the
+conclusion is sound.
+
+Corrected in place. The root `package.json` now also carries a JSON-legal `"//dependencies"` note pointing at
+the gate, so the reason is discoverable **where the decision lives** as well as enforced where it can be
+checked. Verified the extra key is inert: `package.json` parses, all 48 scripts intact, `pnpm list` and workspace
+resolution unaffected.
+
+### What this phase says
+
+> **A parse failure inside a sweep is a finding, not a footnote.** Every other file answered the question; the
+> one that did not was the only file using an unfamiliar convention — which is exactly the correlation you
+> should expect, because unusual files are both more likely to break a naive parser *and* more likely to be
+> where an exception lives. Excluding it would have been silent, and the report would have read "clean".
+
+The narrower rule, and the third instance this session: **write the mechanism only if you have tested the
+mechanism.** §1052 tested `e.message` and found it empty; §1059 assumed the format forbade comments and it did
+not. In both cases the surrounding judgement was right, which is what makes the wrong mechanism durable — no
+failure ever contradicts it.
+
+**STOP.** Every config extending the base is confirmed to keep or tighten it, 20 of 20 parsed rather than 19 of
+20 assumed. One false premise corrected at its source and one JSON-legal pointer added. `test:tools` 1,234
+passed / 3 failed — the REQ-289 baseline · lint clean · typecheck clean.
 
