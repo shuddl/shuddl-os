@@ -631,6 +631,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 449 | §1001 | **§1002** | **THE IDENTITY-LEAK GATE, EXERCISED FOR THE FIRST TIME.** CLAUDE.md forbids any tenant/person/customer name in any repo artifact (REQ-167), and that gate has sat BLOCKED since it was written — **it had never detected anything.** Unlike the other four holds it is exercisable without the secret (the loader takes `IDENTITY_DENYLIST` **or** a gitignored `.identity-denylist.local`). Three probes with a synthetic term: clean tree → **PASS**; term planted in a TRACKED file → **FAIL naming the file and REDACTING the term** (`Z***********` — a gate that echoed the name would republish what it exists to prevent); corpus blinded → **FAIL** *"denylist present but ZERO files scanned … a broken gate reporting on nothing."* **CLEAN NEGATIVE on all three axes.** Boundary stated, not a gap: my first probe used an UNTRACKED file and read clean — correct, since the corpus is `git ls-files` and REQ-167 governs repo artifacts, but worth recording because §997 found 46 untracked docs in a sibling workstream. **Method, twice:** my first corpus mutation was a NO-OP (`execSync`, not `execFileSync`) and printed `clean` — the script's own `assert` caught it. **A mutation script needs an assertion that the mutation applied**, or a no-op reads as a passing gate. 2 of 5 BLOCKED gates now proved sound on unblock |
 | 448 | §1000 | **§1001** | **THE SEVEN HARD BUDGETS, PROVED BY VIOLATING EACH — AND ONE NEARLY READ AS UNENFORCED.** CLAUDE.md line 15 is headed *CI-enforced*, and this record caught that heading lying once (§245: one of seven had **no pin at all**). The budgets gate proves the STATED number equals the ENFORCING constant — a lockstep, not a rejection. So I planted a real violation of every family: **7 for 7 RED** — 23 tables → `I8 VIOLATION`; a fourth `apps/` dir → `UNREGISTERED surface`; a 36th event kind (**zero headroom**); a 13th view; a 6th token; a 3rd font; and shadow/radius/raw-hex/rgba in a CONSUMING component → 4 REDs each naming its REQ. **CLEAN NEGATIVE by violation rather than by reading.** The near-miss: the first table probe produced ONE failure line and it was the *classification* rule, not the budget — I was ready to file it. Classifying the probe tables properly surfaced `23 > 22`: the classification rule fires FIRST and shadows the budget on the same input. Mirror of §1000 one phase later — **attribute the RED and attribute the GREEN; a verdict is about the run until your subject is the only variable.** Boundary stated: a 6th token is caught by the lockstep, NOT `audit:design`, whose palette is *derived* from the tokens — the two enforce different halves and neither is redundant |
 | 447 | §999 | **§1000** | **WHAT THE BLOCKED GATES DO ON VENDORING DAY — CLEAN, AND I NEARLY FILED THE OPPOSITE.** §999 proved nothing on the board is repo-owned *today*; this asks the owner's real question: when the nine fixtures arrive, do those gates **verify** them or merely **find** them? A presence-only gate would turn five honest BLOCKEDs into five false PASSes on the one day nobody re-checks. Probed the branch absent from the 12 existing cases — **`vendored` with a null `sha256`**, the state all nine are in RIGHT NOW. Deleting its guard left **12 tests green**, and I nearly filed *an undefended guard on the exact transition the owner will perform*. **Two further probes said otherwise:** `typecheck` REDs (`TS18047: possibly null`, and typecheck is a merge gate), and with the type error suppressed the downstream branch **still rejects** (`pinned null… actual 79253e8…`) because a real digest is never null. **Three defences, unplanned but real — CLEAN NEGATIVE.** The lesson mirrors one already here: **attribute the GREEN before condemning it** — *the tests did not catch this* is a claim about the tests, not the code, in a repo with 26 gates. Also re-verified L410: **0 coverage providers, 0 of 12 configs** — genuinely external |
 | 446 | §998 | **§999** | **STOPPING POINT V — THE COMPLETE MERGE VERDICT, RUN RATHER THAN INFERRED.** Six phases rested on a board figure carried forward; §994 declined to re-run `verify:merge` on wedge grounds and wrote that down so it could be overruled cheaply. **Overruled: 300s wall, no wedge, all 22 suites.** At `1e2ec98`: **19 PASS · 2 FAIL · 5 BLOCKED**, **374 files / 4,534 tests / 3 failing (99.934%)**. **All three failures ATTRIBUTED** — the owner's uncommitted REQ-289 row — and `unit-tests` aggregates every workspace, so its red could have masked a real suite failure behind a known one: **it does not, 21 of 22 suites have zero failures.** Settles two claims: the wedge deferral was over-cautious (**a deferral defended by a hazard must be re-tested once that hazard has evidence, or it becomes permanent by habit**), and §962's four skipped browser gates genuinely EXECUTE now (perf/visual/a11y/e2e = 1/5/4/6). **Nothing on this board is a repo-owned defect** — two FAILs are one owner-held register row, five BLOCKED are inputs no commit can supply. Ledger and gate now AGREE, which is the only agreement this audit trusts |
@@ -58938,3 +58939,60 @@ and the seven results are recorded above so the next reader does not re-derive t
 **Re-open when:** the hard-budgets line changes (a register amendment lands) · `TABLE_BUDGET`,
 `SURFACE_ROSTER`, `MAX_CANONICAL_VIEWS`, `EVENT_KINDS`, `TOKENS` or `FONTS` moves · a budget gains an
 enforcing gate that is not on the roster — §743's completeness floor covers the reverse direction already.
+
+---
+
+## §1002 — PHASE GATE: the identity-leak gate, exercised for the first time
+
+§1000 asked what one BLOCKED gate does on the day it unblocks and found the fixtures gate sound. There are
+five. The identity-leak gate is the one enforcing a **constitutional prohibition** — CLAUDE.md's *"any
+tenant/person/customer/incumbent-vendor name in any repo artifact (REQ-167 identity-leak lint)"* — and it has
+sat BLOCKED since it was written, because no denylist is bound. **It had never detected anything.**
+
+A gate that has never fired is a gate whose positive path is a hypothesis. And unlike the other four holds,
+this one is *exercisable without the secret*: the loader takes `IDENTITY_DENYLIST` **or** a gitignored
+`.identity-denylist.local`.
+
+### Three probes, with a synthetic term
+
+Using an obviously non-real token (`ZZQPROBECORP`) — the rule this gate enforces applies to the audit too:
+
+| probe | verdict |
+|---|---|
+| denylist bound, clean tree | **PASS** — `identity-leak lint: clean (2 terms checked)` |
+| the term planted in a **tracked** file | **FAIL** — `REQ-167 identity leak in docs/ops/GO-LIVE-CHECKLIST.md: Z***********` |
+| denylist bound, corpus query blinded | **FAIL** — *"denylist present (1 term) but ZERO files were scanned … a broken gate reporting on nothing, not a clean repo"* |
+
+**CLEAN NEGATIVE on all three axes.** The second is the one that had never been demonstrated, and it does two
+things right that are easy to get wrong: it names the offending **file**, and it **redacts the term in its own
+output**. A gate that echoed the leaked name into CI logs would republish exactly what it exists to prevent.
+
+### The boundary, stated so it is not misread as a gap
+
+My first probe planted the term in an **untracked** file and the gate reported clean. That is correct, not a
+defect: the corpus is `git ls-files`, and REQ-167 governs *repo artifacts*. An untracked file is not one, and
+the gate fires the moment content becomes one. Worth writing down because §997 established this checkout
+carries 46 untracked documents in a sibling workstream — a reader who knows that and sees "clean" could
+reasonably suspect a blind spot. It is a boundary, and the third probe proves the corpus is not empty behind it.
+
+**Method note, twice over.** My first corpus mutation did nothing: the file uses `execSync`, not
+`execFileSync`, so the pattern never matched — and the run printed `clean`, which I would have credited as
+"the floor does not fire." The `assert` in the mutation script caught it. **A mutation script needs its own
+assertion that the mutation applied**, or a no-op reads as a passing gate. Same lesson as §1001's shadowed
+budget, one layer further out: I nearly drew a conclusion about a gate from a run in which my subject was
+never the variable.
+
+### What this leaves
+
+Two of five BLOCKED gates are now proved sound on the day they unblock (§1000 fixtures, §1002 identity). The
+remaining three — `rater-parity`, `invoice-parity`, `concierge-parse` — are blocked on the *same* nine
+engagement fixtures §1000 covered, and their success paths were counted earlier in this record; they cannot be
+exercised without the data itself, which is the definition of the hold.
+
+### Phase gating
+
+**STOP.** The BLOCKED half of the board is now understood rather than assumed: not merely honest about being
+blocked, but demonstrated to work when the inputs arrive.
+
+**Re-open when:** `IDENTITY_DENYLIST` is bound — re-run and expect `PASS` with `terms > 0`, never `PENDING` ·
+`identity-leak.ts`'s corpus query changes · any of the nine fixtures is vendored.
