@@ -613,6 +613,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 418 | §970 | **§971** | **RULE 1's GATE HAS NEVER RUN — NOT ONCE, IN THE REPOSITORY'S HISTORY.** Completing the rule sweep: rules **2, 3, 10** are gated from `tools/` (append-only 14 files, REQ-030 authority, migrator no-silent-drop) so they held through the §940 window. Rule 1 has two clauses — the ORPHAN half is enforced (`check:traceability`, green), the **PR half is `check:pr`, guarded `if: github.event_name == 'pull_request'`**. Measured: last 8 ci runs **all `event=push` on main**, **pull requests ever = 0**, step 7 SKIPPED on the last run. The audit had filed this as *a policy question… the branch protection this repo assumes is outside it* — **§956 measured that assumption false**, so the deferred question is answered unfavourably. Counterweight, measured: **199 of 200 commits reference a REQ-ID (99%)** — the law is held by hand. Which is the point: **a practice sustained by one author's discipline is not one sustained by a gate** |
 | 419 | §971 | **§972** | **STOPPING POINT II — THE GATES ARE SOUND; NOTHING WAS ENFORCING THEM.** Board at `0948bb2`: 19 PASS · 2 FAIL · 5 BLOCKED. §948 was superseded not for being wrong but for looking INWARD; §949–§971 looked outward. One sentence: **every gate works, and for three weeks essentially none was stopping anything** — no branch protection (§956), **0 pull requests ever** so rule 1's gate never ran (§971), CI red since 07-23 with the **26-gate step SKIPPED** in all three runs (§962) because a **vacuity floor** failed on a GPU-less runner (§963), `origin/main` 1,018 commits behind (§957), the deployed commit's only CI verdict FAIL (§959), and 4 prod vulnerabilities in a step that never ran (§967, now 0). Fixed in-repo: `!cancelled()`, hardware-aware floor, hono 4.13.1, both halves `--no-bail`, 10 gates, rules 1–10 + budgets swept. **Owner-held, best first: PUSH** — one action closes §957, §958 and §966 and gives CI its first run against three weeks of work |
 | 420 | §972 | **§973** | **VALIDATING §962's CI FIX AS FAR AS THIS ENVIRONMENT ALLOWS.** §972 recommends PUSH, and that rests on §962's edit being syntactically valid — a malformed `ci.yml` produces **no run at all**, so the action would appear to succeed and verify nothing. **Stated first: no parse was possible** — `yaml`, `js-yaml`, `pyyaml` and `actionlint` all absent, and an `npm install` into a temp dir failed. Three structural checks instead: (1) the diff is **two `if:` lines + comments**, no step added/removed/reordered; (2) **the construct is already proven in this file** — line 63's pre-existing `if: ${{ always() }}` is on a step that ran **`success`** in the last CI run, and `cancelled()` is the same status-function family; (3) indentation is uniform (`- name:` 6, all others 8) and both additions sit at 8. Residual named: run `actionlint` or `gh workflow view ci` after the push |
+| 421 | §973 | **§974** | **THE SUPPLY-CHAIN CLAIM WAS TRUE AND ENFORCED BY NOTHING.** Both workflow headers state *"Every action is pinned to an immutable commit SHA with its release tag in the trailing comment"* — a security claim in a comment with no gate behind it. **Measured: checked=16 `uses:` refs, 16 SHA-pinned, 16 with the tag comment, 0 exceptions** — fourth clean positive of the session. But `uses: actions/checkout@v4` would have drawn no objection from any of the 26 gates, and that matters here because the tag keeps resolving, the workflow keeps passing, and **the code running inside a job that holds `CLOUDFLARE_API_TOKEN` and `IDENTITY_DENYLIST` changes underneath it** — a compromise indistinguishable from a green run. `workflow-pinning.test.ts`: 3/3 mutations RED (`@v4`, bare SHA, `@main`). Deliberately a **text scan** — no YAML parser is installable here (§973), so it cannot fail for the reason §973 could not be completed |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -57175,3 +57176,50 @@ last.
 
 *(Two more macOS/GNU divergences surfaced while measuring: `cat -A` and `head -0` are GNU-only and errored
 here — the same family as §968's `tac`. Neither affected a result, because both failed loudly.)*
+
+## §974 — PHASE GATE: the supply-chain claim was true and enforced by nothing
+
+§973 ended on a residual: nothing here validates the CI workflows. That points at a specific claim, stated in
+the header of **both** workflow files:
+
+> *"Every action is pinned to an immutable commit SHA with its release tag in the trailing comment."*
+
+A claim in a comment, about a security property, with no gate behind it — the shape this session has found
+defects in eleven times.
+
+### It is true, without exception
+
+```
+workflow files: 2   `uses:` refs checked=16   SHA-pinned=16   NOT pinned=0
+pins missing a trailing tag comment: 0 of 16
+```
+
+**16 of 16, both halves of the convention.** Whoever wrote those headers did the work and kept doing it. This
+is the fourth clean positive of the session (§952's blocked gates, §959's live surfaces, §970's budgets), and
+like those it is recorded because a verified claim and an unverified one read identically.
+
+### And it was enforced by nothing
+
+`uses: actions/checkout@v4` would have drawn no objection from any of the 26 gates. That matters more here
+than in most places a mutable ref appears: the tag keeps resolving, the workflow keeps passing, and the code
+executing **inside a job that holds `CLOUDFLARE_API_TOKEN` and `IDENTITY_DENYLIST`** changes underneath it.
+There is no failure signal at all — the compromise looks exactly like a normal green run.
+
+`workflow-pinning.test.ts` closes it. Three assertions, 3/3 mutations RED against a green fixed point:
+
+| mutation | caught by |
+|---|---|
+| `@v4` (mutable tag) | *"pinned to a MUTABLE ref"* |
+| SHA with no trailing `# vX.Y.Z` | *"no trailing release-tag comment"* |
+| `@main` (branch) | the mutable-ref assertion |
+
+Deliberately a **text scan**: no YAML parser is installable in this environment (§973), so a gate that needed
+one could not exist here. This one cannot fail for the reason §973 could not be completed.
+
+### Scope, stated
+
+It checks that the ref is **immutable and documented**. It does *not* verify the SHA belongs to the action
+named, nor that the trailing tag matches that SHA — both need the network and a token, and a gate that
+silently degrades when offline is worse than one with an honest boundary. The non-vacuity floor is §968's rule
+applied to this gate's own corpus: fewer than two workflow files or fewer than ten refs is a broken glob, not
+a clean supply chain.
