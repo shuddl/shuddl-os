@@ -607,6 +607,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 412 | §964 | **§965** | **CROSS-PLATFORM READINESS FOR THE FIRST LINUX RUN THESE GATES WILL EVER GET.** §964 established the seven new gates have never executed on Linux; once §962's fix lands they run on a different OS for the first time. Probed: this filesystem **is case-INSENSITIVE** (`CaseProbe.txt` resolves as `caseprobe.txt`), so a wrong-case `readFileSync` works here and throws there. Three checks, all **0**: case-mismatched path references, filenames differing only by case, and tracked/source iCloud `name 2.ext` duplicates (the standing per-session check). Each would fail loudly and confusingly — an ENOENT inside a gate reads as a broken gate, not a platform difference. **Note for the next reader:** the raw sweep shows **50** duplicates and every one is in `.vite/deps` build cache — tracked 0, source 0, **deleting them is unnecessary**. My first `find -prune` excluded only top-level `node_modules`, the §959 shape again |
 | 413 | §965 | **§966** | **THE NIGHTLY IS A CLOCK, NOT A CHECK — TEN RUNS, ONE COMMIT.** §952 said a gate that only ever refuses deserves scrutiny; the mirror does too. `nightly`'s `orphan-audit` has been GREEN every night — a real gate (`pnpm check:traceability`), correctly designed to need no credentials. But all ten runs (2026-08-01…08-10) are at **`0415148`, one distinct SHA** = `origin/main`, frozen since 07-31. **Ten greens are one verification re-emitted over byte-identical input; ten reds are one alarm repeated.** A scheduled audit exists to catch drift AS CODE CHANGES — with nothing pushed it structurally cannot. §957's THIRD cost (after the single copy and §958's unresolvable stamps): **the nightly assurance has been inert for ten days while appearing to run**, and the appearance is the problem. No new hold — a third symptom of one cause is not a second problem |
 | 414 | §966 | **§967** | **FOUR COMMITS SHIPPED WITH A RED GATE, BECAUSE MY GUARD READ A STALE FILE.** (1) Ran `pnpm audit --prod` — `ci.yml` step 16, one of the two §962 found SKIPPED since 2026-07-23: **4 vulnerabilities (1 low, 3 moderate), all `hono`** via workers/api + workers/mcp, installed 4.12.28, all patched in >=4.12.34. The declared `^4.10.8` already permitted the fix, so a lockfile refresh, not a dependency decision → **4.13.1, "No known vulnerabilities found"**, api 824/824, mcp 185/185, all 17 suites green. (2) **§963–§966 were each committed while `check:citations` was RED** (verified by checking out all four). My guard chained gates with `&&` but then ran the count after a `;` — so when `verify:docs` failed, `test:tools` never ran and the count read `/tmp/tt.out` **from the previous phase**. §942's *chain them* was necessary and insufficient: **a guard that reads an artifact must prove the artifact is from THIS run** |
+| 415 | §967 | **§968** | **THE BLAST RADIUS WAS EXACTLY FOUR — AND THE PROBE LIED TWICE BEFORE SAYING SO.** Checked out **all 30 commits this session** and ran the three cheap doc gates at each: **4 RED, all `citations`, all the §963–§966 already known, none other.** Bounded and closed. But the probe reported CLEAN twice first: `tac` does not exist on macOS (empty list → *silence = all green*), then **zsh does not word-split unquoted `$commits`** so `for c in $commits` iterated once and every checkout failed (→ `red=0`) — the same zsh trap memory recorded after §938, **second occurrence this session**, both times a FALSE CLEAN. The separator was one number: `checked=0 red=0` vs `checked=30 red=4`. **A finding count without its denominator cannot be falsified** — same shape as §959's pathspec, §965's prune, §961's printf and §967's stale file, all of which failed by producing LESS. Adopted: every sweep now reports `checked=N` |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -56879,3 +56880,47 @@ session: the tool produced nothing, and nothing looked like success. Write the o
 or delete it first, or read the exit code directly and never a file.
 
 Committing this phase with the gates re-run in a single chained expression, `/tmp` output removed first.
+
+## §968 — PHASE GATE: the blast radius was exactly four — and the probe lied twice before saying so
+
+§967 found four commits shipped with `check:citations` red. The guard that allowed it had been in use for an
+unknown span, so the obvious question is whether it happened elsewhere. Checked out **every commit this
+session** and ran the three cheap document gates at each:
+
+```
+30 commits checked · 4 RED · all four `citations` · none other
+76b16cf (§963)   c033e17 (§964)   c09aece (§965)   2dc9088 (§966)
+```
+
+**The blast radius is exactly the four already known.** No earlier commit shipped red on citations, tables or
+section-refs, and HEAD is clean on all three. The defect was real, bounded, and is closed.
+
+### The probe reported "clean" twice before it worked
+
+| attempt | what broke | what it printed |
+|---|---|---|
+| 1 | `tac` does not exist on macOS — the commit list came out empty | *"silence = all green"* |
+| 2 | **zsh does not word-split unquoted `$commits`** — `for c in $commits` iterated once over the whole multi-line string; every `git checkout` failed and `continue` fired | `red=0` |
+| 3 | `while IFS= read -r c` from a file | **checked=30, red=4** |
+
+Attempt 2 is the same zsh behaviour recorded in this repo's memory after §938 — **second occurrence in one
+session**, and both times it produced a *false clean* rather than an error.
+
+### The lesson: print the denominator
+
+Both broken attempts are indistinguishable from success in their output. `red=0` is exactly what a clean audit
+prints. What separated them was the one extra number:
+
+```
+checked=0   red=0     ← the probe ran on nothing
+checked=30  red=4     ← the probe ran
+```
+
+**A finding count without its denominator cannot be falsified.** This session has now hit the same shape in
+five different tools — an empty pathspec (§959), a nested-prune `find` (§965), a `%`-truncated `printf` (§961),
+a stale artifact file (§967), and twice here — and in every case the failure produced *less output*, which
+reads as *less to worry about*. The floors I have been adding to gates all session exist for exactly this
+reason; **the probes I write to audit those gates deserve the same floor**, and until now they have not had one.
+
+Adopted for the rest of this audit: any sweep reports `checked=N` alongside its finding count, and a sweep
+whose N is implausible is a broken sweep, not a clean tree.
