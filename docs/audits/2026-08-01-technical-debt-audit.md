@@ -631,6 +631,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 464 | §1016 | **§1017** | **THE SUPPRESSION SURFACE — NINE FORMS SWEPT, ONE WAS §1016's FINDING, THE REST CLEAN.** §1016 found its finding by asking *which decision in this file is unexplained?* — mechanised here, since **every suppression is a decision and an unexplained one is indistinguishable from a silenced failure**. **0 `@ts-expect-error` · 0 `@ts-ignore` · 0 `istanbul ignore` · 0 `skipIf`/`.todo`** — zero type-checker suppressions in a strict, no-`any` codebase is the number worth recording, because a growing bank of `@ts-ignore` is the usual way a repo accumulates silent debt. `.only` ×2 and 3 of 4 `.skip` are **fixtures inside `no-focused-tests.test.ts`, the gate that BANS focused tests**; 5 `eslint-disable` are the standard `env.d.ts` module-augmentation idiom. **The one real skip is the model:** `prod-surface.spec.ts:30` skips on an unset `PROD_SURFACE_BASE`, and `test:surfaces` **bakes `--mode release`** so an all-skipped run is BLOCKED, never exit 0 — the guard reading Playwright's JSON stats because *it exits 0 both for '42 passed' and for '4 skipped', so the exit code alone cannot distinguish proof from silence.* **§968's rule discovered independently at the browser layer** — three instruments, one law |
 | 463 | §1015 | **§1016** | **THE DISABLED CONTRAST RULE — A REGISTER BOUNDARY, AND THE MEASURED COST OF DEFERRING IT.** The a11y spec explains every decision at length except one: `.disableRules(["color-contrast"])`, silent — the rule that matters most for a driver in sunlight. **I was reading toward an undocumented silencing. The register says otherwise:** **REQ-149** (`F0-SPEC'D`, BUILT) is *A1 deep-red small text ≥4.5:1 locked by CI*, and `audit.ts:75`'s single assertion is not a thin implementation of full-surface contrast — **it is a COMPLETE implementation of REQ-149**, pinning the tightest PASSING pair (4.58:1, 0.08 above threshold). Full-surface axe contrast is **REQ-285 — `vNEXT`, deferred.** Enabling the rule would not catch a defect; it would build vNEXT scope. **But the cost was unmeasured, so I measured it:** enabled → **10 serious findings** (command 7 · portal 2 · driver 1) in three classes — and **two of the three failing colours are NOT tokens** (`#ec8778`, `#983428`): opacity-composited variants. **The design CI reads the five DECLARED tokens; the browser renders them AT OPACITY; those are different colours** — no token-pair check reaches that class however many pairs it enumerates. Disable now carries the reasoning + the number; rule stays OFF (the remedy is a design decision under a constitutional 5-token budget) |
 | 462 | §1014 | **§1015** | **FAULT-INJECTION COVERAGE — A BOUND, AND A PROBE THROWN AWAY FIRST.** 4,534 tests prove the happy paths; failure branches fail precisely when they matter, and this had never been swept as a unit. **The first probe was broken and said so by being too GOOD** — *files touching dep X that also contain a failure verb* gave **93/105 D1, 99/106 R2, 134/144 DO**, a ~90% hit rate, i.e. §968's rule firing on any file containing the word *fail*. Discarded before reporting. Honest count of **deliberate** constructs (`mockRejected*`, throwing implementations, `faultSeam`/`BrokenDb`): **42 sites across 21 of 367 files** — and the DISTRIBUTION is the result: `anchor.test.ts` holds **15 (36% of all injection in the repo)**, the rest are 1–2 each. Not automatically a gap: most failure paths are covered by Zod at every boundary, `GateError` throws and the error-envelope suite, and injection earns its cost only where a failure must be **survived** rather than propagated — which is anchoring's job. **The one critical thin path is already an open row that is MORE CURRENT than my sweep:** L422's trigger was found FIRED today by §944 (the provider IS bound in staging, so the unsurfaced-failure branch is reachable), with the contradicting `wrangler.toml` header corrected and a gate built for that claim class. **I went looking for a gap and found the record ahead of me** |
 | 461 | §1013 | **§1014** | **THE SELF-CONFIRMING-TEST CLASS — SWEPT, CLEAN, AND THE DETECTOR THAT COULD NOT HAVE TOLD ME.** §1013 cited three instances of one shape (§186 fixture-built-with-the-function, §819 client-vs-its-own-drawing, §858 suite-mocks-what-it-composes), which is past the threshold for counting. **Mock-detectable half CLEAN: 367 test files, 20 use `vi.mock`, ZERO mock their own subject.** Only two mock 2+ siblings and both survive: `GatedFlow` is §858's known, remediated instance; `App.test.tsx` mocks map/session/api to assert the portal NEVER falls back to demo data — **asserting a mock was NOT called is a legitimate use of one.** The §186 half is not mock-detectable, so I wrote a detector for its signature (same function both sides): **55 hits, and reading three showed it conflated three different claims** — a sign-mirror INVARIANT (`f(-x)` vs `f(x).map(negate)`), a fail-closed EQUIVALENCE (`effectiveOrigins('')` vs `('prod')`), and bare determinism that is sound because its suite pins real values elsewhere. **The method failure is the finding:** my classifier reported 21 paired + 30 naked out of 34 total — **51 classified out of 34** — so I refused to report from it and read samples instead. **A probe whose counts do not add up has already told you its verdict is unusable**; publishing anyway and letting the reader filter is how §240's 95%-false sweep would have entered this record |
@@ -59920,3 +59921,55 @@ of an unknown.
 part that will surprise · a sixth colour token is proposed, since two of the three findings are already
 *derived* colours rather than declared ones · `audit.ts:75`'s pair drifts below 4.58:1, which is REQ-149's
 actual boundary.
+
+---
+
+## §1017 — PHASE GATE: the suppression surface — nine forms swept, one was the §1016 finding, the rest are clean
+
+§1016 found its finding by asking *"which decision in this file is unexplained?"* In a codebase commented this
+heavily, that question generalises into a mechanical sweep: **every suppression is a decision, and an
+unexplained one is indistinguishable from a silenced failure.**
+
+| form | count | disposition |
+|---|---|---|
+| `@ts-expect-error` | **0** | — |
+| `@ts-ignore` | **0** | — |
+| `istanbul ignore` | **0** | — |
+| `skipIf` / `runIf` / `.todo` (outside its own gate) | **0** | — |
+| `.only` | 2 | both **fixtures inside `no-focused-tests.test.ts`** — the gate that bans focused tests |
+| `.skip` | 4 | 3 are that same gate's fixtures; **1 is real** and examined below |
+| `eslint-disable` | 5 | all in `workers/*/test/env.d.ts` — the standard module-augmentation idiom, one per worker |
+| `disableRules` | 1 | the a11y contrast rule — **this was §1016's finding**, now documented |
+
+**Zero type-checker suppressions in a strict-TypeScript, no-`any` codebase** is the number worth recording: the
+usual way a repo accumulates silent debt is a growing bank of `@ts-ignore`, and this one has none.
+
+### The single real skip is the model, not the exception
+
+`tests/e2e/prod-surface.spec.ts:30` skips when `PROD_SURFACE_BASE` is unset — a field gate that drives
+deployed surfaces. It carries its reasoning, and more importantly it carries its **failure posture**:
+
+> *"a field gate has no advisory use, and without a blocking mode the guard's local default turns an
+> all-skipped run (unset or typo'd `PROD_SURFACE_BASE`) into exit 0. Under release mode an all-skipped run is
+> BLOCKED, never a green exit 0 (REQ-288)."*
+
+Verified: `test:surfaces` bakes `--mode release` into the package script, so the blocking posture cannot be
+lost by invoking it without a flag. And the guard reads Playwright's **machine-readable JSON stats** rather
+than its console output, for a reason it states itself:
+
+> *"Playwright exits 0 both for '42 passed' and for '0 tests ran' / '4 skipped', so the exit code alone cannot
+> distinguish proof from silence."*
+
+That is §968's rule — a probe returning zero must be distinguishable from a broken one — **discovered
+independently at the browser layer**, and it is the same lesson §1015's discarded probe and §1014's
+non-reconciling counter each arrived at from a different direction. Three instruments, one law.
+
+### Phase gating
+
+**STOP.** The suppression surface is swept: 9 forms, 0 type-checker suppressions, every remaining instance
+either a fixture of the gate that bans it, a standard idiom, or conditional with a blocking fallback.
+
+**Re-open when:** a `@ts-expect-error` or `@ts-ignore` appears — currently zero, so the first one is a
+decision worth a comment and a reviewer · a `.skip` lands outside `no-focused-tests.test.ts` · a second
+`disableRules` is added, since the first took a full phase to establish was a register boundary rather than a
+silencing.
