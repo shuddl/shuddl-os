@@ -631,6 +631,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 444 | §996 | **§997** | **SIX STALE COPIES OF MY OWN GATES, INVISIBLE TO EVERY GIT-BASED CHECK.** Chasing cited commit SHAs gave a clean negative — **151/160 resolve locally**, the 9 misses being money values (`22208400`), account ids and `abc1234` placeholders — so **no gate**, for L421's reason. But two misses sat in `… 2.md` files: this checkout syncs through iCloud, which writes `name 2.ext` beside the original. **52 duplicates, six of them stale copies of gates written earlier in this audit, in `tools/checks/`.** All UNTRACKED — `git status` hides them and every git-based gate is blind by construction; zero TRACKED duplicates is why the repo looked clean. Verified before deleting: 5 byte-identical, 1 an older snapshot that was a strict SUBSET (`comm` → 0 unique lines). Removing them left `test:tools` bit-identical, so they were **inert — and only by luck of the glob** (`…test 2.ts` misses `*.test.ts`); a duplicated SOURCE file matches every `**/*.ts` scanner and would be COUNTED against the CLAUDE.md budgets. Gate is **self-scoping** (a dir counts iff it holds a tracked file), so the 46 in an untracked sibling workstream are correctly ignored and were NOT deleted. Mutation-proved 4 ways incl. **proving the exclusion is a boundary, not a blind spot**. Three phases, four claim-forms, three gated and one refused |
 | 443 | §995 | **§996** | **I CITED A GATE THAT DOES NOT EXIST, IN THE EVIDENCE TABLE OF A STOPPING POINT.** `pnpm -s <missing>` exits **1 printing NOTHING** (`-s` swallows the error), so inside a redirect an absent gate is indistinguishable from a clean one — and §994's verification table recorded `check:docs` as *clean · 5/5*. There is no `check:docs`. **Third instance of a trap this record documents twice** (`check:design`→`audit:design`; `check:append-chokepoint`, never existed): **knowing a trap is not a defence against it.** No commit was gated on it — the chained preconditions all exist and all ran. Then the interesting part: checklist L421 rejected a near-identical gate TWICE on a ~95% FP rate (§240), so the instinct was that this dies too. Measured, it does not — **456 citations, 19 unresolvable, 15 mechanical/prose/plans, leaving THREE known lines** a marker handles, versus §240's open-ended semantic residual. Same hazard, opposite verdict, decided by the residual's SIZE and STABILITY. The gate then **found a bug in itself** (`-w` misfiled as taking an argument → reported `node`), failing toward a false ALARM, the safe direction. Mutation-proved 5 ways incl. that the ignore-marker cannot swallow the corpus |
 | 442 | §994 | **§995** | **SIX FIXES WHOSE EVIDENCE HAD ALREADY EXPIRED — ALL SIX HELD, AND NOTHING COULD HAVE TOLD US.** §994 rested on the rows' own words, so this asked the inverse question: **is what the ledger calls CLOSED still closed?** Every terminal row carries an `Evidence expires` trigger and **nothing evaluated them**. Compared each row's newest date against the last-commit date of the files its own trigger names: **6 of 17 expired** — L400 by **one day** (and it sat that way two weeks), L429 by seven, L414 by ten. All six re-verified: L400's three subjects re-run **19/19 + 17/17**, L406 still builds its context independently of the record, L429's static-roster refusal survives `provision.ts`'s later change and is EXERCISED not merely present. **Zero regressions** — which is the finding, because *still true* and *nobody looked* are identical right up until they aren't. **The gate beat my own hand-sweep on its own corpus**: I checked eight rows manually and missed L400; the gate read every trigger and produced it immediately. `evidence-expiry.test.ts` is self-refreshing (the newest date in the row IS the clearance, so no second list can drift), mutation-proved 4 ways. Near-miss recorded: I began repointing L404's rotted citations before seeing they sit in a **struck** span — frozen superseded text. §811's trap, caught mid-edit |
 | 441 | §993 | **§994** | **STOPPING POINT IV — THE REPO-OWNED LEDGER HOLDS 17 OPEN ROWS AND ZERO NEGLECTED ONES.** Classified all 17 by what blocks them (four read in full): **6 need a CLAUDE.md/register amendment · 4 say *needs a REQ row* · 2 a design decision · 1 a founder UX call · 1 a tooling call · 1 measured-and-rejected TWICE · 2 blocked on measured preconditions**. **checked=17, neglected=0** — not one row is open because nobody looked. The two plain `backend` rows are the two hardest: **427**'s fix was written, REVERTED (§12), then re-measured (§882) as *necessary but not sufficient* (a UNIQUE partial index meets the same harness wall one step earlier — 66 api files share one D1 under `isolatedStorage:false`, forced by a DO's `.sqlite-shm` sidecar); **430 fails CLOSED and is correct**, waiting on the deferred REQ-069 seam. So: **10 waiting on one owner, 7 on measured preconditions.** Behind the ten sits §795's precedent — *filed, not amended, while REQ-289 is uncommitted* — **4 explicit deferrals at `HEAD~1`**, and I nearly reported **10** before noticing six were sentences §993 wrote an hour earlier: **a citation of my own edit is not evidence of a pattern**. REQ-289 is the head of the deferral chain, gating a Med–High reliability defect. `verify:merge` deliberately NOT re-run (the uninterruptible workerd wedge costs days; the four owning gates are green) — a judgement written down so it can be overruled cheaply |
@@ -58498,3 +58499,83 @@ Unchanged in substance and better in evidence. The claim that failed was not abo
 **which gates I had run**, in the section asserting the work was done. Three phases in a row have now found
 the defect in the record's own claims rather than in the build, which is what a converged audit looks like:
 the cheapest remaining defects are the ones asserting that there are none.
+
+---
+
+## §997 — PHASE GATE: six stale copies of my own gates, invisible to every git-based check
+
+Chasing the last checkable claim-form — the record anchors evidence to commit SHAs — turned up a clean
+result and an accident. **151 of 160 backticked hex citations resolve to a local commit**, and the nine that
+do not are false positives: money values from the $222,084 anomaly (`22208400`), 32-hex account ids,
+and `abc1234`/`def5678` placeholders. Unlike §995 and §996, there is no gate worth building here; the residual
+is unbounded semantics, which is L421's verdict and it applies.
+
+Two of the nine sat in files named `D1-fmcsa-list-method 2.md` and `… 3.md`.
+
+### The accident
+
+This checkout syncs through iCloud, which resolves conflicts by writing a second file beside the first. A
+sweep found **52** of them — and six were in `tools/checks/`:
+
+```
+mode-source-coverage.test 2.ts      wrangler-absence-claims.test 2.ts
+wp-blocker-staleness.test 2.ts      ledger-status-vocabulary.test 2.ts
+deploy-chain.test 2.ts              design-mode-parity.test 2.ts
+```
+
+**Stale copies of six gates written earlier in this same audit.** Every one untracked — so `git status` never
+showed them, and every git-based gate in this repo was blind to them by construction. Zero *tracked*
+duplicates, which is why the repo looked clean.
+
+Verified before deleting anything: five were byte-identical to their originals; the sixth was an older
+snapshot (104 lines against 151) whose content was a strict **subset** — `comm` reported **zero** lines
+present in the copy and absent from the original. Nothing was lost.
+
+### Inert, and only by luck
+
+Removing all six left `pnpm test:tools` bit-identical — 96 files, 1220 passed, the same 3 baseline failures.
+They were never being read.
+
+That is not a reason to shrug; it is the reason they survived for days. They were harmless because of **where
+they landed**: vitest collects `tools/**/*.test.ts`, and `wrangler-absence-claims.test 2.ts` ends in
+`t 2.ts`, so the glob skipped it. A duplicated **source** file has no such protection —
+`packages/ledger/src/positions 2.ts` matches every `**/*.ts` scanner here: the lint bans, the invariant
+scanners, the LLM-import rules, and the budget counters enforcing CLAUDE.md's ≤22 tables / 3 surfaces / 12
+views. It would be linted, type-checked, and **counted as a real module**. A stale copy of a guard is also one
+a future reader can edit by mistake, believing it live.
+
+### The gate, and what it deliberately ignores
+
+`no-sync-duplicates.test.ts` walks the tree for the sync's signature (` <digits>.<ext>`) and is
+**self-scoping**: a directory counts only if it holds at least one *tracked* file. `tools/checks/` qualifies.
+The 46 remaining duplicates live in a fully-untracked sibling workstream sharing this checkout — correctly
+none of this gate's business, and **not deleted by the audit**: untracked files in someone else's active work
+are theirs to remove.
+
+**Mutation-proved four ways:**
+
+| mutation | result |
+|---|---|
+| plant `packages/ledger/src/anchor 2.ts` | **RED** — the source-file case that matters |
+| plant one in an untracked directory | **green** — correctly out of scope, not a blind spot |
+| break the `git ls-files` ownership scan | **RED** — non-vacuity |
+| restore | **green, 2/2** |
+
+The second row is the one worth having: a scope exclusion that is never exercised is indistinguishable from a
+gate that cannot see anything, and this proves the boundary is where it was designed to be rather than
+everywhere.
+
+### The shape this belongs to
+
+Three phases, three checkable claim-forms, three different answers — and the discrimination is the point:
+
+| claim-form | verdict |
+|---|---|
+| expiry triggers (§995) | **gate it** — 6 of 17 expired, all held |
+| cited `pnpm` scripts (§996) | **gate it** — residual is 3 markable lines |
+| cited commit SHAs (§997) | **do not** — 151/160 clean, residual unbounded |
+| sync duplicates (§997) | **gate it** — invisible to git by construction |
+
+An audit that gates everything it examines is not measuring; it is decorating. Two of these four were worth a
+gate on evidence, one was worth a gate because *no existing mechanism could ever see it*, and one was worth
+none.
