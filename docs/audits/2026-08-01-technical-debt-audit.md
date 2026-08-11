@@ -631,6 +631,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 452 | §1004 | **§1005** | **WOULD ANY OF THIS WORK ON LINUX? — THE QUESTION CI HAS NEVER BEEN ALLOWED TO ANSWER.** Every gate here has only ever run on **darwin**; CI runs **ubuntu-latest**; and §957 measured that CI has evaluated **none** of the 1,018 local commits — so a platform assumption surfaces for the first time on the day of the push, as a red build with no obvious cause. Seven axes, all decidable without a runner: shell-outs are **only** `git`/`pnpm`/`npx`/`node` (no shell utilities at all) · **0** BSD/GNU-divergent flags (the apparent `tac` hits were substrings of *attached*/*attack*) · **0** tracked path case-collisions · **0** imports resolving only case-INSENSITIVELY — the class that resolves forever on macOS and fails instantly on Linux · **0** absolute paths (already gated) · 12 portable CI `run:` steps · toolchain agrees (`.node-version` **22.15.0** tracked, `engines >=22.15.0 <23`, `pnpm@11.10.0`, matching local). **CLEAN NEGATIVE on all seven.** `.node-version` earns its own line: `setup-node` uses `node-version-file`, so an untracked file fails the workflow at its FIRST step. **This proves the portability class is EMPTY, not that CI passes** — that needs the owner's push, and this narrows what it can go wrong in |
 | 451 | §1003 | **§1004** | **THE CWD-DEFAULT CLASS, SWEPT — 1 DEFECT, 9 CORRECT, AND THE RULE THAT TELLS THEM APART.** §1003 fixed two `cwd = process.cwd()` defaults; at instance #2 you count the class. **Nine more carry the identical signature — and the sweep that would have 'fixed' them would have BROKEN THE BUILD.** `invariants.test.ts:46`'s `runCli(cwd, args)` spawns the CLI against a **temp fixture repo**; anchoring `main()` to `repoRoot()` makes it ignore that cwd and scan the real repository, silently invalidating every fixture test. **The discriminator: a `cwd` default is a defect only when NO caller ever passes anything else** — indistinguishable from the signature alone. Classified all nine: 8 have fixture harnesses passing temp dirs, 1 inherits its CLI's own fixture-driven cwd. **9 of 9 correct.** The acceptance runner was the real defect precisely because its only explicit caller passed `repoRoot()` — a workaround, not a use. Behavioural check: 3 of 4 entrypoints are cwd-identical; `invariants.ts` differs and fails **CLOSED** on §732's floor — cwd-relative on purpose, loud when misused. **Twice now the right move was NOT to generalise a real fix** (§1000: a guard defended by types; here: a default defended by a harness) — generalising without a discriminator is how an audit starts producing defects instead of finding them |
 | 450 | §1002 | **§1003** | **CAN ANYONE ELSE BUILD THIS? — A FRESH CLONE, AND THE GATE THE CWD SWEEP MISSED.** 1,018 commits nobody else has seen; nothing had asked whether the tracked tree is self-sufficient. Cloned it (1,001 files) and ran the standalone gates with `repoRoot()` resolving there: **3 of 4 clean on tracked content alone**; `invariants.ts` crashed on a missing workspace package — **a harness artifact** (no `node_modules`), recorded because it reads like a defect. Full answer needs a network install (§973 says impossible here), so I measured the decidable half: **47 non-test tool modules, exactly ONE untracked literal path** (`workers/mcp/dist/api/index.js`) — and the runner BUILDS it if absent. **Reading that line found the real defect:** `tools/acceptance/run.ts` was never anchored — `missingSpineFiles()` returns **0 from root, 4 from any subdirectory**, so `pnpm test:acceptance` from a package dir reports the five acceptance demos as broken. **It survived the sweep that anchored sixteen siblings because it fails CLOSED** — that sweep hunted gates reporting OK over nothing, and *wrong-and-loud* does not match a search for *wrong-and-silent*. **The tell was in the TEST**: `demos.test.ts:80` already passed `repoRoot()` explicitly, routing around the default instead of failing on it — **a test that compensates for a bad default is a known, unfixed defect that is green by construction.** Both defaults fixed, pinned by a `chdir` test, 2 mutations RED |
 | 449 | §1001 | **§1002** | **THE IDENTITY-LEAK GATE, EXERCISED FOR THE FIRST TIME.** CLAUDE.md forbids any tenant/person/customer name in any repo artifact (REQ-167), and that gate has sat BLOCKED since it was written — **it had never detected anything.** Unlike the other four holds it is exercisable without the secret (the loader takes `IDENTITY_DENYLIST` **or** a gitignored `.identity-denylist.local`). Three probes with a synthetic term: clean tree → **PASS**; term planted in a TRACKED file → **FAIL naming the file and REDACTING the term** (`Z***********` — a gate that echoed the name would republish what it exists to prevent); corpus blinded → **FAIL** *"denylist present but ZERO files scanned … a broken gate reporting on nothing."* **CLEAN NEGATIVE on all three axes.** Boundary stated, not a gap: my first probe used an UNTRACKED file and read clean — correct, since the corpus is `git ls-files` and REQ-167 governs repo artifacts, but worth recording because §997 found 46 untracked docs in a sibling workstream. **Method, twice:** my first corpus mutation was a NO-OP (`execSync`, not `execFileSync`) and printed `clean` — the script's own `assert` caught it. **A mutation script needs an assertion that the mutation applied**, or a no-op reads as a passing gate. 2 of 5 BLOCKED gates now proved sound on unblock |
@@ -59136,3 +59137,53 @@ so) · `invariants.test.ts:46`'s `runCli` stops passing a cwd.
 **Method note this phase reinforces.** Twice now the correct action was *not* to generalise a real fix: §1000
 (a guard defended by the type system, not tests) and here (a default defended by a fixture harness). A fix that
 generalises without a discriminator is how an audit starts producing defects instead of finding them.
+
+---
+
+## §1005 — PHASE GATE: would any of this work on Linux? — the question CI has never been allowed to answer
+
+§1003 found its defect by stepping outside the repo's frame of reference. There is one more frame this record
+has never used, and it carries unusual weight here: **every gate in this repository has only ever run on
+darwin, and CI runs `ubuntu-latest`.** §957 measured that CI has evaluated **none** of the 1,018 local commits,
+so a platform assumption anywhere in the tooling would surface for the first time on the day the owner pushes
+— as a red build with no obvious cause, in the middle of a launch gate.
+
+Six axes, all decidable without a runner.
+
+| axis | measured | verdict |
+|---|---|---|
+| what the tooling shells out to | `git` ×34, `pnpm` ×6, `npx` ×2, `node` ×2 | portable — no shell utilities at all |
+| BSD/GNU-divergent flags (`sed -i`, `grep -P`, `stat -c/-f`, `date -d`, `readlink -f`, `tac`, `sort -V`) | 0 (the apparent `tac` hits were substrings of *attached* / *attack*) | clean |
+| tracked path case-collisions | **0** | clean |
+| imports resolving only case-INSENSITIVELY | **0** | clean |
+| absolute / machine-specific paths | **0**, and `absolute-paths.test.ts` already gates it | clean |
+| CI `run:` shell | 12 steps, all `pnpm`/`npx`/`node`/`echo`/`git` + one `cat` | portable |
+| toolchain parity | `.node-version` **22.15.0** (tracked) · `engines` `>=22.15.0 <23` · `packageManager pnpm@11.10.0` · local v22.15.0 / pnpm 11.10.0 | agrees |
+
+**CLEAN NEGATIVE on all seven.**
+
+The case-sensitivity pair is the one worth having measured rather than assumed. A repo developed on
+case-insensitive macOS accumulates imports whose casing drifts from the filename; they resolve locally forever
+and fail instantly on Linux. There are **none** — checked by resolving every relative import in every tracked
+`.ts`/`.tsx` against the exact-case tracked path, then re-resolving case-insensitively and reporting the
+difference.
+
+`.node-version` deserves its own line: `actions/setup-node` is configured with `node-version-file`, so an
+absent or untracked file fails the workflow at its **first step**, before any gate runs. It is tracked, and it
+agrees with `engines` and with this machine.
+
+### What this does NOT establish
+
+Nothing here proves CI passes. It proves the *portability* class is empty — that no gate carries a darwin
+assumption, no import carries a casing assumption, and the toolchain the workflow selects is the one this
+audit measured against. **A real answer needs a push**, which is owner-held (§957) and the first item on the
+external list. This narrows what that push can go wrong in, rather than predicting it will succeed.
+
+### Phase gating
+
+**STOP.** Seven axes, all clean, all recorded so the next reader does not re-derive them — and so a red CI run
+after the push is not attributed to a portability cause that has been ruled out.
+
+**Re-open when:** a gate shells out to something that is not `git`/`pnpm`/`npx`/`node` · a workflow gains a
+`run:` step with shell logic · `.node-version`, `engines` or `packageManager` changes · a runner other than
+`ubuntu-latest` is added, at which point this table is the checklist to re-run.
