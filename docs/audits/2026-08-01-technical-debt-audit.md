@@ -614,6 +614,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 419 | §971 | **§972** | **STOPPING POINT II — THE GATES ARE SOUND; NOTHING WAS ENFORCING THEM.** Board at `0948bb2`: 19 PASS · 2 FAIL · 5 BLOCKED. §948 was superseded not for being wrong but for looking INWARD; §949–§971 looked outward. One sentence: **every gate works, and for three weeks essentially none was stopping anything** — no branch protection (§956), **0 pull requests ever** so rule 1's gate never ran (§971), CI red since 07-23 with the **26-gate step SKIPPED** in all three runs (§962) because a **vacuity floor** failed on a GPU-less runner (§963), `origin/main` 1,018 commits behind (§957), the deployed commit's only CI verdict FAIL (§959), and 4 prod vulnerabilities in a step that never ran (§967, now 0). Fixed in-repo: `!cancelled()`, hardware-aware floor, hono 4.13.1, both halves `--no-bail`, 10 gates, rules 1–10 + budgets swept. **Owner-held, best first: PUSH** — one action closes §957, §958 and §966 and gives CI its first run against three weeks of work |
 | 420 | §972 | **§973** | **VALIDATING §962's CI FIX AS FAR AS THIS ENVIRONMENT ALLOWS.** §972 recommends PUSH, and that rests on §962's edit being syntactically valid — a malformed `ci.yml` produces **no run at all**, so the action would appear to succeed and verify nothing. **Stated first: no parse was possible** — `yaml`, `js-yaml`, `pyyaml` and `actionlint` all absent, and an `npm install` into a temp dir failed. Three structural checks instead: (1) the diff is **two `if:` lines + comments**, no step added/removed/reordered; (2) **the construct is already proven in this file** — line 63's pre-existing `if: ${{ always() }}` is on a step that ran **`success`** in the last CI run, and `cancelled()` is the same status-function family; (3) indentation is uniform (`- name:` 6, all others 8) and both additions sit at 8. Residual named: run `actionlint` or `gh workflow view ci` after the push |
 | 421 | §973 | **§974** | **THE SUPPLY-CHAIN CLAIM WAS TRUE AND ENFORCED BY NOTHING.** Both workflow headers state *"Every action is pinned to an immutable commit SHA with its release tag in the trailing comment"* — a security claim in a comment with no gate behind it. **Measured: checked=16 `uses:` refs, 16 SHA-pinned, 16 with the tag comment, 0 exceptions** — fourth clean positive of the session. But `uses: actions/checkout@v4` would have drawn no objection from any of the 26 gates, and that matters here because the tag keeps resolving, the workflow keeps passing, and **the code running inside a job that holds `CLOUDFLARE_API_TOKEN` and `IDENTITY_DENYLIST` changes underneath it** — a compromise indistinguishable from a green run. `workflow-pinning.test.ts`: 3/3 mutations RED (`@v4`, bare SHA, `@main`). Deliberately a **text scan** — no YAML parser is installable here (§973), so it cannot fail for the reason §973 could not be completed |
+| 422 | §974 | **§975** | **THE TOKEN POSTURE IS CORRECT, EXTERNAL, AND RECORDED NOWHERE.** The other half of the workflows' supply-chain surface: what the job's token can DO. Measured — **no `permissions:` block in either workflow**, repository `default_workflow_permissions: "read"`, `can_approve_pull_request_reviews: false`. **The posture is the safe one** and the jobs work within it. But it is correct by REPOSITORY SETTING, not by anything in the repository: flip that default to `write` in the UI and both workflows silently gain `contents: write` — no file change, no review, no signal — and `git grep -i 'workflow permission' docs/ops/` returns **nothing**. **Explicit `permissions:` blocks NOT added:** `"read"` grants a SET of read scopes while `permissions: contents: read` grants exactly one, **removing the others** — a narrowing that would hit the artifact upload and a third-party scanner, on a CI about to run for the first time in three weeks. Filed as an external hold |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -57223,3 +57224,49 @@ named, nor that the trailing tag matches that SHA — both need the network and 
 silently degrades when offline is worse than one with an honest boundary. The non-vacuity floor is §968's rule
 applied to this gate's own corpus: fewer than two workflow files or fewer than ten refs is a broken glob, not
 a clean supply chain.
+
+## §975 — PHASE GATE: the token posture is correct, external, and recorded nowhere
+
+§974 closed the pinning half of the workflows' supply-chain surface. The other half is **what the job's token
+can do**, and it is measurable from here.
+
+### Measured
+
+```
+permissions: blocks declared in ci.yml / nightly.yml   :  none
+repository default_workflow_permissions                :  "read"
+can_approve_pull_request_reviews                       :  false
+```
+
+**The posture is the safe one** — a `GITHUB_TOKEN` scoped read-only, which is what a CI job that builds,
+tests and uploads an evidence artifact needs and no more. `actions/upload-artifact` and the `gitleaks` scan
+both operate within it, which the last green run demonstrates.
+
+### Why it is still worth a phase
+
+It is correct **by repository setting, not by anything in this repository** — the §956 shape exactly:
+
+- **Nothing in-repo declares it.** With no `permissions:` block, the workflows inherit whatever the account
+  default happens to be. Flip that default to `write` in the GitHub UI and both workflows silently gain
+  `contents: write` — no file changes, no review, no signal.
+- **Nothing records it.** `git grep -i 'workflow permission' docs/ops/` returns **nothing**. An operator
+  hardening this repo has no line telling them the setting exists, what it currently is, or that it matters.
+
+### What I did not do, and why
+
+The obvious hardening is an explicit `permissions:` block per workflow — defence in depth, so the declaration
+survives a change to the account default. **I did not add one**, and the reason is specific rather than
+cautious: `default_workflow_permissions: "read"` grants a *set* of read scopes, and `permissions: contents:
+read` grants exactly one, **removing the others**. That is a narrowing, not a restatement, and the two jobs
+that would be narrowed are the artifact upload and a third-party secret scanner. Getting it wrong breaks a CI
+that — per §962 — is about to run for the first time in three weeks against 1,018 commits.
+
+**The safe version of this change is one someone runs and observes, not one an audit lands blind.** Filed as
+an external hold with the measured values, the exact command, and the recommended block written out so the
+next person can apply it deliberately and watch the run.
+
+### Filed
+
+`GO-LIVE-CHECKLIST` external holds gains a row: the setting, its current value, the two commands to re-check
+it, and the in-repo hardening as a named option with its risk. **Currently safe; currently unguarded** — which
+is precisely the pair that decays without a written trigger.
