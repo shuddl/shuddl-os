@@ -110,7 +110,26 @@ test(`${ENTITIES} entities hold the interaction and long-task budgets`, async ({
   console.log(`perf: reference machine = ${REFERENCE_MACHINE}; enforcing FPS here = ${String(isReferenceMachine)}`);
 
   // A sample that collected almost nothing proves nothing — the vacuous-pass guard.
-  expect(frames.length, "the rAF sample must actually collect frames").toBeGreaterThan(30);
+  //
+  // §963 — THE FLOOR MUST NOT BE A HARDWARE BUDGET IN DISGUISE. This file gates both of its
+  // hardware-sensitive budgets: the long-task budget on `softwareRasterizer` (below) and the FPS budget on
+  // `isReferenceMachine`. This floor used neither, and frames-collected-in-a-fixed-window is exactly as
+  // hardware-dependent as the numbers those two decline to assert.
+  //
+  // MEASURED: CI 2026-07-31 at `0415148` — renderer `SwiftShader (software=true)`, p95 233.40ms, and
+  // **frames = 29**. The gate failed on THIS line, not on any budget, while its own log said
+  // "enforcing FPS here = false". A software rasterizer cannot produce 30 frames in the sample window, so
+  // the one assertion that is not a budget was the one that failed — and because it sat before
+  // `pnpm verify:merge` in the workflow, it skipped the entire 26-gate surface (§962).
+  //
+  // The floor's PURPOSE is "the harness actually sampled", not "the machine is fast". 10 frames is still a
+  // real sample (a p95 over 10 points is the 10th value) and still catches the failure this guards: a
+  // sample that collected nothing.
+  const MIN_SAMPLE_FRAMES = softwareRasterizer ? 10 : 30;
+  expect(
+    frames.length,
+    `the rAF sample must actually collect frames (floor ${MIN_SAMPLE_FRAMES}; renderer=${renderer})`,
+  ).toBeGreaterThan(MIN_SAMPLE_FRAMES);
 
   // ── interaction latency: pan/zoom → next painted frame, p95 ≤ 500ms ──
   const interactions = await page.evaluate(async () => {

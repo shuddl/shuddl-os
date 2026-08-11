@@ -602,6 +602,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 407 | §959 | **§960** | **THE REMEDIATION SAYS OIDC; THE WORKFLOW READS TWO SECRETS THAT DO NOT EXIST.** §957 left the nightly's mechanism inferred. Measured: `gh api …/actions/secrets` → **`{"total_count":0}`** — zero repository secrets, while the workflows reference `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` and `IDENTITY_DENYLIST`. That is the root cause of the 8-night red, and it settles a second question: **`identity-leak` is BLOCKED in CI too, not just local dev — the five BLOCKED gates are blocked everywhere.** **The defect:** `GO-LIVE-CHECKLIST:52` instructs *Configure GitHub Actions OIDC ↔ Cloudflare*, but `nightly.yml` authenticates with repository SECRETS and no workflow requests an `id-token` permission. **An operator would stand up OIDC and the nightly would still exit 2.** Corrected in place, naming both secrets |
 | 408 | §960 | **§961** | **THE MECHANICAL HALF OF §960's CLASS IS EMPTY — AND MY FIRST COUNT WAS A FALSE ALARM.** §960 was instance #3 of *a remediation that does not fix the thing*, so I counted: **53 checkable artifacts named in Action cells, 0 unresolvable.** Every file and script a remediation names exists. So §960's defect was SEMANTIC, not referential — *Configure OIDC* names nothing broken, it points at a mechanism the code does not use, and **no detector reaches that**. The class has two halves with opposite properties: the referential half is checkable and clean at 53/53; the semantic half is uncheckable and has produced 3 defects, all found by reading. **Near-miss:** the first pass reported **27 of 53 unresolvable** (51%), every one wrong — it read a bare basename as a repo-root path. A false ALARM, the opposite of this session's usual false cleans, and the asymmetry is the lesson: a false clean is corrected by nobody, a false alarm by whoever checks item one |
 | 409 | §961 | **§962** | **CI's 26-GATE SURFACE WAS *SKIPPED* — THE SAME SHORT-CIRCUIT, AT A THIRD LEVEL.** CI has failed every run since 2026-07-23 (last green 07-22). In the final run — at `0415148`, **the commit production runs** — step 14 `strict performance` FAILED and step 15 *merge evidence gate — the complete non-skippable surface* was **SKIPPED**, not failed. Three consecutive runs ended that way. Third level of the §940 idiom (package `&&` → `pnpm -r` bail → **GitHub step ordering**) and the worst, because the one step running all 26 gates sits AFTER four browser gates: locally `perf:map` passes at p95 **12.00ms** vs an **18.18ms** budget, and **a slower CI runner was enough to silence all 26 gates**. Fixed with `if: !cancelled()` — the job stays red, the surface reports. Also corrected L35: *CI binds the secret* is false (§960, 0 secrets) — referencing is not binding |
+| 410 | §962 | **§963** | **WHAT ACTUALLY BROKE CI WAS A VACUITY FLOOR, NOT A PERFORMANCE BUDGET.** §962 fixed the consequence; this is the cause. CI's perf step failed with `frames=29` against `expect(frames.length).toBeGreaterThan(30)` — while its own log said **enforcing FPS here = false** and the long-task budget was NOT ASSERTED. `perf.spec.ts` carries TWO hardware-awareness mechanisms (`softwareRasterizer`, `isReferenceMachine`) and the vacuity floor used **neither**, though frames-in-a-fixed-window is exactly as hardware-dependent as the numbers they decline to assert. **The guard against a vacuous pass became the only thing that could fail, on the machine where everything it guards was already switched off.** Fixed: floor 10 under a software rasterizer. Reproduced CI's shape locally — frames=21 PASSES with the fix and FAILS at the hard 30 — so the CI failure was reproduced and removed, not reasoned about. **Five phases from *the board says 19 PASS* to one ungated `> 30`** |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -56617,3 +56618,62 @@ Exactly §940's fix: aggregate, do not short-circuit.
 It does not say prod is broken — §959 measured the surfaces live and fail-closed. It says the deployed commit's
 only CI verdict is **FAIL**, the 26-gate surface never ran on it, and with §956 (no branch protection) nothing
 required otherwise. Those are four separately-measured facts that only mean something together.
+
+## §963 — PHASE GATE: what actually broke CI was a vacuity floor, not a performance budget
+
+§962 fixed the *consequence* — a failed step skipping the 26-gate surface. This is the cause. CI has been red
+since 2026-07-23 on `pnpm perf:map -- --mode merge`, and the reason is not what the step's name suggests.
+
+### The CI log, read rather than assumed
+
+```
+perf: renderer = ANGLE … SwiftShader … (software=true)
+perf: cold-boot long tasks (REPORTED not budgeted) = 11, worst = 361.00ms
+perf: 1000 entities — frames=29 p50=133.40ms p95=233.40ms (budget 18.18ms / 55fps)
+perf: reference machine = …; enforcing FPS here = false
+  Error: the rAF sample must actually collect frames
+  > 113 | expect(frames.length, …).toBeGreaterThan(30);
+```
+
+**The FPS budget was not enforced and did not fail** — the harness said so itself. The long-task budget was
+not asserted either. What failed was `frames.length > 30`, with 29.
+
+### The defect: the one assertion that is not a budget was the hardware-dependent one
+
+`perf.spec.ts` is careful. It carries **two** hardware-awareness mechanisms, both well-commented:
+
+- `softwareRasterizer` — skips the long-task budget on SwiftShader, printing *"NOT ASSERTED … a ~360-520ms
+  compositor floor at first paint"* rather than fabricating a green.
+- `isReferenceMachine` — enforces the FPS budget only where the number means something.
+
+The vacuity floor at `:113` used **neither** — and frames-collected-in-a-fixed-window is exactly as
+hardware-dependent as the two numbers those mechanisms decline to assert. A software rasterizer at ~4fps
+cannot produce 30 frames in the window. **The guard against a vacuous pass became the only thing that could
+fail, on the machine where everything it guards was already switched off.**
+
+### Fixed, and proved both ways locally
+
+```ts
+const MIN_SAMPLE_FRAMES = softwareRasterizer ? 10 : 30;
+```
+
+The floor's purpose is *"the harness actually sampled"*, not *"the machine is fast"*. Ten frames is still a
+real sample and still catches the failure it exists for.
+
+Reproduced CI's shape on this machine — forced `softwareRasterizer` true and shortened the sample window to
+land in CI's frame range — then ran it both ways:
+
+| | frames | verdict |
+|---|---|---|
+| with the fix (floor 10) | 21 | **PASS** |
+| floor hard-coded 30 (as shipped) | 21 | **FAIL** — *"the rAF sample must actually collect frames (floor 30)"* |
+
+**The CI failure reproduced locally and disappeared with the fix**, which is stronger than reasoning about
+frame rates. Unmutated local run is unaffected: hardware renderer, floor stays 30, frames=401, PASS.
+
+### What this chain looked like end to end
+
+A vacuity floor I would have written myself — this session added several — was hardware-dependent by accident.
+It failed on a GPU-less runner, which skipped the merge-evidence step (§962), which meant the 26-gate surface
+never ran, on the commit production serves (§959), with nothing requiring otherwise (§956). **Five phases to
+walk from "the board says 19 PASS" to a single ungated `> 30`.**
