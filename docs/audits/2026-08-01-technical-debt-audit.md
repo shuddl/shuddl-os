@@ -590,6 +590,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 395 | §947 | **§948** | **STOPPING POINT — 19 PASS · 2 FAIL · 5 BLOCKED at `8fc2c53`.** Ten phases closed six classes, all invisible to the 26 gates beforehand: 2/2 config knobs that repealed an enforcement by one token (one of them CLAUDE.md rule 7), 2/2 gate scripts running a fraction of their corpus (`test` reached **1,177 of 4,446 tests**), a deploy ordering enforced by a comment, the go-quiet class enumerated (10 entrypoints, 0 defaulting to local), three rotted summaries, and one miscount. **10 gates · 34 mutations RED · 3 corrections to my own published work.** Remaining is owner-held: REQ-289's classification, 9 private fixtures + `IDENTITY_DENYLIST`, and 17 repo-owned rows each needing a REQ row or an owner decision. Caveat recorded: while REQ-289 is unclassified, `unit-tests` is a BINARY exit code — read the test output, never the board line, to judge whether something new broke |
 | 396 | §948 | **§949** | **§940'S RESIDUAL QUANTIFIED AT 3-OF-17, AND ITS REASONING CORRECTED.** §940 named *"pnpm -r still bails at the first failing package"* and rejected `--no-bail` after watching workerd exhaust sockets. Measured: one planted failure in `packages/contracts` and **only 3 of 17 suites run** — api (824), ledger (697), rater, billing, mcp, translator, agents and all three apps never execute. The gate's coverage is a property of WHERE the first failure lands. **§940 changed two variables and blamed the wrong one:** the cascade came from CONCURRENCY, not no-bail. `--workspace-concurrency=1 --no-bail` → **17/17, zero socket errors, +19s (12%)**. `typecheck` takes `--no-bail` alone (tsc binds no sockets) and names **3** failing packages where the default named 1. Gate now requires `--no-bail` on both |
 | 397 | §949 | **§950** | **A REJECTION IS A CLAIM WITH A LIFETIME — AND 6 OF OUR 9 HAVE NO EXPIRY.** §949 overturned §940's `--no-bail` rejection but corrected it in only ONE of the three records that carried it, so the audit said both things at once; both older copies now struck in place. **Fourth instance this session of one fact in N records with only the newest maintained** (§937, §944, §946, and now my own one-phase-old correction) — rule: *when you overturn a claim, grep for the CLAIM, not the section that made it.* Measured the class: **9 explicit rejections, 3 with a re-measurement trigger, 6 without.** The empirical case is §940's own — untriggered, and wrong within nine phases, wrong in ATTRIBUTION not measurement. Re-tested the one decidable trigger (§313's date-stamp detector): **zero** machine-readable stamps in the nine ops docs, so it has not fired and that rejection stands |
+| 398 | §950 | **§951** | **THE CORRECTIONS HAD ONE MORE RECORD CLASS — THE ONE THAT OUTLIVES THE SESSION.** §950 swept the audit and missed **memory**, the only artifact reaching a session that never reads this file. Two stale claims, both written earlier today: `a-gate-proved-correct-is-not-proved-durable` still taught the pre-§943 mechanism (*sentinel vs exit code disagree*) and the board memory still carried §940's overturned `--no-bail` rejection. **An audit section is dated by construction; a memory file is presented as a current lesson** — and the first recorded a wrong METHOD, which survives every measurement because it decides which measurements get taken. Rule restated with full scope: enumerate every artifact class (prose · phase index · ops ledger · governing docs · config · gate comments · **memory**). Fifth instance this session — the count is the argument |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -56021,3 +56022,47 @@ A detector for *"a rejection whose reason has expired"* reads English and would 
 [[invert-a-detector-whose-boundary-is-english]]. The six untriggered rejections are not retro-fitted with
 triggers either: inventing one at this distance is the §872 prophecy failure, written at the moment of least
 evidence. What is recorded instead is the count, so the next reader knows the denominator.
+
+## §951 — PHASE GATE: the corrections had one more record class, and it is the one that outlives the session
+
+§950 stated the rule — *when you overturn a claim, grep for the CLAIM, not for the section that made it* — and
+swept the audit. It missed a record class entirely: **the durable memory files**, which are the only artifact
+here that reaches a session that has not read this audit.
+
+Two stale claims found, both mine, both written earlier in this same session:
+
+| memory | asserted | corrected to |
+|---|---|---|
+| `a-gate-proved-correct-is-not-proved-durable` | *"the sentinel and the exit code disagree… CI reads `$?` and merges"* | §943's finding: `reconcileSentinel` **already reconciles pessimistically**; both defects survived because **neither gate emitted a sentinel at all** |
+| `2026-08-09-board-two-fails-one-row` | *"`--no-bail` was rejected on evidence"* | §949's: the cascade was **concurrency**, not no-bail — `--workspace-concurrency=1 --no-bail` gives 17/17 |
+
+### Why this class is the worst place to leave a stale claim
+
+An audit section is dated by construction and a reader arrives knowing they are reading history. **A memory
+file is presented as a current lesson**, with no date in the reader's face and no surrounding narrative to
+qualify it — it is loaded into a future session as an operating instruction. The first of these two was worse
+still: it did not merely record a wrong fact, it recorded a wrong **method** — *"whenever a knob selects
+between report and enforce, look for the two channels disagreeing"* — which sends the next investigation at
+the wrong question. §943 established the right one: *is this gate capable of saying anything in the mode it
+will actually run in?*
+
+That is the [[a-reopen-trigger-is-written-at-least-evidence]] failure in its most durable form. A wrong finding
+gets corrected by the next measurement; **a wrong method survives every measurement, because it decides which
+measurements get taken.**
+
+### The rule, restated with its full scope
+
+§950's version was incomplete. The corrected form:
+
+> When you overturn a claim, enumerate **every artifact class** that could carry it — audit prose, the phase
+> index, the ops ledger, the governing docs, the config, the gate comments, **and memory** — and grep the
+> claim's own words across all of them. The section you are editing is the one place you are guaranteed to fix
+> and the least likely place for the last copy.
+
+Instances this session, now at five: §937 (C3 in two records), §944 (L417's trigger vs the config), §946
+(L115/L116 vs PROJECT-STATE), §950 (§940's rejection in three audit records), §951 (two memory files). **The
+count is the argument** — the pattern is not carelessness in any one case, it is that a correction naturally
+terminates at the artifact where the error was noticed.
+
+No gate: memory lives outside the repo, so no CI check reaches it. The discipline is the deliverable, and it is
+now written where a future session will actually read it — in the memory files themselves.
