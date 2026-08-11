@@ -587,6 +587,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 392 | §944 | **§945** | **FOUR WRONG COUNTS OF ONE TABLE, AND THE RECORD ALREADY HAD THE RIGHT ONE.** §944's headline *"13 open repo-owned rows"* is wrong — it is **17** of 35, and **§804 had already published 35 rows / 16 OPEN**, from the section that earned *"a claim you inherit is a claim you are making."* I re-derived it instead of reading it (third time this session). Four ad-hoc parsers, four confident wrong answers: whole-row keywords (`fail-closed` reads CLOSED) → 13; strike MARKERS stripped not struck SPANS (`~~OPEN~~ CLOSED` → OPEN) → 24, **the exact bug fixed in §944's gate an hour earlier**; header counted as data → 36; naive `split("|")` → *"10 malformed rows"*, accusing `check:tables` of a miss when it handles escapes and per-table headers correctly. Trigger sweep: L419 and L421 not fired, L432 is a RESOLUTION row (what seeded the 13). 1 of 13 triggers had fired — L417's |
 | 393 | §945 | **§946** | **TWO LAUNCH-GATE ROWS STILL NAME A BUILD AS THE BLOCKER; THE BUILD SHIPPED IN JULY.** The `acceptance` gate is honest (green = *the code-provable half*; §607 closed its spine silent-drop), which made the real gap findable in the FILMED half's tracking. `GO-LIVE-CHECKLIST` L116 (demo #4) still says action *"Build MCP intake surface (WP-13)"* / status **Deferred WP-13**, and L115 (demo #2) **Depends WP-14** — while `PROJECT-STATE:9,98` states *All sixteen WPs are closed*, both close-outs read *complete*, and demo 4's spine runs **green inside `pnpm test:acceptance`**. The blocker migrated from *build it* to *bind, flip and film it*; the rows did not follow. **Third instance in three phases** (§937 C3, §944 L417). Corrected in place; `wp-blocker-staleness.test.ts` reads PROJECT-STATE's all-sixteen assertion and computes the rule |
 | 394 | §946 | **§947** | **THREE PROBES INTO PRODUCT CODE, THREE CLEAN NEGATIVES — AND THE RECORD GOT CHECKED FIRST.** (1) Staging can email a real person — `resolveRecipient` has no env check or allowlist, and the safety rests on a DATA POLICY not a mechanism. **Already recorded**, more precisely than I'd have written it: `DEPLOYMENT.md:29` (*the only real address wired in staging is an owner test inbox*) + a Med awareness row with a disable procedure + REQ-154's *staging PII audit clean* DoD. (2) Both Biller `issued_send_pending` reasons are covered by 3 test files each, including the Command surface's DunningQueue. (3) `gate-wiring` reads `package.json` cwd-relative, but pnpm sets a script's cwd to its package root — measured from two subdirectories, full 1,196-test suite identical. No gate added: it would be testing pnpm. Each probe's KILL COUNT stated, because a clean negative is worth only its detection power |
+| 395 | §947 | **§948** | **STOPPING POINT — 19 PASS · 2 FAIL · 5 BLOCKED at `8fc2c53`.** Ten phases closed six classes, all invisible to the 26 gates beforehand: 2/2 config knobs that repealed an enforcement by one token (one of them CLAUDE.md rule 7), 2/2 gate scripts running a fraction of their corpus (`test` reached **1,177 of 4,446 tests**), a deploy ordering enforced by a comment, the go-quiet class enumerated (10 entrypoints, 0 defaulting to local), three rotted summaries, and one miscount. **10 gates · 34 mutations RED · 3 corrections to my own published work.** Remaining is owner-held: REQ-289's classification, 9 private fixtures + `IDENTITY_DENYLIST`, and 17 repo-owned rows each needing a REQ row or an owner decision. Caveat recorded: while REQ-289 is unclassified, `unit-tests` is a BINARY exit code — read the test output, never the board line, to judge whether something new broke |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -55845,3 +55846,58 @@ probe 1 found the exact live-send fact in §944 one phase earlier, probe 2's met
 and probe 3's class produced sixteen real fixes at §554–§559. **A clean negative from an instrument with a
 known kill count is evidence; a clean negative from an untested one is silence** — and this session has now
 twice written the positive control before believing the negative (§943's mode sweep, §947's three).
+
+## §948 — STOPPING POINT: the assurance system audited itself, and the remaining work is owner-held
+
+**Measured at `8fc2c53`: 26 gates — 19 PASS · 2 FAIL · 5 BLOCKED**
+(`artifacts/release/8fc2c53…/merge/gate-merge-2026-08-11T01-37-54-593Z.json`). §947 returned a clean negative
+across three independent probes with known kill counts, which is the signal this direction is exhausted.
+
+### What ten phases closed
+
+Every defect below was invisible to all 26 gates before its phase, and each is now enforced by one:
+
+| class | defects | phases |
+|---|---|---|
+| **A fix nothing pins** — one-token edits that repeal an enforcement | 2 of 2 config knobs (`--mode release`; `design-ci.json`, which is CLAUDE.md rule 7) | §938, §939 |
+| **A gate that runs a fraction of its corpus** | 2 of 2 internally-chaining gate scripts (`test` was running **1,177 of 4,446 tests**; `typecheck` latent) | §940, §941 |
+| **An ordering enforced by a comment** | the surface deploy's build → check `--built` → deploy chain | §942 |
+| **A gate that goes quiet** | class enumerated: 10 mode-aware entrypoints / 14 bindings, zero defaulting to `local` | §943 |
+| **A summary that rots against its own detail** | `wrangler.toml`'s staging header; L417's fired trigger; L115/L116 naming a July build | §944, §946 |
+| **A count over a proxy** | §944's own open-row figure (13 → **17**) | §945 |
+
+**10 gates added · 34 mutations RED against green fixed points · 0 open defects introduced.**
+
+### Three corrections to my own work, each caught before it hardened
+
+1. **§943 disproved the mechanism I published in §938 and §939.** I wrote that sentinel and exit code disagree
+   and CI trusts the exit code. `reconcileSentinel` already reconciles them *pessimistically*; what defeats it
+   is a gate emitting **no sentinel at all** (measured: 0 and 0). Findings unchanged, mechanism struck.
+2. **§945 corrected §944's headline count**, which four different ad-hoc parsers had got wrong four ways —
+   including, twice, the exact bug I had fixed in a gate an hour earlier.
+3. **§942's commit shipped with `typecheck` red**, because I ran gates and `git commit` in one command. Every
+   commit since chains them, and that chain has since blocked two commits (§947, twice).
+
+### Phase gate — what would make this reopen
+
+Stated as conditions, not intentions, so a future reader can decide mechanically:
+
+- **The board's resolution is limited while REQ-289 is unclassified.** `unit-tests` is the exit code of
+  `pnpm test` — a binary. A new failure anywhere in 4,446 tests renders as the same `FAIL` as the register
+  row. §940 fixed the *corpus* (the suites now run); the *attribution* needs the row. **Until then, read the
+  test output, never the board line, when judging whether something new broke.**
+- **17 open repo-owned rows remain open deliberately.** Each says *"needs a REQ row first"* (L419 SLA cadence,
+  L420 lost-booking backstop) or *"owner (tooling call)"* (L405 coverage instrumentation). Building them
+  without a register amendment is the one thing the working agreement forbids, and `genesis/09` currently
+  carries the owner's uncommitted edit.
+- **The 5 BLOCKED gates are absent inputs, not failures** — nine unvendored engagement fixtures and
+  `IDENTITY_DENYLIST`. Each reports *"could not run"*, which is the correct fail-closed posture.
+- **One trigger of thirteen had fired** (L417). Twelve were checked and had not; three are English predicates
+  no gate can evaluate. **Re-run that sweep when a provider, flag or secret binds** — that is the event class
+  that fired the one.
+
+### What resumes work here
+
+Any of: the REQ-289 row gains a classifiable `status`/`wp`; a private fixture is vendored; an owner answers
+L419/L420/L405; a binding event flips a `DELIBERATELY ABSENT` claim. **Nothing on this list is mine, and
+nothing left that is mine is undone.**
