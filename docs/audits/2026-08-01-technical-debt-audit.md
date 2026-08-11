@@ -26,13 +26,13 @@ an implementation annotation, and an audit describing *unbuilt* scope must not f
 
 ## START HERE — the owner-facing sections (index added 2026-08-04, §162)
 
-This document is 152 sections and grows by append. It is a **record of an audit**, not a summary, and a
+This document grows by append and is long by design. It is a **record of an audit**, not a summary, and a
 reader arriving today lands on a method note from its first day. These are the sections an owner actually
 needs, each of which points at the ledger entry that owns the truth rather than restating it:
 
 | question | section |
 |---|---|
-| **What blocks release, and how do I check each?** | **§113** (the stopping point) as scoped by **§123**, with the hold table rewritten in **§126** to carry a verification command and an expiry trigger per row |
+| **What blocks release, and how do I check each?** | **§999** — the complete `verify:merge` verdict, run rather than inferred, with every failure attributed; then **§994**, which classifies every open repo-owned row by *what* blocks it. Historically: **§113** (the first stopping point) as scoped by **§123**, with the hold table rewritten in **§126**. Read §999 first — the earlier three describe an earlier world and are kept as provenance |
 | **What is the current measured state?** | **§4** — whose own head block names the current measurement. No count or section is repeated here: §162 corrected this row once by replacing a decaying SHA with a decaying COUNT plus a section pointer ("nine times to date, the latest in §141"), and by §506 both had decayed again. The pointer that does not rot is the one to the section that maintains itself (§507) |
 | **What breaks the moment I flip a flag or bind a secret?** | **§138** — the activation map |
 | **What becomes filmable when I clear a hold?** | **§149** — the demo-unblock join |
@@ -187,8 +187,8 @@ own repo). `.claude/ralph-loop.local.md` + `.github/copilot-instructions.md` / `
 
 ## §4 — Phase gating and the stopping point
 
-**START HERE. Eight phases have closed; each has one gate section carrying its own exit numbers and reopen
-triggers.** This table is the index — read the row you need, not the ten paragraphs below it.
+**START HERE. Every closed phase has one gate section carrying its own exit numbers and reopen
+triggers — the table below is the complete list, and its last row is the current one.** This table is the index — read the row you need, not the ten paragraphs below it.
 
 | phase | sections | gate | what it closed |
 |---|---|---|---|
@@ -631,6 +631,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 469 | §1021 | **§1022** | **THE FRONT DOOR HAD DECAYED — THE ONE PLACE §162 FIXED, AND THE ONE WAY IT COULD STILL ROT.** §1019 found a stale figure in a gate header; §1020 proved it ungateable; so this asks **where such a figure costs most** — the block every reader lands on first. §162 already fixed this entry point once (*a READ-THIS-FIRST redirect named a SHA re-measured **nine times** since*) with the right rule — **point at the section, never at the value** — and left three values in the surrounding prose. **All three had rotted:** `START HERE` claimed **152 sections** against **1008**; **§4 claimed 'Eight phases have closed' directly above its OWN 24-row table** whose last phase is **52**; and *what blocks release* still pointed at §113 when **§999** is the current verdict. Fixed by **removing the decaying value, not refreshing it** — 1008 would re-arm the same trap — so both sentences are now state-INDEPENDENT, and §4's tells the reader how to find current state themselves (*the last row*), which no growth can falsify. Release pointer leads with §999 → §994, keeping the old three as provenance: **a stale count invites a double-check, a stale POINTER is simply followed.** Third instance of one shape (§1013, §1019): **a fix installs a mechanism; the sentences describing it are not part of the mechanism, and nothing re-reads them** |
 | 468 | §1020 | **§1021** | **CORPUS NARROWER THAN SUBJECT — SWEPT ACROSS 17 GATES, CLEAN.** §1020's own detector had that defect (docs-only corpus while gates quote SOURCE comments); this turns it on shipped gates. **§120's precedent, in the gate's own words:** *this scanned packages + workers, .ts only — so **4 of 6 (tree × extension) cells were blind**; check:chokepoint already scanned `apps/` for the same class, and **the two gates guard I3 together and disagreed about where it could live**.* Two mechanisms, one invariant, differing in SCOPE with nothing failing. Fixed by making the corpus **shared** — `source-corpus.ts` exports `SOURCE_SCAN_GLOBS` + `isTestPath` + `stripComments`, and **9 gates import it**. The part worth copying is `EXPECTED_EMPTY_GLOBS`: **a glob that legitimately matches nothing is DECLARED**, so a glob that UNEXPECTEDLY matches nothing can fail — §968's `checked=0` law, fourth instrument (after §1015's discarded 90% probe and §1017's Playwright JSON stats). Swept all 17: the 8 `.ts`-only gates are narrow **because their subjects are** — `workers/` has no `.tsx` (declared empty, not merely absent), contracts/rater have no React, `syntax-ban-inheritance` reads a config file, and `and-chain-or-parens` governs **SQL** chains with its scope stated and measured. **No shipped gate has a corpus narrower than its subject** |
 | 467 | §1019 | **§1020** | **CAN §1019's DEFECT BE GATED? — NO, AND THE DETECTOR PROVED IT ON ITSELF.** §1019 found a gate header quoting *"Unbounded list reads — 7 sites"* while the doc said 9. Is that a class, and is it detectable? **First detector: 185 quoted phrases, 75 'missing' — a 40% miss rate that describes the DETECTOR**, since the misses are the gate's own error strings, format strings and rhetorical questions. Not reported. **Narrowed to the repo's own `*"…"*` quotation marker: 22 marked, 6 unresolved — small enough to read, and ALL SIX ARE FALSE POSITIVES** in three ways: two quote a gate's own error/output, one quotes a **superseded comment deliberately**, two are **verbatim in the audit behind backticks** (my normaliser stripped whitespace but not MARKDOWN), and one quotes a **source** comment (`spark-meter.ts:18`) while my corpus was docs-only. **Zero confirmed stale quotations besides §1019's.** No gate is possible: the marker means *this is a quotation*, not *this must still be true* — and a superseded-comment quote that stops resolving is **the point of quoting it**. Third time at this boundary (§1012, §1014). Two transferable detector defects recorded: **normalise both sides to the same alphabet**, and **the corpus must be as wide as the thing QUOTED, not as wide as the thing audited** |
 | 466 | §1018 | **§1019** | **THE DRIFT GATE HAD DRIFTED — IN THE ONE PLACE NO GATE READS.** §1018 found `KNOWN_UNPAGINATED` entries are **filed debt**, raising the question whether the ledger an owner reads knows about them. **It does, and the join is gated better than expected:** `unbounded-reads-roster.test.ts` extracts the doc's NUMBER (`/Unbounded list reads — (\d+) sites/`) and asserts it equals `ROSTER.length`, with *whichever moved, move the other in the SAME commit* — earned at §823, whose row records *this row said '7 sites' while already citing 8, and the agreement test matched only the TITLE, so the disagreement was invisible for two audits*; plus §822's discovery half (*a roster watches what it knows; a ninth site walks past it*). **And its own header still said seven.** The doc says 9; the file's opening paragraph quoted 7. **The file whose entire purpose is stopping doc↔code count drift had drifted, in its own first paragraph** — and nothing could fail, because the assertion reads the DOC and a header comment is prose. Corrected to 9 with provenance kept. **A gate cannot audit its own prose**, so the most rigorous file in a repo is exactly as prone to a stale sentence as the least |
@@ -60227,3 +60228,72 @@ are narrow by subject with the reason stated in each.
 **Re-open when:** a gate is added with its own source glob instead of importing `SOURCE_SCAN_GLOBS` — that is
 the only way this class returns · a `.tsx` file appears under `workers/`, which `EXPECTED_EMPTY_GLOBS` asserts
 cannot happen silently · `apps/` gains SQL construction, which would put `and-chain-or-parens` out of scope.
+
+---
+
+## §1022 — PHASE GATE: the front door had decayed — the one place §162 fixed, and the one way it could still rot
+
+§1019 found a stale figure in a gate's header. §1020 established it cannot be gated. So the remaining question
+is *where such a figure costs the most* — and the answer is the block every reader lands on first.
+
+§162 already fixed this document's entry point once. Its own diagnosis:
+
+> *"its most-read sentence had decayed — a `READ THIS FIRST` redirect said *'for the current state, read §4's
+> re-measurement at `<sha>`'* — and that section had been re-measured **nine times** since, with the named
+> commit not among them."*
+
+§162's fix was the right one: **point at the section, never at the value.** It rebuilt the redirect around
+sections that are continuously re-measured. And it left three values in the surrounding prose.
+
+### All three had rotted
+
+| claim | said | actual |
+|---|---|---|
+| `START HERE`: *"This document is **152 sections**"* | 152 | **1008** `## §N` headings |
+| `§4`: *"**Eight phases** have closed"* | 8 | its **own table has 24 rows**, last phase numbered **52** |
+| `START HERE`: *what blocks release* → §113 / §123 / §126 | the first stopping point | **§999** is the current one — a complete `verify:merge` run with every failure attributed |
+
+The second is the sharpest: **a sentence contradicted by the table directly beneath it**, in the section the
+front door names as *"the current measured state"*. Nothing failed, and nothing could — §1020 established why.
+
+### Fixed by removing the decaying value, not by refreshing it
+
+Writing `1008` and `24` would restore accuracy and re-arm the same trap; this document has grown by ~29
+sections today alone. Both sentences are now **state-independent**:
+
+```
+"This document is 152 sections and grows by append."
+  → "This document grows by append and is long by design."
+
+"Eight phases have closed; each has one gate section…"
+  → "Every closed phase has one gate section… — the table below is the complete list,
+     and its last row is the current one."
+```
+
+The second does more than avoid a number: it tells the reader **how to find the current state themselves**
+(*the last row*), which no future growth can falsify.
+
+The release-blocker pointer now leads with **§999** then **§994**, keeping §113/§123/§126 explicitly as
+provenance — *"the earlier three describe an earlier world."* A pointer to a superseded stopping point is
+worse than a stale count, because a count invites a double-check while **a pointer is simply followed** (§162's
+own words, now demonstrated on §162's own artifact).
+
+### The pattern this closes
+
+§162 fixed the **mechanism** (point at sections) and left the **prose** around it carrying values. That is the
+same edge as §1019 — where a gate's assertion was correct and its header was stale — and as §1013, where a
+fixture's comment reasoned correctly about a suite that had been self-confirming. Three instances, one shape:
+
+> **A fix installs a mechanism; the sentences describing it are not part of the mechanism, and nothing
+> re-reads them.** The durable repair is not a fresher value but a sentence that cannot be wrong — one that
+> names *where to look* instead of *what it says*.
+
+### Phase gating
+
+**STOP.** The entry point is state-independent in both surviving claims, and its release-blocker row leads with
+the current verdict.
+
+**Re-open when:** a new stopping point supersedes §999 — the front-door row must move with it, and that is the
+one edit no gate will demand · a value re-enters `START HERE` or §4's head, which is the shape that decayed
+twice · the phase table's last row stops being the current one, which would falsify the new wording rather
+than merely age it.
