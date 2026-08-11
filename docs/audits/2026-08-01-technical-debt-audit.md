@@ -609,6 +609,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 414 | §966 | **§967** | **FOUR COMMITS SHIPPED WITH A RED GATE, BECAUSE MY GUARD READ A STALE FILE.** (1) Ran `pnpm audit --prod` — `ci.yml` step 16, one of the two §962 found SKIPPED since 2026-07-23: **4 vulnerabilities (1 low, 3 moderate), all `hono`** via workers/api + workers/mcp, installed 4.12.28, all patched in >=4.12.34. The declared `^4.10.8` already permitted the fix, so a lockfile refresh, not a dependency decision → **4.13.1, "No known vulnerabilities found"**, api 824/824, mcp 185/185, all 17 suites green. (2) **§963–§966 were each committed while `check:citations` was RED** (verified by checking out all four). My guard chained gates with `&&` but then ran the count after a `;` — so when `verify:docs` failed, `test:tools` never ran and the count read `/tmp/tt.out` **from the previous phase**. §942's *chain them* was necessary and insufficient: **a guard that reads an artifact must prove the artifact is from THIS run** |
 | 415 | §967 | **§968** | **THE BLAST RADIUS WAS EXACTLY FOUR — AND THE PROBE LIED TWICE BEFORE SAYING SO.** Checked out **all 30 commits this session** and ran the three cheap doc gates at each: **4 RED, all `citations`, all the §963–§966 already known, none other.** Bounded and closed. But the probe reported CLEAN twice first: `tac` does not exist on macOS (empty list → *silence = all green*), then **zsh does not word-split unquoted `$commits`** so `for c in $commits` iterated once and every checkout failed (→ `red=0`) — the same zsh trap memory recorded after §938, **second occurrence this session**, both times a FALSE CLEAN. The separator was one number: `checked=0 red=0` vs `checked=30 red=4`. **A finding count without its denominator cannot be falsified** — same shape as §959's pathspec, §965's prune, §961's printf and §967's stale file, all of which failed by producing LESS. Adopted: every sweep now reports `checked=N` |
 | 416 | §968 | **§969** | **THE DENOMINATOR RULE, APPLIED FIRST TO MY OWN MOST RECENT CLEAN NEGATIVE.** §968 adopted *every sweep reports `checked=N`*; a rule adopted and not immediately applied is a resolution, not a practice. **§965 published three bare zeros** — the exact shape §968 condemned, one phase earlier, same author. Re-run: `checked=906 refs bad=0`, `checked=994 files clashes=0`, `checked=994 files dups=0`. **The zeros hold** and are now falsifiable; §965's table backfilled in place with a note. Reviewed all 30 session sections for clean-negative claims: **1 of 30 lacked a denominator**, now supplied; §943/§947/§952/§961/§964/§968 each already carried theirs. **A rule that exempts the work that motivated it is a rule with a survivorship hole** |
+| 417 | §969 | **§970** | **THE HARD BUDGETS, MEASURED AGAINST THEIR OWN DECLARATIONS.** The other constitutional list, unchecked this session. All are gated from `tools/` — the half that never went dark — so **unlike rules 4/5/6/8 (§955) the budgets held through the §940 window.** Values counted from the rosters, not greps: tables **21/22**, surfaces **3/3**, canonical views **11/12**, event kinds **35/35** (`EVENT_KINDS` checked=35 entries, 35 distinct), colours **5 base + 4 derived**, fonts **2**, shadows/gradients/radius `design audit: clean`. **Operational fact: event kinds have ZERO headroom** — CLAUDE.md's *additions = register amendment* is now the live constraint, and *within budget* vs *at the ceiling* read identically in a green gate. Two probes returned `checked=0` (a token regex assuming a `--color-*` convention this repo does not use) and were re-run rather than published — §968's rule, working |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -56965,3 +56966,46 @@ vocabulary for that: §950's *a rejection is a claim with a lifetime*, applied t
 Checked: 30 session sections reviewed for clean-negative claims; **1** lacked a denominator (§965), now
 supplied. The other clean negatives — §943 (10 entrypoints / 14 bindings), §947 (1,196 tests), §952 (51 cases),
 §961 (53 artifacts), §964 (10 floors), §968 (30 commits) — each already carried theirs.
+
+## §970 — PHASE GATE: the hard budgets, measured against their own declarations
+
+§955 found that CLAUDE.md's *rules* split into a structural half that ran and a behavioural half that did not.
+The **hard budgets** are the other constitutional list, and they had not been checked this session at all.
+
+### Where they are enforced — all in the half that always ran
+
+Every budget is gated from `tools/` (`claude-md-budgets.test.ts`, `invariants`, `audit:design`), which is the
+half `test:tools` executes first and which never went dark. **Unlike rules 4/5/6/8, the budgets held throughout
+the §940 window** — a real difference, and worth stating rather than assuming symmetry with §955.
+
+### The values, counted from the declarations themselves
+
+| budget | limit | actual | headroom |
+|---|---|---|---|
+| tables | ≤22 | **21** (`invariants OK — 21/22 tables`) | 1 |
+| surfaces | 3 | **3** — `apps/command`, `apps/driver`, `apps/portal` | 0 (exact by design) |
+| canonical views | 12 | **11** declared, `MAX_CANONICAL_VIEWS = 12` | 1 |
+| event kinds | 35 | **35** — `EVENT_KINDS` roster: checked=35 entries, 35 distinct | **0** |
+| colour tokens | 5 | **5** base (`--field --signal --signal-deep --ink-dark --progress`) + 4 derived alphas | — |
+| font families | 2 | **2** (`--display`, `--mono`) | 0 (exact by design) |
+| shadows / gradients / radius>4 | 0 | `design audit: clean` | 0 |
+
+Counted from the **roster**, not a grep for kind-shaped strings — §934's rule, and the two differ: a proxy scan
+of `"a.b"` literals in `events.ts` happens to agree at 35 here, which is exactly the coincidence that makes
+proxy counts feel reliable until they aren't.
+
+### The one operational fact worth carrying
+
+**Event kinds are at 35 of 35 — zero headroom.** CLAUDE.md already says *"additions = register amendment"*, so
+this is not a defect; it is the budget doing its job, and it means the next event kind anyone wants is a
+governance step rather than a code change. Tables and views each keep one spare (and CLAUDE.md notes the table
+spare *"requires a written deletion"*). Recorded because *"within budget"* and *"at the ceiling"* read the same
+in a green gate and mean different things to whoever plans the next feature.
+
+### Two probes that returned zero, caught by §968's rule
+
+My first token count printed `checked=0 custom props` — the regex assumed a `--color-*` naming convention this
+repo does not use. By §968's rule that is a broken probe, not an empty file, so I read `tokens.css` directly
+(1,419 bytes, 11 declarations) rather than publishing a zero. Earlier in the same phase a design-audit grep
+returned nothing because the tool prints only `design audit: clean` on success — the same shape, same fix:
+**checked=0 is a question, never an answer.**
