@@ -631,6 +631,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 485 | §1037 | **§1038** | **THE ONBOARDING PATH, AND THE README'S MOST CONSEQUENTIAL CLAIM VERIFIED AT HEAD.** §1033 found rule 1 honoured by one person's discipline and §1037 found my own summaries drifting; both ask whether **someone else could start here, and whether what they read is true.** §1003 checked gates in a fresh clone — this checks what a HUMAN follows. Setup path accurate: pins agree across `.node-version`/`engines`/`packageManager`, `check:runtime` is real and genuinely first in every chain, and both status claims carry *corrected 2026-08-04, audit §172* provenance. **The claim worth re-earning: *Production is provisioned but dark — nothing is armed or sending*** — dated a week ago, never re-checked, while §944 established staging DOES send. Measured across all eight `wrangler.toml`: **`[env.prod.vars]` carries `ENVIRONMENT` (plus `REFERRAL_BASE`) and NO sending or arming key**; staging additionally carries `EVIDENCE_FROM`. **The claim holds exactly**, and the split is why L422 is a STAGING hold — config and ledger row agree, checked against each other rather than each trusted. **Method: third comment-related probe failure this session** — a non-greedy TOML section match truncates on a comment containing `[`, hiding `EVIDENCE_FROM`. **In a repo whose comments are longer than its code, any regex that does not exclude comments is measuring prose** |
 | 484 | §1036 | **§1037** | **THE FIGURES I WAS RESTATING — TWO STALE, AND BOTH STALE BECAUSE OF ME.** §1036 re-earned the board; the same question applies to every recurring figure, and §1032 named the mechanism (*this audit is its own churn source*). Re-measured all eight: **unpushed commits 1,018 → 1,097** (I added 45 while quoting the size) and **open repo-owned rows 17 → 18** (§998 filed the flake row while I kept quoting §994) are **STALE**; ledger rows 35 → 36, same cause. Confirmed unchanged: board 19/2/5, tests 4,535/3, pending fixtures 9, BLOCKED 5, pull requests 0. **Neither stale figure decayed because the world moved — both decayed because I ACTED.** §1023's rule with the container being **my own output**: *the figures most likely to be stale in a summary are the ones the summariser is actively changing*, and it is invisible from the inside because each restatement felt like a citation rather than a claim. **The two survivors sharpen it** — `0 pull requests` and `5 BLOCKED` are exactly the figures nothing in this session could move. Remedy is §1022's: cite the SECTION that measured a figure, or re-measure at the point of restatement |
 | 483 | §1035 | **§1036** | **THE BOARD RE-MEASURED AT HEAD — THE VERDICT I HAD BEEN REPEATING PAST ITS EVIDENCE.** §999 measured the board at `1e2ec98`; every phase since quoted **19/2/5** while **37 commits landed**. This record built §995's gate because *nothing could distinguish still-true from nobody-looked*, and §1029 showed a proof covers only the text that existed when it ran — **a board verdict is subject to both, and I had been restating one without re-earning it.** Re-ran: `verify:merge` at `40f69a8`, 297s. **19 PASS · 2 FAIL · 5 BLOCKED · 22 suites · 374 files · 4,535 tests · 3 failing · 99.934%** — identical to §999 except the one test this session added. Every failure attributed again, not assumed: the same three in `tools/traceability`, all the owner's uncommitted REQ-289 row, and **21 of 22 suites have zero failures**, so `unit-tests`' red masks nothing. **What re-running bought is not a changed number but a RE-EARNED one** — 37 commits including nine new/widened gates, two skill edits, a CLAUDE.md correction and a nightly job could each have broken something. **The cost of re-measuring is bounded and knowable; the cost of quoting a stale verdict is not.** §994's wedge deferral now overruled twice, wedge absent both times |
 | 482 | §1034 | **§1035** | **STOPPING POINT VI — EVERY ONE OF THE TEN LAWS HAS A NAMED ENFORCER.** §1033/§1034 verified the two rules whose enforcement is not a command; this resolves ALL ten to a named artifact rather than summarising (§127: a derived record is usually less accurate than its source). **Ten rules, ten enforcers — eight commands or pinned tests, two verified by measurement this session.** `check:invariants` · `check:chokepoint` · `check:rater-purity` · `check:fixtures` · `audit:design` · `isolation-suite.test.ts` · the adapters pair for rule 10 · and **rule 5's model pin**: `anomaly.test.ts` — *the 35-lb $222,084 quote flags `over_per_lb` — **forever***, driven by the frozen fixture `the-222084-case.json` asserted by id, **with the intent in the test title where anyone deleting it must read it.** **The two ungated rules differ:** rule 1 HAS a gate that has never been given input (`check:pr`, 0 PRs) and converts to machine enforcement on the push; **rule 9 has no possible gate** — no command can establish a swarm occurred, only that a document says so, which is why §1034's convention split was worth writing down. Constitution now measured end to end: budgets by violation, stack by presence, rules-as-written by proof-ancestry, rule 1 by history, rule 9 by reading, all ten mapped |
@@ -61186,3 +61187,65 @@ it for the rest.
 **Re-open when:** a commit lands — the unpushed count moves by construction, and it is the figure with the
 fastest decay in the record · a ledger row is filed or closed · the push happens, which zeroes the unpushed
 count and simultaneously makes `pull requests ever` capable of moving for the first time.
+
+---
+
+## §1038 — PHASE GATE: the onboarding path, and the README's most consequential claim verified at HEAD
+
+§1033 found rule 1 honoured by one person's discipline; §1037 found my own summaries drifting. Both point at a
+question this record has never asked: **could someone else start work here, and is what they would read true?**
+§1003 checked whether *gates* run in a fresh clone. This checks what a *human* would follow.
+
+### The setup path is accurate
+
+`README.md` is 32 lines. Its runtime contract:
+
+```
+nvm install 22.15.0 && nvm use 22.15.0     # or fnm, reads .node-version
+corepack use pnpm@11.10.0
+pnpm check:runtime
+```
+
+Every element verified: the pins agree across `.node-version`, `engines` and `packageManager` (§1005),
+`check:runtime` is a real script (§996's gate covers that class), and it is genuinely the first step of every
+verification chain — so a version mismatch fails at the door rather than as a confusing test error.
+
+Both status claims carry their own provenance — *"corrected 2026-08-04, audit §172"* — which is the stamping
+discipline §1023 named, applied where a newcomer reads first.
+
+### The claim worth re-earning
+
+> *"Production is **provisioned but dark** — nothing is armed or sending."*
+
+Dated 2026-08-04 and never re-checked, while this session added a nightly job and §944 established that
+**staging does send real evidence email.** Measured at HEAD across all eight `wrangler.toml` files:
+
+| environment | vars declared |
+|---|---|
+| **`[env.prod.vars]`** | `ENVIRONMENT` everywhere, plus `REFERRAL_BASE` for agents — **no sending or arming key of any kind** |
+| `[env.staging.vars]` | `ENVIRONMENT`, `REFERRAL_BASE`, and **`EVIDENCE_FROM = "SHUDDL <pod@send.shuddl.tech>"`** |
+
+**The README's claim holds exactly**, and the prod/staging split is the reason L422 is a *staging* hold rather
+than a production one. Config and ledger row agree — two records describing one world, checked against each
+other rather than each trusted.
+
+### Method, and a repeated hazard
+
+My first two probes returned empty and then comment text. A non-greedy TOML section match
+(`\[env\.X\.vars\](.*?)(?=\n\[|\Z)`) **truncates on a comment containing `[`**, and this file's headers are
+dense with them — so `EVIDENCE_FROM`, eleven lines below its own explanatory comment, was invisible. The
+control that caught it was listing *every* key per section: prod showed `ENVIRONMENT`, which proved the
+sections parse and the filter was the problem.
+
+**Third comment-related probe failure this session** (after §1015's failure-verb matcher and §1034's keyword
+sweep). The pattern is consistent enough to name: **in a repository whose comments are longer than its code,
+any regex that does not exclude comments is measuring prose.**
+
+### Phase gating
+
+**STOP.** The onboarding path is verified: setup commands accurate, status claims stamped, and the
+production-dark claim re-earned at HEAD against the actual config.
+
+**Re-open when:** any `[env.prod.vars]` gains a key beyond `ENVIRONMENT` — that is the edit that falsifies the
+README's central status line, and nothing watches it · `check:runtime`'s pins move · the first external
+contributor arrives, which is the only real test of an onboarding path.
