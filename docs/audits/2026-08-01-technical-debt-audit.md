@@ -600,6 +600,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 405 | §957 | **§958** | **THE EVIDENCE IS ANCHORED TO COMMITS THE REMOTE DOES NOT HAVE — 4% OF THIS AUDIT'S SHAs RESOLVE.** §957's 1,016-commit gap has a second, larger cost: the governing records stamp their measurements with SHAs, and most of those commits exist only on this machine. Measured on `origin/main`: audit **5 of 111 (4%)**, RELEASE-EVIDENCE 5/16, GO-LIVE-CHECKLIST 23/38, PROJECT-STATE 7/12. This repo's epistemics rest on the stamp — the eight-field schema demands *Proof — command → verdict*, §932 says a figure without a re-derivable source rots — and **a stamp is what separates a measurement from an assertion**. Nothing is wrong: every measurement was really taken. But *you can verify this* is false for anyone not at this checkout. Not filed as a new hold — recorded on §957's row, because **a push makes all four 100% with no other action**, which makes it the cheapest open item on the board |
 | 406 | §958 | **§959** | **THE SURFACES ARE GENUINELY LIVE — AND RUNNING CODE 100 COMMITS BEHIND.** Re-ran the record's own probe against prod after 11 days: `api.shuddl.tech/v1/board` → **401** fail-closed as documented, command/driver/portal/track/mcp → **200**, api and billing roots 404 as expected. **A documented claim about live infrastructure, true in every particular** — recorded because a clean positive is worth its instrument too. But *the surfaces are live* and *the surfaces run current code* are different claims: against `origin/main` (= deployed `0415148`), **100 unpushed commits touch runtime src, 125 source files differ, 0 migrations differ** — every worker and surface, pure application code with no schema divergence. Not a defect (an old fail-closed build is a safe one), but only the first claim was written down. **A false clean caught by a positive control:** the pathspec `packages/*/src` matches ZERO files and reported *0 runtime commits* — the trap this repo's memory records verbatim |
 | 407 | §959 | **§960** | **THE REMEDIATION SAYS OIDC; THE WORKFLOW READS TWO SECRETS THAT DO NOT EXIST.** §957 left the nightly's mechanism inferred. Measured: `gh api …/actions/secrets` → **`{"total_count":0}`** — zero repository secrets, while the workflows reference `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` and `IDENTITY_DENYLIST`. That is the root cause of the 8-night red, and it settles a second question: **`identity-leak` is BLOCKED in CI too, not just local dev — the five BLOCKED gates are blocked everywhere.** **The defect:** `GO-LIVE-CHECKLIST:52` instructs *Configure GitHub Actions OIDC ↔ Cloudflare*, but `nightly.yml` authenticates with repository SECRETS and no workflow requests an `id-token` permission. **An operator would stand up OIDC and the nightly would still exit 2.** Corrected in place, naming both secrets |
+| 408 | §960 | **§961** | **THE MECHANICAL HALF OF §960's CLASS IS EMPTY — AND MY FIRST COUNT WAS A FALSE ALARM.** §960 was instance #3 of *a remediation that does not fix the thing*, so I counted: **53 checkable artifacts named in Action cells, 0 unresolvable.** Every file and script a remediation names exists. So §960's defect was SEMANTIC, not referential — *Configure OIDC* names nothing broken, it points at a mechanism the code does not use, and **no detector reaches that**. The class has two halves with opposite properties: the referential half is checkable and clean at 53/53; the semantic half is uncheckable and has produced 3 defects, all found by reading. **Near-miss:** the first pass reported **27 of 53 unresolvable** (51%), every one wrong — it read a bare basename as a repo-root path. A false ALARM, the opposite of this session's usual false cleans, and the asymmetry is the lesson: a false clean is corrected by nobody, a false alarm by whoever checks item one |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -56511,3 +56512,49 @@ prod backup is *"an operator decision (which account's token, which retention, w
 not a default this file may take on their behalf"*, and it notes that until then `preflight --env prod` keeps
 reporting no-backup for production — *"which is the truth."* **That is the standard the rest of this audit has
 been holding everything else to**, written by whoever built it, before anyone asked.
+
+## §961 — PHASE GATE: the mechanical half of §960's class is empty, and my first count was a false alarm
+
+§960 was the third instance of *a remediation cell that does not fix the thing* (§946 found two naming a build
+that had shipped). Three instances is where the rule says stop fixing and start counting, so I counted.
+
+### The count
+
+Every `Action to complete` cell in `GO-LIVE-CHECKLIST`, every backticked token in it that names a **checkable**
+artifact — a file or a package script — resolved against `git ls-files` and `package.json`:
+
+```
+checkable artifacts named in remediation cells :  53
+genuinely unresolvable                          :   0
+```
+
+**The mechanical half of the class is empty.** Every file and script a remediation names exists.
+
+### Which means §960's defect was a different kind
+
+`Configure GitHub Actions OIDC ↔ Cloudflare` names nothing broken — OIDC exists, Cloudflare exists, the
+sentence parses. It is wrong *semantically*: the workflow authenticates by repository secret and requests no
+`id-token` permission, so the instruction points at a mechanism this codebase does not use. **No detector
+reaches that.** It is the [[invert-a-detector-whose-boundary-is-english]] boundary — the violation is a
+mismatch between an English instruction and a code path, and any sweep for it would be dominated by correct
+uses. §946's and §960's instances were all found by reading, and that is the honest expectation for the next
+one.
+
+So the class has two halves and they have opposite properties: **the referential half is mechanically
+checkable and clean at 53/53; the semantic half is uncheckable and has produced three defects.**
+
+### The near-miss: a false ALARM, which is the rarer failure here
+
+My first pass reported **27 of 53 unresolvable** — a 51% rate — and every one was wrong. The detector treated
+a bare basename (`retention.ts`, `redact.ts`, `invariants.ts`) as a repo-root path; those are shorthand
+references and all resolve under `packages/ledger/src/`. Fixed by resolving basenames against the tracked-file
+index before flagging.
+
+Worth recording because it is the **opposite** of this session's dominant failure. §947, §952, §959 were all
+false *cleans* — the danger being that nobody follows up on a zero. This was a false *alarm*, and its danger is
+different and smaller: **27 phantom defects would have sent someone chasing 27 files that were never broken,
+and the first one checked would have exposed the error.** A false clean is corrected by nobody; a false alarm
+is corrected by whoever checks the first item. That asymmetry is the reason to keep planting positive controls
+on zeros — and the reason a non-zero deserves one sceptical read before it is published.
+
+**And the phase's own commit message was silently truncated writing that paragraph.** I built it with `printf`, whose format parser stopped at the `%)` in *"(51%)"* — the body lost its last third, including the lesson above, and `git commit` succeeded regardless. Same shape as everything else here: a tool that fails by producing LESS, with a zero-valued exit. Amended using a heredoc, which passes the text through unparsed and is what every other commit this session used.
