@@ -585,6 +585,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 390 | §942 | **§943** | **THE "PRINTS ITS REFUSAL, EXITS 0" CLASS, ENUMERATED AND CLOSED — AND MY OWN MECHANISM CORRECTED.** §938/§939 said *"sentinel and exit code disagree, CI believes the exit code."* Wrong: `reconcileSentinel` already reconciles them **pessimistically** (a sentinel may degrade an exit-0 run, never upgrade a failing one). Measured why both survived it — **neither gate emitted a sentinel at all** (0 and 0). The true rule is sharper: *it protects gates that SPEAK, not a gate that goes QUIET*, and suppression is conditional on the same `local` mode where the exit code is wrong. Class enumerated two-sided: **10 mode-aware entrypoints / 14 script bindings, every one has a mode source, zero default to local.** Clean negative with a REAL positive control — reverting §938's one-line fix makes the probe print NONE |
 | 391 | §943 | **§944** | **A CONFIG SAYS STAGING CANNOT SEND EMAIL, ELEVEN LINES ABOVE WHERE IT TURNS IT ON.** Turned to the documented debt: the checklist's ~~**13**~~ **17 open repo-owned rows** (corrected §945; §804 had already measured 35 rows / 16 OPEN) are open because they are correctly gated (*needs a REQ row first* / *owner tooling call*) — building them would be straying. What IS mine is their reopen triggers. **L417's has FIRED**: `workers/agents/wrangler.toml` declares `EVIDENCE_FROM` *DELIBERATELY ABSENT — NO evidence email is ever sent*, then sets it 11 lines later under `[env.staging.vars]` with *sending is ON*. The row still reads *"Dormant while no provider is bound."* **The identical contradiction was fixed in `DEPLOYMENT.md` on 2026-08-01 — the doc was swept, the config it describes was not.** Swept all 8 absence claims across both configs: 1 false, 7 true-positive controls |
 | 392 | §944 | **§945** | **FOUR WRONG COUNTS OF ONE TABLE, AND THE RECORD ALREADY HAD THE RIGHT ONE.** §944's headline *"13 open repo-owned rows"* is wrong — it is **17** of 35, and **§804 had already published 35 rows / 16 OPEN**, from the section that earned *"a claim you inherit is a claim you are making."* I re-derived it instead of reading it (third time this session). Four ad-hoc parsers, four confident wrong answers: whole-row keywords (`fail-closed` reads CLOSED) → 13; strike MARKERS stripped not struck SPANS (`~~OPEN~~ CLOSED` → OPEN) → 24, **the exact bug fixed in §944's gate an hour earlier**; header counted as data → 36; naive `split("|")` → *"10 malformed rows"*, accusing `check:tables` of a miss when it handles escapes and per-table headers correctly. Trigger sweep: L419 and L421 not fired, L432 is a RESOLUTION row (what seeded the 13). 1 of 13 triggers had fired — L417's |
+| 393 | §945 | **§946** | **TWO LAUNCH-GATE ROWS STILL NAME A BUILD AS THE BLOCKER; THE BUILD SHIPPED IN JULY.** The `acceptance` gate is honest (green = *the code-provable half*; §607 closed its spine silent-drop), which made the real gap findable in the FILMED half's tracking. `GO-LIVE-CHECKLIST` L116 (demo #4) still says action *"Build MCP intake surface (WP-13)"* / status **Deferred WP-13**, and L115 (demo #2) **Depends WP-14** — while `PROJECT-STATE:9,98` states *All sixteen WPs are closed*, both close-outs read *complete*, and demo 4's spine runs **green inside `pnpm test:acceptance`**. The blocker migrated from *build it* to *bind, flip and film it*; the rows did not follow. **Third instance in three phases** (§937 C3, §944 L417). Corrected in place; `wp-blocker-staleness.test.ts` reads PROJECT-STATE's all-sixteen assertion and computes the rule |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -55719,3 +55720,73 @@ aspirational. `ledger-status-vocabulary.test.ts` parses the section the way `che
 header-excluded, struck spans removed — and requires every row's live status to open with a canonical token.
 That turns "how much repo-owned debt is open?" into one correct command, so the next reader does not write a
 fifth parser.
+
+## §946 — PHASE GATE: two launch-gate rows still name a BUILD as the blocker, and the build shipped in July
+
+Back to product. The `acceptance` gate is green on every merge and is named for CLAUDE.md's five demos, so I
+went looking for the gap between its green and those demos. There isn't one — `tools/acceptance/run.ts` is
+explicit that green covers *"the code-provable half"* and points the FILMED half at
+`docs/wp/acceptance-demos.md`; §607 already closed a silent-drop in its spine registry. That honesty is what
+made the next question findable.
+
+**The filmed half's blockers are tracked in the ledger — but two of them describe a world from July.**
+
+`GO-LIVE-CHECKLIST.md` *Milestone / CONFIRM gates*:
+
+| row | Action to complete | Status |
+|---|---|---|
+| L116 · MCP booking places a gated append · **demo #4** | *"Build MCP intake surface (WP-13)"* | **Deferred WP-13** |
+| L115 · Stranger signup → quote <10 min · **demo #2** | *"Depends on WP-14 signup + live parse"* | **Depends WP-14 + pilot** |
+
+`PROJECT-STATE.md:9` and `:98` both state **"All sixteen WPs are closed"**, and the close-outs agree —
+`docs/wp/WP-13.md` and `WP-14.md` each read *"**Status:** complete, merged to main locally."* Verified at the
+mechanism rather than the record: demo 4's spine `@shuddl/mcp test/quote-book.test.ts` is registered in
+`demos.ts` and **runs green inside `pnpm test:acceptance`** — the very gate the merge board reports PASS.
+
+So a reader planning the launch gate finds *"build the MCP intake surface"* as outstanding work. It shipped in
+July. **The blocker migrated — from *build it* to *bind, flip and film it* — and the rows did not follow.**
+
+This is the third instance of one shape in three phases: §937 (the audit's C3 row said OPEN, the checklist said
+BUILT), §944 (L417 said *dormant*, the provider was bound), and now these two. Each time the *maintained*
+record moved and a *summary* row did not — [[a-header-rots-against-the-detail-below-it]].
+
+### What actually remains, stated precisely
+
+- **Demo 4** — WP-13 shipped and its spine is green. Remaining is the FILMED half only: a real Claude-via-MCP
+  booking against the deployed DO-backed api (the staging smoke), exactly as the manifest already says.
+- **Demo 2** — WP-14 shipped, but its own close-out records the posture: *"the entire PLG surface ships DARK /
+  fail-closed — nothing … opens signup until an operator binds its flag/secret/keys at R4."* So the dependency
+  is real; it is just no longer the build. Measured in §944/§945: `PROVISIONING_ENABLED` appears in **no**
+  wrangler config and `ANTHROPIC_API_KEY` binds **nowhere**. The honest blocker is the R4 binding plus the
+  observed human run.
+
+Both corrected in place, striking the superseded text.
+
+### The rule is complete, so it can be a gate
+
+Because `PROJECT-STATE.md` asserts **all sixteen** WPs closed, *no* checklist status may name a WP as the
+pending blocker — not "most", not "the ones with a close-out marker". `wp-blocker-staleness.test.ts` reads that
+assertion and computes the requirement (§830) rather than hard-coding sixteen, so if a WP is ever reopened the
+gate's premise is re-checked rather than silently outliving it.
+
+### A third instance, deliberately NOT gated
+
+The first draft of the gate scanned whole rows and immediately went red on a row I had not fixed: §3's
+known-limitations table, `L261 — REQ-111 log→ledger unification … **Deferred WP-11 Watchtower**`. WP-11 is
+closed, so that pointer is stale in the same literal sense.
+
+But that column's **purpose** is naming where an item gets addressed — its sibling rows read `WP-13`,
+`WP-12/GTM`, `Later refinement`, `Add shipments-list route`. A WP name there is a *disposition pointer*, not
+a claim that a build is outstanding. Enforcing §946's rule across it would fire on rows that are working as
+designed, and **a gate with false positives gets silenced** ([[semantic-false-positives-need-a-marker]]).
+So the gate is scoped to `### Milestone / CONFIRM gates`, where a WP in the Status column IS the blocker
+claim, and L261 is recorded here instead: one Low-severity disposition pointer aimed at a work package that
+has since closed, whose underlying decision (*"logs stay event-shaped; unification would need a 36th event
+kind = register amendment"*) is unchanged and correct.
+
+That over-broad first draft is also the phase's process note: **the test was named *"no live status defers to
+a work package"* and scanned the whole row.** The name was the specification and the code was wider than it
+— caught, again, by the unmutated fixed point rather than by any mutation.
+
+Scope: it catches a status that names a **WP**. A row whose blocker migrated to something *unnamed* is still
+prose, and no gate reaches that — which is why the two found here were found by reading, not by CI.
