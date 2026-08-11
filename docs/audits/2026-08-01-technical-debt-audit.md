@@ -619,6 +619,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 424 | §976 | **§977** | **SECRET DETECTION RUNS AND IS SKIP-PROOF; PREVENTION IS UNAVAILABLE ON THIS PLAN.** `security_and_analysis` is **ABSENT** from the repo response (96 keys returned) — and the cause is decidable: this token holds admin scope (it read branch protection and actions permissions), so the omission is **plan availability**, not permission. Secret scanning and push protection are Advanced Security features and this is a **private repo under a User account** — **push protection cannot be enabled without a plan change**. What DOES exist is strong: `gitleaks` over the **full history** with a repo-owned `.gitleaks.toml`, and it is its **own job** — last run `merge-gate: failure`, **`secrets: success`** — so the §962 skip that swallowed the 26-gate surface AND the dependency audit **never touched secret scanning**. Job isolation did what step ordering did not. Detection sound, prevention absent and unpurchasable here; recorded, not filed |
 | 425 | §977 | **§978** | **§962's FIX PROTECTED THE CONSUMERS, NOT THE GATES THAT FEED THEM.** §977's job-isolation insight turned on `merge-gate`: **steps checked=14, guarded=4, sequential=10** — and the four guarded were the three §962 fixed plus the PR-only one. **All four browser gates were sequential**, so a `visual` failure would skip a11y, e2e AND perf — three verdicts lost. That the real failure was `perf`, the LAST of the four, is why only one was lost: **luck, not design.** The gates' own contract settles it — step 39 is titled *an absent browser BLOCKS, **never skips***, so being skipped is the one outcome its title forbids. Guarded all four (`4 → 8`). Deliberately left sequential: `build` and `playwright install`, whose failure makes later steps **meaningless rather than merely unreported** — an independent verdict gets a guard, a genuine prerequisite does not |
 | 426 | §978 | **§979** | **THE STEP-ORDERING RULE, GATED IN BOTH DIRECTIONS.** §978 fixed four unguarded browser gates and stated the line — *an independent verdict gets a guard; a genuine prerequisite does not* — and nothing enforced it: a fifth gate would be unguarded by default and yesterday's four guards could be removed silently, the same *unpinned fix* shape §938 opened this session with. `workflow-step-guards.test.ts`: **3/3 mutations RED** — removing a browser gate's guard (§978's defect, names `ci.yml:42`), removing the merge-evidence guard (§962's defect), and **guarding a PREREQUISITE** (*"gained a guard. It is a PREREQUISITE, not a verdict"*). The third is the one worth having: *add guards* invites completing the pattern by guarding everything, and **a boundary that is only in prose erodes**. Verdict set identified by BEHAVIOUR — `run:` containing `--mode merge` / `verify:merge` / `audit --prod` — not by name |
+| 427 | §979 | **§980** | **WHY §979 READS ONLY ONE WORKFLOW, ASSERTED INSTEAD OF ASSUMED.** §974's pinning gate reads BOTH workflows; §979's ordering gate reads only `ci.yml`, and that asymmetry was justified nowhere. It is correct: **every action ref is equally a supply-chain risk**, but **step ordering only bites when one job holds several INDEPENDENT verdicts**. Measured — `nightly.yml` has no such job: `orphan-audit` is **1 step alone in its job**, and `backup`'s 3 steps are one operation plus two CONSEQUENTS (showing a manifest never written, retaining a backup never made) where skipping is *correct*. §978's prerequisite-vs-verdict line applied to another file, landing on the opposite answer. Added a **scope tripwire** rather than widening the scan: if a nightly job grows past the measured shape the gate REDs and says to re-check. **A gate whose scope is a judgement should assert the judgement** |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -57451,3 +57452,40 @@ fails loudly instead of certifying the rule over an empty set.
 immutable SHA with its release tag. This owns **step ordering**. Both are text scans for the same reason:
 no YAML parser is installable here (§973), so a gate needing one could not exist, and both are therefore
 immune to the limitation that stopped §973 from completing.
+
+## §980 — PHASE GATE: why §979 reads only one workflow, asserted instead of assumed
+
+§979 gated step ordering in `ci.yml`. Its sibling `workflow-pinning.test.ts` (§974) reads **both** workflows.
+That asymmetry was never justified anywhere — and an unstated scope is the [[a-gates-green-certifies-less-than-its-name]]
+shape: the gate's name says *workflow step guards*, and it reads one of two workflows.
+
+### The asymmetry is correct, and here is why
+
+Pinning and ordering are exposed to different risks. **Every action ref is equally a supply-chain risk**, so
+§974 must read every workflow. **Step ordering only bites when one job holds several INDEPENDENT verdicts**,
+so a failure in one erases the others. Measured — `nightly.yml` does not have that shape:
+
+```
+orphan-audit   1 step   register ↔ code orphan diff        ← alone in its job; nothing to skip past
+backup         3 steps  export … / show the manifest / retain for the policy window
+```
+
+The backup job is **one operation and two consequents**. Showing a manifest that was never written, or
+retaining a backup that was never made, is meaningless — skipping them is *correct*, and guarding them would
+manufacture noise. That is §978's own boundary (`prerequisite ≠ verdict`) applied to a different file, and it
+lands on the opposite answer, which is the useful part.
+
+### So the scope is right today and could stop being right
+
+`ci.yml`-only holds **because** no nightly job carries two verdicts. Add one — a lint alongside the orphan
+diff, a second check in the backup job — and the exemption silently becomes a hole. §979 would keep passing
+while the new verdict was skippable, which is exactly the failure §962 measured, one file over.
+
+Added a **scope tripwire** rather than extending the scan: if a nightly job grows past the shape §980
+measured, the gate fails and says *"re-check whether it now holds two INDEPENDENT verdicts — if it does, this
+file must cover nightly.yml too."* Proved by mutation: adding a second verdict step to the backup job goes RED.
+
+**A gate whose scope is a judgement should assert the judgement**, not just act on it. Otherwise the next
+reader inherits a boundary with no way to tell whether it was reasoned or accidental — and this session has
+now found three boundaries of exactly that kind (§953's real-vs-reached, §961's semantic half, §978's
+prerequisite line).

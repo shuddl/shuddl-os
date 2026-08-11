@@ -89,6 +89,37 @@ describe("§979: a step that produces an independent verdict is not skippable", 
     ).toEqual([]);
   });
 
+  it("§980: nightly.yml still has no job that produces two independent verdicts", () => {
+    // WHY THIS FILE IS ci.yml-ONLY, asserted rather than assumed. `workflow-pinning.test.ts` (§974) covers
+    // BOTH workflows because every action ref is equally a supply-chain risk. Step ordering is different: it
+    // only bites when ONE job holds SEVERAL independent verdicts, so that a failure in one erases the others.
+    //
+    // MEASURED AT §980 — nightly.yml does not have that shape:
+    //   orphan-audit  1 step  (register ↔ code orphan diff) — alone in its job, nothing to skip past
+    //   backup        3 steps (export … / show the manifest / retain for the policy window) — one operation
+    //                          and two CONSEQUENTS. Showing a manifest that was never written, or retaining a
+    //                          backup that was never made, is meaningless; skipping them is correct.
+    //
+    // So ci.yml-only is right TODAY and stops being right the moment a nightly job gains a second verdict.
+    // This assertion is the tripwire for that, not a check on the guards themselves.
+    const nightly = readFileSync(`${repoRoot()}/.github/workflows/nightly.yml`, "utf8");
+    const perJob = new Map<string, number>();
+    let job = "";
+    for (const l of nightly.split("\n")) {
+      const j = /^ {2}([a-z][\w-]*):\s*$/.exec(l);
+      if (j !== null) { job = j[1] as string; if (!perJob.has(job)) perJob.set(job, 0); }
+      if (/^ {6}- name: /.test(l) && job !== "") perJob.set(job, (perJob.get(job) ?? 0) + 1);
+    }
+    expect([...perJob.values()].reduce((a, b) => a + b, 0), "no nightly steps parsed — the scan is broken").toBeGreaterThanOrEqual(3);
+    const multi = [...perJob.entries()].filter(([, n]) => n > 3);
+    expect(
+      multi.map(([j, n]) => `${j} (${n} steps)`),
+      "a nightly.yml job grew beyond the shape §980 measured. Re-check whether it now holds two INDEPENDENT " +
+        "verdicts — if it does, this file must cover nightly.yml too, and the guards belong there as well. " +
+        "This is a scope tripwire, not a style rule.",
+    ).toEqual([]);
+  });
+
   it("genuine prerequisites stay unguarded (the rule has a boundary, and it is deliberate)", () => {
     // Guarding these would produce noise rather than verdicts: a browser gate run against an unbuilt tree, or
     // with no browser installed, fails for a reason that says nothing about the code. If someone "completes"
