@@ -631,6 +631,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 489 | §1041 | **§1042** | **THE CLASS COUNTED — 6 OF 7 DETECT AN AMPUTATED GLOB, AND THE EXCEPTION IS REQ-025's.** §1041 measured one gate; the rule is to count the class. Seven hand-floored gates scan multiple globs — blinding one glob in each, every mutation asserted: `and-chain-or-parens` **RED** · `llm-agent-metering-trigger` **RED** · `sweep-containment-coverage` **RED** · `invariants` **RED** · `syntax-ban-inheritance` **RED** · `source-corpus` is the corpus's own test · **`tenant-scope` GREEN — the exception.** **6 of 7 detect it, and my structural prediction was wrong for all five I reasoned about.** I predicted `and-chain-or-parens` was MOST vulnerable (floor of **2** against 467 files); it is the opposite — the floor is on **hits**, the repo has exactly two AND-joined chains, blinding `packages/**` removes `lens.ts` and the count drops to 1. **This sharpens §572's rule** (*a floor on HITS cannot detect a scan collapse*) into: **a hits floor cannot detect a collapse WHEN IT HAS SLACK; calibrated at the exact count it detects an amputation BETTER than a corpus floor** — every lost file is a lost hit, while a corpus floor must exceed its slack. **The gates with the smallest floors are the safest**, and the one blind gate has the large, well-reasoned corpus floor — because §572's fix for one blindness introduced the other |
 | 488 | §1040 | **§1041** | **A UNION FLOOR TOLERATES LOSING A WHOLE TREE — MEASURED ON REQ-025's GATE.** §1040 found `scanCorpus` throws per-glob and has 4 adopters against 51 hand-floored scanners; the concrete risk is that **a hand-rolled floor floors the UNION**, so a gate over eight globs cannot see one go dark. **First mutation was a NO-OP and I caught it before publishing:** I blinded a glob in `SOURCE_SCAN_GLOBS`, the gate stayed green, and it looked like the finding — but `tenant-scope` imports only `stripComments` and carries **its own** glob list, so the edit could not reach it (§1002's trap; finding retracted before it was written). Re-run against its own globs with the replacement **asserted** and the diff verified: **blinding `workers/*/src/**/*.ts` (48 files) leaves 7 passed.** Why, exactly: corpus **316**, floor **>180**, so **316−48=268** — the union absorbs it, and the floor tolerates losing **136 files, more than any single glob contributes**. **This is calibration, not oversight:** the floor was built for §572's collapse (132 of 215 files, 61%), and the file says *a floor on HITS cannot detect a scan collapse; the corpus floor below is what catches it.* **A union floor detects a collapse and cannot detect an amputation.** Recorded not changed — switching REQ-025's enforcer to `scanCorpus` needs a `mayBeEmpty` decision per glob, which belongs to the law's owner |
 | 487 | §1039 | **§1040** | **THE NON-VACUITY FLOOR IS BUNDLED — I SEARCHED FOR THE WRONG NAME.** §1039's principle (*bundled vs remembered*) applied to this record's most-repeated lesson, §968's `checked=0`. I concluded *remembered*, and was **wrong twice on the way there.** A numeric-literal regex reported **17 floorless gates including `isolation-suite` — rule 8's enforcer** — which in fact floors against a NAMED CONSTANT plus a per-file *scan is stale* check, and whose header records the attack it survived (*5 `expect(1).toBe(1)` fillers held the total at 149 and left this gate GREEN*). A widened detector left **2 of 51**, and both are correct: one floors on *the file still exists and is still tracked*, the other **is the test for the floor itself**. **0 of 51 corpus scanners lack a floor.** And the helper exists: **`scanCorpus` throws `EmptyGlobError` unless the glob is DECLARED empty via `mayBeEmpty`** — §1021's `EXPECTED_EMPTY_GLOBS` generalised into the scanner. My grep for `*floor*`/`assertNonVacuous`/`nonVacuity` missed it because **the mechanism is named after what it DOES, not what it PREVENTS**. **A grep for a concept finds only the authors who named things the way you would** — three probe failures this session were regex narrowness; this was VOCABULARY narrowness, producing the opposite error. Real finding: **4 adopters against 51 scanners** — the gap is between *available* and *default* |
 | 486 | §1038 | **§1039** | **COMMENT-BLINDNESS — MY PROBES HAVE IT, THE SHIPPED GATES DO NOT.** §1038 named the hazard after hitting it three times: **any regex that does not exclude comments is measuring prose.** Do the shipped gates carry it? **The structural sweep was useless and said so** — *gates reading source that call `stripComments`* returned **7 of 52**, but the 45 'missing' include `backup.ts`, `preflight.ts`, `run-gate.ts`, `citation-links.ts`: deploy tooling and doc scanners that never match a banned pattern against source. **A structural check cannot answer a behavioural question.** Asked behaviourally: appended to `anchor.ts` a **comment** naming `INSERT OR REPLACE INTO events` and `Date.now()` → **invariants 0, chokepoint 0, rater-purity 0**. Control, because a zero is a claim about the instrument — the same string as **code** → **invariants 1**, *REPLACE bypasses the BEFORE DELETE guard (D1 recursive_triggers=0)*. **Comment-blind in the right direction: prose passes, code fails, and the message names the MECHANISM not the pattern.** Why the gates have it and my probes did not: `source-corpus.ts` exports `stripComments` beside `SOURCE_SCAN_GLOBS`, so **adopting the shared corpus adopts comment-stripping with it** — seven gates take it, exactly the seven that need it. **The difference is not carefulness; it is whether correct behaviour arrives bundled or must be remembered per use** |
@@ -61447,3 +61448,59 @@ decision starts from numbers.
 **Re-open when:** a glob in any hand-floored multi-glob gate is renamed or narrowed — that is the live form of
 this · `scanCorpus` gains a fifth adopter, ideally this one · the corpus grows enough that the 180 floor's
 slack exceeds two globs, which widens the blind spot without any edit.
+
+---
+
+## §1042 — PHASE GATE: the class counted — 6 of 7 detect an amputated glob, and the exception is REQ-025's
+
+§1041 measured the union-floor weakness on one gate. This record's own rule is that at instance #1 you count
+the class, so: **seven hand-floored gates scan multiple globs. Does each notice when one goes dark?**
+
+Every mutation asserted, every restore verified.
+
+| gate | glob blinded | result |
+|---|---|---|
+| `and-chain-or-parens` | `packages/**/*.ts` (220 files) | **RED** |
+| `llm-agent-metering-trigger` | `workers/**/*.ts` (247) | **RED** |
+| `sweep-containment-coverage` | `workers/*/src/*.ts` (99) | **RED** |
+| `invariants` | `workers/*/src/**/*.ts` (48) | **RED** |
+| `syntax-ban-inheritance` | `packages/ledger/**/*.ts` (79) | **RED** |
+| `source-corpus` | — | it *is* the corpus's own test |
+| **`tenant-scope`** (REQ-025) | `workers/*/src/**/*.ts` (48) | **GREEN — the exception** |
+
+**6 of 7 detect an amputation. My structural prediction was wrong for every one of the five I reasoned about.**
+
+### Why the five are protected, and it sharpens §572's rule
+
+I predicted `and-chain-or-parens` was the *most* vulnerable — a floor of **2** against a 467-file corpus looks
+like enormous slack. It is the opposite: the floor is on **hits**, and the repo has exactly **two**
+AND-joined chains (`lens.ts`, `gl/export.ts` — §765 measured it). Blinding `packages/**` removes `lens.ts`,
+the count drops to 1, and the gate fires.
+
+§572 states *"a floor on HITS cannot detect a scan collapse."* Measured across seven gates, the true rule is
+narrower:
+
+> **A hits floor cannot detect a scan collapse *when it has slack*. Calibrated at the exact count, it detects
+> an amputation better than a corpus floor does** — because every lost file is a lost hit, while a corpus
+> floor must lose more than its slack before it notices.
+
+That inverts the intuition: **the gates with the smallest, most specific floors are the safest**, and the one
+with a large well-reasoned corpus floor (`> 180` of 316) is the only one blind.
+
+### The exception is exactly where it hurts
+
+`tenant-scope` is REQ-025's enforcer — a build-failure law — and its floor is the corpus, not the hits.
+That is not carelessness: §572 *added* the corpus floor precisely because the hits floor (`> 20`) had missed
+a 61% scan collapse. **The fix for one blindness introduced the other**, and both were reasonable at the time.
+
+The complete answer is `scanCorpus`, which floors **per glob** and needs no calibration at all — already filed
+as a repo-owned row with the numbers (§1041), and left as a decision for the law's owner.
+
+### Phase gating
+
+**STOP.** The class is counted, not sampled: **7 multi-glob gates, 6 amputation-detecting, 1 filed.** The
+governing principle is corrected from §572's wording to the slack-dependent form above.
+
+**Re-open when:** a hits floor is loosened away from its exact count — that is the edit that converts a safe
+gate into a blind one, and it looks like a harmless tolerance increase · `tenant-scope` adopts `scanCorpus` ·
+an eighth multi-glob gate appears.
