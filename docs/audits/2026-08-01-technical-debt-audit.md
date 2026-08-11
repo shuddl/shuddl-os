@@ -623,6 +623,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 428 | §980 | **§981** | **TWO LEDGERS, TWO VOCABULARIES — AND THAT IS WHY §945 SCOPED TO ONE.** §980's question aimed at §945: it reads only the repo-owned section while External holds carries the SAME eight-field schema. Measured: repo-owned **35/35 canonical**, external **11 of 15 NON-canonical** — `BLOCKED`, `CLEARED`, `NARROWED`. They are right, and the section header says so: *"Every one of these is BLOCKED, not failed, and none may be relabelled PASS."* Different KINDS: a repo defect lives until a commit closes it (OPEN → FIXED); an external hold lives until the world changes (BLOCKED → NARROWED → CLEARED). **§945's scope was correct for a reason nobody had written down.** Asserted the SEPARATION rather than merging — 2/2 mutations RED. Net: the whole ledger is now machine-countable, 35 rows by one vocabulary and 15 by another, each with its own floor |
 | 429 | §981 | **§982** | **EVERY PROSE MATCH IN THIS SESSION'S GATES, AND WHETHER ITS GUARD ACTUALLY FIRES.** Prose matching is not always avoidable (headings, conventions, governing sentences); what makes it safe is a companion assertion that fails when the prose MOVES. Audited all nine gates: **checked=9, prose matches=7 across 5 files, non-vacuity assertion present in 9 of 9.** Six guards had been mutation-proven when written; **`wp-blocker-staleness`'s section guard was asserted at §946 and never fired** — *a pin that ships unable to fail*. Exercised here: renaming `### Milestone / CONFIRM gates` goes **RED**. **7 of 7 prose matches now have a guard seen to fire** — no gate can silently stop covering its subject through a rename. Found by turning a just-written rule on my own instruments **before anything broke**: the cheapest place this class has been caught in the whole audit |
 | 430 | §982 | **§983** | **MCP CANNOT REACH THE LEDGER EXCEPT THROUGH THE API — NOW ENFORCED, AND MY FIRST GATE WAS WRONG.** Rule 3 is hardest to hold on MCP (model-driven, not UI). The architecture is the strong one: `index.ts:72` dispatches via **`env.API.fetch`**, an in-process service binding returning the api's own Response untouched, so every `/v1` gate runs by CONSTRUCTION. Measured **checked=6 tools, 6 through the seam, 0 raw fetch**. **False alarm of my own:** the first sweep flagged `approve.ts`/`dispute.ts` — both use `mutatingCallApi`, and my matcher tested `'callApi'` **case-sensitively**. Two phantom bypasses on the most security-sensitive surface, from one capital letter (4th crude-matcher miss this session). `mcp-api-seam.test.ts` closes the gap parity.test.ts does not (*REST ≡ MCP for the tools that EXIST* ≠ *no tool escapes*) — and **one of its four assertions was defective when written**: the raw-fetch detector anchored at line start, so an inline `await fetch(url)` went GREEN. Widened, re-tested RED |
+| 431 | §983 | **§984** | **THE APPEND CHOKEPOINT, VERIFIED END-TO-END RATHER THAN AT THE MATCHER.** §983's rule aimed at the repo's most important gate — REQ-030's single-writer law. It uses the **shared** `insertIntoRe` builder (its comment records that §71 fixed the hand-written `INTO\s+` blind spot that let `INSERT INTO"events"` past). Planted **8 bypass forms in a real file** and ran `pnpm check:chokepoint`: **checked=8, caught=8, missed=0**, fixed point clean after removal. **§71's corpus already pins six — but at the MATCHER level** (`re.test(sql)`), which proves the regex and not the PIPELINE (glob → read → comment-strip → allowlist → matcher → exit). A correct matcher behind a pipeline that never reaches it is this session's recurring shape (§940, §963, §983). Both levels now hold. Not pinned permanently: an end-to-end probe must write into the scanned tree, and a crash would leave a file failing the gate for everyone |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -57633,3 +57634,53 @@ The raw-fetch detector anchored at line start (`/^\s*(?:await\s+)?fetch\(/m`), s
 **A gate that only catches the naive form of a bypass is worse than none on a security boundary**, because it
 converts "unprotected" into "believed protected". The mutation found it in the phase that wrote it — which is
 the entire argument for predicting each RED before running it.
+
+## §984 — PHASE GATE: the append chokepoint, verified end-to-end rather than at the matcher
+
+§983 ended on a rule: *a gate that only catches the naive form of a bypass is worse than none on a security
+boundary.* The place that matters most in this repo is `check:chokepoint` — REQ-030's single-writer law over
+the event ledger, the gate whose own header explains that the property "held only because no other module
+happened to contain an event INSERT."
+
+### It uses the shared matcher, as the repo's own rule requires
+
+```ts
+// `INSERT [OR ...] INTO [schema.]["]events["]` — the SHARED matcher from invariants.ts, not a copy.
+const EVENT_INSERT = insertIntoRe("events");
+```
+
+The comment records that this **was** a hand-written regex requiring `INTO\s+` until §71, so
+`INSERT INTO"events"` walked past it — the exact defect `share-lint-matchers-with-parity-tests` exists to
+prevent. Fixed by importing the builder rather than re-authoring it.
+
+### Planted, not read — and at the level the existing test does not cover
+
+Eight bypass forms written into a **real file** under `workers/api/src/routes/`, each run through
+`pnpm check:chokepoint`:
+
+```
+checked=8  caught=8  missed=0
+bare · abutting quote · schema-qualified · lowercase · INSERT OR REPLACE · extra whitespace · backtick · bracket
+fixed point after probe removal: clean
+```
+
+**§71's corpus already pins six of these — but at the matcher level.** It calls `insertIntoRe("events")` and
+asserts `re.test(sql)`. That proves the regex. It does not prove the **pipeline**: glob → file read → comment
+stripping → allowlist lookup → matcher → exit code. A correct matcher behind a pipeline that never reaches it
+is precisely this session's recurring shape — §940's unreached corpus, §963's floor failing before the budget,
+§983's line-anchored detector.
+
+Both levels now hold: **6 forms unit-proven on the matcher (§71), 8 forms end-to-end on the gate (§984)**, and
+the fixed point confirms it is not simply always-red.
+
+### Not pinned as a permanent test, and why
+
+An end-to-end probe must write and delete a source file inside the scanned tree. That is invasive in a suite
+others run constantly, and a crash mid-test would leave a file that fails the gate for everyone — trading a
+verified property for a fragile one. The matcher corpus is the right permanent pin; the pipeline is verified
+by measurement and recorded here with its date and result.
+
+**This is the strongest gate in the repo and it earned that on inspection** — the honest scope note in its own
+header (*"it does not resolve a table name assembled at runtime… not a substitute for review"*), the shared
+matcher, the allowlist keyed on exact paths with stated reasons, and the §650 duplicate-file case. Recorded as
+a clean positive because a gate this important should have its verification dated, not assumed.
