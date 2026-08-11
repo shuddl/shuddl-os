@@ -606,6 +606,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 411 | §963 | **§964** | **§963's LESSON TURNED ON THIS SESSION'S OWN GATES.** Swept every numeric floor in a browser-executed spec — the only floors over RUNTIME-measured quantities: **9 of 10 are `> 0`** (*did this happen at all*, which cannot depend on machine speed); the single magnitude floor was §963's defect. **The convention was right and there was one deviation** — the reasonable prior (*this class is everywhere*) is false. Then audited my own seven gates (27 cases): all read repo content except `mode-source-coverage`, which shells out. `git grep` **exits 1 on no-match** and `execFileSync` THROWS on non-zero — verified both — so its non-vacuity floor was **unreachable in the exact case it was written for**. Fixed (exit 1 = zero matches; anything else re-throws) and proved. Also stated plainly: **these seven gates have never run in CI**, because §962's step was skipped in all three last runs |
 | 412 | §964 | **§965** | **CROSS-PLATFORM READINESS FOR THE FIRST LINUX RUN THESE GATES WILL EVER GET.** §964 established the seven new gates have never executed on Linux; once §962's fix lands they run on a different OS for the first time. Probed: this filesystem **is case-INSENSITIVE** (`CaseProbe.txt` resolves as `caseprobe.txt`), so a wrong-case `readFileSync` works here and throws there. Three checks, all **0**: case-mismatched path references, filenames differing only by case, and tracked/source iCloud `name 2.ext` duplicates (the standing per-session check). Each would fail loudly and confusingly — an ENOENT inside a gate reads as a broken gate, not a platform difference. **Note for the next reader:** the raw sweep shows **50** duplicates and every one is in `.vite/deps` build cache — tracked 0, source 0, **deleting them is unnecessary**. My first `find -prune` excluded only top-level `node_modules`, the §959 shape again |
 | 413 | §965 | **§966** | **THE NIGHTLY IS A CLOCK, NOT A CHECK — TEN RUNS, ONE COMMIT.** §952 said a gate that only ever refuses deserves scrutiny; the mirror does too. `nightly`'s `orphan-audit` has been GREEN every night — a real gate (`pnpm check:traceability`), correctly designed to need no credentials. But all ten runs (2026-08-01…08-10) are at **`0415148`, one distinct SHA** = `origin/main`, frozen since 07-31. **Ten greens are one verification re-emitted over byte-identical input; ten reds are one alarm repeated.** A scheduled audit exists to catch drift AS CODE CHANGES — with nothing pushed it structurally cannot. §957's THIRD cost (after the single copy and §958's unresolvable stamps): **the nightly assurance has been inert for ten days while appearing to run**, and the appearance is the problem. No new hold — a third symptom of one cause is not a second problem |
+| 414 | §966 | **§967** | **FOUR COMMITS SHIPPED WITH A RED GATE, BECAUSE MY GUARD READ A STALE FILE.** (1) Ran `pnpm audit --prod` — `ci.yml` step 16, one of the two §962 found SKIPPED since 2026-07-23: **4 vulnerabilities (1 low, 3 moderate), all `hono`** via workers/api + workers/mcp, installed 4.12.28, all patched in >=4.12.34. The declared `^4.10.8` already permitted the fix, so a lockfile refresh, not a dependency decision → **4.13.1, "No known vulnerabilities found"**, api 824/824, mcp 185/185, all 17 suites green. (2) **§963–§966 were each committed while `check:citations` was RED** (verified by checking out all four). My guard chained gates with `&&` but then ran the count after a `;` — so when `verify:docs` failed, `test:tools` never ran and the count read `/tmp/tt.out` **from the previous phase**. §942's *chain them* was necessary and insufficient: **a guard that reads an artifact must prove the artifact is from THIS run** |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -24861,8 +24862,8 @@ The last of §423's ten. `perf:map` reports `assertions: 1` because it is one te
 four of them live and two behind machine conditionals.
 
 **BOTH LIVE BUDGETS MUTATION-PROVEN.** `INTERACTION_P95_MS 500 → 0`: `1 failing of 1`, the failure naming
-`perf.spec.ts:140@board interaction p95`. `LONG_TASK_MS 100 → -1`: `1 failing of 1`, naming
-`perf.spec.ts:152@no main-thread task may exceed`. Restored byte-identical. Measured headroom on this
+`perf.spec.ts:159@board interaction p95`. `LONG_TASK_MS 100 → -1`: `1 failing of 1`, naming
+`perf.spec.ts:171@no main-thread task may exceed`. Restored byte-identical. Measured headroom on this
 machine: interaction p95 **20.5–21.1ms against 500ms**, worst operating-window long task **0.00ms against
 100ms**, frame p95 **11.70ms against 18.18ms**.
 
@@ -56819,3 +56820,62 @@ It is being enforced against work from July.
 All three costs have the same one-line remedy, and none of them is visible from inside the repo — which is why
 §956–§966 needed to look outward at all. Recorded on the §957 row; **no new hold**, because a third symptom of
 one cause is not a second problem.
+
+## §967 — PHASE GATE: four commits shipped with a red gate, because my guard read a stale file
+
+Two findings, one of them about the audit's own process and more important than the other.
+
+### 1. Four production-dependency vulnerabilities, in a CI step that never runs
+
+`pnpm audit --prod` is `ci.yml` step 16 — one of the two steps §962 found **SKIPPED** whenever an earlier step
+fails, which has been every run since 2026-07-23. Run here for the first time this session:
+
+```
+4 vulnerabilities found — 1 low | 3 moderate      (all in `hono`, via workers/api and workers/mcp)
+installed 4.12.28 · every advisory patched in >=4.12.34
+```
+
+The declared range was already `^4.10.8`, which permits the fix — so this was a lockfile refresh, not a
+dependency decision, and Hono is the decided stack (CLAUDE.md). Updated to **4.13.1**; `pnpm audit --prod` now
+reports **"No known vulnerabilities found."** Verified: typecheck 0, `@shuddl/api` **824/824**, `@shuddl/mcp`
+**185/185**, lint 0, all 17 package suites green.
+
+### 2. §963 through §966 were committed while `check:citations` was RED
+
+Measured directly — checking out each commit and running the gate:
+
+```
+76b16cf (§963)  exit 1     c09aece (§965)  exit 1
+c033e17 (§964)  exit 1     2dc9088 (§966)  exit 1
+```
+
+The cause is my own commit guard:
+
+```sh
+… && pnpm verify:docs >/dev/null 2>&1 && \
+pnpm test:tools >/tmp/tt.out 2>&1; n=$(grep -cE '^\s+×' /tmp/tt.out)
+[ "$n" = "3" ] && git commit …
+```
+
+When `verify:docs` failed, the `&&` chain stopped and `pnpm test:tools` **never ran** — but the `;` executed
+the count anyway, against `/tmp/tt.out` **left over from the previous phase**. It read `n=3`, the guard passed,
+and the commit proceeded. **The guard did not check the gates; it checked a file that happened to contain a
+number.**
+
+The rot itself was trivial: §963 inserted 19 lines into `perf.spec.ts`, shifting two anchored citations
+(`:140@board interaction p95`, `:152@no main-thread task may exceed`) out of their ±2-line window. Repointed to
+`:159` and `:171`; the gate now reports **1,536 citations resolving, 273 anchored, ratchet at its frozen 132.**
+
+### The lesson is the third variant of one mistake
+
+| | failure | phase |
+|---|---|---|
+| gates *listed*, commit ran regardless | a `for` loop printing exit codes is reporting, not gating | §942 |
+| gates *chained*, but the artifact was stale | `&&` broke; `;` still read a previous run's output file | **§967** |
+
+§942's fix — chain them — was necessary and not sufficient. **A guard that reads an artifact must prove the
+artifact is from THIS run.** The stale-file trap is the same shape as every silent-truncation defect in this
+session: the tool produced nothing, and nothing looked like success. Write the output to a path unique per run,
+or delete it first, or read the exit code directly and never a file.
+
+Committing this phase with the gates re-run in a single chained expression, `/tmp` output removed first.

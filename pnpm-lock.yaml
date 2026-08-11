@@ -444,8 +444,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/rater
       hono:
-        specifier: ^4.10.8
-        version: 4.12.28
+        specifier: ^4.13.1
+        version: 4.13.1
       zod:
         specifier: ^4.3.5
         version: 4.4.3
@@ -500,8 +500,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/contracts
       hono:
-        specifier: ^4.10.8
-        version: 4.12.28
+        specifier: ^4.13.1
+        version: 4.13.1
       zod:
         specifier: ^4.3.5
         version: 4.4.3
@@ -2322,8 +2322,8 @@ packages:
   glob-to-regexp@0.4.1:
     resolution: {integrity: sha512-lkX1HJXwyMcprw/5YUZc2s7DrpAiHB21/V+E1rHUrVNokkvB6bqMzT0VfV6/86ZNabt1k14YOIaT7nDvOX3Iiw==}
 
-  hono@4.12.28:
-    resolution: {integrity: sha512-YwUvVpSF7m1yOblFPrU3Hbo8XhPheBoiyfGuII6z19LnOr6JpDnyyp7LFNrfV56wS8tpvtBFGRISHN02pDdLOA==}
+  hono@4.13.1:
+    resolution: {integrity: sha512-kdJoFVv2xmayw6cY09H7AbMJMt8Jn5jdlEdXsP7AGBdF2DIptVlKlOLKXP41yPip4/a3yQPv9gVcJYI8YY04dw==}
     engines: {node: '>=16.9.0'}
 
   html-encoding-sniffer@6.0.0:
@@ -4629,7 +4629,7 @@ snapshots:
 
   glob-to-regexp@0.4.1: {}
 
-  hono@4.12.28: {}
+  hono@4.13.1: {}
 
   html-encoding-sniffer@6.0.0:
     dependencies:

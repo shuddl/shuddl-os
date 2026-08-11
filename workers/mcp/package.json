@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "@shuddl/contracts": "workspace:*",
-    "hono": "^4.10.8",
+    "hono": "^4.13.1",
     "zod": "^4.3.5"
   },
   "devDependencies": {
