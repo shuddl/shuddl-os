@@ -596,6 +596,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 401 | §953 | **§954** | **RULE 8's ISOLATION SUITE — 105 OF 112 PROOFS WERE NOT EXECUTING, AND ITS OWN GATE SAID OTHERWISE.** *"A cross-tenant read anywhere is a build failure"* (REQ-025) is the most security-critical sentence in CLAUDE.md. Its suite splits: **7** roster cases in `tools/` (ran) and **105** runtime proofs across api/mcp/translator (did NOT — the §940 dark half). So a DELETED isolation file was caught; a cross-tenant REGRESSION inside one was not. `isolation-suite.test.ts` (§614) asserts *"It does run … executes under the `unit-tests` merge gate"* — **false when written**, and disprovable from the baseline quoted three paragraphs lower in the same comment (`3 failed`), confirmed at `48ef386` where `test` still carried the `&&`. §614 **rejected a named isolation gate on that premise.** Worse than §940's case: that rejection was overtaken by later evidence, this one was contradicted by evidence already in the file. Closed by §940/§949; premise and rejection corrected in place |
 | 402 | §954 | **§955** | **THE CONSTITUTIONAL SWEEP COMPLETED — STRUCTURE WAS ENFORCED, BEHAVIOUR WAS NOT.** Rules 4/5/6/8 enumerated individually: rule 4's cross-surface schema parity ran while *missing physics ⇒ UNKNOWN* did not; rule 5 had **1 of 15** REQ-040 files running; rule 6 3 of 4 (§953); rule 8 105 of 112 cases (§954). **Headline: CLAUDE.md calls the $222,084/35-lb anomaly regression PERMANENT — `it("…flags over_per_lb — forever")` — and 10 of the 11 files enforcing it were dark.** The shape: `tools/` proves STRUCTURE, `packages/`+`workers/` prove BEHAVIOUR, and for the whole §940 window every structural claim was verified and no behavioural one was. A repo can hold complete static enforcement and ZERO behavioural enforcement while every gate reports green, because the halves are separated by one `&&` that no gate named. Closed by §940/§949; no new gate — the value is the statement |
 | 403 | §955 | **§956** | **THE LAST LINK IS OPEN — `main` HAS NO BRANCH PROTECTION.** Walked the chain from *a test file exists* to *its failure stops a merge*: links **1–6 are each gated** (`test-collection` · §709 · §941 unconditional-run · §949 `--no-bail` · §656 polarity · §807 roster-by-name · §691 CI invokes `verify:merge`). Link 7 is a GitHub setting the audit had only ever ASSUMED — *"the branch protection this repo assumes is outside it"*. **Measured: `gh api …/branches/main/protection` → `{"message":"Branch not protected","status":404}`.** CI runs and computes the full 26-gate verdict; the verdict has no authority. Rule 7's *a violation fails the merge*, rule 8's *a cross-tenant read is a build failure* and rule 1's *CI blocks orphans* are true of the COMMAND and untrue of the REPOSITORY. `docs/ops/` carried **no** mention of branch protection — now an External hold with the measured verdict, a named owner and a 2-second re-check. **NOT enabled by the audit** — governance is the owner's call |
+| 404 | §956 | **§957** | **THREE MORE ASSUMPTIONS MEASURED — ONE BENIGN, ONE BY-DESIGN, ONE IS 1,016 COMMITS.** (1) Repo is **private** — REQ-167's blast radius is contained, never stated anywhere. (2) The nightly has failed **8 consecutive nights**; the `backup` job exits **2**, which this repo defines as `EVIDENCE_EXIT.PREREQ_BLOCKED` — failing closed on the documented absent-OIDC hold, exactly as designed. Not a defect, but **8 straight reds is how an alarm stops being an alarm**: the first genuinely broken backup will land on a dashboard that has been red for weeks. (3) **`origin/main` is `0415148` (2026-07-31); local is 1,016 commits ahead.** This entire audit exists on one machine, and since `ci.yml` fires on push/PR, **CI has evaluated none of it** — with §956 the gate apparatus has neither authority nor execution over those commits. Both (3) and §956 filed as external holds; **neither pushed nor enabled by the audit** |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -56314,3 +56315,52 @@ external hold with the measured verdict, a named owner, and the exact command to
 boundary — and it is the one place where **the whole 26-gate apparatus rests on a fact stored outside the repo**,
 which is precisely the kind of fact [[record-holds-with-expiry-triggers]] says decays unwatched. It is now
 watched: the row's expiry names the command, and the command takes two seconds.
+
+## §957 — PHASE GATE: three more assumptions measured — one benign, one by-design, one is 1,016 commits
+
+§956 measured an assumption the audit had carried for months and found it false. `gh` is authenticated, so the
+rest of the "outside the repo" facts are measurable too. Three were:
+
+### 1. Repository visibility — benign, and it matters more than it looks
+
+`{"private": true, "visibility": "private"}`. REQ-167's identity-leak lint and CLAUDE.md's *"no tenant/person
+name in any repo artifact"* are written as if the repo were public, which is the correct posture — but the
+**blast radius of a miss is contained**, and that was never stated anywhere. Worth knowing when weighing the
+`identity-leak` BLOCKED gate: it is fail-closed on an absent denylist, and the exposure behind it is private.
+
+### 2. The nightly has failed eight consecutive nights — and that is correct behaviour
+
+`nightly` conclusion=**failure** on 2026-08-03 … 08-10, every night. Job `backup` fails; `orphan-audit`
+succeeds. The failure is **exit code 2**, and this repo defines `EVIDENCE_EXIT.PREREQ_BLOCKED = 2` —
+*"a prerequisite is BLOCKED/PENDING"*. `run-gate.ts:101` declares `backup-manifest` an **external** gate:
+*"OIDC/external backup credentials — absent in-repo"*, and the checklist carries the two rows that predict it
+(*Cloudflare OIDC creds (F1-A)*, *Nightly ledger + control snapshots to R2*).
+
+**So the job is failing closed, on schedule, exactly as designed.** Not a defect — but worth recording for one
+reason: GitHub renders exit 2 as a plain red run, indistinguishable from a real backup failure. **Eight
+consecutive reds is how an alarm stops being an alarm.** When OIDC lands, the first genuinely broken backup
+will arrive on a dashboard that has been red for weeks.
+
+### 3. The remote is eleven days and 1,016 commits behind
+
+```
+local   92a8c0b   2026-08-10
+origin  0415148   2026-07-31
+commits on local main not on origin/main: 1016
+```
+
+Everything since — this entire audit, §938–§956, every gate and every fix — **exists on one machine.** It also
+explains a silence I had not questioned: `ci.yml` triggers on `pull_request` and `push: [main]`, so **CI has
+not evaluated any of this work**. Combined with §956, the 26-gate apparatus currently has neither *authority*
+(no branch protection) nor *execution* (nothing pushed) over 1,016 commits.
+
+The record is not naive about this — every WP close-out says *"complete, merged to main **locally**"*, and that
+word is doing real work. What is undocumented is the **size**: a local-first workflow at 5 commits is a
+preference; at 1,016 it is the only copy of the work.
+
+### The non-action, again
+
+**I did not push, and I did not enable branch protection (§956).** Both are outward-facing changes to shared
+state — one publishes 1,016 commits, the other changes governance for everyone who pushes — and an audit is
+not the event that should trigger either. Both are filed with measured verdicts, named owners, and the exact
+command to re-check. [[measure-the-blocker-dont-restate-it]] got them measured; deciding them is the owner's.
