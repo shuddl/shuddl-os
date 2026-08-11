@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 534 | §1086 | **§1087** | **I NEARLY FILED THE APPEND-ONLY LAW AS UNENFORCED — THE PROBE TESTED ONE MECHANISM OF THREE.** §117 mutation-proved I1–I8; a proof covers only the text that existed when it ran, so I re-tested CLAUDE.md rule 2 (*no UPDATE/DELETE on `events`, ever*) in six forms. **Four came back GREEN**, including `UPDATE events SET` and `DELETE FROM events` — a spectacular-looking hole in the system's most important invariant. It is not one. UPDATE/DELETE are blocked at RUNTIME by `BEFORE` triggers that `RAISE(ABORT,'I3:…')` in a **forward-only, frozen** migration; the static scanner is REPLACE-focused **by design**, because `INSERT OR REPLACE` is precisely the form triggers CANNOT see — *"D1 runs PRAGMA recursive_triggers = 0 … SILENTLY erases the chained victim row (a history rewrite)"*. So REPLACE carries BOTH a WHEN-guarded `BEFORE INSERT` trigger and the static gate. **Three mechanisms, disjoint by construction; I tested one and read its correct scope as a gap.** |
 | 533 | §1085 | **§1086** | **THE RE-RUNNABLE-FIGURE SWEEP — 0 OUTSTANDING — AND THE CHARACTER-CLASS BUG A THIRD TIME, IN THE SWEEP ITSELF.** §1085 found 3 of 4 rows carrying stale figures, so: how many rows cite a **re-runnable** `command → number`? (That is the method that worked — §933's roster records that a PROSE discovery sweep produced *8 false positives and zero real ones*.) Answer: **15 rows, 5 of them LIVE, and all 5 re-verified today — zero outstanding.** But my first pass said **7 and 4**: the command matcher used `[a-z0-9:@/ -]+` and `pnpm -F @shuddl/driver test` has a **capital F**, so **8 of 15 were silently missed** — in a sweep whose subject is stale figures. §1064 documented this class, §1077 reproduced it, this is the third. **All three are in AD-HOC probes**; §1078 swept committed gate code and found 8 sites, 0 defects. The class is closed where something checks it. |
 | 532 | §1084 | **§1085** | **STOPPING POINT VII — ALL 17 REPO-OWNED OPEN ROWS VERIFIED AT HEAD, AND FOUR CARRIED STALE FIGURES.** The last four unexamined rows closed: **L425** — its binding trigger has NOT fired (`ANTHROPIC_API_KEY`/`ANTHROPIC_MODEL` in NO wrangler config), so `LATENT` is correct there and was wrong at L424, verified separately rather than re-graded together. **L432** claimed *10 files / 54 tests*; HEAD is **15 / 101**. **L420** claimed *8 status-drift rows*; HEAD is **10** — REQ-045 CLEARED, three are NEW. **L423** claimed *945 citations / 24 anchored*; HEAD is **1,613 / 280** — anchoring grew **11.7×** against a 1.7× corpus, so protection went 2.5% → 17%. Every figure struck, not overwritten. Board unchanged: 19 PASS · 2 FAIL · 5 BLOCKED, both FAILs the owner's one register row. |
 | 531 | §1083 | **§1084** | **THE CROSS-FIELD SWEEP — 55 ROWS, 0 REAL CONTRADICTIONS, AND A GATE DELIBERATELY NOT BUILT.** §1083 found a row whose severity said *LATENT* while its status said the trigger FIRED, and observed that **no gate reads two fields against each other**. Swept all 55 eight-field rows for two shapes (latent-vs-fired, terminal-status-vs-blocks-a-grade). Raw: **2 hits, both FALSE** — L418's `blocks` reads `~~**R0**~~ none`, with R0 STRUCK. Stripping strikethrough: **1 hit, also FALSE** — §1083's own severity cell explaining the fix by QUOTING the word it removed. **Zero real contradictions.** A gate here has a two-layer irreducible FP floor (preserved history + explanatory quoting), which is §1077's finding reproduced exactly; not built, per §1053. |
@@ -64642,4 +64643,67 @@ the delimiter is known and the contents are not, so match on the thing you know.
 **STOP.** Every re-runnable figure in a live checklist row is verified at HEAD — 5 of 5, zero outstanding — and
 the sweep's own instrument is corrected, with the third recurrence localised to ad-hoc probes rather than
 gate code. `pnpm delta` clean · `check:tables` OK · `check:citations` 0.
+
+## §1087 — PHASE GATE: the append-only law, re-proved — and a probe that tested one mechanism of three
+
+**Why this phase.** §1085 closed the ledger; the remaining constitutional question is whether the *proofs* have
+aged. My record claims genesis/10's **I1–I8** were mutation-proved at §117 and §310/§323/§340/§341 — and a
+proof covers only the text that existed when it ran. Rule 2 is the one that matters most: **no UPDATE/DELETE
+paths on `events`, ever, including migrations.**
+
+### The probe, and the alarming half of its result
+
+Six forms planted in `packages/ledger/src`, each run against `check:invariants`:
+
+| planted form | verdict |
+|---|---|
+| `INSERT OR REPLACE INTO events …` | **RED** ✓ |
+| `REPLACE INTO events …` | **RED** ✓ |
+| ``INSERT OR REPLACE INTO"events"…`` (abutting quote) | **RED** ✓ |
+| `UPDATE events SET hash = ?` | GREEN |
+| `DELETE FROM events WHERE id = ?` | GREEN |
+| `UPDATE main.events SET x=1` (schema-qualified) | GREEN |
+
+Three greens on **UPDATE and DELETE against the events table** — read naively, the single most important
+invariant in the system, unenforced. §1078's rule saved this from being written: *the more alarming the
+finding, the more it deserves the extra minute.*
+
+### It is not a gap. It is three mechanisms with disjoint jobs
+
+| form | enforced by | where |
+|---|---|---|
+| `UPDATE` / `DELETE` | `CREATE TRIGGER events_guard_upd/del BEFORE … RAISE(ABORT,'I3:…')` | `0001_ledger_core.sql` — **runtime**, and in a **forward-only** migration §1052 proved cannot be edited |
+| `INSERT OR REPLACE` | WHEN-guarded `BEFORE INSERT` triggers | `0003_insert_guards.sql`, `0008_append_only_unique_guards.sql` — **runtime** |
+| `INSERT OR REPLACE` | `FORBIDDEN_REPLACE` source scan | `invariants.ts` — **build time** |
+
+And the division of labour is not arbitrary — the migrations state the reason:
+
+> *"D1 runs PRAGMA `recursive_triggers = 0` (not settable from D1), so an `INSERT OR REPLACE` … **SILENTLY
+> erases the chained victim row** (a history rewrite)."*
+
+A `BEFORE DELETE` trigger **does not fire** for the implicit delete inside a REPLACE. So REPLACE is exactly the
+form runtime triggers cannot catch — which is why it, and only it, needs a static gate, and why it carries
+**two** defences where UPDATE/DELETE need one.
+
+My probe tested the **static** mechanism and read its correct scope as an absence. The static scanner is
+REPLACE-focused *because* the other forms are already unbypassable one layer down.
+
+Verified rather than assumed: both triggers exist at `0001_ledger_core.sql:34-35`, the `recursive_triggers`
+reasoning is written into two migrations, and the division is pinned in three test files
+(`schema-core`, `schema-domain`, `invariants.test.ts`).
+
+### What this phase says
+
+> **A layered defence looks like a hole from inside any one layer.** Testing a single mechanism against the
+> whole law will always produce false gaps, because a well-designed system assigns each form to the cheapest
+> layer that can see it — and the layers that *can't* see a form are silent about it by construction, which is
+> indistinguishable from not caring.
+
+The operational form: **before filing a law as unenforced, enumerate the layers, not the forms.** I enumerated
+six syntactic forms and one gate. The right axis was three enforcement layers and which forms each can
+observe — a question the migrations answer in their own headers, two greps away.
+
+**STOP.** CLAUDE.md rule 2 is re-proved at HEAD across six forms and three layers: UPDATE/DELETE blocked by
+frozen runtime triggers, REPLACE blocked twice over because triggers structurally cannot see it. No defect; the
+near-miss recorded as a probe that tested one mechanism of three. `pnpm delta` clean.
 
