@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 535 | §1087 | **§1088** | **ALL EIGHT SCHEMA INVARIANTS RE-VERIFIED BY LAYER — EVERY 'MISSING' LAYER IS THE WRONG LAYER FOR ITS RULE.** §1087's method applied to I1–I8. Four have a zero in some column, and **none is a gap**: **I2** (no invoice without pod.signed) has 0 migrations because a DB cannot express *no invoice unless a pod.signed exists on this stream* — it is enforced at the **chokepoint** (`invoice-gate.ts` at ledger level + `append-chokepoint` statically refusing any direct `events` write, *"bypassing the sequencer DO — and with it EVERY gate"*). **I5** has 0 source-gates because it is a **Zod parse-time refusal** (`rate_config_ids: z.array(z.string()).min(1)`), pinned by a test that plants the empty array. **I6** has 0 source-gates because genesis/10 itself designates the layer: *"tested adversarially"*. **I7** has 0 migrations because netting is an export-time property. Also: `$i[:/ ]` is ARRAY SUBSCRIPTING in zsh — my first table was all zeros. |
 | 534 | §1086 | **§1087** | **I NEARLY FILED THE APPEND-ONLY LAW AS UNENFORCED — THE PROBE TESTED ONE MECHANISM OF THREE.** §117 mutation-proved I1–I8; a proof covers only the text that existed when it ran, so I re-tested CLAUDE.md rule 2 (*no UPDATE/DELETE on `events`, ever*) in six forms. **Four came back GREEN**, including `UPDATE events SET` and `DELETE FROM events` — a spectacular-looking hole in the system's most important invariant. It is not one. UPDATE/DELETE are blocked at RUNTIME by `BEFORE` triggers that `RAISE(ABORT,'I3:…')` in a **forward-only, frozen** migration; the static scanner is REPLACE-focused **by design**, because `INSERT OR REPLACE` is precisely the form triggers CANNOT see — *"D1 runs PRAGMA recursive_triggers = 0 … SILENTLY erases the chained victim row (a history rewrite)"*. So REPLACE carries BOTH a WHEN-guarded `BEFORE INSERT` trigger and the static gate. **Three mechanisms, disjoint by construction; I tested one and read its correct scope as a gap.** |
 | 533 | §1085 | **§1086** | **THE RE-RUNNABLE-FIGURE SWEEP — 0 OUTSTANDING — AND THE CHARACTER-CLASS BUG A THIRD TIME, IN THE SWEEP ITSELF.** §1085 found 3 of 4 rows carrying stale figures, so: how many rows cite a **re-runnable** `command → number`? (That is the method that worked — §933's roster records that a PROSE discovery sweep produced *8 false positives and zero real ones*.) Answer: **15 rows, 5 of them LIVE, and all 5 re-verified today — zero outstanding.** But my first pass said **7 and 4**: the command matcher used `[a-z0-9:@/ -]+` and `pnpm -F @shuddl/driver test` has a **capital F**, so **8 of 15 were silently missed** — in a sweep whose subject is stale figures. §1064 documented this class, §1077 reproduced it, this is the third. **All three are in AD-HOC probes**; §1078 swept committed gate code and found 8 sites, 0 defects. The class is closed where something checks it. |
 | 532 | §1084 | **§1085** | **STOPPING POINT VII — ALL 17 REPO-OWNED OPEN ROWS VERIFIED AT HEAD, AND FOUR CARRIED STALE FIGURES.** The last four unexamined rows closed: **L425** — its binding trigger has NOT fired (`ANTHROPIC_API_KEY`/`ANTHROPIC_MODEL` in NO wrangler config), so `LATENT` is correct there and was wrong at L424, verified separately rather than re-graded together. **L432** claimed *10 files / 54 tests*; HEAD is **15 / 101**. **L420** claimed *8 status-drift rows*; HEAD is **10** — REQ-045 CLEARED, three are NEW. **L423** claimed *945 citations / 24 anchored*; HEAD is **1,613 / 280** — anchoring grew **11.7×** against a 1.7× corpus, so protection went 2.5% → 17%. Every figure struck, not overwritten. Board unchanged: 19 PASS · 2 FAIL · 5 BLOCKED, both FAILs the owner's one register row. |
@@ -64706,4 +64707,85 @@ observe — a question the migrations answer in their own headers, two greps awa
 **STOP.** CLAUDE.md rule 2 is re-proved at HEAD across six forms and three layers: UPDATE/DELETE blocked by
 frozen runtime triggers, REPLACE blocked twice over because triggers structurally cannot see it. No defect; the
 near-miss recorded as a probe that tested one mechanism of three. `pnpm delta` clean.
+
+## §1088 — PHASE GATE: all eight invariants re-verified by layer
+
+**Why this phase.** §1087 re-proved I3 and produced the method: **enumerate the layers, not the forms**, because
+a layered defence looks like a hole from inside any one layer. The other seven invariants were proved at §117
+and inherited since. This applies the method to all eight.
+
+### The layer census
+
+| invariant | migration | src-gate | tests |
+|---|---|---|---|
+| I1 no money_line without event | 3 | 4 | 10 |
+| **I2** no invoice without pod.signed | **0** | 1 | 11 |
+| I3 no event edit/delete at DB | 3 | 10 | 15 |
+| I4 custody co-signed or `unwitnessed` | 1 | 2 | 5 |
+| **I5** quote pins rate_config versions | 1 | **0** | 3 |
+| **I6** visibility respected by views | 1 | **0** | 4 |
+| **I7** correction pairs net zero | **0** | 3 | 10 |
+| I8 22nd table = build failure | 4 | 3 | 3 |
+
+Four zeros. **None is a gap**, and the reason in each case is that the empty layer is the one that *cannot see*
+the rule:
+
+**I2 — the chokepoint, not a trigger.** A DB constraint cannot express *"no invoice event unless a `pod.signed`
+exists on this stream"* — it is a relational, temporal predicate over a stream. So it is enforced where every
+write must pass: `packages/ledger/src/gates/invoice-gate.ts` states it is *"enforced at the LEDGER level, so
+every API path that would…"*, and `append-chokepoint` makes that exclusivity **static**, refusing any code that
+*"writes the events table directly, bypassing the sequencer DO — and with it EVERY gate."* A single gated write
+path is a stronger layer than a trigger here, not a weaker one.
+
+**I5 — a parse-time refusal.** `packages/contracts/src/events.ts:108@rate_config_ids` declares
+`versions: z.object({ rate_config_ids: z.array(z.string()).min(1) }).strict()`. A quote event **cannot be
+constructed** without at least one pinned config id. And the `.min(1)` is itself pinned — my own notes warn that
+such constraints go undefended behind green suites, so I checked: `packages/contracts/test/events.test.ts:48`
+plants `rate_config_ids: []` and expects a throw. A source scan would be a weaker copy of a schema that already
+refuses.
+
+**I6 — the layer is named in genesis/10 itself.** The invariant reads *"events.visibility respected by every
+view **(tested adversarially)**"*. The authority designates its own enforcement mechanism, and four test files
+supply it. A source gate for "every view respects visibility" would have to model what a view *does*, which is
+the thing tests exist to check.
+
+**I7 — an export-time property.** *"Correction pairs net zero in GL export"* is a statement about an artifact
+produced at the end of a pipeline, not about a row. Three gates and ten test files sit exactly where the
+artifact exists.
+
+**All eight have a layer appropriate to what they constrain.** No invariant is unenforced, and no zero in that
+table is a finding.
+
+### And the census was all zeros on its first run
+
+My first table reported **0 / 0 / 0 for every invariant**. The pattern was `"I$i[:/ ]"` — and in zsh, `$i[…]`
+is **array subscripting**, so the shell tried to evaluate `[:/ ]` as a math expression and every count came
+back empty. Fixed with `${i}`.
+
+Twelfth shape error this session, and the first from a **shell language feature** rather than a regex: the
+probe was syntactically valid, ran without failing, and produced a uniform, plausible, entirely fabricated
+answer. Uniform zeros across eight independent subjects is the tell — real coverage is never that even.
+
+### What this phase says
+
+> **A zero in a coverage matrix is a question about the matrix's axes, not an answer about coverage.** Four of
+> eight invariants have an empty column, and in every case the column is the layer that is structurally
+> incapable of seeing that rule. Had the axes been "is it enforced?" the table would have read 8/8; because
+> they were "where?", it read 4 zeros — and the zeros were the interesting part precisely because none of them
+> was a defect.
+
+### The ratchet caught this section, before the commit
+
+Writing the I5 paragraph added a **third unanchored citation** into `packages/contracts/src/events.ts` — a
+ratcheted high-churn target whose baseline is *"it may fall, never grow"*. `check:citations` refused it:
+**`2 → 3 unanchored`**.
+
+Anchored to `:108@rate_config_ids`, which resolves. That is §1073's rule enforced on me by the mechanism
+§1085 measured — anchoring grew 11.7× against a 1.7× corpus — and it is the third gate this session to stop a
+defect at the staging boundary rather than after it. The ratchet does not ask whether the citation is *right*;
+it asks whether the file it points into is one where being right silently expires.
+
+**STOP.** All eight of genesis/10's invariants re-verified at HEAD by layer rather than inherited from §117;
+every empty column explained by what that layer can observe; the census's own zsh-subscript bug caught by the
+implausibility of uniform zeros. `pnpm delta` clean.
 
