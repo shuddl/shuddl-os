@@ -631,6 +631,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 442 | §994 | **§995** | **SIX FIXES WHOSE EVIDENCE HAD ALREADY EXPIRED — ALL SIX HELD, AND NOTHING COULD HAVE TOLD US.** §994 rested on the rows' own words, so this asked the inverse question: **is what the ledger calls CLOSED still closed?** Every terminal row carries an `Evidence expires` trigger and **nothing evaluated them**. Compared each row's newest date against the last-commit date of the files its own trigger names: **6 of 17 expired** — L400 by **one day** (and it sat that way two weeks), L429 by seven, L414 by ten. All six re-verified: L400's three subjects re-run **19/19 + 17/17**, L406 still builds its context independently of the record, L429's static-roster refusal survives `provision.ts`'s later change and is EXERCISED not merely present. **Zero regressions** — which is the finding, because *still true* and *nobody looked* are identical right up until they aren't. **The gate beat my own hand-sweep on its own corpus**: I checked eight rows manually and missed L400; the gate read every trigger and produced it immediately. `evidence-expiry.test.ts` is self-refreshing (the newest date in the row IS the clearance, so no second list can drift), mutation-proved 4 ways. Near-miss recorded: I began repointing L404's rotted citations before seeing they sit in a **struck** span — frozen superseded text. §811's trap, caught mid-edit |
 | 441 | §993 | **§994** | **STOPPING POINT IV — THE REPO-OWNED LEDGER HOLDS 17 OPEN ROWS AND ZERO NEGLECTED ONES.** Classified all 17 by what blocks them (four read in full): **6 need a CLAUDE.md/register amendment · 4 say *needs a REQ row* · 2 a design decision · 1 a founder UX call · 1 a tooling call · 1 measured-and-rejected TWICE · 2 blocked on measured preconditions**. **checked=17, neglected=0** — not one row is open because nobody looked. The two plain `backend` rows are the two hardest: **427**'s fix was written, REVERTED (§12), then re-measured (§882) as *necessary but not sufficient* (a UNIQUE partial index meets the same harness wall one step earlier — 66 api files share one D1 under `isolatedStorage:false`, forced by a DO's `.sqlite-shm` sidecar); **430 fails CLOSED and is correct**, waiting on the deferred REQ-069 seam. So: **10 waiting on one owner, 7 on measured preconditions.** Behind the ten sits §795's precedent — *filed, not amended, while REQ-289 is uncommitted* — **4 explicit deferrals at `HEAD~1`**, and I nearly reported **10** before noticing six were sentences §993 wrote an hour earlier: **a citation of my own edit is not evidence of a pattern**. REQ-289 is the head of the deferral chain, gating a Med–High reliability defect. `verify:merge` deliberately NOT re-run (the uninterruptible workerd wedge costs days; the four owning gates are green) — a judgement written down so it can be overruled cheaply |
 | 440 | §992 | **§993** | **THE ONE-FIELD FIX THAT WASN'T — AND A DEFERRAL'S *RECORDED HOME* COULD BE AN INCIDENTAL MENTION.** REQ-289 is both of the board's FAILs; §960 proved a remediation instruction can be WRONG, so I measured this one. **Status-keyed deferrals win before `wp` is read** — one field fixes it and `GTM-0` stays, which the gate's own message obscures by inviting a `wp` edit. The three deferrals are NOT interchangeable: run through `computeCoverage`, `F0-DEPLOY-NOTE` is clean, `vNEXT` passes but adds a permanent drift line, and **`CONFIRM-GATED` STILL EXITS 1** (`confirmCited` sets `failed`). Then the real defect: `scanRecordedHomes` accepted `REQ-\d{3,}` ANYWHERE, and REQ-289's three 'homes' are all the phrase *"while REQ-289 is uncommitted"* inside rows about OTHER defects — a deferral would have gone **green on an accounting that does not exist**. Counted before calling it a defect: **104 deferred · 88 manifest-keyed · 16 on prose · 0 incidental** — loose mechanism, clean corpus. Tightened to the document's own `Item`/`Source` columns (legit rows max cell 1, REQ-289 at cell 3 — a margin, not a boundary): **16/16 preserved, the hole rejected**. That made the owner's path LONGER, so the repo-owned half is done here — an external-holds row whose subject IS REQ-289, restoring the one-field remedy as a genuine accounting |
 | 439 | §991 | **§992** | **THE UNPARSED-WORKFLOW RESIDUAL, NARROWED FROM *UNVERIFIED* TO ONE BOUNDED CLAIM.** Confirmed unclosable — **zero YAML parsers across 382 pnpm store entries**. But measured rather than left open: corrupted `ci.yml` three ways (mis-indented step key, deleted merge-evidence step, truncated file) and **all three were caught** by the structural gates (fixed point 3 files / 25 assertions green) — not by parsing, but because three gates read the file's structure and each carries a non-vacuity floor. So the true residual is one claim: a GitHub EXPRESSION that is YAML-valid but semantically invalid. Bounded that too — every `if:` in both workflows classified against `origin/main`, the state GitHub has executed: **checked=8, novel=0** (2 verbatim pre-existing, 6 `!cancelled()` in the same status-function family as the proven `always()`). **An unbounded residual is indistinguishable from an unexamined one** |
@@ -58336,3 +58337,77 @@ The loop asked for technical debt to be found, documented, and resolved to produ
 not a list of unfixed things. It is a list of **decisions**, each one attached to the measurement that makes it
 cheap to decide. That is the difference between a backlog and a handoff — and it is the only ending a debt loop
 can honestly reach while the register belongs to someone else.
+
+---
+
+## §995 — PHASE GATE: six fixes whose evidence had already expired, and the gate that now says so
+
+§994 declared the repo-owned ledger free of neglected rows. That verdict rested on the rows' own words — and
+this record's hardest-won lesson is that **a claim you inherit is a claim you are making** (§804). So the next
+question is not *what is open* but **is what the ledger calls CLOSED still closed?**
+
+Every terminal row carries an `Evidence expires` cell, and the good ones are exact: *"when
+`packages/ledger/src/anchor.ts` changes — the green above is evidence about `08e2156` and nothing else."* That
+discipline is why this record can be trusted. It was enforced by **nothing**.
+
+### Comparing each row's date against the files its own trigger names
+
+| row | trigger fired | by |
+|---|---|---|
+| L400 anchors/run backfill flake | `anchor.ts` **2026-07-29** vs a row dated **2026-07-28** | **1 day** |
+| L404 anchor test seam | `anchor.test.ts` 2026-08-04 | 6 days |
+| L406 release-record binding | `run-gate.ts` 2026-08-07 | 5 days |
+| L414 status-page portal row | `board.ts` 2026-08-06 / portal 08-09 | 10 days |
+| L420 preflight routes | `preflight.ts` 2026-08-05 | 5 days |
+| L429 agents claimed-pool tenants | `provision.ts` 2026-08-08 | 7 days |
+
+**6 of 17 terminal rows had expired.** None carried a re-verification note. L400 expired **the day after it was
+written** and sat that way for two weeks.
+
+### All six re-verified — and all six HELD
+
+- **L400** — re-ran all three subjects at HEAD: ledger `anchor` **19/19**, api `anchors` + `driver-manifest`
+  **17/17**. (Method note: both are `vitest-pool-workers` suites and neither wedged. That is a data point
+  against §994's caution, not a refutation of it — a targeted run is not the full merge surface.)
+- **L406** — the context is still built INDEPENDENTLY of the record (`run-gate.ts:194@context` — `gitHead()`,
+  `fixturesHash()`, env-derived), so the comparisons can still fire. The self-satisfaction stayed fixed.
+- **L429** — the static-roster refusal survives `provision.ts`'s 2026-08-08 change at `:144`, and is
+  *exercised* rather than merely present (`provision.test.ts:126` asserts the `SLUG_TAKEN` code).
+- **L404 · L414 · L420** — shapes intact; each stamped with what was re-read.
+
+**Zero regressions in six expired fixes.** That is the finding, not a disappointment: nothing in the repo could
+distinguish *still true* from *nobody looked*, and those two states are identical right up until the day they
+aren't.
+
+### The gate found what the hand-sweep missed
+
+I swept these by hand first and checked eight rows. The gate — reading every trigger rather than the ones I had
+transcribed — immediately produced **L400**, the worst of the six, which my sweep had skipped. A gate written
+in the same session as the manual pass beat the manual pass on its own corpus.
+
+`evidence-expiry.test.ts` compares each terminal row's **newest date** against the last-commit date of every
+repo file its trigger names. **Self-refreshing by construction:** appending `RE-VERIFIED <today>` is
+simultaneously the human record and the machine clearance, so there is no second list to drift — the failure
+§945 and §988 each produced.
+
+**Mutation-proved four ways**, fixed point green on both sides:
+
+| mutation | result |
+|---|---|
+| roll one stamp's date back | **RED** — staleness |
+| strip every date from a row that names files | **RED** — the undated assert, plus staleness |
+| point the cell reader at the wrong column | **RED** — the non-vacuity floor |
+| restore | **green, 7/7** |
+
+**Scope, stated:** it proves somebody LOOKED after the file moved, never that they looked correctly. A stamp is
+still a claim by its author. What changed is that *omitting* one is now loud. Triggers phrased against the world
+("at reboot", "when counsel signs") name no path and are correctly invisible — which is why the non-vacuity
+floor asserts that resolvable paths exist at all, so that exemption can never quietly swallow the corpus.
+
+### The near-miss worth recording
+
+L404's cited lines (`:60`, `:69`) no longer point at what they name — and I started to repoint them. They sit
+inside a `~~struck~~` span: **deliberately frozen superseded text**, preserved by the convention that says
+strike rather than delete. "Fixing" it would have destroyed a historical record to satisfy a gate that does not
+even read it. §811 named this exact trap — *a prior that everything has a gap is how a clean artifact gets
+improved into a worse one* — and it took catching myself mid-edit to believe it.
