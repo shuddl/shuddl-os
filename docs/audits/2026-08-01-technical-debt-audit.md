@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 527 | §1079 | **§1080** | **A FAIL-OPEN SKIP ON THE DEPLOY PATH, CLOSED — AND MY FIX LANDED INSIDE THE LOOP.** §1079 showed the deploy preflight parses `wrangler.toml` with its OWN parser, sharing the blind spot of four other gates. Cross-checked it against wrangler's resolver: **0 workers skipped, all 5 prod scopes seen** — the parsers agree at HEAD. But the skip path is fail-OPEN: `if (target.worker.length > 0) push; else console.warn(…)` collapses *genuinely no scope* with *this parser missed it*, and the second **silently drops a worker that WILL deploy** from every check below. Closed with a count floor keyed to §1079's measurement (all 5 resolve in every env), exiting MALFORMED. **My first placement landed INSIDE the for loop** — it fired *"parsed 1 of 5"* on a clean tree, and I nearly read that as preflight dropping 4 of 5 workers. Tenth shape error: I anchored on a brace by indentation. Relocated; mutation-proved (hidden `[env.prod]` → *parsed 4 of 5*, exit 3), clean tree + staging + dev unaffected. |
 | 526 | §1078 | **§1079** | **THE ONLY INDEPENDENT CHECK OF THE TOML PARSERS, RE-RUN — 15/15 CELLS, ZERO DROPPED BINDINGS.** §1078's root (*a TOML has tables; grep does not*) makes regex-parsed config a class: **4 gates parse `wrangler.toml` with regex and no parser**, incl. `binding-parity` (10 regexes, 0 parsers), and §990 already produced *four successive parser errors on one TOML file*. Every standing gate reads the SAME file the same way, so none of them can catch a mis-parse. §286's cross-check with **wrangler's own resolver** is the only independent mechanism — and it was a ONE-TIME manual run. Re-run at HEAD across **all 15 cells** (5 workers × dev/staging/prod): **every cell resolves 5–12 bindings, none zero.** Extends §286's 13. My probe read `dev=0` five times first — there is no `[env.dev]`, dev is the TOP-LEVEL config and `--env dev` errors; ninth probe-shape error, caught. |
 | 525 | §1077 | **§1078** | **THE NARROW-CHARACTER-CLASS SWEEP — 8 SITES, 0 LIVE DEFECTS, AND A 3rd HISTORICAL INSTANCE FOUND IN A COMMENT.** Having written the same bug twice (§1064's tally dropping `a11y`/`e2e`, §1077's deriver missing `probe9`), vigilance is not the fix — a mechanical sweep is. All 8 narrow classes in `tools/`: 4 match CSS keywords (safe by grammar), 1 is my own §1077 comment, and **3 match repo identifiers** — each tested against what the GENERATOR can emit: event kinds (0 with a digit/underscore after the dot), projector names (0 with a digit), worker names (**all 15 match**). **0 live defects.** `design/audit.ts:29` documents a THIRD historical instance — the design vocabulary enumerated with `--[a-z-]+`. And my own worker probe false-positived: I grepped every `name =` in the TOMLs and flagged 18 `shuddl-t-*` entries that are **D1 DATABASES, not workers** — eighth probe-shape error, caught before publication. |
 | 524 | §1076 | **§1077** | **THE DRIFTED COUNT IS NOW CI-DERIVED — AND I WROTE §1064's BUG AGAIN, ONE PHASE LATER.** §1076 fixed a sweep count stated in two files and corrected in only one. The durable fix extends the EXISTING figures roster (§1053: no rival gate) so the copies cannot disagree. **Two things it caught immediately.** (1) Including the checklist gave **2 hits, both FALSE** — a closed row counting a different population (*repo-wide* sweeps) and §1076's own stamp QUOTING the corrected-away *seven*. A record that preserves its history necessarily contains its own wrong numbers; scoped to source, where the count is a LIVE assertion. (2) The deriver matched `contain\("([a-z-]+)"` — a planted 9th sweep named `probe9` was **INVISIBLE** and the gate went GREEN. **That is §1064's character-class bug, reproduced one phase after documenting it.** Widened to `[^"]+`; both directions now RED. |
@@ -64183,4 +64184,74 @@ wait; not re-running would have left four gates trusted on the strength of a mea
 **STOP.** The only independent validation of this repo's TOML parsing is re-run at HEAD and widened from 13
 cells to 15 — **zero dropped bindings anywhere** — with the probe error that nearly reported five phantom
 empty environments recorded. `test:tools` 1,246 passed / 3 failed — the REQ-289 baseline · lint clean.
+
+## §1080 — the fail-open skip on the deploy path, and a fix that landed in the wrong scope
+
+**Why this phase.** §1079 established that four gates parse `wrangler.toml` with regex and cannot check each
+other's parse. The natural next question is whether the **deploy preflight** — the gate that BLOCKS a worker
+with no bindings — is one of them. It is: it calls `parseWranglerToml(readFileSync(path))`, its own reader, and
+its header states it is deliberately **pure** (*"no network, no wrangler, no account"*).
+
+### First, the cross-check: the parsers agree at HEAD
+
+Ran the real preflight against prod and compared with §1079's wrangler-resolver matrix:
+
+| | |
+|---|---|
+| workers skipped with *"declares no [env.prod]"* | **0** |
+| workers wrangler resolves with real bindings | **5 of 5** |
+| preflight verdict | **BLOCKED — 7 unsatisfied prerequisites** (no prod origin allowlist, no TSA endpoint, no backup manifest) |
+
+Two independent parsers, same answer. The BLOCKs are genuine missing infrastructure, exactly what a
+pre-deployment repo should report.
+
+### But the skip path is fail-open
+
+```ts
+if (target.worker.length > 0) workers.push(target);
+else console.warn(`… declares no [env.${environment}] scope — nothing to deploy there`);
+```
+
+That single `else` collapses two conditions: a worker that **genuinely** has no scope for this environment, and
+one whose scope **this parser failed to see**. They are indistinguishable at that line — and the second
+**silently drops a worker from every check below**, on a deploy path, with a `warn` rather than a block. It is
+§1052's *"legitimately absent vs the measurement failed"* shape, in the gate whose whole job is refusing to
+deploy something unchecked.
+
+Closed with a **count floor**, and the floor is only defensible because §1079 measured its premise: all five
+workers resolve real bindings in dev, staging **and** prod, so fewer than five parsed scopes for a named
+environment is a **parser failure**, not a configuration fact. It exits `MALFORMED` rather than warning, and
+`dev` is excluded because dev is the top-level config with no named scope at all.
+
+| probe | result |
+|---|---|
+| clean tree, prod | reaches the same real verdict — 7 prerequisites, floor silent |
+| `[env.prod]` hidden in one worker | **parsed 4 of 5 … PARSE FAILURE**, exit 3 |
+| staging / dev | floor silent, unchanged |
+
+### My fix landed inside the loop
+
+The first placement put the floor **inside** the `for` loop. It fired on a clean tree with **"parsed 1 of 5"** —
+and for a moment I read that as a genuine discovery that preflight drops four of five workers, which would have
+been the most alarming finding of the session.
+
+The cause: I located the insertion point by matching the first line equal to `"    }"`, which is the loop
+body's brace, not the loop's. **Tenth shape error this session** — and the same root as the ninth and eighth: a
+pattern that does not model the structure it edits. Braces are not addressable by indentation any more than
+TOML tables are by `grep`.
+
+What caught it was that the number contradicted a measurement taken minutes earlier: §1079's matrix said all
+five workers resolve, and the run before my edit reported **zero** skips. **A new number that contradicts a
+fresh one is not a discovery; it is a bug in the newer instrument.**
+
+### What this phase says
+
+> **A `warn` on a deploy path is a decision to continue.** The word looks like diligence — something was
+> noticed, something was printed — but the process exits 0 and the unchecked worker deploys. The only question
+> that matters for a skip is *what does the caller do next*, and here the answer was "everything, minus one
+> worker, silently."
+
+**STOP.** The preflight's fail-open skip is closed with a floor whose premise was measured rather than assumed,
+mutation-proved in both directions, with dev correctly exempt. Two independent parsers confirmed to agree at
+HEAD. `typecheck` clean · `lint` clean · preflight reaches its real verdict unchanged.
 

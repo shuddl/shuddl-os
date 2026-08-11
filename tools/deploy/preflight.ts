@@ -667,12 +667,30 @@ function main(): void {
       const doc = parseWranglerToml(readFileSync(path, "utf8"));
       const scope = environment === "dev" ? undefined : environment;
       const target = targetFromWrangler(doc, scope);
+        // §1080 — this warn collapses two conditions: a worker that GENUINELY has no scope for this
+        // environment, and one whose scope THIS PARSER failed to see. They are indistinguishable here, and
+        // the second silently drops a worker that WILL deploy from every check below — fail-open, on a
+        // deploy path. The count floor after this loop is the discriminator: measured at §1079 with
+        // wrangler's own resolver, all five workers resolve real bindings in dev, staging AND prod, so a
+        // parse yielding fewer than five for a named environment is a parser failure, not a config fact.
       if (target.worker.length > 0) workers.push(target);
       else console.warn(`preflight: ${path} declares no [env.${environment}] scope — nothing to deploy there`);
     } catch (e) {
       console.error(`preflight: could not read ${path}: ${e instanceof Error ? e.message : String(e)}`);
       process.exit(EVIDENCE_EXIT.MALFORMED);
     }
+  }
+
+  // §1080 — a parse that loses a worker must BLOCK, never warn. See the note in the loop above.
+  if (environment !== "dev" && workers.length < WORKER_CONFIGS.length) {
+    console.error(
+      `preflight: parsed ${String(workers.length)} of ${String(WORKER_CONFIGS.length)} worker configs for ` +
+        `[env.${environment}]. Every worker resolves real bindings there (verified with wrangler's own ` +
+        `resolver, audit §1079), so a missing scope is a PARSE FAILURE and the unparsed worker would ` +
+        `deploy unchecked. If a worker genuinely stops targeting ${environment}, remove it from ` +
+        `WORKER_CONFIGS deliberately.`,
+    );
+    process.exit(EVIDENCE_EXIT.MALFORMED);
   }
 
   // The committed served allowlist, for the prod served-vs-state reconciliation. Best-effort: an
