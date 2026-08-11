@@ -34,6 +34,20 @@ async function audit(page: Page, url: string): Promise<Violation[]> {
   // wrong instrument here because these surfaces size themselves from a full-height flex chain, so the
   // root legitimately reports as not-visible for a moment.
   await page.waitForFunction(() => (document.body.innerText ?? "").trim().length > 0, undefined, { timeout: 30_000 });
+  // `color-contrast` is disabled DELIBERATELY, and the reason is a register boundary rather than a silenced
+  // failure (audit §1016). Full-surface contrast is REQ-285 — **vNEXT**, deferred: "core journeys meet WCAG
+  // 2.2 AA … blocking browser suite passes axe". What IS built is REQ-149 — "A1 deep-red small text ≥4.5:1
+  // locked by CI" — and `tools/design/audit.ts:75` asserts exactly that pair (--signal-deep on --field,
+  // 4.58:1, the tightest PASSING pair in the palette). Enabling this rule therefore tests DEFERRED scope.
+  //
+  // MEASURED AT §1016 so the cost of that deferral is known before it is scheduled: enabling it today yields
+  // 10 serious findings across the three surfaces (command 7, portal 2, driver 1) in three classes — 1.66:1
+  // and 2.36:1 from colours that are NOT tokens but opacity-composited variants, and 2.20:1 from a real token
+  // pair (--signal on --field) that REQ-149's single assertion does not cover.
+  //
+  // The token-pair check can never see the first class: the design CI reads the five DECLARED tokens, the
+  // browser renders them at opacity, and those are different colours. When REQ-285 is built, a rendered check
+  // is the only instrument that reaches it.
   const results = await new AxeBuilder({ page }).withTags(TAGS).disableRules(["color-contrast"]).analyze();
   return results.violations as unknown as Violation[];
 }

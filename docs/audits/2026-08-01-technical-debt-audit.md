@@ -631,6 +631,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 463 | §1015 | **§1016** | **THE DISABLED CONTRAST RULE — A REGISTER BOUNDARY, AND THE MEASURED COST OF DEFERRING IT.** The a11y spec explains every decision at length except one: `.disableRules(["color-contrast"])`, silent — the rule that matters most for a driver in sunlight. **I was reading toward an undocumented silencing. The register says otherwise:** **REQ-149** (`F0-SPEC'D`, BUILT) is *A1 deep-red small text ≥4.5:1 locked by CI*, and `audit.ts:75`'s single assertion is not a thin implementation of full-surface contrast — **it is a COMPLETE implementation of REQ-149**, pinning the tightest PASSING pair (4.58:1, 0.08 above threshold). Full-surface axe contrast is **REQ-285 — `vNEXT`, deferred.** Enabling the rule would not catch a defect; it would build vNEXT scope. **But the cost was unmeasured, so I measured it:** enabled → **10 serious findings** (command 7 · portal 2 · driver 1) in three classes — and **two of the three failing colours are NOT tokens** (`#ec8778`, `#983428`): opacity-composited variants. **The design CI reads the five DECLARED tokens; the browser renders them AT OPACITY; those are different colours** — no token-pair check reaches that class however many pairs it enumerates. Disable now carries the reasoning + the number; rule stays OFF (the remedy is a design decision under a constitutional 5-token budget) |
 | 462 | §1014 | **§1015** | **FAULT-INJECTION COVERAGE — A BOUND, AND A PROBE THROWN AWAY FIRST.** 4,534 tests prove the happy paths; failure branches fail precisely when they matter, and this had never been swept as a unit. **The first probe was broken and said so by being too GOOD** — *files touching dep X that also contain a failure verb* gave **93/105 D1, 99/106 R2, 134/144 DO**, a ~90% hit rate, i.e. §968's rule firing on any file containing the word *fail*. Discarded before reporting. Honest count of **deliberate** constructs (`mockRejected*`, throwing implementations, `faultSeam`/`BrokenDb`): **42 sites across 21 of 367 files** — and the DISTRIBUTION is the result: `anchor.test.ts` holds **15 (36% of all injection in the repo)**, the rest are 1–2 each. Not automatically a gap: most failure paths are covered by Zod at every boundary, `GateError` throws and the error-envelope suite, and injection earns its cost only where a failure must be **survived** rather than propagated — which is anchoring's job. **The one critical thin path is already an open row that is MORE CURRENT than my sweep:** L422's trigger was found FIRED today by §944 (the provider IS bound in staging, so the unsurfaced-failure branch is reachable), with the contradicting `wrangler.toml` header corrected and a gate built for that claim class. **I went looking for a gap and found the record ahead of me** |
 | 461 | §1013 | **§1014** | **THE SELF-CONFIRMING-TEST CLASS — SWEPT, CLEAN, AND THE DETECTOR THAT COULD NOT HAVE TOLD ME.** §1013 cited three instances of one shape (§186 fixture-built-with-the-function, §819 client-vs-its-own-drawing, §858 suite-mocks-what-it-composes), which is past the threshold for counting. **Mock-detectable half CLEAN: 367 test files, 20 use `vi.mock`, ZERO mock their own subject.** Only two mock 2+ siblings and both survive: `GatedFlow` is §858's known, remediated instance; `App.test.tsx` mocks map/session/api to assert the portal NEVER falls back to demo data — **asserting a mock was NOT called is a legitimate use of one.** The §186 half is not mock-detectable, so I wrote a detector for its signature (same function both sides): **55 hits, and reading three showed it conflated three different claims** — a sign-mirror INVARIANT (`f(-x)` vs `f(x).map(negate)`), a fail-closed EQUIVALENCE (`effectiveOrigins('')` vs `('prod')`), and bare determinism that is sound because its suite pins real values elsewhere. **The method failure is the finding:** my classifier reported 21 paired + 30 naked out of 34 total — **51 classified out of 34** — so I refused to report from it and read samples instead. **A probe whose counts do not add up has already told you its verdict is unusable**; publishing anyway and letting the reader filter is how §240's 95%-false sweep would have entered this record |
 | 460 | §1012 | **§1013** | **TIME ZONES AND DST — A BOUND, NOT A DISCOVERY.** Freight windows belong to a FACILITY, not a server, and a clock that drifts an hour fails in the world while passing in one-zone tests. `daylight` returns 0 in both the record and the code — clean or unexamined, and measured it is clean. **0 local-time getters in product code** (the two `toLocaleString` hits are MONEY formatting with an explicit locale) · **1 day-boundary derivation** (`anchor.ts:59@dayOf` `toISOString().slice(0,10)` — **UTC by construction**, DST-immune) · **1 genuinely local module** (`appointment-window.ts`, IANA zones via `Intl.DateTimeFormat`, throws on a malformed facility tz rather than falling back) · **3 DST cases green**, including the one people forget — **spring-forward, where 02:00 does not exist** (`07:30Z → 03:30 EDT, not 02:30`), which a fixed-offset implementation fails. **The better lesson is historical:** §186 is titled *the appointment suite was blind to DST because its fixture calls the converter it tests* — **a self-confirming fixture is a mirror, not a test**, the same shape as §819's client-checked-against-its-own-drawing and §858's suite mocking what it composed |
@@ -59850,3 +59851,72 @@ the thinnest critical path is an open, currently-accurate row awaiting a REQ row
 signal fault injection is owed, and anchoring is the template · L422 gains its REQ row, at which point the
 evidence-email failure branch becomes buildable and testable · a dependency is added, since the 42 sites cover
 the five that exist today.
+
+---
+
+## §1016 — PHASE GATE: the disabled contrast rule — a register boundary, and the measured cost of deferring it
+
+The a11y spec explains everything it does at length — why `waitForSelector` is the wrong mount signal, why
+rendered text is the right one, which WCAG tags it asserts — with exactly one silent decision:
+
+```ts
+new AxeBuilder({ page }).withTags(TAGS).disableRules(["color-contrast"]).analyze();
+```
+
+Contrast is the a11y rule that matters most for a driver working one-handed in sunlight, and it was switched
+off with no comment. I was reading toward *an undocumented silencing of a real failure*.
+
+### The register says otherwise, and that is the finding
+
+| REQ | status | scope |
+|---|---|---|
+| **REQ-149** | `F0-SPEC'D` — **built** | *"A1 deep-red small text ≥4.5:1 locked by CI"* |
+| **REQ-285** | **`vNEXT`** — deferred | *"core journeys meet WCAG 2.2 AA … blocking browser suite passes axe"* |
+
+`tools/design/audit.ts:75` asserts **exactly one pair** — `--signal-deep` on `--field` — and that is not a thin
+implementation of full-surface contrast. **It is a complete implementation of REQ-149.** The pair it pins is
+also the tightest *passing* pair in the palette at **4.58:1**, 0.08 above threshold: precisely the one where a
+token nudge breaks the law, which is what a pin is for.
+
+So disabling the rule is **consistent with the register**. Full-surface axe contrast is REQ-285, and REQ-285 is
+deferred scope. Enabling it would not be catching a defect; it would be building vNEXT work.
+
+### But the cost of that deferral was unmeasured — so I measured it
+
+Ran the suite with the rule enabled:
+
+```
+command  7 serious   ·   portal  2   ·   driver  1        =  10 elements
+```
+
+Three distinct classes, and the decomposition is the part worth keeping:
+
+| rendered pair | ratio | can the token check see it? |
+|---|---|---|
+| `#ec8778` on `#d5d1cc`, 10–11px mono | **1.66** | **No** — `#ec8778` is not a token |
+| `#983428` on `#1a1a1a`, 10–12px mono | **2.36** | **No** — `#983428` is not a token |
+| `#ff4a33` on `#d5d1cc`, 48px display | **2.20** | **Yes in principle** — a real token pair (`--signal` on `--field`), simply not among REQ-149's single assertion |
+
+**Two of the three failing colours are not in the palette at all.** They are opacity-composited variants — the
+design CI reads the five *declared* tokens; the browser renders them *at opacity*; those are different
+colours. No token-pair check can ever reach that class, however many pairs it enumerates. When REQ-285 is
+built, a **rendered** check is the only instrument that gets there.
+
+### What was changed, and what deliberately was not
+
+The disable now carries the reasoning above and the measurement, so the next reader meets a register boundary
+rather than a silent choice. **The rule stays disabled** — enabling it would red the build on deferred scope,
+and the remedy (moving a colour, or accepting a documented exception) is a design decision under a five-token
+constitutional budget, which is the owner's call and a register amendment, not an audit's.
+
+`pnpm test:a11y` → **4 passed**, unchanged.
+
+### Phase gating
+
+**STOP.** The one silent decision in the a11y surface is now explained, and REQ-285's cost is a number instead
+of an unknown.
+
+**Re-open when:** REQ-285 is scheduled — this section is its estimate, and the opacity-composited class is the
+part that will surprise · a sixth colour token is proposed, since two of the three findings are already
+*derived* colours rather than declared ones · `audit.ts:75`'s pair drifts below 4.58:1, which is REQ-149's
+actual boundary.
