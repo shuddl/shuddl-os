@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 495 | §1047 | **§1048** | **THE ONLY CONFIRM-GATED PROHIBITION WITH AN ADJACENT BUILT CAPABILITY — AND NOTHING GUARDING IT.** CLAUDE.md forbids anything whose REQ row is CONFIRM-GATED while the CONFIRM is open, naming three: Direct merchant, voice recording, escrow settle. All three are unbuilt (0 files each). The asymmetry is the finding: merchant and escrow have NO adjacent code, while voice recording's API is already called in shipping code — `getUserMedia({video:{facingMode:"environment"}})` for REQ-063's forced photo. Planting `audio: true` in that one call left the driver suite, typecheck, lint and check:invariants **ALL FOUR GREEN**. `audio` is absent by AUTHORSHIP, not by ENFORCEMENT. New gate `tools/checks/no-audio-capture.test.ts` derives its authority from the register — it enforces only while REQ-096/REQ-137 are CONFIRM-GATED and RETIRES ITSELF when the owner closes the CONFIRM. Mutation-proved RED on the planted word; 4 tests; suite at its 3-failure REQ-289 baseline (1,230 tests). |
 | 494 | §1046 | **§1047** | **EVERY OPEN ROW NAMES ITS BLOCKER — AND MY CHECK READ THE WRONG CELL.** §1046 rested on the property that *each row states what it is blocked on*, verified on four rows; eighteen are open, so it was a hypothesis until counted. **The single-cell check flagged 6 of 18 as bare, and all six are wrong**: L421 names *without an opt-in marker*, L431 names *NOT diagnosed: a single non-reproducing failure cannot locate a cause*, L426/L427 carry posture in Status and blocker in Owner, and L411/L418 — whose Status is literally `OPEN` — name theirs in **Owner** (*register owner (denylist contents) / infrastructure (the secret)*) and **Expires** (*on binding `IDENTITY_DENYLIST`*). **18 of 18 name their blocker.** The schema is the reason and it is a good one: **Status carries the verdict, Owner who can move it, Expires what event unblocks it** — a bare `OPEN` is not incomplete, it is not where that lives. **A checker that reads one field of a structured record will find it under-specified, and be wrong** — same class as §1039's structural-vs-behavioural and §1040's vocabulary narrowness: **the instrument's shape decided the finding.** Fourth consecutive phase where the record was ahead of the probe |
 | 493 | §1045 | **§1046** | **§1045's LESSON TURNED ON THE LEDGER — §1041 WAS THE EXCEPTION, NOT THE PATTERN.** §1045 closed a filed row by noticing its deferred judgement was arithmetic, and stated: **before filing a decision, check whether it is a measurement.** A rule earned on one instance is a hypothesis until counted — so I examined every decision-shaped row. **None is a disguised measurement.** L408 (*duplicate-vs-strand*) is a **genuine** design decision, both answers correct engineering with different failure modes · L410 (coverage) is external + scope, §1006 having measured **0 installable providers** · L426 (the signup 409) is a genuine product call, the row itself saying *accepted-for-now, recorded so the pre-GA pen-test row inherits it knowingly* · **L398 was already prepared** — it names the exact replacement text, and I verified the number rather than trusting it: `CANONICAL_VIEWS` declares **11** against `MAX_CANONICAL_VIEWS = 12`, so *(11 used, one spare)* is right and the owner's action is a copy-paste. **The author of that row got there before the rule was written.** **A well-kept ledger's 'decisions' are mostly real decisions** — filing a measurement as a judgement is a mistake an auditor makes under time pressure, not a property of the record; and it is only visible because each row states WHAT IT IS BLOCKED ON |
 | 492 | §1044 | **§1045** | **§1041 CLOSED — THE DEFERRED JUDGEMENT WAS NOTHING TO DECIDE.** §1041 measured REQ-025's enforcer absorbing the loss of any single glob (union floor `> 180` over 316 files) and **filed** it, reasoning that adopting `scanCorpus` needed a `mayBeEmpty` decision per glob on a build-failure law. **Re-examined: which globs are empty is MEASURABLE, not a judgement.** All ten match files (99/48/116/35/8/4/59/47/53/38), so **`mayBeEmpty` needs no entries** — the deferred decision was nothing to decide, and deferring cost the owner attention that one command resolves. Fixed: `scanCorpus(globs, root, {excludeTests:true})`, whose filter is **byte-identical** to the one it replaced (corpus unchanged, guarantee added) and which judges emptiness on the RAW result before the test filter. Mutation-proved on three globs with the RED **attributed**: exit **1**, *scan glob matched ZERO files: …*, at COLLECTION time so the gate refuses to run rather than running blind. The `> 180` floor is KEPT — it defends §572's *collapse*, `scanCorpus` the *amputation*, neither subsumes the other. **Refinement: before filing a decision, check whether it is a MEASUREMENT** — a row asking an owner to decide something a command can answer spends their attention on work the audit could have finished |
@@ -61781,3 +61782,112 @@ Status/Owner/Expires**, and zero are unactionable.
 **Re-open when:** a row is filed whose Owner cell is empty or generic — that is the field carrying the answer
 for the two rows whose Status is bare · a row's Expires cell stops naming an event, which is what makes the
 blocker checkable rather than merely stated.
+
+## §1048 — PHASE GATE: the only CONFIRM-gated prohibition with an adjacent built capability
+
+**Why this phase.** Four consecutive phases (§1044, §1045, §1046, §1047) found the record ahead of the probe.
+That ratio is a saturation signal for record-auditing, so this phase left the record and re-tested the last
+unverified section of the constitution: CLAUDE.md's **"Do not build (ever)"** list. §245/§246 concluded *"ten
+items each gated or verifiably unbuilt"* — a claim I have carried since without testing it, and §804 already
+cost me once for exactly that (*"a claim you INHERIT is a claim you are MAKING"*).
+
+### The list, tested against the tree
+
+| prohibition | probe | result |
+|---|---|---|
+| native GL / period close | `periodClose\|period_close\|closePeriod` | **0 files** |
+| driver pay v1 | `driverPay\|driver_pay` | **0 files** (the 50 `settlement` hits are interline/payment, a different subject) |
+| report builder | `reportBuilder\|report_builder` | **0 files** |
+| a fourth surface | `ls apps/` | **3** — and budget-gated, RED-proved at §1001 |
+| a fifth primitive | — | unfalsifiable; recorded for the owner at §246, still true |
+| seat-based pricing | `perSeat\|seat_count\|seats` | **0 files** |
+| gray text / blue anything / shadows | `audit:design` | clean, and BLOCKING since WP-10 |
+| SMC3 as engine foundation | `smc3` in `packages/rater/src/` | **1 file** — a comment in `adapters/class.ts` stating it is an edge adapter, never the foundation |
+| code merge from prior codebases | REQ-163 | gated |
+| tenant/person names | REQ-167 identity lint | gated, sound 3 ways (§1010) |
+| CONFIRM-GATED items | see below | **the finding** |
+
+Two probes were wrong before they were right, and both errors are ones I have a written rule for.
+`driver pay` searched by TOKEN is a **mechanism** search (§1042 — *sweep by behaviour, not by mechanism*); the
+behavioural sweep (`payout`, `payable`, `earnings`, `compensation`, `per_mile`) found nothing either, which is
+what makes the negative worth stating. And `voice` matched **`in-voice-`** — 143 files of invoicing, zero about
+recording. A substring false positive inside a probe of a prohibition.
+
+### The finding: the asymmetry among the three CONFIRM-gated items
+
+CLAUDE.md forbids *"anything whose REQ row says CONFIRM-GATED while the CONFIRM is open (Direct merchant, voice
+recording, escrow settle)."* All three are unbuilt. They are not equally safe:
+
+| prohibition | register row | code | one word from a violation? |
+|---|---|---|---|
+| Direct merchant | REQ-104 | 0 files | no — nothing adjacent |
+| escrow settle | REQ-033 + REQ-143 | 0 files | no — nothing adjacent |
+| voice recording | REQ-096 + REQ-137 | 0 files | **YES** |
+
+Reaching merchant or escrow means writing a subsystem. Voice recording's API is **already called, in shipping
+code, for a legitimate purpose** — `apps/driver/src/components/CameraScreen.tsx:69` calls
+`getUserMedia({ video: { facingMode: "environment" } })` for REQ-063's forced photo. The prohibited capability
+is that object gaining one property.
+
+**MEASURED — I planted exactly that word:**
+
+```
+getUserMedia({ video: { facingMode: "environment" }, audio: true })
+
+driver CameraScreen suite : GREEN (did not catch)
+typecheck                 : GREEN (did not catch)
+lint                      : GREEN (did not catch)
+check:invariants          : GREEN (did not catch)
+```
+
+Four gate families, nothing. **`audio` is absent from this repo by AUTHORSHIP, not by ENFORCEMENT** — which is
+precisely the state a prohibition exists to rule out. REQ-137 makes this more than hygiene: per-state
+call-recording consent is counsel-gated because **two-party states** are a legal exposure, not a preference.
+
+I also nearly reported *"no register row for voice recording — the prohibition is CLAUDE.md-only."* That was my
+grep being narrow; enumerating all **15** CONFIRM-GATED rows found REQ-096 (*"Voice: numbers + consent-aware
+recording→transcript v1.5"*) and REQ-137. **A grep proves presence, never absence** — third time this session.
+
+### The fix, and why the REGISTER decides rather than the gate
+
+`tools/checks/no-audio-capture.test.ts` (new, 4 tests). The ban is **conditional** — it holds *while the CONFIRM
+is open* — so a hardcoded ban would outlive its own justification and have to be noticed and deleted by hand,
+the drift §945 and §988 both produced. Instead the gate **reads REQ-096/REQ-137's status and computes its own
+applicability**:
+
+- both rows still `CONFIRM-GATED` → enforce;
+- either one still open → enforce (REQ-137 gates the same capability independently);
+- **both closed → the gate retires itself** and says so in CI output;
+- **rows missing → enforce**, because the dangerous default is the one that goes quiet.
+
+`gateIsActive(rows)` is exported and pure, so both branches are unit-tested **without editing `genesis/09`** —
+the owner's file, and a gate testable only by mutating it would never have its retirement path exercised.
+
+The matcher fires on audio *capture*, never the API name: the shipping video-only call is asserted to stay
+legal, which is the difference between a gate that survives its first day and one that gets disabled.
+
+**Verification:** clean tree GREEN (4/4); the planted `audio: true` → **RED**; corpus 108 files over 7 globs
+with per-glob non-vacuity from `scanCorpus`, plus an assertion that `CameraScreen.tsx` is *in* the corpus, so a
+rename cannot silently retire the gate. Auto-collected by `vitest.tools.config.ts`'s glob include (no registry
+to update) and on the merge path via `pnpm test` → `test:tools`, itself pinned by `gate-wiring.test.ts`.
+
+My first floor was **≥150 against a real 108** — a guessed floor, the exact defect I keep filing. Set to 80 with
+the measurement stamped, because a floor's job is detecting a collapse; amputation is `scanCorpus`'s job.
+
+### What this phase says
+
+> **A prohibition's risk is not how forbidden it is — it is how close the tree already sits to it.** Three items
+> carry identical constitutional weight and identical zero-file status. One of them is one property away from a
+> file that driver work already touches, and the other two are a subsystem away. Nothing in the record
+> distinguished them, because *unbuilt* looks the same from every distance.
+
+The generalisation, and the search it implies: **rank a do-not-build list by adjacency, not by severity.** For
+each item ask *what is the smallest edit to a file that already exists that would build it?* Where the answer is
+"a subsystem", the prohibition guards itself. Where it is "one word", it needs a gate — and the fact that the
+word is currently absent is not evidence anything is stopping it.
+
+**STOP.** The eleven-item do-not-build list is now tested rather than inherited: **10 verifiably unbuilt or
+gated, 1 unfalsifiable and owner-recorded**, and the one item whose prohibition was enforced by nothing now has
+a register-derived gate that retires itself when the CONFIRM closes. `test:tools` 1,227 passed / 3 failed — the
+REQ-289 baseline, unchanged.
+
