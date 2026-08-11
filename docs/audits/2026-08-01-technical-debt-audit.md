@@ -591,6 +591,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 396 | §948 | **§949** | **§940'S RESIDUAL QUANTIFIED AT 3-OF-17, AND ITS REASONING CORRECTED.** §940 named *"pnpm -r still bails at the first failing package"* and rejected `--no-bail` after watching workerd exhaust sockets. Measured: one planted failure in `packages/contracts` and **only 3 of 17 suites run** — api (824), ledger (697), rater, billing, mcp, translator, agents and all three apps never execute. The gate's coverage is a property of WHERE the first failure lands. **§940 changed two variables and blamed the wrong one:** the cascade came from CONCURRENCY, not no-bail. `--workspace-concurrency=1 --no-bail` → **17/17, zero socket errors, +19s (12%)**. `typecheck` takes `--no-bail` alone (tsc binds no sockets) and names **3** failing packages where the default named 1. Gate now requires `--no-bail` on both |
 | 397 | §949 | **§950** | **A REJECTION IS A CLAIM WITH A LIFETIME — AND 6 OF OUR 9 HAVE NO EXPIRY.** §949 overturned §940's `--no-bail` rejection but corrected it in only ONE of the three records that carried it, so the audit said both things at once; both older copies now struck in place. **Fourth instance this session of one fact in N records with only the newest maintained** (§937, §944, §946, and now my own one-phase-old correction) — rule: *when you overturn a claim, grep for the CLAIM, not the section that made it.* Measured the class: **9 explicit rejections, 3 with a re-measurement trigger, 6 without.** The empirical case is §940's own — untriggered, and wrong within nine phases, wrong in ATTRIBUTION not measurement. Re-tested the one decidable trigger (§313's date-stamp detector): **zero** machine-readable stamps in the nine ops docs, so it has not fired and that rejection stands |
 | 398 | §950 | **§951** | **THE CORRECTIONS HAD ONE MORE RECORD CLASS — THE ONE THAT OUTLIVES THE SESSION.** §950 swept the audit and missed **memory**, the only artifact reaching a session that never reads this file. Two stale claims, both written earlier today: `a-gate-proved-correct-is-not-proved-durable` still taught the pre-§943 mechanism (*sentinel vs exit code disagree*) and the board memory still carried §940's overturned `--no-bail` rejection. **An audit section is dated by construction; a memory file is presented as a current lesson** — and the first recorded a wrong METHOD, which survives every measurement because it decides which measurements get taken. Rule restated with full scope: enumerate every artifact class (prose · phase index · ops ledger · governing docs · config · gate comments · **memory**). Fifth instance this session — the count is the argument |
+| 399 | §951 | **§952** | **THE FIVE BLOCKED GATES ARE NOT UNPROVEN — ONLY UNINPUTTED.** Each has never run green, which invites the worry that its success path would first execute on a release day. Measured: **51 test cases across 3 files**, each covering BOTH directions — `identity-leak` 18 (incl. *clean + denylist → code 0* and *masks the term so the lint cannot amplify the leak*), `fixtures` 12 (hash verify, PASS with assertions = verified count, filename-vs-content digest), and 21 for all three parity harnesses (*the in-repo SMOKE set passes against the real engine*; *perturbing ONE CENT fails it*). Each harness carries a vendored-in-repo SYNTHETIC smoke set, inline and never under `fixtures/` (REQ-167). **`BLOCKED` means the private INPUT is absent, not that the gate is unproven** — a mirror of *a gate's green certifies less than its name* |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -56066,3 +56067,47 @@ terminates at the artifact where the error was noticed.
 
 No gate: memory lives outside the repo, so no CI check reaches it. The discipline is the deliverable, and it is
 now written where a future session will actually read it — in the memory files themselves.
+
+## §952 — PHASE GATE: the five BLOCKED gates are not unproven — only uninputted
+
+Every board reading in this audit ends *"5 BLOCKED"*, and every one of those five has **never run green**. That
+invites a reasonable worry: a gate that has only ever refused is a gate whose success path has never executed,
+so the first vendored fixture would exercise it for the first time, under pressure, on a release day.
+
+**Measured — the worry is unfounded, and the repo had already named it.**
+
+| BLOCKED gate | success path proven by | cases |
+|---|---|---|
+| `identity-leak` | `tools/checks/identity-leak.test.ts` | **18** |
+| `fixtures` | `tools/fixtures/fixtures.test.ts` | **12** |
+| `rater-parity` · `invoice-parity` · `concierge-parse` | `tools/rater/parity-detection.test.ts` | **21** |
+
+Each covers **both directions**, which is the part that matters — a refusal-only proof would be worthless:
+
+- `identity-leak`: *"clean scan: denylist present + no leaks → code 0, level 'ok' (green even in CI)"* **and**
+  *"leak found → code 1"*, plus *"masks the term in output — the lint must not amplify the leak."*
+- `fixtures`: *"verifies a vendored entry by hash and fails on mismatch"*, *"clean + no pending → PASS with
+  assertions = verified count"*, and *"a byte moved from the filename into the content changes the digest."*
+- the three harnesses: *"the in-repo SMOKE set passes against the real engine — the harness works end to end"*,
+  and *"perturbing ONE CENT of a smoke expectation fails it."*
+
+The mechanism is deliberate: each harness carries a **vendored-in-repo SYNTHETIC smoke set**, defined inline
+and explicitly *"NEVER under `fixtures/`, REQ-167"* — so the harness's own liveness is proven without the
+private data it will eventually grade. `parity-detection.test.ts` says so in its header, naming its subject as
+*"the SAME three that are [blocked]"* and titling a section *"The third untested gate: the concierge parse
+harness."* **Someone asked this question before me and answered it in code.**
+
+### The distinction the board's vocabulary hides
+
+`BLOCKED` is reported for exactly one condition — *the private input is absent* — but it is naturally read as
+*this gate does not work yet*. Those are different claims with different owners: the first is the engagement
+workspace's to close, the second would be mine. **Only the first is true**, and 51 test cases say so.
+[[a-gates-green-certifies-less-than-its-name]] has a mirror image: **a gate's BLOCKED discredits less than its
+name**, and reading it as an unproven gate would misallocate the next person's attention.
+
+### Fourth clean negative in three phases
+
+§947 returned three, §952 returns one, and each had an instrument with a demonstrated kill count. That rate is
+the evidence behind §948's stopping point — not fatigue, but a search whose remaining surface is owner-held
+inputs and register decisions. The finding rate falling to zero against sharp instruments is what a stopping
+point is supposed to look like.
