@@ -631,6 +631,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 439 | §991 | **§992** | **THE UNPARSED-WORKFLOW RESIDUAL, NARROWED FROM *UNVERIFIED* TO ONE BOUNDED CLAIM.** Confirmed unclosable — **zero YAML parsers across 382 pnpm store entries**. But measured rather than left open: corrupted `ci.yml` three ways (mis-indented step key, deleted merge-evidence step, truncated file) and **all three were caught** by the structural gates (fixed point 3 files / 25 assertions green) — not by parsing, but because three gates read the file's structure and each carries a non-vacuity floor. So the true residual is one claim: a GitHub EXPRESSION that is YAML-valid but semantically invalid. Bounded that too — every `if:` in both workflows classified against `origin/main`, the state GitHub has executed: **checked=8, novel=0** (2 verbatim pre-existing, 6 `!cancelled()` in the same status-function family as the proven `always()`). **An unbounded residual is indistinguishable from an unexamined one** |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -58066,3 +58067,52 @@ the gate whose meaning changed was already red for an unrelated reason.
 **When a push lands**, re-run the external sweep — §956, §957, §959, §962, §966 are one command each and every
 verdict changes the moment `origin/main` moves. **And run `actionlint`** (§973's named residual): four
 workflow edits in this session were verified structurally, never parsed.
+
+## §992 — PHASE GATE: the unparsed-workflow residual, narrowed from "unverified" to one bounded claim
+
+§973 named a residual and §991 carried it forward: **four workflow edits verified structurally, never parsed** —
+no `yaml`, `js-yaml`, `pyyaml` or `actionlint`, and `npm install` blocked. Confirmed again here: **zero YAML
+parsers across 382 pnpm store entries.** It is genuinely unclosable in this environment.
+
+A residual that cannot be closed can still be **measured**, and it turns out to be much smaller than the
+sentence suggests.
+
+### What the structural gates actually catch
+
+Corrupted `ci.yml` three ways and ran the three gates that read it (`workflow-step-guards`,
+`workflow-pinning`, `gate-wiring`):
+
+| corruption | result |
+|---|---|
+| a step key mis-indented (YAML-invalid) | **caught** — 1 failed |
+| the merge-evidence step deleted | **caught** — 2 failed |
+| the file truncated mid-block | **caught** — 2 failed |
+
+Fixed point: 3 files, 25 assertions, green. **The realistic corruption modes are covered** — not because any
+gate parses YAML, but because three independent gates read the file's structure and each carries a
+non-vacuity floor. A file that stops being well-formed stops satisfying them.
+
+### So the true residual is one claim, not a category
+
+What no gate here can check is a **GitHub expression** that is YAML-valid but semantically invalid — a bad
+`if:` that the runner rejects. That needs GitHub's own expression parser.
+
+Bounded it directly. Every `if:` in both workflows, classified against `origin/main` — the state GitHub has
+actually executed:
+
+```
+checked=8   novel=0
+2 pre-existing verbatim   ·   6 same-family as an executed one (`!cancelled()` beside the proven `always()`)
+```
+
+**No novel expression syntax was introduced this session.** Every `if:` is either a line GitHub has already run
+or the same status-function family as one, differing by a negation. That is not proof — only a runner is proof
+— but it reduces the residual from *"four unparsed edits"* to *"six uses of `!cancelled()`, a documented
+sibling of a function this workflow already executes."*
+
+### Why narrow a residual instead of closing it
+
+An unbounded residual is indistinguishable from an unexamined one, and it invites the next reader to redo the
+whole question. This one now carries its own size: **run `actionlint` when a runner is available; expect it to
+confirm six `!cancelled()` uses.** If it finds something else, the structural gates were wrong too, and that is
+a much larger finding than a typo.
