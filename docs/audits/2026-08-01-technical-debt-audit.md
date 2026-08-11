@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 519 | §1071 | **§1072** | **A MED SECURITY ROW RE-VERIFIED, AND A CITATION THAT ROTTED IN A 2-COMMIT FILE.** L428 (the `/pub/signup` email-enumeration oracle, blocks R4) re-verified in four parts: the `EMAIL_TAKEN` → 409 mapping is still there; the route is behind `PROVISIONING_ENABLED`; the check is `=== "true"` (EXACT, so no truthy value opens it); and the flag is **absent from `wrangler.toml` entirely**. Darkness pinned across **5 test files**. The oracle is unreachable; the response shape stays a founder UX call. **The defect found was the row's own citation** — it cited `signup.ts:94`, the case is at `:93`. Re-keyed to the SNIPPET. Then measured the class: **59 anchored vs 129 bare** citations, and the ratchet that governs bare ones covers 11 hand-curated high-churn files. `signup.ts` has **2 commits — tied for the LOWEST** of the eleven. Churn predicts where rot is LIKELY, never where it is POSSIBLE: one edit above a line is enough. |
 | 518 | §1070 | **§1071** | **§1070's PROPERTY IS ENFORCED BY CONSTRUCTION, NOT BY LUCK — AND NO NEW GATE WAS NEEDED.** §1070 called `verify:dev`'s disclosure *"prose in a shell string with no gate behind it"* and measured its correspondence empirically. Wrong about the mechanism: `evidence.ts:70-71` REFUSES `PASS && !executed` (*"a PASS that never ran is fabricated"*) and `PASS && assertions<=0` (*"the skip masquerading as green"*), and that runs on the LIVE merge path — `run-gate.ts:200` → `evaluateEvidence` → `gateResultProblem` per gate. So a locally-skipping gate **cannot** emit PASS at merge; the correspondence holds by construction. I nearly filed the opposite: a grep scoped to `tools/release/*.ts` returned no callers and I was one step from *"the validator is only wired in tests"* — **fifth probe-shape error this session.** No gate built (§1053's redundancy rule). |
 | 517 | §1069 | **§1070** | **THE LOCAL CHAIN'S HONESTY, MEASURED — 5 OF 13 SKIP, AND THE SET IS EXACTLY THE MERGE-BLOCKED SET.** §1069 found `check:identity` exits 0 while printing *Lint SKIPPED*, inside `verify:dev`. The general question — how many of the chain's gates can exit 0 without executing — turned out to be **answered by the artifact itself**: `verify:dev`'s step 18 already prints *"Gates that are BLOCKED on absent inputs report PENDING here and still exit 0. Run pnpm verify:merge for the shippable verdict."* Verified rather than trusted: all 13 gates run individually, **exactly 5 emit skip/pending language** (identity, fixtures, rater-parity, invoice-parity, concierge-parity) and they are **precisely the 5 the merge board reports BLOCKED** — no sixth, and the other 8 execute for real. `recall` also showed the *exits 0* class already carries **30 prior verdicts** including a Confirmed Critical, so the sweep I was about to run would have been §1067's error again. |
 | 516 | §1068 | **§1069** | **`recall` USED, AND IT CAUGHT MY OWN MISREADING — I CALLED A *SKIPPED* GATE *CLEAN*.** First real use of §1068's tool, on the 17 repo-owned OPEN rows. L413 (*REQ-167 unverified in every local run*) contradicted something I had reported at §1066: `check:identity : clean`. Measured — **I had read the EXIT CODE past a message saying the opposite.** Plain run prints *"Lint SKIPPED"* and exits **0**; `--mode merge` emits `executed:false, assertions:0` and exits **2**. `verify:dev` calls the plain form, so a local `pnpm verify` goes green having never checked REQ-167 — precisely what L413 says. Re-verified and stamped; **fully pinned by 18 cases** (local→warn, merge→BLOCKED, release→BLOCKED, CI+no-denylist→fail, empty-denylist→absent). `recall` took three queries to land on §125/§247, which had already characterised it — no re-derivation. |
@@ -63657,4 +63658,71 @@ file itself, the probe returns a confident, empty, wrong answer.
 **STOP.** §1070's property is confirmed structural rather than incidental, with the enforcement located on the
 live merge path; the proposed gate was measured as redundant and **not built**. `test:tools` 1,245 passed /
 3 failed — the REQ-289 baseline · lint clean.
+
+## §1072 — PHASE GATE: a Med security row, and rot in a file that barely changes
+
+**Why this phase.** Twelve consecutive phases had been about process and instruments. The open ledger still
+holds product rows, and **L428 is the security one**: `POST /pub/signup` returns a distinct **409** for a taken
+admin email — an email-existence enumeration oracle on the unauthenticated surface, **blocking R4**.
+
+### The row's decision is the owner's; its containment is mine
+
+The fix is explicitly *"backend / founder (UX call)"* — whether to tell a user their email is taken is a
+product decision, and §1055's test says leave it. What is mine is the row's **factual** claim: *"DARK today (the
+route 404s behind `PROVISIONING_ENABLED`)."* Verified in four parts:
+
+| claim | measured |
+|---|---|
+| the `EMAIL_TAKEN` → 409 mapping still exists | ✓ `case "EMAIL_TAKEN":` present |
+| the route sits behind a flag | ✓ `PROVISIONING_ENABLED` |
+| the flag check is not truthy-loose | ✓ `env.PROVISIONING_ENABLED === "true"` — an **exact string** |
+| nothing ships it on | ✓ **absent from `workers/api/wrangler.toml` entirely** |
+
+And the darkness is pinned across **5 test files**, including *"the real env has NO provisioning flag →
+`provisioningEnabled(env)` is false"* and *"provisionTenant on the default env REFUSES with
+`PROVISIONING_DISABLED`."* The oracle is real and currently unreachable. Row re-verified and stamped, not
+closed.
+
+### The defect was the row's own citation
+
+It cited `workers/api/src/routes/signup.ts:94`. The case is at **:93** — a one-line drift from an edit
+elsewhere in the file. Re-keyed to the **snippet** (`case "EMAIL_TAKEN":`), which cannot drift.
+
+`check:citations` could never have caught it: it bounds-checks the **address**, not the **assertion**. A line
+number that still resolves is green whether or not it points at the thing it names.
+
+### Then the class, measured
+
+| | count |
+|---|---|
+| anchored `path:line@symbol` (rot fails a gate) | **59** |
+| bare `path:line` (rots silently) | **129** |
+| line-keyed citations pointing past end-of-file | **0** |
+
+The bare ones are governed by a ratchet over **11 hand-curated high-churn files** — the premise being that
+citations into files that move rot fastest. Measured against that premise:
+
+```
+41  workers/api/src/do/sequencer.ts        …    3  workers/api/src/routes/watchtower.ts
+18  workers/translator/src/inbound.ts           2  workers/api/src/intake-core.ts
+                                                2  workers/api/src/routes/signup.ts   ← not ratcheted, and it drifted
+```
+
+**`signup.ts` has two commits — tied for the lowest of the eleven.** So the curation is not miscalibrated, and
+the answer is *not* to add it: a ratchet that includes 2-commit files stops being a ratchet.
+
+### What this phase says
+
+> **Churn predicts where rot is likely, never where it is possible.** A line-keyed citation breaks when *any*
+> edit lands above it — one commit is enough, in the quietest file in the repo. Ranking by churn is a good way
+> to spend a limited anchoring budget and a bad way to believe the rest are safe.
+
+Which is why the row-level fix generalises where the ratchet cannot: **keying to a snippet costs nothing and
+works in every file, churny or not.** The ratchet buys enforcement for eleven; the discipline buys correctness
+everywhere, and this phase found its counter-example in the least likely place.
+
+**STOP.** The only Med security row is re-verified in four parts against HEAD with its containment pinned by 5
+test files, its rotted citation re-keyed to be rot-proof, and the anchoring class measured (59 / 129 / 11
+targets) with the ratchet's curation confirmed sound rather than widened. `test:tools` 1,245 passed / 3 failed —
+the REQ-289 baseline · lint clean.
 
