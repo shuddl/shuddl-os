@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 525 | §1077 | **§1078** | **THE NARROW-CHARACTER-CLASS SWEEP — 8 SITES, 0 LIVE DEFECTS, AND A 3rd HISTORICAL INSTANCE FOUND IN A COMMENT.** Having written the same bug twice (§1064's tally dropping `a11y`/`e2e`, §1077's deriver missing `probe9`), vigilance is not the fix — a mechanical sweep is. All 8 narrow classes in `tools/`: 4 match CSS keywords (safe by grammar), 1 is my own §1077 comment, and **3 match repo identifiers** — each tested against what the GENERATOR can emit: event kinds (0 with a digit/underscore after the dot), projector names (0 with a digit), worker names (**all 15 match**). **0 live defects.** `design/audit.ts:29` documents a THIRD historical instance — the design vocabulary enumerated with `--[a-z-]+`. And my own worker probe false-positived: I grepped every `name =` in the TOMLs and flagged 18 `shuddl-t-*` entries that are **D1 DATABASES, not workers** — eighth probe-shape error, caught before publication. |
 | 524 | §1076 | **§1077** | **THE DRIFTED COUNT IS NOW CI-DERIVED — AND I WROTE §1064's BUG AGAIN, ONE PHASE LATER.** §1076 fixed a sweep count stated in two files and corrected in only one. The durable fix extends the EXISTING figures roster (§1053: no rival gate) so the copies cannot disagree. **Two things it caught immediately.** (1) Including the checklist gave **2 hits, both FALSE** — a closed row counting a different population (*repo-wide* sweeps) and §1076's own stamp QUOTING the corrected-away *seven*. A record that preserves its history necessarily contains its own wrong numbers; scoped to source, where the count is a LIVE assertion. (2) The deriver matched `contain\("([a-z-]+)"` — a planted 9th sweep named `probe9` was **INVISIBLE** and the gate went GREEN. **That is §1064's character-class bug, reproduced one phase after documenting it.** Widened to `[^"]+`; both directions now RED. |
 | 523 | §1075 | **§1076** | **THE Med–HIGH BOOKING ROW RE-VERIFIED — 1 OF 3, NOT 1 OF 2 — AND A STALE COUNT ITS SIBLING HAD ALREADY FIXED.** L427: `quote.accepted` commits, the fire-and-forget `AGENT_QUEUE.send` fails, the shipment stays UNBOOKED forever. Confirmed at HEAD; §131's log correction held (*"NO SWEEP RECOVERS THIS"*). The row compares only to `pod.signed`, but the sequencer has **THREE** such enqueues and this is **the ONLY one unbackstopped** — `pod.signed` names REQ-169 (`queries/unbilled.ts`, present), the concierge trigger names the SLA sweep (present). **Found while checking the argument:** its comment said *"none of the seven crons"* — there are **eight**; the identical stale figure §248 fixed in `sla-sweep.ts` and never carried to this sibling. **And fixing it broke 8 anchored citations** by shifting lines — so it was redone IN PLACE at the same line count. The `path:line@symbol` form caught the drift instantly, which is precisely what §1073 said bare citations cannot do. |
 | 522 | §1074 | **§1075** | **THE SLA CADENCE ROW RE-VERIFIED — AND ITS OWN PRECEDENT WAS UNDERSTATED.** L426 (Med, blocks R3): a 4h SLA policed by a daily sweep. Every input confirmed at HEAD — `SLA_REPLY_WINDOW_MS = 4h`, and `crons = ["0 1 * * *"]` in **all three environments**, not just the default. The row argues sub-daily is *precedented by billing's hourly cron*; measured, it is far stronger: **`agents` is the ONLY cron-bearing worker still on a daily tick** — billing hourly, and `mcp` + `translator` every FIVE MINUTES. Technical risk ≈ 0. **The real cost is the one the code names:** all **8** contained sweeps ride that single tick (count re-measured at HEAD; the comment is exact), so the question is *8 sweeps × frequency*, not *can we*. Reframed from a technical unknown to a cost decision — still the owner's. My sweep count read **2** first (a grep window too small to see the `contain(...)` list); caught before reporting because it disagreed with the code's own figure. |
@@ -64046,4 +64047,68 @@ survives the next commit.
 **STOP.** The sweep count is now derived from `contain(...)` calls and compared against every source copy, with
 the checklist deliberately excluded on a measured false-positive rate, and both drift directions
 mutation-proved. `test:tools` at the REQ-289 baseline · lint clean.
+
+## §1078 — PHASE GATE: sweeping a bug class I have now written twice
+
+**Why this phase.** §1064 documented a character class that dropped `a11y` and `e2e` because they contain
+digits. §1077 shipped the same bug — `contain\("([a-z-]+)"` missing a planted `probe9` — **one phase after
+quoting the lesson**. Two instances by the same author inside thirteen phases means the defence cannot be
+memory. It has to be a sweep.
+
+### All 8 narrow classes in `tools/`, classified
+
+| class of use | count | verdict |
+|---|---|---|
+| CSS keyword matching (`text-transform`, `border-radius`) | 4 | **safe by grammar** — CSS keywords are lowercase-hyphen by specification, not by convention |
+| my own §1077 comment describing the bug | 1 | n/a |
+| **matching repo identifiers** | **3** | tested individually below |
+
+The three that matter, each tested against **what the generator can emit** rather than what exists today:
+
+| site | matcher | can the generator emit more? |
+|---|---|---|
+| `authority-population` | `settlement\.[a-z]+` | event kinds with a digit/underscore after the dot: **0** |
+| `projection-coverage` | `project[A-Za-z]+` | projectors with a digit/underscore: **0** |
+| `deploy/preflight` | `^shuddl-([a-z]+)-[a-z0-9]+$` | **all 15 worker names match** |
+
+**Zero live defects.** The class is real and currently clean — which is the answer a sweep exists to produce,
+and could not have been reached by reading the regexes.
+
+### A third historical instance, found in a comment
+
+`tools/design/audit.ts:29` carries: *"The cause was my own inventory: I had enumerated the vocabulary with
+`--[a-z-]+`, whose character class …"* — the design audit hit this bug too, before either of mine. So the
+tally is **three occurrences in this repo**, by at least two different pieces of work, all with the same shape:
+a class transcribed from the names that happened to exist.
+
+That changes the finding from *"I keep making this mistake"* to *"this repo's matchers keep making this
+mistake"*, which is the version worth recording.
+
+### And my own probe false-positived — the eighth this session
+
+I flagged `preflight.ts` as broken because I found **18 worker names** it could not parse — `shuddl-t-platform-dev`,
+`shuddl-t-pool-01-dev`, `shuddl-t-tenant-a-dev`. Real names, real non-matches, a real-sounding defect in a
+**deploy preflight**.
+
+They are **D1 database names**, not workers. My grep was `name = "shuddl-…"` across the whole TOML, which
+matches `database_name` inside `[[d1_databases]]` tables identically. Restricting to top-level `name =` gives
+exactly **15** workers — five roles × three environments — and every one parses.
+
+Eighth probe-shape error this session, and the same root as several: **a pattern that does not model the
+structure it reads.** A TOML has tables; `grep` does not.
+
+### What this phase says
+
+> **A bug you have written twice is a property of your tools, not your attention.** The fix that worked here
+> was neither care nor a rule — it was enumerating every instance of the shape and testing each against the
+> grammar rather than the sample. Eight sites, twenty minutes, and the answer (**0 live**) is one nobody could
+> have asserted beforehand.
+
+The corollary, earned by the false positive: **when a sweep finds a defect in a deploy path, check the probe
+before the code.** The more alarming the finding, the more it deserves the extra minute — and this one would
+have sent someone to "fix" a regex that is correct.
+
+**STOP.** The character-class class is swept: 8 sites classified, 3 tested against their generators, 0 live
+defects, and a third historical instance recorded from a comment that had documented it all along.
+`test:tools` 1,246 passed / 3 failed — the REQ-289 baseline · lint clean.
 
