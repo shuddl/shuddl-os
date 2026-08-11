@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 513 | §1065 | **§1066** | **THE TEST-DOUBLE SWEEP — 15 DOUBLES, EXACTLY ONE MASKED A LIVE DEFECT, AND IT IS ALREADY PINNED.** §1065's rule (*a double's correctness can be a defect's camouflage*) applied to every double in the repo. **11 are `NotConfigured*`** — they THROW, so they can absorb nothing. **`RecordingLedger` already does it right**, keeping `events` (deduped) AND `appendCalls` (*"includes redelivered duplicates the sequencer would dedupe"*) — §1065's lesson implemented before I wrote it. **`RecordingSender` dedupes and is FAITHFUL**: the real `ResendSender` sends an `Idempotency-Key` header, so the double models the provider rather than hiding a defect. `FakeTsaClient` absorbs nothing. That leaves `RecordingTransport`, pinned at §1065 — and the severity framing checks out: **no live EdiTransport exists**, only the dormant thrower, so the duplicate harms nobody until one is wired. |
 | 512 | §1064 | **§1065** | **THE HIGHEST-SEVERITY REPO ROW, RE-VERIFIED AND PINNED — AND THE TEST DOUBLE WAS MASKING IT.** L409 (**High, latent**): overlapping `*/5` ticks both transmit one 214, measured ONCE by hand at §236 and pinned by NOTHING across ten test cases. Re-measured at HEAD: **the race reproduces — 2 calls into the transport for one idempotency key.** The reason it stayed unpinned is the finding: `RecordingTransport.send214` keeps its own `byKey` map and returns early on a repeat key, so **`transport.sent` is capped at 1 BY CONSTRUCTION** — my first naive test asserted exactly that, got 1, and would have reported the race CLOSED. Counting CALLS exposes it. Now pinned as a characterization test asserting the DEFECT (2), which flips to 1 when the owner picks claim-vs-lease (L410). No design decision taken. |
 | 511 | §1063 | **§1064** | **THE BOARD RE-EARNED AT HEAD — 26 GATES: 19 PASS · 2 FAIL · 5 BLOCKED.** Thirty-seven phases since the last full run (§1036 at `40f69a8`), with ~10 new gates landed in between. Ran `verify:merge` complete at `c59a599`: **identical shape to §1036**, and every verdict attributable. Both FAILs are the ONE uncommitted REQ-289 register row (`1 unaccounted register row(s)` → `unit-tests` + `coverage`); all 5 BLOCKED are absent private fixtures (`identity-leak` needs `IDENTITY_DENYLIST`; the four parity/fixture gates need the engagement vendoring). **Every browser gate is GREEN** — `perf`, `visual` 5, `a11y` 4, `e2e` 6 — alongside `design-audit`, `acceptance`, `invariants`, `append-chokepoint`, `rater-purity`. Zero repo-owned reds. And a fourth probe-shape error: my tally regex `[a-z-]+` silently dropped `a11y` and `e2e` because they contain DIGITS. |
 | 510 | §1062 | **§1063** | **WHAT THE RECORD MAY NOT SAY — MEASURED, AND IT IS EXACTLY TWO THINGS.** §1062 tripped a gate by QUOTING what it forbids, which will recur every time a phase documents a violation. Planted 7 forbidden patterns in a tracked doc: SQL `INSERT OR REPLACE INTO events`, a lumina import, `box-shadow`, a raw hex, an over-budget radius, `it.only`, and a non-existent pnpm script. **First probe fired NOTHING — because I wrote them as plain prose while the scanners read backticks and fenced blocks**, the same covers-the-shape-that-prompted-it error inside my own instrument. Re-run in the real forms: **5 of 7 are safe to quote** (those gates scan source only) and **2 are not** — an absolute home path and a non-existent `pnpm` script. Both already have escapes, and both are now mutation-proved: removing §996's marker REDs. |
@@ -63252,4 +63253,72 @@ of the boundary.
 **STOP.** The only High repo-owned row is re-verified at HEAD rather than inherited, pinned by a test that
 cannot silently pass, and left to the owner for the decision it genuinely needs. `test:tools` at the REQ-289
 baseline · translator suite 10/10 · lint clean.
+
+## §1066 — PHASE GATE: the test-double sweep
+
+**Why this phase.** §1065 found a High-severity race that ten sibling tests could not see, because the test
+double deduplicated exactly the symptom. That is a class, not an incident: **any double that absorbs
+duplicates is blind to duplication**, and doubles are written to be well-behaved. So — how many others?
+
+### Fifteen doubles, sorted by whether they can absorb anything
+
+| kind | count | can it mask a duplicate? |
+|---|---|---|
+| `NotConfigured*` (dormant collaborators) | **11** | **no** — they `throw`; nothing reaches them to be absorbed |
+| `RecordingLedger` | 1 | **no** — and deliberately so (below) |
+| `RecordingSender` | 1 | **no** — faithful to the real sender (below) |
+| `FakeTsaClient` | 1 | **no** — no dedupe path |
+| `RecordingTransport` | 1 | **YES** — §1065's finding, now pinned |
+
+**One of fifteen**, and it is the one already closed. That is the useful shape of the answer: the risk is real
+but rare, and the denominator is what says so.
+
+### `RecordingLedger` had already solved it
+
+Three files from the defect, the billing double keeps **two** collections:
+
+> `events` — *"Committed events, deduped by event id — models the sequencer's once-out contract."*
+> `appendCalls` — *"Every append CALL, in order (includes redelivered duplicates the sequencer would dedupe)."*
+
+That is precisely §1065's rule — *count what crossed the boundary, not what landed on the far side* — written
+down before I derived it, by an author who saw that a double modelling once-out semantics would otherwise hide
+at-least-once delivery. The lesson was in the repo; it had just never been generalised to its siblings.
+
+### `RecordingSender` dedupes and is right to
+
+It keeps the same `byKey` map that made `RecordingTransport` dangerous, and the biller is **queue-driven with
+at-least-once redelivery** — *"the queue consumer's redelivery IS the retry"* — so duplicates certainly arrive.
+The discriminating question is not whether the double dedupes but **whether the real collaborator does**:
+
+```
+ResendSender:  "Idempotency-Key": parsed.idempotency_key
+```
+
+The real sender is idempotent **at the provider**. So the double models reality rather than concealing a
+defect, and a duplicate evidence email cannot reach a client through this path. A deduping double is only a
+camouflage when the production collaborator does not dedupe — that is the test, and it is a one-line check
+against the real implementation.
+
+### And L409's severity framing checks out
+
+The row calls itself *"High (latent)"* and *"blocks wiring either live transport, not a grade today."* Verified:
+**every `EdiTransport` implementation in the repo is either the recording double or `NotConfiguredTransport`,
+which throws.** There is no live transport, so today's duplicate reaches nobody — the harm begins exactly when
+one is wired, which is what the row's expiry trigger already says.
+
+### What this phase says
+
+> **A rule derived from one instance should be run against its whole class before it is believed — and the
+> class usually answers "already fine".** Eleven doubles cannot absorb anything by construction, one had solved
+> the problem independently, and one was faithful to a collaborator that dedupes for real. The sweep's value
+> was not another finding; it was converting *"doubles might be hiding defects"* from an anxiety into
+> **1 of 15, and that one is closed.**
+
+The reusable test, which costs one grep: **when a double absorbs a repeat, check whether the real collaborator
+absorbs it too.** If it does, the double is faithful. If it does not, the double is the reason the defect has
+no test.
+
+**STOP.** Every test double in the repo is classified by whether it can mask duplication, with the
+discriminating check stated and applied. One masked a live defect; it was pinned last phase. `test:tools` at the
+REQ-289 baseline · lint clean.
 
