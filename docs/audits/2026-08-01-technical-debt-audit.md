@@ -631,6 +631,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 482 | §1034 | **§1035** | **STOPPING POINT VI — EVERY ONE OF THE TEN LAWS HAS A NAMED ENFORCER.** §1033/§1034 verified the two rules whose enforcement is not a command; this resolves ALL ten to a named artifact rather than summarising (§127: a derived record is usually less accurate than its source). **Ten rules, ten enforcers — eight commands or pinned tests, two verified by measurement this session.** `check:invariants` · `check:chokepoint` · `check:rater-purity` · `check:fixtures` · `audit:design` · `isolation-suite.test.ts` · the adapters pair for rule 10 · and **rule 5's model pin**: `anomaly.test.ts` — *the 35-lb $222,084 quote flags `over_per_lb` — **forever***, driven by the frozen fixture `the-222084-case.json` asserted by id, **with the intent in the test title where anyone deleting it must read it.** **The two ungated rules differ:** rule 1 HAS a gate that has never been given input (`check:pr`, 0 PRs) and converts to machine enforcement on the push; **rule 9 has no possible gate** — no command can establish a swarm occurred, only that a document says so, which is why §1034's convention split was worth writing down. Constitution now measured end to end: budgets by violation, stack by presence, rules-as-written by proof-ancestry, rule 1 by history, rule 9 by reading, all ten mapped |
 | 481 | §1033 | **§1034** | **RULE 9 HONOURED 16/16 — AND THE CONVENTION THAT CHANGED UNDER THE CHECKER.** §1033 verified rule 1 from history because its gate never runs; **rule 9 has no gate at all** — *adversarial audit swarm at every WP exit, no open Criticals at close* — and its only evidence is sixteen close-outs. **Three measurements, and only the third is the answer.** A keyword matcher said **16/16** — the §968 shape, since *no critical* also matches *no critical path*. The structural check said **11/16**, reporting WP-12…16 as missing, **which reads as rule 9 lapsing over the final third of the build**. Reading resolved it: those five record their swarm under a DIFFERENT heading — `## WP-exit audit swarm (REQ-119)` for WP-01–11, `## REQ-119 exit audit — CLEAR-TO-CLOSE` for WP-12–15, `launch audit` for WP-16 — and all sixteen state a lens or agent count (WP-13: *an 8-lens adversarial swarm … → independent refutation*). Substance spot-checked: WP-02 records **three Critical probes with before/after evidence and a named root cause**. **The finding is the convention split:** the heading changed deliberately and consistently at WP-12, to a better one naming the REQ and the verdict — but **nothing recorded the change, so any structural count reports 11 of 16 and reads as failure.** §1019's shape with the polarity flipped: there prose drifted from the artifact; here **the artifact improved and the shape a reader greps for stayed in their head** |
 | 480 | §1032 | **§1033** | **RULE 1 HONOURED 224/224 — BY A DISCIPLINE, NOT BY THE GATE THAT HAS NEVER RUN.** §1032's floor (*a defect fixed silently appears nowhere*) points at the cheapest defence: CLAUDE.md rule 1, *every PR references REQ-IDs* — whose gate **`check:pr` has NEVER executed, because there have been zero pull requests ever** (§957). So the rule is enforced by nothing; whether it is HONOURED is answerable from the history. **Broken probe first:** the run reported **0 product-touching commits**, contradicting §1031 which had just listed `sequencer.ts`/`events.ts`/`engine.ts` changes — cause: splitting `git log` on the record separator leaves a **newline on each hash**, so every `git show` got a malformed ref. **Third broken probe in four phases, all three caught by a zero contradicting something already established** — the practical form of §968: the control need not be planted if the record already holds one. Result: **224 product commits, 0 without a REQ-ID = 100%**, positive-controlled by 11 REQ-less commits that are all `docs` or `wip(checks)` on `tools/`, outside scope. **A rule whose gate has never executed, honoured 224/224, is enforced by the person not the pipeline** — a strength today, a single point of failure tomorrow, and the strongest argument in the record for the branch-protection hold and the push |
 | 479 | §1031 | **§1032** | **THE AUDIT'S OWN ERROR RATE — 5.5%, AND WHY ZERO WOULD BE THE ALARMING NUMBER.** §1031 showed the audit is its own churn source; the unasked question is whether any fix it landed **needed fixing**. **First measurement was 19% and wrong** — a loose matcher on *my own / its own / broke* returned 207 of 1,082 and caught §1031's own TITLE, which describes the repo rather than corrects a fix (§1015's wall: **a rate from a loose matcher is a statement about the matcher**). Tightened to subjects naming a PRIOR SECTION plus a corrective verb about that section's work: **59 of 1,082 = 5.5%.** They are real — *a fourth hole **§986's fix opened*** · *§962 protected the consumers, not the gates that feed them* · *§944's open-row count was wrong four different ways* · *my own §253 edit broke four citations the gate cannot see* · *§904 named the wrong backstop*. **Every one found by this audit**, not by a user, CI, or production — visible only because each **names the section it corrects** instead of silently overwriting it. **Why 5.5% is the reassuring reading: a 0% rate across 1,082 commits would not mean flawless work, it would mean nothing re-read it.** The rate measures the REVIEW, not the authorship — same inversion as §1031's moved-subject count. Stated as a FLOOR: a silently-fixed or never-found defect appears in neither this number nor anywhere else |
@@ -61024,3 +61025,58 @@ not fire.
 which is the live convention · a checker is written for rule 9, which must accept both headings or it
 reproduces this phase's false alarm · a close-out records a swarm without a scale, since every one of the
 sixteen states its lens or agent count.
+
+---
+
+## §1035 — PHASE GATE: STOPPING POINT VI — every one of the ten laws has a named enforcer
+
+§1033 and §1034 verified the two rules whose enforcement is not a command. That completes a set worth
+measuring rather than summarising: **for each of CLAUDE.md's ten non-negotiable rules, what actually enforces
+it?** A derived summary is usually less accurate than its source (§127), so each row below was resolved to a
+named artifact.
+
+| # | rule | enforcer | kind |
+|---|---|---|---|
+| 1 | Every PR references REQ-IDs | `check:pr` — **exists, never executed** (0 PRs ever) | verified by history: **224/224** product commits carry a REQ-ID (§1033) |
+| 2 | Events append-only (I3/I7) | `check:invariants` | command |
+| 3 | Gates server-side (REQ-030) | `check:chokepoint` | command, + §896's standing-mechanism probe |
+| 4 | No price on air (REQ-004) | `check:rater-purity` | command |
+| 5 | Interline floors, never gross (REQ-040) | `packages/rater/test/anomaly.test.ts` — *"the 35-lb $222,084 quote flags `over_per_lb` — **forever**"*, driven by the frozen fixture `fixtures/anomaly/the-222084-case.json` | pinned regression |
+| 6 | Fixtures gate merges | `check:fixtures` | command (5 BLOCKED on unvendored inputs) |
+| 7 | Design CI | `audit:design` | command, blocking since WP-10 (§258) |
+| 8 | Tenant isolation on every merge (REQ-025) | `tools/checks/isolation-suite.test.ts` | merge-roster gate |
+| 9 | Adversarial swarm at every WP exit (REQ-119) | **no gate possible** | verified by reading: **16/16** close-outs (§1034) |
+| 10 | No silent drops in migration | `packages/adapters/{migrator,legacy-mirror}.ts` + their suites | pinned behaviour |
+
+**Ten rules, ten named enforcers. Eight are commands or pinned tests; two cannot be commands and are verified
+by measurement this session.**
+
+### The two that cannot be gated are different from each other
+
+Rule 1 *has* a gate that has never been given input — `check:pr` is written, correct, and waiting on the first
+pull request. Its 224/224 compliance is a fact about the author's discipline, and it converts to machine
+enforcement the moment the push lands.
+
+Rule 9 has **no possible gate**: no command can establish that an adversarial swarm occurred, only that a
+document says so. Its enforcement is, and will remain, a record — which is why §1034's convention split
+mattered enough to write down.
+
+### The rule-5 pin is the model
+
+> *"detectAnomaly — the PERMANENT $222,084 / 35-lb case flags at pricing (REQ-040)"*
+> *"the 35-lb $222,084 quote flags `over_per_lb` — **forever**"*
+
+A named regression, driven by a **frozen fixture** (`the-222084-case.json`, asserted by id), with the word
+*forever* in the test name. That is what a permanent regression looks like when someone intends it to survive
+refactors: the case is data, the assertion names the REQ, and the intent is in the title where a reader
+deleting it must read it.
+
+### Phase gating
+
+**STOP — STOPPING POINT VI.** The constitution is now measured end to end across this session: **budgets by
+violation (§1001) · stack by presence (§1028) · rules-as-written by proof-ancestry (§1029) · rule 1 by history
+(§1033) · rule 9 by reading (§1034) · and every rule mapped to a named enforcer (here).**
+
+**Re-open when:** an eleventh rule is added — it needs an enforcer named at the same time, and this table is
+where the gap would show · `check:pr` runs for the first time, which moves rule 1 from discipline to
+machinery · a rule's enforcer is renamed, since this table names artifacts and nothing derives it.
