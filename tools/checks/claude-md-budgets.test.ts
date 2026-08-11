@@ -305,6 +305,15 @@ describe("REQ-118 §611: CLAUDE.md's hard budgets match what enforces them", () 
 // So it is recorded as a known exception rather than made to fail: **a gate that reds on a filed, parked
 // decision gets disabled, and takes the unfiled cases with it.** The point of this check is the FIFTH name.
 
+// §953 — REAL ≠ REACHED. This gate answers "does something IMPLEMENT each gate rule 6 names?" and has
+// answered it correctly throughout. It does NOT answer "is that implementation RUN by the merge gate?" —
+// a separate property that was FALSE for three of the four: the soak (workers/api), the QB export and the
+// legacy-export replay (packages/ledger) all live in the package suites, which §940 proved were not
+// executing while `test`'s `&&` short-circuited on the REQ-289 row. "Fixtures gate merges" was a law whose
+// enforcement was not running, and nothing was broken only because every package suite was green.
+// Reachability is enforced by `gate-wiring.test.ts` — the recursive half must run UNCONDITIONALLY (§941)
+// and with `--no-bail` (§949). Two gates, two claims; neither implies the other, and the space between them
+// had no owner until §953 named it.
 /** Rule 6's named gates → the manifest fixture that implements each. */
 const NAMED_FIXTURE_GATES: Record<string, string> = {
   "legacy-export replay": "legacy-export-replay",

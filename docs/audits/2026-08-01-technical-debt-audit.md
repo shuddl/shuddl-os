@@ -592,6 +592,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 397 | §949 | **§950** | **A REJECTION IS A CLAIM WITH A LIFETIME — AND 6 OF OUR 9 HAVE NO EXPIRY.** §949 overturned §940's `--no-bail` rejection but corrected it in only ONE of the three records that carried it, so the audit said both things at once; both older copies now struck in place. **Fourth instance this session of one fact in N records with only the newest maintained** (§937, §944, §946, and now my own one-phase-old correction) — rule: *when you overturn a claim, grep for the CLAIM, not the section that made it.* Measured the class: **9 explicit rejections, 3 with a re-measurement trigger, 6 without.** The empirical case is §940's own — untriggered, and wrong within nine phases, wrong in ATTRIBUTION not measurement. Re-tested the one decidable trigger (§313's date-stamp detector): **zero** machine-readable stamps in the nine ops docs, so it has not fired and that rejection stands |
 | 398 | §950 | **§951** | **THE CORRECTIONS HAD ONE MORE RECORD CLASS — THE ONE THAT OUTLIVES THE SESSION.** §950 swept the audit and missed **memory**, the only artifact reaching a session that never reads this file. Two stale claims, both written earlier today: `a-gate-proved-correct-is-not-proved-durable` still taught the pre-§943 mechanism (*sentinel vs exit code disagree*) and the board memory still carried §940's overturned `--no-bail` rejection. **An audit section is dated by construction; a memory file is presented as a current lesson** — and the first recorded a wrong METHOD, which survives every measurement because it decides which measurements get taken. Rule restated with full scope: enumerate every artifact class (prose · phase index · ops ledger · governing docs · config · gate comments · **memory**). Fifth instance this session — the count is the argument |
 | 399 | §951 | **§952** | **THE FIVE BLOCKED GATES ARE NOT UNPROVEN — ONLY UNINPUTTED.** Each has never run green, which invites the worry that its success path would first execute on a release day. Measured: **51 test cases across 3 files**, each covering BOTH directions — `identity-leak` 18 (incl. *clean + denylist → code 0* and *masks the term so the lint cannot amplify the leak*), `fixtures` 12 (hash verify, PASS with assertions = verified count, filename-vs-content digest), and 21 for all three parity harnesses (*the in-repo SMOKE set passes against the real engine*; *perturbing ONE CENT fails it*). Each harness carries a vendored-in-repo SYNTHETIC smoke set, inline and never under `fixtures/` (REQ-167). **`BLOCKED` means the private INPUT is absent, not that the gate is unproven** — a mirror of *a gate's green certifies less than its name* |
+| 400 | §952 | **§953** | **RULE 6 SAYS "FIXTURES GATE MERGES" — THREE OF ITS FOUR WERE NOT BEING RUN.** §842 proved each named gate is REAL (mapped to a manifest fixture). Nobody asked whether it is REACHED. The airplane-mode soak (`workers/api`), the QB-export penny reconcile and the legacy-export replay (`packages/ledger`) all live in the **package suites** — the exact half §940 proved was not executing while `test`'s `&&` short-circuited on REQ-289. **§940's defect stated in constitutional units: 3 of the 4 gates named in CLAUDE.md's own fixture rule.** Nothing was broken only because every package suite was green. Re-verified post-§940/§949: all three now execute, exit 0. Real ≠ reached — two gates, two claims, and the space between them had no owner; cross-referenced in §842's gate |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -56111,3 +56112,46 @@ name**, and reading it as an unproven gate would misallocate the next person's a
 the evidence behind §948's stopping point — not fatigue, but a search whose remaining surface is owner-held
 inputs and register decisions. The finding rate falling to zero against sharp instruments is what a stopping
 point is supposed to look like.
+
+## §953 — PHASE GATE: rule 6 says "fixtures gate merges" — three of its four were not being run
+
+Fresh ground: CLAUDE.md **rule 6** names four things that gate merges — *legacy-export replay ±2% · routes ±10%
+· QB export reconciles to the penny · airplane-mode soak for driver flows*. §842 already built a gate proving
+each named gate is **real** (mapped to a manifest fixture, with `routes ±10%` filed as the known-absent one).
+Nobody had asked the adjacent question, and it is a different claim.
+
+### Where rule 6's gates actually live
+
+| rule 6 gate | implementation | suite |
+|---|---|---|
+| airplane-mode soak | `workers/api/test/airplane-soak.test.ts` | **package** |
+| QB export to the penny | `packages/ledger/test/qb-journal.fixture.test.ts`, `iif.test.ts` | **package** |
+| legacy-export replay ±2% / routes tolerance | `packages/ledger/test/parity.test.ts` | **package** |
+| routes ±10% | — | filed absent (§842) |
+
+**Three of four live in the package suites — the exact half §940 proved was not executing in the merge gate**
+for as long as REQ-289 has been red. So for that entire window, *"Fixtures gate merges"* was a law whose
+enforcement was not running. Nothing was broken (every package suite is green, which is precisely why it was
+invisible), but the gating was absent, not merely weak.
+
+§940 stated this defect in units of test count — 3,269 tests across 17 suites. **This is its constitutional
+size:** three of the four gates named in CLAUDE.md's own fixture rule. Re-verified after §940/§949: all three
+now execute under `--workspace-concurrency=1 --no-bail`, exit 0.
+
+### Real ≠ reached, and each needs its own gate
+
+§842's gate answers *"does something implement this named gate?"* — and answered it correctly the whole time.
+Reachability is a separate property, now enforced elsewhere: `gate-wiring.test.ts` requires the recursive half
+to run **unconditionally** (§941) and with `--no-bail` (§949), so a rule-6 test cannot silently detach again.
+Two gates, two claims, and the gap between them was invisible because **each was individually correct**.
+
+That is [[two-mechanisms-disagreeing-is-the-finding]] with a twist: the two mechanisms did not disagree, they
+were about *different things*, and the space between them had no owner. A cross-reference is added to §842's
+gate so the next reader sees both halves rather than assuming one implies the other.
+
+### The soak itself, checked while I was there
+
+`fixtures/README.md:25` specifies it as *"Airplane-mode soak script (50 events / 2 devices) … Write at WP-05
+per REQ-016"* — in-repo by design, not a pending private fixture. The test mints **55** signed offline events
+across **two** devices with `device_seq` monotonic from 0, then syncs under seeded shuffle **and duplicate
+re-sends**, asserting zero loss, zero dupes, and a verifying chain. It meets the spec and exceeds its count.
