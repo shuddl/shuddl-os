@@ -57,7 +57,8 @@
     "verify": "pnpm verify:dev",
     "check:bundles": "tsx tools/checks/bundle-ratchet.ts",
     "check:section-refs": "tsx tools/checks/section-refs.ts",
-    "reap": "tsx tools/testing/reap-orphans.ts"
+    "reap": "tsx tools/testing/reap-orphans.ts",
+    "recall": "tsx tools/audit/recall.ts"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.12.1",

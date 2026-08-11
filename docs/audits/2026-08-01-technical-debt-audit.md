@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 515 | §1067 | **§1068** | **`pnpm recall` — MAKING A THRICE-BROKEN RULE CHEAP INSTEAD OF WRITING IT AGAIN.** §1067 was the third violation of *search the record before the code*, and §1062 already established that writing a rule down does not install it. The cause is mechanical: the record is **63,390 lines across 1,052 phase sections**, and a raw grep for `NotConfiguredMigrator` returns **8 bare lines, none naming the phase that decided it** — so reading them costs more than re-tracing the code, and re-tracing wins silently every time. `recall` maps each hit to the section heading (or checklist ROW) that OWNS it: the query §1067 should have run now surfaces **§798's actual heading** in one second. 6 tests, including one run against the LIVE record so a rename fails loudly rather than returning empty. |
 | 514 | §1066 | **§1067** | **I RE-DERIVED §798 INSTEAD OF SEARCHING FOR IT — THIRD INSTANCE.** Chasing §1066's loose end (which dormant collaborators lack a degradation test) produced a real correction and a wasted phase. **The correction:** §1066 said the 11 dormant doubles *"throw"*; measured individually, **7 throw and 3 return a benign `null`** — a generalisation from the two files I had open. The verdict survives (both shapes prevent absorption) but the mechanism was invented. **The waste:** `NotConfiguredMigrator` has zero test references, and I traced its call graph to conclude it is opt-in rather than the default — which is **verbatim what §798 concluded**, with a reopen trigger, 269 sections ago. Re-verified that trigger instead: `selectMigrator` still returns `DeterministicMigrator`, still pinned. |
 | 513 | §1065 | **§1066** | **THE TEST-DOUBLE SWEEP — 15 DOUBLES, EXACTLY ONE MASKED A LIVE DEFECT, AND IT IS ALREADY PINNED.** §1065's rule (*a double's correctness can be a defect's camouflage*) applied to every double in the repo. **11 are `NotConfigured*`** — they THROW, so they can absorb nothing. **`RecordingLedger` already does it right**, keeping `events` (deduped) AND `appendCalls` (*"includes redelivered duplicates the sequencer would dedupe"*) — §1065's lesson implemented before I wrote it. **`RecordingSender` dedupes and is FAITHFUL**: the real `ResendSender` sends an `Idempotency-Key` header, so the double models the provider rather than hiding a defect. `FakeTsaClient` absorbs nothing. That leaves `RecordingTransport`, pinned at §1065 — and the severity framing checks out: **no live EdiTransport exists**, only the dormant thrower, so the duplicate harms nobody until one is wired. |
 | 512 | §1064 | **§1065** | **THE HIGHEST-SEVERITY REPO ROW, RE-VERIFIED AND PINNED — AND THE TEST DOUBLE WAS MASKING IT.** L409 (**High, latent**): overlapping `*/5` ticks both transmit one 214, measured ONCE by hand at §236 and pinned by NOTHING across ten test cases. Re-measured at HEAD: **the race reproduces — 2 calls into the transport for one idempotency key.** The reason it stayed unpinned is the finding: `RecordingTransport.send214` keeps its own `byKey` map and returns early on a repeat key, so **`transport.sent` is capped at 1 BY CONSTRUCTION** — my first naive test asserted exactly that, got 1, and would have reported the race CLOSED. Counting CALLS exposes it. Now pinned as a characterization test asserting the DEFECT (2), which flips to 1 when the owner picks claim-vs-lease (L410). No design decision taken. |
@@ -63387,4 +63388,73 @@ did.
 **STOP.** §1066's mechanism is corrected in place; §798's verdict on the one genuinely untested dormant class
 is re-verified at HEAD rather than inherited. No new debt found, and the phase's honest yield is one correction
 and one recorded process failure. `test:tools` at the REQ-289 baseline · lint clean.
+
+## §1068 — PHASE GATE: making a thrice-broken rule cheap
+
+**Why this phase.** §1067 was the **third** failure of a rule I have written down — *search the record before
+the code* — and §1062 had already concluded that **writing a rule down does not install it**. A fourth
+restatement would be the same move that failed three times. So this phase treats the failure as mechanical and
+removes the cost instead.
+
+### The cost, measured
+
+| | |
+|---|---|
+| audit record | **63,390 lines** |
+| phase sections | **1,052** |
+| raw grep for `NotConfiguredMigrator` | **8 lines** |
+| …of those naming the phase that decided it | **0** |
+
+That last row is the whole problem. A grep proves a term was *mentioned*; the actionable question is *which
+verdict owns it*, and answering that meant opening eight fragments and scrolling backwards for a heading.
+**Re-tracing the code is cheaper than that** — so re-tracing wins, every time, without anyone deciding to skip
+the record.
+
+### `pnpm recall <term>`
+
+Maps every mention to the section that **owns** it — the nearest preceding `## §N — …` heading — and, in the
+checklist, to the **row** (cell 0, the Item, per §993's column rule; cells 2+ are narrative where a passing
+mention proves nothing). The exact query §1067 should have run:
+
+```
+recall: "NotConfiguredMigrator" — 8 mention(s) across 4 prior verdict(s):
+  §798 — PHASE GATE: PHASE 21 CLOSED — every fail-closed PORT, and the sibling that was missed
+      …:46285  ### `NotConfiguredMigrator` has zero test references and that is FINE
+```
+
+One second, and §798's verdict is stated in its own words. §1067 spent a phase reaching that conclusion by
+tracing a call graph.
+
+**Six tests, and the attribution is what they pin** — a grep already finds lines, and finding lines is not what
+failed. They cover the nearest-preceding rule (not first, not last), checklist rows resolving to their Item,
+the honest `(no owning section)` answer, owner de-duplication (N mentions ≠ N verdicts), and *"nothing found"*
+as a usable result meaning **this is genuinely new — trace the code**.
+
+One test runs against the **live record** rather than a fixture: it asserts §798 is still discoverable by the
+tool written to find it. If the audit is renamed or that heading reworded, it fails loudly instead of quietly
+returning nothing — which is the failure mode every scanner in this repo has had at least once.
+
+### Scope, stated plainly
+
+`recall` finds where a term was **discussed**, never whether the discussion is still **true**. A heading is a
+pointer, not evidence. §1044's rule survives untouched — an inherited claim is a claim you are making, and
+whatever `recall` surfaces still needs re-verifying at HEAD. What it removes is the re-derivation, not the
+re-verification. §1067 did the expensive half (rebuilding the conclusion) and skipped the cheap half (checking
+the trigger); this inverts that.
+
+### What this phase says
+
+> **When a discipline fails repeatedly, price it before restating it.** Three violations of the same rule by
+> the same author is not a memory problem — it is evidence that following the rule cost more than breaking it.
+> The fix is not a louder rule; it is a cheaper one. Every restatement I could have written here would have
+> been the fourth.
+
+The narrower form, which generalises past this repo: **a record's value is bounded by the cost of querying
+it.** Sixty-three thousand lines of measured verdicts are worth nothing at the moment someone needs one and
+cannot find it in under a minute — and the failure is invisible, because re-deriving an answer produces the
+same answer and feels like work.
+
+**STOP.** The thrice-broken rule now costs one command, with its attribution unit-pinned and its discoverability
+tested against the live record. `test:tools` 1,245 passed / 3 failed — the REQ-289 baseline · lint clean ·
+typecheck clean.
 
