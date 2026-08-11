@@ -631,6 +631,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 456 | §1008 | **§1009** | **THE WORLD-TIME CLASS, ENUMERATED — 1 HAS A CADENCE, 3 CANNOT GET ONE HERE.** §1008 found the first claim that dies while the tree sits still; this counts the class. **15 external holds, 10 world-querying, and 3 that can change with NO signal**: Dependabot posture, workflow token scope, branch protection — all pure GitHub account settings whose expiry trigger reads *re-run the `gh api` command*, which is **an instruction, not a cadence** (§995: 6 of 17 such triggers had already fired unnoticed). The other seven are provisioning holds and are safe for a structural reason: **the act that clears them is the act that re-runs their proof.** **The asymmetry that matters:** two of the three are known-BAD today, which cannot regress — the risk is the moment branch protection is ENABLED, since §957 calls it *the authority of all 26 gates* and nothing would notice it switched off again. **No automation added, deliberately:** reading those settings needs a scope beyond the `read` default, i.e. a `permissions:` block — and §975 declined one because an explicit block grants exactly what it lists, REMOVING the others, on a CI about to run for the first time. Chasing a monitoring nicety would be the tail wagging the dog. Left owner-held **with the unlock named precisely** rather than as *someone should check sometimes* |
 | 455 | §1007 | **§1008** | **REPO-TIME vs WORLD-TIME — THE ONE CLAIM THAT DIES WHILE THE TREE SITS STILL.** §995's expiry gate keys every trigger on a FILE CHANGING; a vulnerability verdict is the opposite — **the tree sits still and the answer changes**, because the advisory database moves underneath it. Exposed a real gap: `pnpm audit --prod` lives in `ci.yml` on `pull_request`+`push`, with **0 PRs ever** and CI having evaluated none of the 1,018 commits; Dependabot is **disabled**; `nightly` ran no world-time check at all. §976 called the in-repo half fixed because §962 restored the step's guard — true and insufficient: **restoring a step that never runs changes nothing; an event-triggered check on an event that does not occur is not a slower mechanism, it is no mechanism.** **And it corrects §966 by half:** *a scheduled audit over a frozen commit is a clock, not a check* is right for the register↔code diff (repo-time: same commit, same answer forever) and **exactly backwards for a world-time check**, where a frozen commit is what holds every variable except the one you are watching. Fix: a `dependency-audit` nightly job mirroring `orphan-audit` (1 named step — §980's tripwire fires above 3 — 3 `uses`, 10/10 refs SHA-pinned), scoped `--prod` so a dev advisory cannot make the job noisy. **Places a mechanism, does not start one:** nightly runs against `origin/main`, 1,016 behind, so it activates on the push |
 | 454 | §1006 | **§1007** | **HAS A SECRET EVER BEEN COMMITTED? — THE SCAN CI WAS CONFIGURED TO RUN AND NEVER HAS.** `ci.yml:95` runs **gitleaks with `fetch-depth: 0`**, and §1005 established CI has evaluated **none** of the 1,018 local commits — so the history-wide secret scan has never executed, on the eve of a push that would publish that history. gitleaks is not installable here, so this is an INDEPENDENT scan, not a substitute. **Tracked tree: 968 files, 10 patterns, 2 hits — both test constants that say so in their own value** (`edi-shared-secret-do-not-use-in-prod`). **History: 1,511 commits, 7 patterns, ZERO.** Both scanners **positive-controlled**, because nine zeros is a claim about the scanner: planting `AKIA…`/`sk_live_…` is DETECTED, and `git log -G` finds a known fixture secret in **12 commits** while returning 0 for the never-committed control — without that middle row, seven zeros were indistinguishable from seven broken invocations (§1002's no-op shape, one layer up). **Scope stated: this REDUCES the probability of a surprise on push, it does not eliminate it** — gitleaks' default ruleset is far larger, and the real verdict arrives when CI runs |
 | 453 | §1005 | **§1006** | **DEPENDENCY LICENCES — THE COMPLIANCE SURFACE NOBODY HAD MEASURED.** §967 audited vulnerabilities and §974 pinned actions; the third supply-chain question was never asked — searching this record returns seven hits and **all seven are the word in another sense** (*a licensed dataset*, *what licenses this*). Install scripts ARE gated (`allowBuilds`: esbuild/workerd true, **sharp false**), checked before re-deriving. Measured: 13 declared runtime deps, but **nine are `@shuddl/*` workspace packages** — the external production set is `hono`/`react`/`react-dom`/`zod` + `scheduler`, and `pnpm licenses list --prod` returns **1 licence across 5 packages: MIT**. Counts reconcile against the manifests, which is what makes a suspiciously small number trustworthy. Full tree **335 packages / 13 licences**; ten are non-permissive-simple and **every one is dev-only** — LGPL `sharp-libvips-darwin-arm64` (whose install script `allowBuilds` already blocks), MPL `axe-core`/`lightningcss`, CC-BY `caniuse-lite`. **No copyleft obligation reaches anything distributed.** Deliberately NOT gated: §997's rule — *gating everything you examine is decorating, not measuring* — a 5-package surface with zero defects that moves twice a year gets a measurement + trigger, not a permanent maintenance surface |
@@ -59389,3 +59390,73 @@ expired and re-verified) and **world-triggered** (this job, one claim, scheduled
 §1007's local one · another world-time claim is recorded (a TLS certificate, a third-party API contract, a
 deployed surface someone else can change), since each needs a cadence rather than a trigger · `--prod` scope
 is revisited, which is the one judgement in this job.
+
+---
+
+## §1009 — PHASE GATE: the world-time class, enumerated — one has a cadence, three cannot get one here
+
+§1008 found the first claim in this record that dies while the tree sits still, and gave it a schedule. Its
+own re-open trigger asked the obvious next question: **how many others are there?** This counts the class.
+
+### 15 external holds, 10 world-querying, 3 that can change with no signal at all
+
+Of the fifteen rows in the external-holds table, ten carry a proof that queries something outside the
+repository. Most of those are **provisioning state** — placeholder resource ids, unbound secrets, CORS
+origins, backups, the deployed smoke — and they share a property that makes them safe: they are all
+`BLOCKED`, and the act that clears them (provisioning, binding a secret) is the same act that would re-run
+their proof. A hold waiting on a deliberate act does not decay quietly.
+
+**Three are different.** They are pure GitHub *account settings*, and nothing about them is deliberate from
+this repository's side:
+
+| row | proof | posture measured 2026-08-11 |
+|---|---|---|
+| L354 Dependabot | `gh api …/automated-security-fixes` | **disabled** |
+| L355 workflow token scope | `gh api …/actions/permissions/workflow` | `default_workflow_permissions: "read"` — the safe value |
+| L357 branch protection | `gh api …/branches/main/protection` | **404 — not protected** |
+
+Every one carries an expiry trigger reading *"re-run the `gh api` command"*. **That is an instruction, not a
+cadence** — it names no owner and no interval, and §995 established what happens to triggers nobody
+evaluates: 6 of 17 had already fired unnoticed.
+
+### The asymmetry that makes L357 the one to care about
+
+Today all three are measured, and two of the three postures are *known-bad in a documented way* — which is
+oddly safe, because a known-bad state cannot regress. The risk is the **other direction**: the moment the
+owner enables branch protection, that row becomes a claim that something is ON. §957 calls branch protection
+*"the authority of all 26 gates"*, and nothing in this repository would notice it being switched off again.
+
+The same holds for the token scope: `"read"` is correct today, and flipping it to `write` in the GitHub UI
+grants both workflows `contents: write` with **no file change, no review and no signal** (§975's own wording).
+
+### Why this phase adds no automation
+
+The obvious fix is a nightly job running those three `gh api` calls, exactly as §1008 scheduled the
+dependency audit. **It cannot be done from here, and the reason is worth recording rather than discovering
+later.** `nightly.yml` declares no `permissions:` block, so it inherits the account default §975 measured as
+`read` — which covers contents and metadata, not repository administration. Reading branch protection or the
+workflow-permissions setting needs an elevated scope (an `administration: read` permission block, to be
+confirmed against the API on first run).
+
+§975 deliberately declined to add a `permissions:` block, and its reasoning still holds: `"read"` grants a SET
+of scopes and an explicit block grants exactly what it lists, **removing the others** — a narrowing that would
+hit the artifact upload and a third-party scanner, on a CI about to run for the first time in three weeks.
+Adding one to chase a monitoring nicety would be the tail wagging the dog.
+
+**So this stays owner-held, with the unlock named precisely** rather than left as *"someone should check
+sometimes"*: one `permissions:` block on a new nightly job, decided by whoever watches the first CI run.
+
+### Phase gating
+
+**STOP.** The world-time class is now enumerated rather than discovered one row at a time:
+
+| world-time claim | cadence |
+|---|---|
+| production dependency advisories | **nightly** (§1008) |
+| Dependabot posture · workflow token scope · branch protection | **none possible here** — needs a token-scope decision (§975) |
+| provisioning holds (ids, secrets, CORS, backups, smoke) | none needed — clearing the hold re-runs the proof |
+
+**Re-open when:** branch protection is enabled — L357 inverts from a known-bad state to an unmonitored
+good one, and that is when a cadence starts being worth its cost · a `permissions:` block is added for any
+reason, since the marginal cost of the three `gh api` checks then drops to zero · a new external hold's proof
+is a live query with no clearing act attached.
