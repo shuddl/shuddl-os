@@ -37,12 +37,16 @@ jobs:
       - name: install Playwright browser + OS deps (strict browser gates run for real in CI)
         run: pnpm exec playwright install --with-deps chromium
       - name: strict visual (merge mode — an absent browser BLOCKS, never skips)
+        if: ${{ !cancelled() }}   # §978 — an independent verdict; the gate itself says an absent browser BLOCKS, never skips
         run: pnpm test:visual -- --mode merge
       - name: strict accessibility — zero serious/critical axe findings (merge mode)
+        if: ${{ !cancelled() }}   # §978 — an independent verdict; the gate itself says an absent browser BLOCKS, never skips
         run: pnpm test:a11y -- --mode merge
       - name: strict end-to-end — driver offline durability + portal party isolation (merge mode)
+        if: ${{ !cancelled() }}   # §978 — an independent verdict; the gate itself says an absent browser BLOCKS, never skips
         run: pnpm test:e2e -- --mode merge
       - name: strict performance — 1K-entity interaction + long-task budget (merge mode)
+        if: ${{ !cancelled() }}   # §978 — an independent verdict; the gate itself says an absent browser BLOCKS, never skips
         run: pnpm perf:map -- --mode merge
       # §962 — RUNS EVEN AFTER AN EARLIER GATE FAILED. MEASURED: on 2026-07-31 at `0415148` (the commit
       # production still runs) the perf step failed and THIS step was SKIPPED — so the complete 26-gate

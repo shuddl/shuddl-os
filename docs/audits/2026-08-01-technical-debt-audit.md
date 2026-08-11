@@ -617,6 +617,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 422 | §974 | **§975** | **THE TOKEN POSTURE IS CORRECT, EXTERNAL, AND RECORDED NOWHERE.** The other half of the workflows' supply-chain surface: what the job's token can DO. Measured — **no `permissions:` block in either workflow**, repository `default_workflow_permissions: "read"`, `can_approve_pull_request_reviews: false`. **The posture is the safe one** and the jobs work within it. But it is correct by REPOSITORY SETTING, not by anything in the repository: flip that default to `write` in the UI and both workflows silently gain `contents: write` — no file change, no review, no signal — and `git grep -i 'workflow permission' docs/ops/` returns **nothing**. **Explicit `permissions:` blocks NOT added:** `"read"` grants a SET of read scopes while `permissions: contents: read` grants exactly one, **removing the others** — a narrowing that would hit the artifact upload and a third-party scanner, on a CI about to run for the first time in three weeks. Filed as an external hold |
 | 423 | §975 | **§976** | **NOTHING WAS WATCHING DEPENDENCIES AT ALL.** §967 found 4 prod vulnerabilities by running the audit BY HAND; the question that matters more is what was supposed to find them. Measured: `vulnerability-alerts` → **404**, `dependabot/alerts` → **403 disabled**, `automated-security-fixes` → **`{"enabled":false}`**. The only other mechanism, `pnpm audit --prod` (ci.yml step 16), has been **SKIPPED since 2026-07-23** (§962). **Zero mechanisms were surfacing dependency vulnerabilities** while four sat in the dependency graph of the API and the MCP surface. Half is already fixed — §962's `!cancelled()` was applied to the audit step too, so **one skipped step was hiding two entirely different classes of finding**. Half is the owner's, filed with the two options distinguished: **alerts only** (no workflow impact) vs **automated fixes** (opens PRs, in a repo with 0 PRs ever) |
 | 424 | §976 | **§977** | **SECRET DETECTION RUNS AND IS SKIP-PROOF; PREVENTION IS UNAVAILABLE ON THIS PLAN.** `security_and_analysis` is **ABSENT** from the repo response (96 keys returned) — and the cause is decidable: this token holds admin scope (it read branch protection and actions permissions), so the omission is **plan availability**, not permission. Secret scanning and push protection are Advanced Security features and this is a **private repo under a User account** — **push protection cannot be enabled without a plan change**. What DOES exist is strong: `gitleaks` over the **full history** with a repo-owned `.gitleaks.toml`, and it is its **own job** — last run `merge-gate: failure`, **`secrets: success`** — so the §962 skip that swallowed the 26-gate surface AND the dependency audit **never touched secret scanning**. Job isolation did what step ordering did not. Detection sound, prevention absent and unpurchasable here; recorded, not filed |
+| 425 | §977 | **§978** | **§962's FIX PROTECTED THE CONSUMERS, NOT THE GATES THAT FEED THEM.** §977's job-isolation insight turned on `merge-gate`: **steps checked=14, guarded=4, sequential=10** — and the four guarded were the three §962 fixed plus the PR-only one. **All four browser gates were sequential**, so a `visual` failure would skip a11y, e2e AND perf — three verdicts lost. That the real failure was `perf`, the LAST of the four, is why only one was lost: **luck, not design.** The gates' own contract settles it — step 39 is titled *an absent browser BLOCKS, **never skips***, so being skipped is the one outcome its title forbids. Guarded all four (`4 → 8`). Deliberately left sequential: `build` and `playwright install`, whose failure makes later steps **meaningless rather than merely unreported** — an independent verdict gets a guard, a genuine prerequisite does not |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -57368,3 +57369,50 @@ Recorded rather than filed as a hold: there is no owner action short of a plan c
 carries the GitHub-settings class. The value here is the **positive** finding — that the one security job in
 this workflow was structurally immune to the failure that disabled everything else, and that this was
 architecture rather than luck.
+
+## §978 — PHASE GATE: §962's fix protected the consumers, not the gates that feed them
+
+§977 found that secret scanning survived the CI skip because it lives in **its own job** — job isolation
+doing what step ordering did not. Turning that observation on `merge-gate` itself shows §962's fix was
+partial, and I am the one who left it partial.
+
+### Measured, per step rather than by lookahead
+
+```
+steps checked=14   guarded=4   sequential=10
+```
+
+The four guarded were `traceability` (PR-only), the merge-evidence gate, the dependency audit and the artifact
+upload — the last three being exactly what §962 fixed. **The four browser gates were all sequential:**
+
+```
+39  sequential  strict visual        41  sequential  strict accessibility
+43  sequential  strict end-to-end    45  sequential  strict performance
+```
+
+So a `visual` failure skips a11y, e2e **and** perf — three independent verdicts lost. §962 protected the steps
+that **consume** the browser gates and left the gates themselves fragile. That the last CI failure happened to
+be `perf` — the *last* of the four — is why only one verdict was lost rather than four; **luck, not design.**
+
+### The gates' own contract settles the argument
+
+Step 39's name is *"strict visual (merge mode — **an absent browser BLOCKS, never skips**)"*. The gate is built
+to refuse rather than vanish. **Being skipped by CI is the one outcome its own title forbids** — so guarding
+it is not a preference, it is making the workflow honour the contract the step already declares.
+
+Guarded all four with `if: ${{ !cancelled() }}`: `guarded 4 → 8`. Each browser gate now reports its own
+verdict, and a failure in one no longer erases the other three. The job still goes red on any of them.
+
+### What stays sequential, deliberately
+
+`build every workspace` and `install Playwright browser` remain unguarded, because their failure makes the
+later steps **meaningless rather than merely unreported** — a gate run against an unbuilt tree produces noise,
+not a verdict. The line is: *an independent verdict gets a guard; a genuine prerequisite does not.*
+
+### Verified the only way available here
+
+Same method as §973, and the same stated residual — **no YAML parser is installable in this environment**, so
+this contains no parse. The diff is **four identical `if:` lines**, nothing added, removed or re-keyed;
+indentation stays uniform (`- name:` 6, everything else 8); and the construct is the one GitHub has already
+accepted and executed in this file (`if: ${{ always() }}`, line 66, on a step that ran `success`). The residual
+is one command for whoever has a runner: `actionlint .github/workflows/`.
