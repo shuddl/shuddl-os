@@ -594,6 +594,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 399 | §951 | **§952** | **THE FIVE BLOCKED GATES ARE NOT UNPROVEN — ONLY UNINPUTTED.** Each has never run green, which invites the worry that its success path would first execute on a release day. Measured: **51 test cases across 3 files**, each covering BOTH directions — `identity-leak` 18 (incl. *clean + denylist → code 0* and *masks the term so the lint cannot amplify the leak*), `fixtures` 12 (hash verify, PASS with assertions = verified count, filename-vs-content digest), and 21 for all three parity harnesses (*the in-repo SMOKE set passes against the real engine*; *perturbing ONE CENT fails it*). Each harness carries a vendored-in-repo SYNTHETIC smoke set, inline and never under `fixtures/` (REQ-167). **`BLOCKED` means the private INPUT is absent, not that the gate is unproven** — a mirror of *a gate's green certifies less than its name* |
 | 400 | §952 | **§953** | **RULE 6 SAYS "FIXTURES GATE MERGES" — THREE OF ITS FOUR WERE NOT BEING RUN.** §842 proved each named gate is REAL (mapped to a manifest fixture). Nobody asked whether it is REACHED. The airplane-mode soak (`workers/api`), the QB-export penny reconcile and the legacy-export replay (`packages/ledger`) all live in the **package suites** — the exact half §940 proved was not executing while `test`'s `&&` short-circuited on REQ-289. **§940's defect stated in constitutional units: 3 of the 4 gates named in CLAUDE.md's own fixture rule.** Nothing was broken only because every package suite was green. Re-verified post-§940/§949: all three now execute, exit 0. Real ≠ reached — two gates, two claims, and the space between them had no owner; cross-referenced in §842's gate |
 | 401 | §953 | **§954** | **RULE 8's ISOLATION SUITE — 105 OF 112 PROOFS WERE NOT EXECUTING, AND ITS OWN GATE SAID OTHERWISE.** *"A cross-tenant read anywhere is a build failure"* (REQ-025) is the most security-critical sentence in CLAUDE.md. Its suite splits: **7** roster cases in `tools/` (ran) and **105** runtime proofs across api/mcp/translator (did NOT — the §940 dark half). So a DELETED isolation file was caught; a cross-tenant REGRESSION inside one was not. `isolation-suite.test.ts` (§614) asserts *"It does run … executes under the `unit-tests` merge gate"* — **false when written**, and disprovable from the baseline quoted three paragraphs lower in the same comment (`3 failed`), confirmed at `48ef386` where `test` still carried the `&&`. §614 **rejected a named isolation gate on that premise.** Worse than §940's case: that rejection was overtaken by later evidence, this one was contradicted by evidence already in the file. Closed by §940/§949; premise and rejection corrected in place |
+| 402 | §954 | **§955** | **THE CONSTITUTIONAL SWEEP COMPLETED — STRUCTURE WAS ENFORCED, BEHAVIOUR WAS NOT.** Rules 4/5/6/8 enumerated individually: rule 4's cross-surface schema parity ran while *missing physics ⇒ UNKNOWN* did not; rule 5 had **1 of 15** REQ-040 files running; rule 6 3 of 4 (§953); rule 8 105 of 112 cases (§954). **Headline: CLAUDE.md calls the $222,084/35-lb anomaly regression PERMANENT — `it("…flags over_per_lb — forever")` — and 10 of the 11 files enforcing it were dark.** The shape: `tools/` proves STRUCTURE, `packages/`+`workers/` prove BEHAVIOUR, and for the whole §940 window every structural claim was verified and no behavioural one was. A repo can hold complete static enforcement and ZERO behavioural enforcement while every gate reports green, because the halves are separated by one `&&` that no gate named. Closed by §940/§949; no new gate — the value is the statement |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -56214,3 +56215,49 @@ comment and the baseline it quoted were never read against each other.
 Closed by §940/§949, not by this phase — all six files now execute under `--workspace-concurrency=1 --no-bail`
 (re-verified §953). §614's comment is corrected in place, and its rejection is re-stated with the premise it
 actually requires, so that a future reader re-opens the named-gate question if the premise fails again.
+
+## §955 — PHASE GATE: the constitutional sweep completed — structure was enforced, behaviour was not
+
+§953 and §954 applied *real vs reached* to rules 6 and 8. Completing it across the money-critical rules, each
+enumerated individually rather than counted by grep (the §934/§945 lesson):
+
+| CLAUDE.md rule | enforcement that RAN | enforcement that was DARK |
+|---|---|---|
+| **4** — no price on air (REQ-004) | `quote-physics-parity.test.ts` — cross-surface *schema* agreement (*"every surface treats ABSENT dims identically"*) | `packages/rater/test/price.test.ts` — *"missing physics ⇒ the freight UNKNOWN, with NO floors/versions"*, *"fractional weight_lb ⇒ UNKNOWN/missing_physics"* |
+| **5** — interline floors vs gross (REQ-040) | `check-constraint-coverage` (a D1 CHECK roster) — **1 of 15** REQ-040 files | 14 of 15, incl. `workers/api/test/interline-split.test.ts` |
+| **6** — fixtures gate merges | routes ±10% (filed absent, §842) | 3 of 4 (§953) |
+| **8** — tenant isolation (REQ-025) | the 7-case roster | **105 of 112** cases (§954) |
+
+### The headline
+
+CLAUDE.md rule 5 says: *"The $222,084/35-lb anomaly regression is **permanent** (REQ-040)."* That regression is
+`packages/rater/test/anomaly.test.ts` — `it("the 35-lb $222,084 quote flags over_per_lb — **forever**")`. Of the
+eleven files enforcing it, **ten were in the dark half**; the one that ran is a float-division lint. **The
+regression the constitution calls permanent was not running in the merge gate.**
+
+### The architectural finding
+
+Four rules, four independent enumerations, one shape:
+
+> **`tools/` proves STRUCTURE — rosters, parity, schema agreement, source scans, config equality.
+> `packages/` and `workers/` prove BEHAVIOUR — that the engine actually returns UNKNOWN, that the API actually
+> refuses a cross-tenant read, that the floor actually compares the executing share.
+> For the whole §940 window, every structural claim was verified and no behavioural one was.**
+
+That is why it was invisible. A repo can hold *complete static enforcement* and *zero behavioural enforcement*
+simultaneously while every gate reports green, because the two halves are separated by a **runner boundary**
+— one `&&` in one script — and nothing in 26 gates named that boundary. Each half was individually correct and
+individually well tested; the boundary between them had no owner, which is §953's *real ≠ reached* stated in
+its strongest form.
+
+It also explains why the board never moved across §938–§954: the board reads gate verdicts, and the gate whose
+verdict changed meaning was already red for an unrelated reason.
+
+### Status and what now holds it
+
+Closed by §940/§949 — both halves run unconditionally, `--no-bail`, all 17 suites reporting. The boundary is
+now a gated invariant (`gate-wiring.test.ts`, §941/§949) rather than a property of one operator, and §954
+corrected the one comment that had asserted the boundary was safe.
+
+**No new gate here.** The finding is a synthesis of four already-closed measurements, and its value is the
+statement — that a green board could coexist with zero behavioural enforcement — not another check.
