@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 505 | §1057 | **§1058** | **THE PIN SWEEP — 163 DECLARATIONS, 3 DECISIONS, 2 UNDOCUMENTED.** §1057's rule (*a correct, load-bearing, undocumented pin is debt while green*) made measurable: `^` is npm's DEFAULT and carries no intent, so the decisions are exactly the non-caret ranges. Measured across every tracked manifest: **163 declarations, 3 non-caret pins.** One is exemplary — `chai: "5.3.3"` names the failing export and the runtime in three lines, because YAML let its author write it where the pin lives. The other two had NO written reason anywhere. Both are load-bearing and now say why: `@playwright/test = 1.61.1` is EXACT because 5 blessed screenshots compare at a 2% pixel tolerance and chromium rasterization drifts between builds; `@axe-core/playwright` is peer-coupled to it. New gate keys reasons to LIVE manifests, so an undocumented pin REDs **and** a reason outliving its pin REDs — both mutation-proved. |
 | 504 | §1056 | **§1057** | **THE DEPENDENCY-DRIFT SWEEP — AND UNRECORDED DEBT: THE WORKSPACE RUNS TWO VITEST MAJORS.** §1056's rule (*a constraint caused by a dependency silently becomes permanent*) implies a sweep: what else is version-pinned? The prose search over-fired on narrative *"is a bug"* and found nothing — the precise form of the shape is a **version number**, not a phrasing. `pnpm outdated -r` reports **63** drifted packages, all within-major EXCEPT the two that matter. Measured by asking each suite its own version rather than reading manifests: **`api`/`ledger`/`billing` run vitest 3.2.7 while `driver`/`command`/tools run 4.1.10.** Five packages hold `~3.2.4` (tilde = patch-only), a deliberate load-bearing pin required by pool-workers 0.9.x — and explained in NO manifest, NO doc, NO checklist row. **2,018 of 2,421 tests run on the older major.** Nothing is broken; the split is INVISIBLE. Filed as a standing row so the next upgrade starts from a measurement. |
 | 503 | §1055 | **§1056** | **THE HIGHEST-SEVERITY OPEN ROW, RE-MEASURED — ITS WALL IS ONE UPSTREAM `assert`, TWELVE MINORS STALE.** L427 (Med, blocks R4) is the only non-Low repo-owned row: pool-binding exclusivity is enforced on ENUMERATION but not on RESOLUTION — the path a WRITE travels. Two prior attempts describe the blocker as a HARNESS property (65→70 api test files sharing one D1, 2 pool slots, standing claimed rows). Measured, it is a DEPENDENCY property: `isolatedStorage: false` is forced by `@cloudflare/vitest-pool-workers` asserting `name.endsWith(".sqlite")` at **two** sites (at two sites in its pool entry point, the storage-stack push and pop), which a SQLite-backed DO's `.sqlite-shm` WAL sidecar violates. **Verified in the installed copy, not inferred from the comment.** Installed **0.9.14**, latest **0.21.0**. That converts the route from *rework 70 test files* to *take an upgrade and re-test*. NOT attempted: six packages pin `^0.9.14` and a `chai: "5.3.3"` override exists for this pool — a seven-manifest change deserving its own runway. |
 | 502 | §1054 | **§1055** | **THE OWNER-HELD LABELS, RE-MEASURED — TWO OF FOUR WERE MINE.** §1054's rule (*a remembered blocker is the least-tested claim you own*) turned on the 22 open rows. Five are genuinely External. Four are labelled `Repo (the governing doc)` and deferred to the register owner; the discriminating question is **does the edit change what is PERMITTED?** L396 (is routes±10% in scope?) and L409 (name the four primitives) — yes, correctly owner-held. **L397 and L398 — no.** L397's own text called the rule *general and CORRECT*, so marking its parenthetical illustrative removes a misreading that NARROWED the law to 3 of 15. L398's *(11 used)* is a MEASUREMENT re-derived every run, not a grant of scope; the ceiling (12) is unchanged. Both fixed. The budgets gate then REFUSED the new number until it was exempted with a written reason — the same route the tables entry's *21 used* already takes — and a planted `7 widgets` still REDs, so the exemption did not widen it. |
@@ -62662,4 +62663,77 @@ seven manifests involved.
 **STOP.** The drift sweep is complete: 63 packages measured, the prose search recorded as a **failed method**
 with its reason, and one piece of previously unrecorded debt filed with a measurement, a proportion, and a
 trigger. `test:tools` at the REQ-289 baseline · lint clean · tables OK.
+
+## §1058 — PHASE GATE: the pin sweep, and where a reason can live when JSON forbids comments
+
+**Why this phase.** §1057 filed one undocumented pin and stated the rule behind it. A rule that fits one
+instance is a story; this phase asked how many instances exist, and the question has a precise form: **`^` is
+npm's default and carries no intent, so every non-caret range is a decision somebody made.**
+
+### Measured: 163 declarations, 3 decisions
+
+| | |
+|---|---|
+| dependency declarations across all tracked manifests | **163** |
+| non-caret (a decision, not a default) | **3** |
+| carrying a written reason | **1** |
+
+Three is a small enough number to read individually, which is the point of measuring before designing: a sweep
+that returned 60 would have needed a different remedy than one that returned 3.
+
+**The one that was already right sets the standard.** `pnpm-workspace.yaml` pins `chai: "5.3.3"` above three
+lines naming the exact failure — *"chai@6's `use` named export does not resolve under the vitest-pool-workers
+(workerd) runtime … @vitest/expect only uses `use`/`util` (both present in chai@5)."* A reader can act on that
+without re-deriving anything. It is documented **because YAML let its author write the reason where the pin
+lives**, which is the whole difference — the other two sit in `package.json`, and JSON has no comments.
+
+### The two that were silent, and what they are actually for
+
+Neither had a reason anywhere in the repo: `git grep` found both packages mentioned in tooling and plans, but
+never the *choice* explained. Both turned out to be load-bearing, and neither reason is guessable from the pin:
+
+**`@playwright/test = 1.61.1`** — not about the API. This repo compares **5 blessed screenshots** with
+`toHaveScreenshot` at a 2% `maxDiffPixelRatio`, and CI installs the browser matching whatever version resolves
+(`playwright install --with-deps chromium`). Chromium font rasterization changes between builds, so a floating
+range silently re-bases every visual comparison — either failing the design gate or, worse, spending the
+tolerance that exists to absorb real drift. The pin makes the **binary** reproducible. Bumping it means
+re-blessing the screenshots deliberately.
+
+**`@axe-core/playwright = 4.12.1`** — peer-coupled: it runs inside the same browser context and takes the Page
+object as input. Floating it independently of a pinned playwright is how a peer mismatch reaches CI.
+
+Verified rather than assumed: the 5 blessed PNGs are tracked, `playwright.config.ts:23` carries the 2%
+tolerance, and `ci.yml:38` installs the browser without a separate version key — so the coupling really is to
+whatever the manifest resolves.
+
+### Where the reason lives, given that JSON forbids comments
+
+A doc listing the pins would drift the moment one changed, and nothing would notice — the failure §945 and §988
+both produced. So the reasons live in a **gate keyed to the live manifests**
+(`tools/checks/pinned-deps-explained.test.ts`), which makes the two impossible to disagree:
+
+| direction | mutation | result |
+|---|---|---|
+| a pin with no reason | planted an exact `tsx = 4.23.0` | **RED**, naming it |
+| a reason with no pin | renamed a key to `vitest = ~3.2.9` | **RED**, naming it |
+
+The key is `name = range`, so **a version bump lands in this file by design** — you cannot move a pin without
+being asked whether its reason still holds at the new version. A stale justification is worse than none,
+because it reads as current.
+
+### What this phase says
+
+> **Documentation that CI cannot check is a promise; documentation CI derives from the artifact is a fact.**
+> The chai pin is well documented and could still rot silently — nothing compares its comment to the override
+> beside it. The two new entries cannot, not because they are better written, but because they are keyed to the
+> thing they describe.
+
+The corollary this phase turns on: **the reason a decision goes unrecorded is usually mechanical, not
+cultural.** All three pins were deliberate and all three authors knew why; the one in YAML is explained and the
+two in JSON are not, and the difference is comment syntax. Where a format forbids the note, the note does not
+move elsewhere — it evaporates. Look for undocumented decisions wherever the file format has no room for prose.
+
+**STOP.** Every non-caret pin in the workspace now carries a written, CI-enforced reason, with both the missing
+-reason and the stale-reason directions mutation-proved. `test:tools` 1,234 passed / 3 failed — the REQ-289
+baseline · lint clean.
 
