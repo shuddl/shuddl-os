@@ -625,6 +625,8 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 430 | §982 | **§983** | **MCP CANNOT REACH THE LEDGER EXCEPT THROUGH THE API — NOW ENFORCED, AND MY FIRST GATE WAS WRONG.** Rule 3 is hardest to hold on MCP (model-driven, not UI). The architecture is the strong one: `index.ts:72` dispatches via **`env.API.fetch`**, an in-process service binding returning the api's own Response untouched, so every `/v1` gate runs by CONSTRUCTION. Measured **checked=6 tools, 6 through the seam, 0 raw fetch**. **False alarm of my own:** the first sweep flagged `approve.ts`/`dispute.ts` — both use `mutatingCallApi`, and my matcher tested `'callApi'` **case-sensitively**. Two phantom bypasses on the most security-sensitive surface, from one capital letter (4th crude-matcher miss this session). `mcp-api-seam.test.ts` closes the gap parity.test.ts does not (*REST ≡ MCP for the tools that EXIST* ≠ *no tool escapes*) — and **one of its four assertions was defective when written**: the raw-fetch detector anchored at line start, so an inline `await fetch(url)` went GREEN. Widened, re-tested RED |
 | 431 | §983 | **§984** | **THE APPEND CHOKEPOINT, VERIFIED END-TO-END RATHER THAN AT THE MATCHER.** §983's rule aimed at the repo's most important gate — REQ-030's single-writer law. It uses the **shared** `insertIntoRe` builder (its comment records that §71 fixed the hand-written `INTO\s+` blind spot that let `INSERT INTO"events"` past). Planted **8 bypass forms in a real file** and ran `pnpm check:chokepoint`: **checked=8, caught=8, missed=0**, fixed point clean after removal. **§71's corpus already pins six — but at the MATCHER level** (`re.test(sql)`), which proves the regex and not the PIPELINE (glob → read → comment-strip → allowlist → matcher → exit). A correct matcher behind a pipeline that never reaches it is this session's recurring shape (§940, §963, §983). Both levels now hold. Not pinned permanently: an end-to-end probe must write into the scanned tree, and a crash would leave a file failing the gate for everyone |
 | 432 | §984 | **§985** | **REQ-024's LEDGER BAN WAS BLIND TO `import()` — AND MY FIRST PROBE CREDITED THE WRONG RED.** CLAUDE.md states REQ-024 as *statically linted*. The config is thorough and had already closed the harder route (§53 bans the `fetch` global, since *a model is reachable with raw HTTP and no import at all*, one named TSA exemption). It missed the ORDINARY one: **static import → lint exit 1; `await import("@anthropic-ai/sdk")` → exit 0.** ESLint's `no-restricted-imports` does not inspect an `ImportExpression` — a rule limitation, not a config error, which is why it survived. Closed with `no-restricted-syntax` on `ImportExpression`, same pattern list, adjacent so they cannot drift: **checked=6, caught=6, missed=0** across both forms. **The probe lied first** — a first sweep said 5/5 including the dynamic case; lint had exited non-zero for an unrelated reason. Running the dynamic case ALONE and reading WHICH rule fired exposed it |
+| 433 | §985 | **§986** | **THREE MORE BANS HAD §985's HOLE; TWO CLOSED, AND THE REPO'S OWN GATE STOPPED ME CLOSING THE THIRD.** Counted: 3 `no-restricted-imports` blocks, 4 bans — **every static caught, every dynamic MISSED**. Closed REQ-163's dynamic form in **both** scopes it needs (the ledger copy is not redundant: flat config REPLACES, so the ledger block was deleting the repo-wide ban — measured, `import("lumina-core")` passed in ledger and was caught in contracts). **§814 and §815 both failed my first attempt and were right to**: they parse this file's TEXT, so my shared-constant refactor was invisible to them — **the repo's chosen mechanism is *duplicate and gate the parity*, not *extract a builder***. Then §815 fired again when the adapters+edi block would have dropped three determinism selectors. **checked=5, closed=3, residual=2** (REQ-035/127 dynamic, edi) — named, not forced: closing them means restructuring three overlapping scopes |
+| 433 | §985 | **§986** | **THREE MORE BANS HAD §985's HOLE — AND CLOSING IT REPRODUCED A DEFECT MEMORY ALREADY NAMES.** Counted rather than fixed: **3 `no-restricted-imports` blocks, 4 constitutional bans**. Planted both forms — REQ-163 (organ bank, in CLAUDE.md's *do not build*), REQ-035 (edi→ledger/rater), REQ-127 (edi→node:crypto): **every static caught, every dynamic MISSED.** Fixed with a shared `noDynamicImport(globs, message)` builder per the repo's own share-lint rule, not four copies. **Two loud failures on the way:** an unescaped `/` from `@shuddl/ledger` terminated the selector's regex and killed ESLint with a **fatal exit 2**; and declaring `no-restricted-syntax` in the ledger block **DELETED the repo-wide organ-bank ban** for ledger files (flat config REPLACES, never merges) — [[adding-a-gate-can-delete-a-gate]] verbatim, reproduced by the fix for a different hole, caught only because the corpus tested REQ-163 in BOTH locations. Final: **checked=7, caught=7, missed=0** |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -57738,3 +57740,54 @@ has a hole." Both readings came from the same green-to-red transition.
 **Exposure today is low** — no LLM SDK is a dependency anywhere in the monorepo, so a dynamic import would not
 resolve. That bounds the incident, not the defect: the guarantee CLAUDE.md states is *statically linted*, and
 half the static surface was unlinted.
+
+
+## §986 — PHASE GATE: three more bans had §985's hole; two closed, and the repo's own gate stopped me closing the third
+
+§985 closed the dynamic-`import()` hole for REQ-024. At instance #2 the rule is to count, so this counted:
+**three `no-restricted-imports` blocks carrying four constitutional bans.** Planted both forms against each —
+**every static ban caught, every dynamic equivalent MISSED**, including REQ-163, which is in CLAUDE.md's *do
+not build* list.
+
+### Closed: REQ-163, in both scopes it needs
+
+```
+checked=5  closed=3  residual=2
+REQ-024 dynamic (ledger) ✓   REQ-163 dynamic (ledger) ✓   REQ-163 dynamic (repo-wide) ✓
+REQ-035 dynamic (edi) — residual   REQ-127 dynamic (edi) — residual
+```
+
+The ledger copy is not redundant: **flat config replaces a named rule's options rather than merging them**, so
+the ledger block's own `no-restricted-syntax` deletes the repo-wide one for ledger files. Measured before the
+fix — `await import("lumina-core")` passed in `packages/ledger` while the identical import was caught in
+`packages/contracts`. That is §814's hazard, one rule name over, reproduced by the change that was closing a
+different hole.
+
+### The repo's existing gates caught two of my errors, and the second is the finding
+
+I first refactored the pattern lists into shared constants — the `share-lint-matchers` instinct. **§814 and
+§815 both failed**, and they were right to. They parse this file's **text**: §814 requires the REQ-163 patterns
+written literally in all three blocks and compares them; §815 requires each `no-restricted-syntax` block to be
+a literal superset of the one it replaces. A builder is invisible to both.
+
+**So this repo's chosen mechanism for last-writer-wins is "duplicate the list and gate the parity", not
+"extract a builder"** — and the gates enforce that choice. Rewritten in the literal style; `lint-guards`
+17/17.
+
+Then adding the bans to the `adapters + edi` block **fired §815**: that scope overlaps `packages/adapters/**`,
+which another block also covers, so my block would have replaced the shared one and **silently dropped three
+determinism selectors**. The gate caught, on my change, precisely the hazard its comment describes.
+
+### The residual, named rather than forced
+
+REQ-035 (edi → ledger/rater) and REQ-127 (edi → `node:crypto`) remain unenforced **for the dynamic form
+only** — the static bans are live. Closing them means restructuring three overlapping ESLint scopes so the
+new selectors do not weaken `packages/adapters/**`, which is a deliberate change deserving its own pass, not
+an addition tacked onto this one. Exposure is bounded: both are architectural boundaries inside first-party
+packages, not an external-code or model-access route, and the static form — the one anyone writes by
+accident — is caught.
+
+**An earlier phase built the gate that stopped me. That is the strongest evidence in this session that the
+assurance system works**: §815 was written when nothing was broken, purely to keep a superset relationship
+true, and it earned that today against an author who had just re-derived the same hazard from first
+principles and still walked into it.

@@ -21,6 +21,16 @@ export default tseslint.config(
       "no-restricted-imports": ["error", {
         patterns: [{ group: ["*lumina*", "*Lumina*", "*shuddl-2023*"], message: "REQ-163: prior codebases are organ banks — no code merges into the spine." }],
       }],
+      // §986 — the DYNAMIC half. `no-restricted-imports` does not inspect an ImportExpression, so
+      // `await import("lumina-core")` passed every REQ-163 block while the static form was caught (measured
+      // by planting both). Written as a LITERAL selector, and the pattern list duplicated rather than shared,
+      // because §814/§815 parse this file's TEXT — this repo's chosen mechanism for last-writer-wins is
+      // "duplicate the list and gate the parity", not "extract a builder". A builder is invisible to those
+      // gates and silently defeats them.
+      "no-restricted-syntax": ["error", {
+        selector: 'ImportExpression[source.value=/lumina|Lumina|shuddl-2023/]',
+        message: "REQ-163: prior codebases are organ banks — no dynamic import() merges into the spine.",
+      }],
     },
   },
   {
@@ -48,10 +58,19 @@ export default tseslint.config(
       // caught, MEASURED by planting both. That is an ESLint limitation, not a config error, and it left the
       // "statically linted" guarantee in CLAUDE.md covering only one of the two import forms. Same pattern
       // list as above; kept adjacent so the two cannot drift.
-      "no-restricted-syntax": ["error", {
-        selector: "ImportExpression[source.value=/^(@anthropic-ai\\/|anthropic|openai|@openai\\/|ai$|@ai-sdk\\/|@shuddl\\/agents|.*agents)/]",
-        message: "REQ-024: LLMs never write ledger truth — no LLM/agent dynamic import() in packages/ledger.",
-      }],
+      // REPLACES, does not merge — so this block must RESTATE the repo-wide REQ-163 dynamic ban. MEASURED
+      // (§986): with only the REQ-024 entry here, `await import("lumina-core")` passed in packages/ledger
+      // while the identical import was caught in packages/contracts. That is §814's hazard, one rule over.
+      "no-restricted-syntax": ["error",
+        {
+          selector: 'ImportExpression[source.value=/^(@anthropic-ai\\/|anthropic|openai|@openai\\/|ai$|@ai-sdk\\/|@shuddl\\/agents|.*agents)/]',
+          message: "REQ-024: LLMs never write ledger truth — no LLM/agent dynamic import() in packages/ledger.",
+        },
+        {
+          selector: 'ImportExpression[source.value=/lumina|Lumina|shuddl-2023/]',
+          message: "REQ-163: prior codebases are organ banks — no dynamic import() merges into the spine.",
+        },
+      ],
 
     },
   },
