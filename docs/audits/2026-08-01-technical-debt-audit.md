@@ -631,6 +631,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 441 | §993 | **§994** | **STOPPING POINT IV — THE REPO-OWNED LEDGER HOLDS 17 OPEN ROWS AND ZERO NEGLECTED ONES.** Classified all 17 by what blocks them (four read in full): **6 need a CLAUDE.md/register amendment · 4 say *needs a REQ row* · 2 a design decision · 1 a founder UX call · 1 a tooling call · 1 measured-and-rejected TWICE · 2 blocked on measured preconditions**. **checked=17, neglected=0** — not one row is open because nobody looked. The two plain `backend` rows are the two hardest: **427**'s fix was written, REVERTED (§12), then re-measured (§882) as *necessary but not sufficient* (a UNIQUE partial index meets the same harness wall one step earlier — 66 api files share one D1 under `isolatedStorage:false`, forced by a DO's `.sqlite-shm` sidecar); **430 fails CLOSED and is correct**, waiting on the deferred REQ-069 seam. So: **10 waiting on one owner, 7 on measured preconditions.** Behind the ten sits §795's precedent — *filed, not amended, while REQ-289 is uncommitted* — **4 explicit deferrals at `HEAD~1`**, and I nearly reported **10** before noticing six were sentences §993 wrote an hour earlier: **a citation of my own edit is not evidence of a pattern**. REQ-289 is the head of the deferral chain, gating a Med–High reliability defect. `verify:merge` deliberately NOT re-run (the uninterruptible workerd wedge costs days; the four owning gates are green) — a judgement written down so it can be overruled cheaply |
 | 440 | §992 | **§993** | **THE ONE-FIELD FIX THAT WASN'T — AND A DEFERRAL'S *RECORDED HOME* COULD BE AN INCIDENTAL MENTION.** REQ-289 is both of the board's FAILs; §960 proved a remediation instruction can be WRONG, so I measured this one. **Status-keyed deferrals win before `wp` is read** — one field fixes it and `GTM-0` stays, which the gate's own message obscures by inviting a `wp` edit. The three deferrals are NOT interchangeable: run through `computeCoverage`, `F0-DEPLOY-NOTE` is clean, `vNEXT` passes but adds a permanent drift line, and **`CONFIRM-GATED` STILL EXITS 1** (`confirmCited` sets `failed`). Then the real defect: `scanRecordedHomes` accepted `REQ-\d{3,}` ANYWHERE, and REQ-289's three 'homes' are all the phrase *"while REQ-289 is uncommitted"* inside rows about OTHER defects — a deferral would have gone **green on an accounting that does not exist**. Counted before calling it a defect: **104 deferred · 88 manifest-keyed · 16 on prose · 0 incidental** — loose mechanism, clean corpus. Tightened to the document's own `Item`/`Source` columns (legit rows max cell 1, REQ-289 at cell 3 — a margin, not a boundary): **16/16 preserved, the hole rejected**. That made the owner's path LONGER, so the repo-owned half is done here — an external-holds row whose subject IS REQ-289, restoring the one-field remedy as a genuine accounting |
 | 439 | §991 | **§992** | **THE UNPARSED-WORKFLOW RESIDUAL, NARROWED FROM *UNVERIFIED* TO ONE BOUNDED CLAIM.** Confirmed unclosable — **zero YAML parsers across 382 pnpm store entries**. But measured rather than left open: corrupted `ci.yml` three ways (mis-indented step key, deleted merge-evidence step, truncated file) and **all three were caught** by the structural gates (fixed point 3 files / 25 assertions green) — not by parsing, but because three gates read the file's structure and each carries a non-vacuity floor. So the true residual is one claim: a GitHub EXPRESSION that is YAML-valid but semantically invalid. Bounded that too — every `if:` in both workflows classified against `origin/main`, the state GitHub has executed: **checked=8, novel=0** (2 verbatim pre-existing, 6 `!cancelled()` in the same status-function family as the proven `always()`). **An unbounded residual is indistinguishable from an unexamined one** |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
@@ -58245,3 +58246,93 @@ instance.**
 Two of my own artefacts failed on this change and were right to — `section-refs` (I cited §993 before writing
 it) and `citation-links` (my insertion moved `scanRecordedHomes` from `:176` to `:201`, rotting a citation
 elsewhere in this file). Line numbers are not a key, and the gate that says so caught me inside the same edit.
+
+---
+
+## §994 — PHASE GATE: STOPPING POINT IV — the repo-owned ledger holds 17 open rows and zero neglected ones
+
+§993 closed the last defect I could reach without an owner decision. This phase asks the question that should
+end a debt loop: **of the debt that is MINE, what is left?**
+
+The ledger says **17 OPEN**. That number has been the standing answer since §804 corrected *"repo-owned ledger
+is EMPTY"* to *"20 live rows, 16 OPEN"*. It reads as a backlog. It is not one.
+
+### All 17, classified by what actually blocks them
+
+Read every row's `Ownership` / `Owner` / `Blocks` cells, and four of them in full:
+
+| what blocks it | rows | count |
+|---|---|---|
+| a CLAUDE.md or register amendment — **owner-signed by definition** | 396, 397, 398, 409, 411, 418 | 6 |
+| *"needs a REQ row"* before any code may be written (rule 1) | 422, 423, 424, 425 | 4 |
+| an unmade **design** decision | 407, 408 | 2 |
+| a **founder UX** call (uniform-deny vs. a helpful error) | 426 | 1 |
+| an owner **tooling** call | 410 | 1 |
+| measured and **rejected twice** on its merits | 421 | 1 |
+| a measured **precondition** that is itself substantial | 427, 430 | 2 |
+
+**checked=17 · neglected=0.** Not one row is open because nobody looked at it. Every row carries a stated,
+dated reason, and the two that are plain `backend`-owned are the two I read hardest:
+
+- **427** (pool-binding exclusivity on resolve) — the fix was *written and reverted* (§12), then re-measured at
+  §882: a UNIQUE partial-expression index is **necessary but not sufficient**, because it meets the same
+  harness wall one step earlier (66 api test files share one D1 under `isolatedStorage:false`, forced by a
+  SQLite-backed DO's `.sqlite-shm` sidecar). The precondition is a harness restructure, and it is named.
+- **430** (custody handoff cannot record real parties) — **fails CLOSED and is correct today**; the 2026-08-01
+  convergence audit already killed the fabricating version at `a3b667a`. It waits on the deferred REQ-069
+  identity seam, i.e. on a register row.
+
+So the honest restatement is not *17 items to grind* but: **10 waiting on one owner, 7 waiting on preconditions
+that were measured rather than assumed.**
+
+### The chain behind the register-gated ten
+
+Rule 1 is *if it isn't a REQ row, it doesn't get built* — so the four `needs a REQ row` rows cannot be worked,
+and §795 set the operative precedent for why nobody has simply added them: **filed, not amended, while REQ-289
+is uncommitted.** Measured across the governing records at `HEAD~1`:
+
+```
+"while REQ-289 is uncommitted"   audit 1 · checklist 3   = 4 explicit deferrals
+```
+
+**Correcting myself inside this phase:** the same count at `HEAD` is **10**, and I nearly reported that. Six of
+those ten are sentences §993 wrote an hour ago. A citation of my own edit is not evidence of a pre-existing
+pattern — the figure is 4, and the three checklist ones are precisely the incidental mentions §993 found.
+
+That is still the finding, at its true size: **REQ-289 is not two red gates. It is the head of the deferral
+chain**, and the four rows it gates include a `Med–High` reliability defect (a lost booking trigger with no
+backstop). §993 reduced the owner's action there to a single field edit with a measured menu; this phase says
+what that edit is worth.
+
+### Phase gating — where this stops, and what re-opens it
+
+**STOP.** The repo-owned half of this loop is complete in the only sense available to it: every remaining row
+requires a decision reserved to the owner, or a precondition whose necessity has been measured and written
+down. Continuing would mean either amending `genesis/09` (forbidden — and it currently holds the owner's
+uncommitted edit) or making a product call that is not mine.
+
+What this phase actually ran, stated so nobody inherits a stronger claim than was earned:
+
+| ran | verdict |
+|---|---|
+| `pnpm test:tools` | **1210 passed / 3 failed** — baseline-identical; all three are the owner's uncommitted register row |
+| `pnpm typecheck:tools` | exit 0 |
+| `pnpm check:citations` | 1541 resolve · ratchet exactly at the frozen baseline |
+| `pnpm check:docs`, `phase-index` | clean · 5/5 |
+
+**`pnpm verify:merge` was NOT run this phase, deliberately.** The board's last full measurement stands at
+**19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs being REQ-289. Re-running it would spawn the vitest-pool-workers
+suites, whose wedge is uninterruptible and clears only on a reboot — a multi-day cost for a verdict whose only
+moving part since is one tools file and two documents, all four of whose owning gates are green above. That is
+a judgement, not an omission, and it is written here so the next reader can overrule it cheaply.
+
+**Re-open this stopping point when:** REQ-289 gains a classifying status (the board's two FAILs clear and the
+four `needs a REQ row` rows become workable) · any owner decision in the table above is made · the api test
+harness gains per-file control planes (427 becomes reachable) · REQ-069 lands (430 becomes reachable).
+
+### What eight hundred sections of this loop converge on
+
+The loop asked for technical debt to be found, documented, and resolved to production quality. The residue is
+not a list of unfixed things. It is a list of **decisions**, each one attached to the measurement that makes it
+cheap to decide. That is the difference between a backlog and a handoff — and it is the only ending a debt loop
+can honestly reach while the register belongs to someone else.
