@@ -631,6 +631,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 455 | §1007 | **§1008** | **REPO-TIME vs WORLD-TIME — THE ONE CLAIM THAT DIES WHILE THE TREE SITS STILL.** §995's expiry gate keys every trigger on a FILE CHANGING; a vulnerability verdict is the opposite — **the tree sits still and the answer changes**, because the advisory database moves underneath it. Exposed a real gap: `pnpm audit --prod` lives in `ci.yml` on `pull_request`+`push`, with **0 PRs ever** and CI having evaluated none of the 1,018 commits; Dependabot is **disabled**; `nightly` ran no world-time check at all. §976 called the in-repo half fixed because §962 restored the step's guard — true and insufficient: **restoring a step that never runs changes nothing; an event-triggered check on an event that does not occur is not a slower mechanism, it is no mechanism.** **And it corrects §966 by half:** *a scheduled audit over a frozen commit is a clock, not a check* is right for the register↔code diff (repo-time: same commit, same answer forever) and **exactly backwards for a world-time check**, where a frozen commit is what holds every variable except the one you are watching. Fix: a `dependency-audit` nightly job mirroring `orphan-audit` (1 named step — §980's tripwire fires above 3 — 3 `uses`, 10/10 refs SHA-pinned), scoped `--prod` so a dev advisory cannot make the job noisy. **Places a mechanism, does not start one:** nightly runs against `origin/main`, 1,016 behind, so it activates on the push |
 | 454 | §1006 | **§1007** | **HAS A SECRET EVER BEEN COMMITTED? — THE SCAN CI WAS CONFIGURED TO RUN AND NEVER HAS.** `ci.yml:95` runs **gitleaks with `fetch-depth: 0`**, and §1005 established CI has evaluated **none** of the 1,018 local commits — so the history-wide secret scan has never executed, on the eve of a push that would publish that history. gitleaks is not installable here, so this is an INDEPENDENT scan, not a substitute. **Tracked tree: 968 files, 10 patterns, 2 hits — both test constants that say so in their own value** (`edi-shared-secret-do-not-use-in-prod`). **History: 1,511 commits, 7 patterns, ZERO.** Both scanners **positive-controlled**, because nine zeros is a claim about the scanner: planting `AKIA…`/`sk_live_…` is DETECTED, and `git log -G` finds a known fixture secret in **12 commits** while returning 0 for the never-committed control — without that middle row, seven zeros were indistinguishable from seven broken invocations (§1002's no-op shape, one layer up). **Scope stated: this REDUCES the probability of a surprise on push, it does not eliminate it** — gitleaks' default ruleset is far larger, and the real verdict arrives when CI runs |
 | 453 | §1005 | **§1006** | **DEPENDENCY LICENCES — THE COMPLIANCE SURFACE NOBODY HAD MEASURED.** §967 audited vulnerabilities and §974 pinned actions; the third supply-chain question was never asked — searching this record returns seven hits and **all seven are the word in another sense** (*a licensed dataset*, *what licenses this*). Install scripts ARE gated (`allowBuilds`: esbuild/workerd true, **sharp false**), checked before re-deriving. Measured: 13 declared runtime deps, but **nine are `@shuddl/*` workspace packages** — the external production set is `hono`/`react`/`react-dom`/`zod` + `scheduler`, and `pnpm licenses list --prod` returns **1 licence across 5 packages: MIT**. Counts reconcile against the manifests, which is what makes a suspiciously small number trustworthy. Full tree **335 packages / 13 licences**; ten are non-permissive-simple and **every one is dev-only** — LGPL `sharp-libvips-darwin-arm64` (whose install script `allowBuilds` already blocks), MPL `axe-core`/`lightningcss`, CC-BY `caniuse-lite`. **No copyleft obligation reaches anything distributed.** Deliberately NOT gated: §997's rule — *gating everything you examine is decorating, not measuring* — a 5-package surface with zero defects that moves twice a year gets a measurement + trigger, not a permanent maintenance surface |
 | 452 | §1004 | **§1005** | **WOULD ANY OF THIS WORK ON LINUX? — THE QUESTION CI HAS NEVER BEEN ALLOWED TO ANSWER.** Every gate here has only ever run on **darwin**; CI runs **ubuntu-latest**; and §957 measured that CI has evaluated **none** of the 1,018 local commits — so a platform assumption surfaces for the first time on the day of the push, as a red build with no obvious cause. Seven axes, all decidable without a runner: shell-outs are **only** `git`/`pnpm`/`npx`/`node` (no shell utilities at all) · **0** BSD/GNU-divergent flags (the apparent `tac` hits were substrings of *attached*/*attack*) · **0** tracked path case-collisions · **0** imports resolving only case-INSENSITIVELY — the class that resolves forever on macOS and fails instantly on Linux · **0** absolute paths (already gated) · 12 portable CI `run:` steps · toolchain agrees (`.node-version` **22.15.0** tracked, `engines >=22.15.0 <23`, `pnpm@11.10.0`, matching local). **CLEAN NEGATIVE on all seven.** `.node-version` earns its own line: `setup-node` uses `node-version-file`, so an untracked file fails the workflow at its FIRST step. **This proves the portability class is EMPTY, not that CI passes** — that needs the owner's push, and this narrows what it can go wrong in |
@@ -59325,3 +59326,66 @@ across 968 tracked files and 1,511 commits**, with both scanners positive-contro
 **Re-open when:** the push lands — gitleaks then runs for the first time and its verdict supersedes this one ·
 a new secret-bearing integration is added (Stripe, Resend, a TSA authority) · `.gitleaks.toml`'s allowlist
 grows, since every added path is a region this scan would then skip too.
+
+---
+
+## §1008 — PHASE GATE: repo-time vs world-time — the one claim that dies while the tree sits still
+
+§1007 re-ran `pnpm audit --prod` at HEAD: **no known vulnerabilities.** Recording that verdict raised a
+question this record's expiry framework cannot express.
+
+§995 built a gate over `Evidence expires` triggers, and every one of them keys on a **file changing**. That is
+the right model for almost everything here — a fix is evidence about a commit, and it dies when the code
+moves. A vulnerability verdict is the opposite: **the tree sits perfectly still and the answer changes**,
+because the advisory database moves underneath it. There is no file to watch.
+
+### The gap that framing exposes
+
+| mechanism | status |
+|---|---|
+| `pnpm audit --prod` (`ci.yml:65`) | triggers on `pull_request` + `push:[main]` — **0 PRs ever**, and CI has evaluated none of the 1,018 commits (§957) |
+| Dependabot | **disabled** (§976 — `automated-security-fixes` → `{"enabled":false}`) |
+| `nightly.yml` | ran `check:traceability` + `backup` — **no world-time check at all** |
+
+§976 concluded *"zero mechanisms surfacing dependency vulnerabilities"* and named the in-repo half fixed
+because §962 restored the audit step's `if: !cancelled()`. That was true and insufficient: **restoring a step
+that never runs changes nothing.** An event-triggered check on an event that does not occur is not a slower
+mechanism; it is no mechanism.
+
+### And it corrects §966 by half
+
+§966 measured that `nightly` had run **ten times at one commit** and concluded: *"a scheduled audit over a
+frozen commit is a clock, not a check."*
+
+Correct for the job it was looking at. `check:traceability` is a register↔code diff — **repo-time**, so the
+same commit yields the same answer forever, and ten runs really are one verification re-emitted.
+
+**Exactly backwards for a world-time check.** A frozen commit is what makes a vulnerability scan meaningful:
+it holds every variable except the one you are watching. §966's sentence is right about its subject and wrong
+as a general rule about schedules, and the distinction is the whole finding here.
+
+### The fix
+
+A `dependency-audit` job on `nightly.yml`, mirroring `orphan-audit`'s shape exactly — verified: **1 named step
+(§980's tripwire fires above 3), 3 `uses` steps, and 10/10 action refs still SHA-pinned with tag comments.**
+All **25** workflow gates pass.
+
+Scoped `--prod` deliberately: a dev-only advisory is not a shipped exposure, and failing the nightly on one
+would make the job noisy — §976's own cry-wolf argument, applied to the job that must never be ignored.
+
+### What this does and does not do
+
+**It places a mechanism; it does not start one.** `nightly` runs against `origin/main`, which is 1,016 commits
+behind (§957), so this job does not exist on the remote and will not fire until the owner pushes. That is the
+honest state: the first recurring world-time check in this repository now exists in the tree, and activates
+with everything else on the push.
+
+### Phase gating
+
+**STOP.** The expiry framework now covers both kinds of claim: **file-triggered** (§995's gate, 7 rows found
+expired and re-verified) and **world-triggered** (this job, one claim, scheduled daily).
+
+**Re-open when:** the push lands and the first nightly `dependency-audit` runs — its verdict supersedes
+§1007's local one · another world-time claim is recorded (a TLS certificate, a third-party API contract, a
+deployed surface someone else can change), since each needs a cadence rather than a trigger · `--prod` scope
+is revisited, which is the one judgement in this job.
