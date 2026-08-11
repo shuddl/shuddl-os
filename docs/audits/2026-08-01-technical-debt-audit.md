@@ -631,6 +631,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 447 | §999 | **§1000** | **WHAT THE BLOCKED GATES DO ON VENDORING DAY — CLEAN, AND I NEARLY FILED THE OPPOSITE.** §999 proved nothing on the board is repo-owned *today*; this asks the owner's real question: when the nine fixtures arrive, do those gates **verify** them or merely **find** them? A presence-only gate would turn five honest BLOCKEDs into five false PASSes on the one day nobody re-checks. Probed the branch absent from the 12 existing cases — **`vendored` with a null `sha256`**, the state all nine are in RIGHT NOW. Deleting its guard left **12 tests green**, and I nearly filed *an undefended guard on the exact transition the owner will perform*. **Two further probes said otherwise:** `typecheck` REDs (`TS18047: possibly null`, and typecheck is a merge gate), and with the type error suppressed the downstream branch **still rejects** (`pinned null… actual 79253e8…`) because a real digest is never null. **Three defences, unplanned but real — CLEAN NEGATIVE.** The lesson mirrors one already here: **attribute the GREEN before condemning it** — *the tests did not catch this* is a claim about the tests, not the code, in a repo with 26 gates. Also re-verified L410: **0 coverage providers, 0 of 12 configs** — genuinely external |
 | 446 | §998 | **§999** | **STOPPING POINT V — THE COMPLETE MERGE VERDICT, RUN RATHER THAN INFERRED.** Six phases rested on a board figure carried forward; §994 declined to re-run `verify:merge` on wedge grounds and wrote that down so it could be overruled cheaply. **Overruled: 300s wall, no wedge, all 22 suites.** At `1e2ec98`: **19 PASS · 2 FAIL · 5 BLOCKED**, **374 files / 4,534 tests / 3 failing (99.934%)**. **All three failures ATTRIBUTED** — the owner's uncommitted REQ-289 row — and `unit-tests` aggregates every workspace, so its red could have masked a real suite failure behind a known one: **it does not, 21 of 22 suites have zero failures.** Settles two claims: the wedge deferral was over-cautious (**a deferral defended by a hazard must be re-tested once that hazard has evidence, or it becomes permanent by habit**), and §962's four skipped browser gates genuinely EXECUTE now (perf/visual/a11y/e2e = 1/5/4/6). **Nothing on this board is a repo-owned defect** — two FAILs are one owner-held register row, five BLOCKED are inputs no commit can supply. Ledger and gate now AGREE, which is the only agreement this audit trusts |
 | 445 | §997 | **§998** | **THREE GATES, THREE BLIND SPOTS, ONE SHAPE.** §997 ended with *a gate written from one observed instance covers that instance's shape* — instance #1. Turned it on the two siblings written this session: **three for three.** **§996** read inline backticks only, while **52 pnpm citations live in FENCED blocks** — and fenced is this record's canonical proof layout (`pnpm verify:merge → exit 1`). **§995** scoped by TABLE when the rule follows the TRIGGER: the external CORS hold names `tests/e2e/prod-surface.spec.ts`, which moved 2026-08-01 against a row dated 2026-07-31 — **a SEVENTH expired row**, invisible for exactly the reason the other six were. Re-verified: HOLDS (`cors.ts:21` lists all four origins; `prod-surface.spec.ts:66` still asserts no foreign host). Both widened and mutation-proved **in the newly-covered region**, not by re-running the old one. **Near-miss on the proof itself:** my first external-row mutation stayed GREEN and I nearly credited the gate — the mutation was wrong (I rolled back one date while the sentence I had just authored carried another). **A green mutation is as ambiguous as a red one.** Six phases now, zero product defects, every finding in the machinery that asserts the product is sound |
 | 444 | §996 | **§997** | **SIX STALE COPIES OF MY OWN GATES, INVISIBLE TO EVERY GIT-BASED CHECK.** Chasing cited commit SHAs gave a clean negative — **151/160 resolve locally**, the 9 misses being money values (`22208400`), account ids and `abc1234` placeholders — so **no gate**, for L421's reason. But two misses sat in `… 2.md` files: this checkout syncs through iCloud, which writes `name 2.ext` beside the original. **52 duplicates, six of them stale copies of gates written earlier in this audit, in `tools/checks/`.** All UNTRACKED — `git status` hides them and every git-based gate is blind by construction; zero TRACKED duplicates is why the repo looked clean. Verified before deleting: 5 byte-identical, 1 an older snapshot that was a strict SUBSET (`comm` → 0 unique lines). Removing them left `test:tools` bit-identical, so they were **inert — and only by luck of the glob** (`…test 2.ts` misses `*.test.ts`); a duplicated SOURCE file matches every `**/*.ts` scanner and would be COUNTED against the CLAUDE.md budgets. Gate is **self-scoping** (a dir counts iff it holds a tracked file), so the 46 in an untracked sibling workstream are correctly ignored and were NOT deleted. Mutation-proved 4 ways incl. **proving the exclusion is a boundary, not a blind spot**. Three phases, four claim-forms, three gated and one refused. **CORRECTED same session:** reconciling against §867 (which measured vitest DOES collect a duplicate) showed both records right about DIFFERENT shapes — `foo.test 2.ts` is not collected, `foo 2.test.ts` is collected, executed and **passes** — and **my own gate had the same blind spot**, covering the harmless form and missing the silently-green one. Widened and re-proved on 4 shapes + the `x2.sql` negative control. **A gate written from one observed instance covers that instance's shape** |
@@ -58800,3 +58801,74 @@ before it lands) · the flake filed at §998 recurs.
 
 **What is left is not work; it is decisions and inputs.** The audit can no longer improve this board from
 inside the repository.
+
+---
+
+## §1000 — PHASE GATE: what the BLOCKED gates do on vendoring day — clean, and I nearly filed the opposite
+
+§999 established that nothing on the board is a repo-owned defect: two FAILs are one owner-held register row,
+five BLOCKED are inputs no commit can supply. That is a statement about **today**. The question it does not
+answer is the one that matters to the owner:
+
+> The nine private fixtures arrive. Do those gates **verify** them, or merely **find** them?
+
+That is the moment of maximum risk in this whole record. A gate that goes green on presence alone would
+convert five honest BLOCKEDs into five false PASSes on the single day nobody would re-check them — the
+false-clean shape, at the worst possible time.
+
+First, the smaller claim in the same area, re-verified: checklist **L410** says no line/branch coverage is
+measured anywhere. True at HEAD — **0 coverage providers in the pnpm store, 0 of 12 tracked vitest configs
+mention coverage** — and §973 already established nothing is installable in this environment. Correctly an
+external/tooling hold, not repo-owned debt.
+
+### The vendoring transition, probed
+
+`verifyManifest` fails closed on every degenerate state, and the test file carries **12 cases** — hash
+mismatch, missing file, `in-repo-test` presence, all three modes, and the digest framing.
+
+One branch was absent from that list: **`vendored` with a null `sha256`** — which is the state all nine
+pending fixtures are in *right now* (`sha256: null`), i.e. exactly what a rushed vendoring produces. I
+mutated it out:
+
+```
+delete the `vendored without a pinned sha256` guard   →   12 tests still PASS
+```
+
+**That is where I nearly filed "an undefended guard on the exact transition the owner will perform."** It
+would have been wrong, and §(a-silent-mutation-has-two-explanations) says one probe separates the cases. Two
+probes did:
+
+| probe | result |
+|---|---|
+| `pnpm typecheck:tools` with the guard deleted | **`TS18047: 'e.sha256' is possibly 'null'`** — and typecheck is a merge gate |
+| call `verifyManifest` with `vendored` + null, guard deleted and the type error suppressed | **still rejected** — `hash mismatch (pinned null… actual 79253e8ba6f7…)` |
+
+So the transition is defended **three** ways: the explicit guard gives the clean message, the compiler
+prevents the guard's silent removal, and the downstream mismatch branch fails closed regardless because a real
+digest is never `null`. **Defence in depth, unplanned but real.** The missing test is a message-quality gap,
+not a safety gap, and it is not worth a test that would pin prose.
+
+**CLEAN NEGATIVE on the highest-stakes transition in the record.**
+
+### The method lesson, which is the mirror of one this record already holds
+
+§(attribute-the-red-before-crediting-it) says a non-zero exit proves *something* failed, never that YOUR
+subject failed. This is the same error in the opposite colour:
+
+> **Attribute the GREEN before condemning it.** A mutation that survives the suite you ran may be caught by a
+> gate you did not run, or made harmless by a branch downstream of it. "The tests did not catch this" is a
+> claim about the tests, not about the code — and this repo has 26 gates, of which one suite is one.
+
+Concretely: had I stopped at the green suite, I would have filed a Medium row against a mechanism that is
+correct, and sent the owner to harden something already hardened. §960's shape — a wrong remediation costing
+someone else's time — reached by the opposite route.
+
+### Phase gating
+
+**STOP — and this is the same stop as §999, now with its most load-bearing assumption tested.** The five
+BLOCKED gates are not merely honest about being blocked; they are sound on the day they unblock. That was
+worth one phase to establish and does not need re-establishing.
+
+**Re-open when:** any fixture flips `pending → vendored` (the branch above becomes live — re-run
+`pnpm check:fixtures` and expect PASS with `assertions > 0`, never `executed: false`) · `verify.ts` changes ·
+a coverage provider becomes installable, which turns L410 from external into repo-owned work.
