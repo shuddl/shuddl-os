@@ -579,7 +579,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 384 | §936 | **§937** | **ONE FACT, TWO RECORDS — THE LIVE ONE WAS MAINTAINED, THE SUMMARY WAS NOT.** C3 — the agents worker's claimed-pool blind spot, filed **High**, *"build it before any `PROVISIONING_ENABLED` flip"*. **Every clause of the open half is now false**: `tenants.ts` declares both pool DBs (6 wrangler entries), exports `POOL_BINDINGS`, and carries a **fail-closed** claimed resolver throwing `UNKNOWN_TENANT` for sentinel/unclaimed/malformed/invalid-binding; enumeration is `allTenantSlugs()` at **9 call sites** — including `runReconSweep`, the REQ-169 sweep the row named — with **ZERO** remaining `for … of TENANT_SLUGS` fan-outs; covered by two suites. **I had the staleness in the WRONG PLACE**: the live checklist row already said *RESOLVER BUILT 2026-08-01* and even named *the ninth fan-out hiding outside `index.ts`* — the exact site my count found ninth. **The stale record is the AUDIT's C3 SUMMARY row.** Corrected before commit, because a correction that misidentifies its subject sends the next reader to fix a row that is already right. **The class**: a checklist row has eight fields and an expiry; a summary row has neither — **a fact duplicated into a summary acquires a second lifetime nobody manages**, and the audit's row is the natural entry point because it names the severity. **Under-reporting progress costs as much as over-reporting it, and nobody checks that direction — a record saying *still open* never looks wrong.** Cost: four commands, all named by the row's own expiry field, un-run since filing. **Two proxies avoided**: a `head`-truncated grep showed 7 fan-outs (real: 9, with `runMirrorSweep` outside the window), and `mirror-sweep.ts` holds no enumeration at all — after §934 and §935 each produced a proxy count that looked like a finding, exact counting was the default |
 | 385 | §937 | **§938** | **ELEVEN OF TWELVE SUMMARY ROWS HOLD — BUT ONE IS HELD BY NOTHING.** §937's C3 correction raised the bounded question: how many of the summary zone's other status rows are stale? Re-verified all twelve against HEAD by reading the SUBJECT (tracked-file counts, struck text, the lens branch itself) — eleven hold. The finding is the second question: *is each fix PINNED?* C1's is (reverting the lens branch REDs `portal-actions.test.ts`). **C2's was not** — deleting ` --mode release` from `package.json:43` restores audit C2 verbatim: `pnpm test:surfaces` prints *"BLOCKED — a skip is not a pass"* and **exits 0**, while all six package.json-reading gates stay green (45/45). Sentinel and exit code disagree; CI believes the exit code. `playwright-mode-parity.test.ts` now computes the rule from run-gate's roster: every browser gate draws its mode from exactly one source, never both, never neither — 3/3 mutations RED. Also: my own near-miss, treating the context's session-start `gitStatus` as the tree |
 | 386 | §938 | **§939** | **CLAUDE.MD'S DESIGN LAW IS REPEALED BY ONE WORD OF JSON.** Generalizing §938: repo-wide there are exactly two gate-semantics knobs, and the second is `tools/design/design-ci.json`, stated as law in CLAUDE.md rule 7, genesis/11 and genesis/14. Flipping `"blocking"`→`"advisory"` is **silent** (test:tools fails only on the known REQ-289 trio). And consequential: a planted `box-shadow` exits **1** under blocking and **0** under advisory *while still printing the violation*. §252 proved the gate WORKS; §258 read that the config says blocking; neither asked whether the config HOLDS — a gate proved correct and a gate proved durable are different claims. `design-mode-parity.test.ts` parses the mode CLAUDE.md asserts and requires the config to match (§830), so changing the law takes both sides in one commit |
-| 387 | §939 | **§940** | **THE UNIT-TESTS GATE WAS RUNNING A QUARTER OF THE TESTS.** `test` is `test:tools && pnpm -r run test`; `test:tools` fails on the owner's REQ-289 row, so the recursive half has not run in the merge gate for as long as that row has been open. Measured: a planted `packages/ledger` regression is **invisible** (0 hits) under `&&` and visible (3) when both exit codes are aggregated. **3,269 tests across 17 suites, all green, were not being run** — the failure mode is silence, not noise, and a real regression was indistinguishable from the known row. §656's `&&` bought polarity at the cost of completeness when the first half could not fail; that mechanism is superseded (its property is kept and still enforced). `--no-bail` REJECTED on evidence: workerd socket exhaustion cascades false failures. Residual named: `pnpm -r` still bails per package |
+| 387 | §939 | **§940** | **THE UNIT-TESTS GATE WAS RUNNING A QUARTER OF THE TESTS.** `test` is `test:tools && pnpm -r run test`; `test:tools` fails on the owner's REQ-289 row, so the recursive half has not run in the merge gate for as long as that row has been open. Measured: a planted `packages/ledger` regression is **invisible** (0 hits) under `&&` and visible (3) when both exit codes are aggregated. **3,269 tests across 17 suites, all green, were not being run** — the failure mode is silence, not noise, and a real regression was indistinguishable from the known row. §656's `&&` bought polarity at the cost of completeness when the first half could not fail; that mechanism is superseded (its property is kept and still enforced). ~~`--no-bail` REJECTED on evidence~~ **OVERTURNED §949** — the cascade was CONCURRENCY, not no-bail; `--workspace-concurrency=1 --no-bail` gives 17/17 and the residual (measured: only **3 of 17** suites ran) is CLOSED |
 | 388 | §940 | **§941** | **THE SAME SHORT-CIRCUIT IN `typecheck`, CLOSED BEFORE IT COULD BITE.** Counted rather than guessed: of **30** gate specs in `gatesFor()`, exactly **two** chain internally — `test` (§940) and `typecheck`. Planted type errors in both halves: under `&&` only the tools error is reported and the recursive half never runs; aggregating, both do. It passes today, so nothing was masked — the point is that **`&&` is safe only while the first half has no persistent red**, which is a property of the repo's ledger of open rows, not of the script. First probe was a FALSE CLEAN (grepped the planted identifier; tsc prints `file(line,col): error TS2322` and never the symbol). gate-wiring now asserts the CLASS over a roster checked against `gatesFor()` |
 | 389 | §941 | **§942** | **NOTHING STOPS A SURFACE DEPLOYING WITHOUT ITS CONTRACT CHECK.** §941's detector matches `pnpm -r --if-present run`; **4** scripts recurse and it matches **2** — the others spell it `pnpm --filter`. Both are outside `gatesFor()` so the rule is correctly scoped, but reading them found the `deploy:surfaces` pipeline enforced by a **comment**. Naive probe looks guarded: deleting `check:surfaces` REDs — as the §289 ORPHAN check, incidentally, because the deploy chain is its sole invoker. The three routes that keep it invoked are **all silent**: run it after the deploy, `&&`→`;`, or drop `-- --built` (checks sources, not the shipped bundles). Each deploys a live production surface past its contract gate. Also states the scope boundary: `&&` is wrong for INDEPENDENT halves, right for a DEPENDENT pipeline — this one is fail-closed and must stay |
 | 390 | §942 | **§943** | **THE "PRINTS ITS REFUSAL, EXITS 0" CLASS, ENUMERATED AND CLOSED — AND MY OWN MECHANISM CORRECTED.** §938/§939 said *"sentinel and exit code disagree, CI believes the exit code."* Wrong: `reconcileSentinel` already reconciles them **pessimistically** (a sentinel may degrade an exit-0 run, never upgrade a failing one). Measured why both survived it — **neither gate emitted a sentinel at all** (0 and 0). The true rule is sharper: *it protects gates that SPEAK, not a gate that goes QUIET*, and suppression is conditional on the same `local` mode where the exit code is wrong. Class enumerated two-sided: **10 mode-aware entrypoints / 14 script bindings, every one has a mode source, zero default to local.** Clean negative with a REAL positive control — reverting §938's one-line fix makes the probe print NONE |
@@ -589,6 +589,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 394 | §946 | **§947** | **THREE PROBES INTO PRODUCT CODE, THREE CLEAN NEGATIVES — AND THE RECORD GOT CHECKED FIRST.** (1) Staging can email a real person — `resolveRecipient` has no env check or allowlist, and the safety rests on a DATA POLICY not a mechanism. **Already recorded**, more precisely than I'd have written it: `DEPLOYMENT.md:29` (*the only real address wired in staging is an owner test inbox*) + a Med awareness row with a disable procedure + REQ-154's *staging PII audit clean* DoD. (2) Both Biller `issued_send_pending` reasons are covered by 3 test files each, including the Command surface's DunningQueue. (3) `gate-wiring` reads `package.json` cwd-relative, but pnpm sets a script's cwd to its package root — measured from two subdirectories, full 1,196-test suite identical. No gate added: it would be testing pnpm. Each probe's KILL COUNT stated, because a clean negative is worth only its detection power |
 | 395 | §947 | **§948** | **STOPPING POINT — 19 PASS · 2 FAIL · 5 BLOCKED at `8fc2c53`.** Ten phases closed six classes, all invisible to the 26 gates beforehand: 2/2 config knobs that repealed an enforcement by one token (one of them CLAUDE.md rule 7), 2/2 gate scripts running a fraction of their corpus (`test` reached **1,177 of 4,446 tests**), a deploy ordering enforced by a comment, the go-quiet class enumerated (10 entrypoints, 0 defaulting to local), three rotted summaries, and one miscount. **10 gates · 34 mutations RED · 3 corrections to my own published work.** Remaining is owner-held: REQ-289's classification, 9 private fixtures + `IDENTITY_DENYLIST`, and 17 repo-owned rows each needing a REQ row or an owner decision. Caveat recorded: while REQ-289 is unclassified, `unit-tests` is a BINARY exit code — read the test output, never the board line, to judge whether something new broke |
 | 396 | §948 | **§949** | **§940'S RESIDUAL QUANTIFIED AT 3-OF-17, AND ITS REASONING CORRECTED.** §940 named *"pnpm -r still bails at the first failing package"* and rejected `--no-bail` after watching workerd exhaust sockets. Measured: one planted failure in `packages/contracts` and **only 3 of 17 suites run** — api (824), ledger (697), rater, billing, mcp, translator, agents and all three apps never execute. The gate's coverage is a property of WHERE the first failure lands. **§940 changed two variables and blamed the wrong one:** the cascade came from CONCURRENCY, not no-bail. `--workspace-concurrency=1 --no-bail` → **17/17, zero socket errors, +19s (12%)**. `typecheck` takes `--no-bail` alone (tsc binds no sockets) and names **3** failing packages where the default named 1. Gate now requires `--no-bail` on both |
+| 397 | §949 | **§950** | **A REJECTION IS A CLAIM WITH A LIFETIME — AND 6 OF OUR 9 HAVE NO EXPIRY.** §949 overturned §940's `--no-bail` rejection but corrected it in only ONE of the three records that carried it, so the audit said both things at once; both older copies now struck in place. **Fourth instance this session of one fact in N records with only the newest maintained** (§937, §944, §946, and now my own one-phase-old correction) — rule: *when you overturn a claim, grep for the CLAIM, not the section that made it.* Measured the class: **9 explicit rejections, 3 with a re-measurement trigger, 6 without.** The empirical case is §940's own — untriggered, and wrong within nine phases, wrong in ATTRIBUTION not measurement. Re-tested the one decidable trigger (§313's date-stamp detector): **zero** machine-readable stamps in the nine ops docs, so it has not fired and that rejection stands |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -55406,8 +55407,13 @@ fix is `--no-bail`, and I measured it before believing it: it made every worker 
 workerd exhausted local sockets — `connect(): Can't assign requested address` cascading through mcp,
 translator, agents and api, with the *planted* failure never reported because the suite crashed before
 reaching it ([[workerd-wedge-uninterruptible]]; 37 orphaned workerd processes were live at the time). That is
-a false-failure generator, strictly worse than the bail. **So `--no-bail` is rejected on evidence, and the
-residual is recorded rather than dropped** (the no-silent-caps rule): *within* the recursive half, package
+a false-failure generator, strictly worse than the bail. ~~**So `--no-bail` is rejected on evidence**~~ —
+**OVERTURNED 2026-08-11 (audit §949).** That experiment changed TWO variables and I attributed the result to
+the one I was thinking about: the cascade came from **concurrency**, not from `--no-bail`. Measured apart,
+`--workspace-concurrency=1 --no-bail` gives **17/17 suites reporting, zero socket errors, +19s (~12%)**, and
+the residual below is now CLOSED rather than accepted. Its size, unmeasured when this was written: one
+planted failure in `packages/contracts` left only **3 of 17** suites running.
+The residual as originally recorded (the no-silent-caps rule): *within* the recursive half, package
 order still truncates on first failure. The top-level split — the one that was hiding 3,269 tests — is closed.
 
 **Board: 26 gates, 19 PASS · 2 FAIL · 5 BLOCKED**, unchanged in shape, and both FAILs remain the REQ-289 row
@@ -55964,3 +55970,54 @@ one that owns this rule. §942's lesson was *chain the gates rather than listing
 
 `gate-wiring.test.ts` now requires `--no-bail` on both roster members, so bail-hides-corpus cannot return
 silently — the same file that §940/§941 taught to require both halves now also requires all packages to report.
+
+## §950 — PHASE GATE: a rejection is a claim with a lifetime, and two-thirds of ours have no expiry
+
+§949 overturned §940's rejection of `--no-bail`. That raises the obvious class question — **how many other
+recorded rejections rest on reasoning that could be re-tested?** — and, first, a smaller one I should have
+asked in §949 itself.
+
+### §949 corrected the reasoning in ONE of three records
+
+§940's rejection lived in three places: its section prose, its **phase-index row**, and §949's account of
+overturning it. §949 wrote the correction and updated none of the others, so the audit simultaneously said
+*"`--no-bail` is rejected on evidence"* (twice, live) and *"the cascade was concurrency, not no-bail."*
+
+Both older copies are now struck in place. **Fourth instance this session of one fact living in N records with
+only the newest maintained** — §937 (C3), §944 (L417), §946 (L115/L116), and now my own correction one phase
+old. [[a-header-rots-against-the-detail-below-it]]. The pattern is stable enough to state as a rule: *when you
+overturn a claim, grep for the claim, not for the section that made it.*
+
+### The class, measured
+
+| | count |
+|---|---|
+| explicit rejections / accepted limits in this audit | **9** |
+| carrying a re-measurement trigger | **3** (33%) |
+| carrying none | **6** |
+
+**Two-thirds are permanent decisions by accident.** A rejection reads like a settled fact and is really a
+measurement with an expiry — exactly the property [[record-holds-with-expiry-triggers]] establishes for open
+rows, applied to the closed ones nobody re-reads.
+
+**The empirical case is §940 itself**: its rejection was one of the six with no trigger, and it was wrong
+within nine phases. Not wrong in its measurement — wrong in its *attribution*, which is the failure mode a
+trigger would surface, because re-running the experiment is what separates the variables.
+
+### Re-testing the one whose trigger IS decidable
+
+§313's date-stamp detector was *"rejected on evidence"* — on a population of four, line-granularity alone
+produced **two false positives**, and a sentence-level stamp in wrapped markdown is unreachable by a
+line-based detector. Its trigger is concrete: *"if the ops docs ever adopt a machine-readable stamp
+(`<!-- measured: … -->`), the gate becomes trivial."*
+
+Checked: **zero** machine-readable stamps across the nine `docs/ops/*.md` files (the only hits are this audit
+quoting its own example). **Trigger not fired; the rejection stands, and its reasoning is sound** — a 50% false
+positive rate before anyone writes a subtle case is the correct reason not to build a gate.
+
+### No gate, stated honestly
+
+A detector for *"a rejection whose reason has expired"* reads English and would be dominated by correct uses —
+[[invert-a-detector-whose-boundary-is-english]]. The six untriggered rejections are not retro-fitted with
+triggers either: inventing one at this distance is the §872 prophecy failure, written at the moment of least
+evidence. What is recorded instead is the count, so the next reader knows the denominator.
