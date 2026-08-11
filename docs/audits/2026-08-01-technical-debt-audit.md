@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 514 | §1066 | **§1067** | **I RE-DERIVED §798 INSTEAD OF SEARCHING FOR IT — THIRD INSTANCE.** Chasing §1066's loose end (which dormant collaborators lack a degradation test) produced a real correction and a wasted phase. **The correction:** §1066 said the 11 dormant doubles *"throw"*; measured individually, **7 throw and 3 return a benign `null`** — a generalisation from the two files I had open. The verdict survives (both shapes prevent absorption) but the mechanism was invented. **The waste:** `NotConfiguredMigrator` has zero test references, and I traced its call graph to conclude it is opt-in rather than the default — which is **verbatim what §798 concluded**, with a reopen trigger, 269 sections ago. Re-verified that trigger instead: `selectMigrator` still returns `DeterministicMigrator`, still pinned. |
 | 513 | §1065 | **§1066** | **THE TEST-DOUBLE SWEEP — 15 DOUBLES, EXACTLY ONE MASKED A LIVE DEFECT, AND IT IS ALREADY PINNED.** §1065's rule (*a double's correctness can be a defect's camouflage*) applied to every double in the repo. **11 are `NotConfigured*`** — they THROW, so they can absorb nothing. **`RecordingLedger` already does it right**, keeping `events` (deduped) AND `appendCalls` (*"includes redelivered duplicates the sequencer would dedupe"*) — §1065's lesson implemented before I wrote it. **`RecordingSender` dedupes and is FAITHFUL**: the real `ResendSender` sends an `Idempotency-Key` header, so the double models the provider rather than hiding a defect. `FakeTsaClient` absorbs nothing. That leaves `RecordingTransport`, pinned at §1065 — and the severity framing checks out: **no live EdiTransport exists**, only the dormant thrower, so the duplicate harms nobody until one is wired. |
 | 512 | §1064 | **§1065** | **THE HIGHEST-SEVERITY REPO ROW, RE-VERIFIED AND PINNED — AND THE TEST DOUBLE WAS MASKING IT.** L409 (**High, latent**): overlapping `*/5` ticks both transmit one 214, measured ONCE by hand at §236 and pinned by NOTHING across ten test cases. Re-measured at HEAD: **the race reproduces — 2 calls into the transport for one idempotency key.** The reason it stayed unpinned is the finding: `RecordingTransport.send214` keeps its own `byKey` map and returns early on a repeat key, so **`transport.sent` is capped at 1 BY CONSTRUCTION** — my first naive test asserted exactly that, got 1, and would have reported the race CLOSED. Counting CALLS exposes it. Now pinned as a characterization test asserting the DEFECT (2), which flips to 1 when the owner picks claim-vs-lease (L410). No design decision taken. |
 | 511 | §1063 | **§1064** | **THE BOARD RE-EARNED AT HEAD — 26 GATES: 19 PASS · 2 FAIL · 5 BLOCKED.** Thirty-seven phases since the last full run (§1036 at `40f69a8`), with ~10 new gates landed in between. Ran `verify:merge` complete at `c59a599`: **identical shape to §1036**, and every verdict attributable. Both FAILs are the ONE uncommitted REQ-289 register row (`1 unaccounted register row(s)` → `unit-tests` + `coverage`); all 5 BLOCKED are absent private fixtures (`identity-leak` needs `IDENTITY_DENYLIST`; the four parity/fixture gates need the engagement vendoring). **Every browser gate is GREEN** — `perf`, `visual` 5, `a11y` 4, `e2e` 6 — alongside `design-audit`, `acceptance`, `invariants`, `append-chokepoint`, `rater-purity`. Zero repo-owned reds. And a fourth probe-shape error: my tally regex `[a-z-]+` silently dropped `a11y` and `e2e` because they contain DIGITS. |
@@ -63264,7 +63265,7 @@ duplicates is blind to duplication**, and doubles are written to be well-behaved
 
 | kind | count | can it mask a duplicate? |
 |---|---|---|
-| `NotConfigured*` (dormant collaborators) | **11** | **no** — they `throw`; nothing reaches them to be absorbed |
+| `NotConfigured*` (dormant collaborators) | **11** | **no** — but NOT for the reason first written here. **§1067 CORRECTION:** measured one by one, **7 throw and 3 return a benign `null`** (`NotConfiguredFeedReader`, and both `NotConfiguredSecretResolver`s); one is neither. Either behaviour prevents absorption, so the verdict holds — but *"they throw"* was a generalisation from the two I had open, not a measurement. |
 | `RecordingLedger` | 1 | **no** — and deliberately so (below) |
 | `RecordingSender` | 1 | **no** — faithful to the real sender (below) |
 | `FakeTsaClient` | 1 | **no** — no dedupe path |
@@ -63321,4 +63322,69 @@ no test.
 **STOP.** Every test double in the repo is classified by whether it can mask duplication, with the
 discriminating check stated and applied. One masked a live defect; it was pinned last phase. `test:tools` at the
 REQ-289 baseline · lint clean.
+
+## §1067 — PHASE GATE: I re-derived a phase the record already held
+
+**Why this phase.** §1066 left a loose end: eleven dormant collaborators, and a claim that they are safe
+because they `throw`. Two of them had **zero test references**, so the obvious follow-up is whether their
+callers degrade. That follow-up produced one real correction and one wasted trip.
+
+### The correction: the mechanism was invented
+
+§1066's table asserts *"11 are `NotConfigured*` — they THROW, so they can absorb nothing."* Measured one class
+at a time:
+
+| behaviour | count |
+|---|---|
+| `throw` | **7** |
+| return a benign `null` | **3** — `NotConfiguredFeedReader`, and both `NotConfiguredSecretResolver`s |
+| neither / unclear | 1 |
+
+The **verdict** survives — a throw and a null both prevent a double from absorbing a duplicate — but the
+**reason** I gave was a generalisation from the two files I happened to have open. That is
+[[state-the-mechanism-not-the-outcome]] for the third time this session, and it is corrected at its source
+rather than only here.
+
+The null-returners are the interesting third: a null is safe only if the caller reads it as *"cannot
+proceed"*, never *"nothing required"*. Both are documented and correct — `NotConfiguredFeedReader` yields a
+*"fail-closed no-op"* the sweep handles explicitly (`if (text === null) return { configured: true, …ZERO }`),
+and the translator's resolver states *"resolves NOTHING, so every 204 401s until the CONFIRM-gated secret store
+is wired."*
+
+### The waste: §798 had already done this
+
+`NotConfiguredMigrator` throws and has zero test references, so I traced its call graph — `selectMigrator`
+returns `DeterministicMigrator` when unconfigured, and the import route additionally wraps `guess()` in a
+try/catch that degrades to `{}`. Doubly handled; the dormant class is never selected.
+
+**That is verbatim §798's conclusion, reached 269 sections ago**, and the record says so in a heading:
+
+> *"`NotConfiguredMigrator` has zero test references and that is FINE — it is opt-in, NOT the default; the
+> DEFAULT (`DeterministicMigrator`) is what carries the guarantee and IS pinned."*
+
+§798 even filed the reopen trigger: *"`NotConfiguredMigrator` becomes the default → then it needs both pins."*
+
+I have a written rule for this — **search the record before the code** — and this is its third violation. The
+tell was available before I started: the class had zero *test* references but a **live grep hit in the audit**,
+which is exactly the signature of a question already answered.
+
+**So the salvageable work was the trigger, not the conclusion.** Re-verified: `selectMigrator` still returns
+`DeterministicMigrator`, and the default is still pinned (`packages/agents/test/migrator.test.ts`). §798's
+verdict holds at HEAD — which is worth one command, and is the only part of this phase that was not already
+written down.
+
+### What this phase says
+
+> **A conclusion you reach by tracing code is indistinguishable, from the inside, from one you are
+> rediscovering.** Nothing about the reasoning felt redundant — it felt like careful work, because it was the
+> same careful work someone had already done. The cost is invisible in exactly the way the audit exists to
+> prevent, and the only defence is mechanical: **grep the record for the symbol before tracing the symbol.**
+
+The narrower rule, earned twice over: **when a claim generalises over N things, measure N.** §1066's "they
+throw" covered eleven classes and was checked against two. Eleven greps would have cost less than the sentence
+did.
+
+**STOP.** §1066's mechanism is corrected in place; §798's verdict on the one genuinely untested dormant class
+is re-verified at HEAD rather than inherited. No new debt found, and the phase's honest yield is one correction
+and one recorded process failure. `test:tools` at the REQ-289 baseline · lint clean.
 
