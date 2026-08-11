@@ -64185,7 +64185,7 @@ wait; not re-running would have left four gates trusted on the strength of a mea
 cells to 15 — **zero dropped bindings anywhere** — with the probe error that nearly reported five phantom
 empty environments recorded. `test:tools` 1,246 passed / 3 failed — the REQ-289 baseline · lint clean.
 
-## §1080 — the fail-open skip on the deploy path, and a fix that landed in the wrong scope
+## §1080 — PHASE GATE: the fail-open skip on the deploy path, and a fix that landed in the wrong scope
 
 **Why this phase.** §1079 established that four gates parse `wrangler.toml` with regex and cannot check each
 other's parse. The natural next question is whether the **deploy preflight** — the gate that BLOCKS a worker
