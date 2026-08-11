@@ -631,6 +631,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 486 | §1038 | **§1039** | **COMMENT-BLINDNESS — MY PROBES HAVE IT, THE SHIPPED GATES DO NOT.** §1038 named the hazard after hitting it three times: **any regex that does not exclude comments is measuring prose.** Do the shipped gates carry it? **The structural sweep was useless and said so** — *gates reading source that call `stripComments`* returned **7 of 52**, but the 45 'missing' include `backup.ts`, `preflight.ts`, `run-gate.ts`, `citation-links.ts`: deploy tooling and doc scanners that never match a banned pattern against source. **A structural check cannot answer a behavioural question.** Asked behaviourally: appended to `anchor.ts` a **comment** naming `INSERT OR REPLACE INTO events` and `Date.now()` → **invariants 0, chokepoint 0, rater-purity 0**. Control, because a zero is a claim about the instrument — the same string as **code** → **invariants 1**, *REPLACE bypasses the BEFORE DELETE guard (D1 recursive_triggers=0)*. **Comment-blind in the right direction: prose passes, code fails, and the message names the MECHANISM not the pattern.** Why the gates have it and my probes did not: `source-corpus.ts` exports `stripComments` beside `SOURCE_SCAN_GLOBS`, so **adopting the shared corpus adopts comment-stripping with it** — seven gates take it, exactly the seven that need it. **The difference is not carefulness; it is whether correct behaviour arrives bundled or must be remembered per use** |
 | 485 | §1037 | **§1038** | **THE ONBOARDING PATH, AND THE README'S MOST CONSEQUENTIAL CLAIM VERIFIED AT HEAD.** §1033 found rule 1 honoured by one person's discipline and §1037 found my own summaries drifting; both ask whether **someone else could start here, and whether what they read is true.** §1003 checked gates in a fresh clone — this checks what a HUMAN follows. Setup path accurate: pins agree across `.node-version`/`engines`/`packageManager`, `check:runtime` is real and genuinely first in every chain, and both status claims carry *corrected 2026-08-04, audit §172* provenance. **The claim worth re-earning: *Production is provisioned but dark — nothing is armed or sending*** — dated a week ago, never re-checked, while §944 established staging DOES send. Measured across all eight `wrangler.toml`: **`[env.prod.vars]` carries `ENVIRONMENT` (plus `REFERRAL_BASE`) and NO sending or arming key**; staging additionally carries `EVIDENCE_FROM`. **The claim holds exactly**, and the split is why L422 is a STAGING hold — config and ledger row agree, checked against each other rather than each trusted. **Method: third comment-related probe failure this session** — a non-greedy TOML section match truncates on a comment containing `[`, hiding `EVIDENCE_FROM`. **In a repo whose comments are longer than its code, any regex that does not exclude comments is measuring prose** |
 | 484 | §1036 | **§1037** | **THE FIGURES I WAS RESTATING — TWO STALE, AND BOTH STALE BECAUSE OF ME.** §1036 re-earned the board; the same question applies to every recurring figure, and §1032 named the mechanism (*this audit is its own churn source*). Re-measured all eight: **unpushed commits 1,018 → 1,097** (I added 45 while quoting the size) and **open repo-owned rows 17 → 18** (§998 filed the flake row while I kept quoting §994) are **STALE**; ledger rows 35 → 36, same cause. Confirmed unchanged: board 19/2/5, tests 4,535/3, pending fixtures 9, BLOCKED 5, pull requests 0. **Neither stale figure decayed because the world moved — both decayed because I ACTED.** §1023's rule with the container being **my own output**: *the figures most likely to be stale in a summary are the ones the summariser is actively changing*, and it is invisible from the inside because each restatement felt like a citation rather than a claim. **The two survivors sharpen it** — `0 pull requests` and `5 BLOCKED` are exactly the figures nothing in this session could move. Remedy is §1022's: cite the SECTION that measured a figure, or re-measure at the point of restatement |
 | 483 | §1035 | **§1036** | **THE BOARD RE-MEASURED AT HEAD — THE VERDICT I HAD BEEN REPEATING PAST ITS EVIDENCE.** §999 measured the board at `1e2ec98`; every phase since quoted **19/2/5** while **37 commits landed**. This record built §995's gate because *nothing could distinguish still-true from nobody-looked*, and §1029 showed a proof covers only the text that existed when it ran — **a board verdict is subject to both, and I had been restating one without re-earning it.** Re-ran: `verify:merge` at `40f69a8`, 297s. **19 PASS · 2 FAIL · 5 BLOCKED · 22 suites · 374 files · 4,535 tests · 3 failing · 99.934%** — identical to §999 except the one test this session added. Every failure attributed again, not assumed: the same three in `tools/traceability`, all the owner's uncommitted REQ-289 row, and **21 of 22 suites have zero failures**, so `unit-tests`' red masks nothing. **What re-running bought is not a changed number but a RE-EARNED one** — 37 commits including nine new/widened gates, two skill edits, a CLAUDE.md correction and a nightly job could each have broken something. **The cost of re-measuring is bounded and knowable; the cost of quoting a stale verdict is not.** §994's wedge deferral now overruled twice, wedge absent both times |
@@ -61249,3 +61250,65 @@ production-dark claim re-earned at HEAD against the actual config.
 **Re-open when:** any `[env.prod.vars]` gains a key beyond `ENVIRONMENT` — that is the edit that falsifies the
 README's central status line, and nothing watches it · `check:runtime`'s pins move · the first external
 contributor arrives, which is the only real test of an onboarding path.
+
+---
+
+## §1039 — PHASE GATE: comment-blindness — my probes have it, the shipped gates do not
+
+§1038 named a hazard after hitting it three times in one session: **in a repository whose comments are longer
+than its code, any regex that does not exclude comments is measuring prose.** The obvious follow-up is whether
+the *shipped* gates carry the same defect — a gate that matches its own rule inside its own documentation
+fires on the file explaining it.
+
+### The structural sweep was useless, and said so
+
+Listing gates that read source and asking which call `stripComments` returned **7 of 52** — a number that
+looks alarming and means nothing. The 45 "missing" include `backup.ts`, `preflight.ts`, `provision-prod.ts`,
+`run-gate.ts` and `citation-links.ts`: deploy tooling and document scanners that never match a banned pattern
+against source. My filter caught any file containing a `packages/…*` string.
+
+**A structural check cannot answer a behavioural question.** So I asked it behaviourally.
+
+### The behavioural test, with its control
+
+Appended to `packages/ledger/src/anchor.ts` a **comment** naming two banned shapes — `INSERT OR REPLACE INTO
+events` (I3/I1) and `Date.now()` (the determinism ban):
+
+```
+invariants = 0     chokepoint = 0     rater-purity = 0
+```
+
+Then the control, because a zero is a claim about the instrument — the same string as **code**:
+
+```
+export const PROBE_SQL = "INSERT OR REPLACE INTO events VALUES (1)";
+→ invariants = 1
+  FAIL packages/ledger/src/anchor.ts: "INSERT OR REPLACE INTO ... events" — REPLACE bypasses the
+  BEFORE DELETE guard (D1 recursive_triggers=0). Corrections are new events (I3/I1).
+```
+
+**The gates are precisely comment-blind in the right direction**: prose naming a banned shape passes, code
+containing it fails, and the failure message names the mechanism rather than the pattern.
+
+### Why the shipped gates have this and my probes did not
+
+The repo solved it structurally. `source-corpus.ts` exports `stripComments` alongside `SOURCE_SCAN_GLOBS` and
+`isTestPath`, so **a gate that adopts the shared corpus adopts comment-stripping with it** — the same
+one-import move §1021 credited for keeping the tree × extension class closed. Seven gates take it, and they
+are exactly the seven that match banned patterns against source.
+
+My probes reached for `git grep` and a fresh regex each time. **The difference is not carefulness; it is
+whether the correct behaviour arrives bundled with the corpus or has to be remembered per use.** That is the
+same lesson as §1021's shared globs and §986's *"duplicate and gate the parity, not extract a builder"* — the
+repo's own answer, which my ad-hoc tooling sits outside of.
+
+### Phase gating
+
+**STOP.** Comment-blindness is verified as a property of the shipped gates, by violation and control:
+banned-in-prose passes, banned-in-code fails, and the seven gates that need stripping are the seven that have
+it.
+
+**Re-open when:** a gate is added that matches a pattern against source without importing `source-corpus` —
+that is the only route back in, and §1021's re-open trigger already watches the same import · `stripComments`
+changes, since seven gates inherit its behaviour · a banned pattern is added whose shape can appear in a
+string literal that is *not* a violation, which is the one case stripping cannot decide.
