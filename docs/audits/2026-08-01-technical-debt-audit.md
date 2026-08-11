@@ -631,6 +631,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 451 | §1003 | **§1004** | **THE CWD-DEFAULT CLASS, SWEPT — 1 DEFECT, 9 CORRECT, AND THE RULE THAT TELLS THEM APART.** §1003 fixed two `cwd = process.cwd()` defaults; at instance #2 you count the class. **Nine more carry the identical signature — and the sweep that would have 'fixed' them would have BROKEN THE BUILD.** `invariants.test.ts:46`'s `runCli(cwd, args)` spawns the CLI against a **temp fixture repo**; anchoring `main()` to `repoRoot()` makes it ignore that cwd and scan the real repository, silently invalidating every fixture test. **The discriminator: a `cwd` default is a defect only when NO caller ever passes anything else** — indistinguishable from the signature alone. Classified all nine: 8 have fixture harnesses passing temp dirs, 1 inherits its CLI's own fixture-driven cwd. **9 of 9 correct.** The acceptance runner was the real defect precisely because its only explicit caller passed `repoRoot()` — a workaround, not a use. Behavioural check: 3 of 4 entrypoints are cwd-identical; `invariants.ts` differs and fails **CLOSED** on §732's floor — cwd-relative on purpose, loud when misused. **Twice now the right move was NOT to generalise a real fix** (§1000: a guard defended by types; here: a default defended by a harness) — generalising without a discriminator is how an audit starts producing defects instead of finding them |
 | 450 | §1002 | **§1003** | **CAN ANYONE ELSE BUILD THIS? — A FRESH CLONE, AND THE GATE THE CWD SWEEP MISSED.** 1,018 commits nobody else has seen; nothing had asked whether the tracked tree is self-sufficient. Cloned it (1,001 files) and ran the standalone gates with `repoRoot()` resolving there: **3 of 4 clean on tracked content alone**; `invariants.ts` crashed on a missing workspace package — **a harness artifact** (no `node_modules`), recorded because it reads like a defect. Full answer needs a network install (§973 says impossible here), so I measured the decidable half: **47 non-test tool modules, exactly ONE untracked literal path** (`workers/mcp/dist/api/index.js`) — and the runner BUILDS it if absent. **Reading that line found the real defect:** `tools/acceptance/run.ts` was never anchored — `missingSpineFiles()` returns **0 from root, 4 from any subdirectory**, so `pnpm test:acceptance` from a package dir reports the five acceptance demos as broken. **It survived the sweep that anchored sixteen siblings because it fails CLOSED** — that sweep hunted gates reporting OK over nothing, and *wrong-and-loud* does not match a search for *wrong-and-silent*. **The tell was in the TEST**: `demos.test.ts:80` already passed `repoRoot()` explicitly, routing around the default instead of failing on it — **a test that compensates for a bad default is a known, unfixed defect that is green by construction.** Both defaults fixed, pinned by a `chdir` test, 2 mutations RED |
 | 449 | §1001 | **§1002** | **THE IDENTITY-LEAK GATE, EXERCISED FOR THE FIRST TIME.** CLAUDE.md forbids any tenant/person/customer name in any repo artifact (REQ-167), and that gate has sat BLOCKED since it was written — **it had never detected anything.** Unlike the other four holds it is exercisable without the secret (the loader takes `IDENTITY_DENYLIST` **or** a gitignored `.identity-denylist.local`). Three probes with a synthetic term: clean tree → **PASS**; term planted in a TRACKED file → **FAIL naming the file and REDACTING the term** (`Z***********` — a gate that echoed the name would republish what it exists to prevent); corpus blinded → **FAIL** *"denylist present but ZERO files scanned … a broken gate reporting on nothing."* **CLEAN NEGATIVE on all three axes.** Boundary stated, not a gap: my first probe used an UNTRACKED file and read clean — correct, since the corpus is `git ls-files` and REQ-167 governs repo artifacts, but worth recording because §997 found 46 untracked docs in a sibling workstream. **Method, twice:** my first corpus mutation was a NO-OP (`execSync`, not `execFileSync`) and printed `clean` — the script's own `assert` caught it. **A mutation script needs an assertion that the mutation applied**, or a no-op reads as a passing gate. 2 of 5 BLOCKED gates now proved sound on unblock |
 | 448 | §1000 | **§1001** | **THE SEVEN HARD BUDGETS, PROVED BY VIOLATING EACH — AND ONE NEARLY READ AS UNENFORCED.** CLAUDE.md line 15 is headed *CI-enforced*, and this record caught that heading lying once (§245: one of seven had **no pin at all**). The budgets gate proves the STATED number equals the ENFORCING constant — a lockstep, not a rejection. So I planted a real violation of every family: **7 for 7 RED** — 23 tables → `I8 VIOLATION`; a fourth `apps/` dir → `UNREGISTERED surface`; a 36th event kind (**zero headroom**); a 13th view; a 6th token; a 3rd font; and shadow/radius/raw-hex/rgba in a CONSUMING component → 4 REDs each naming its REQ. **CLEAN NEGATIVE by violation rather than by reading.** The near-miss: the first table probe produced ONE failure line and it was the *classification* rule, not the budget — I was ready to file it. Classifying the probe tables properly surfaced `23 > 22`: the classification rule fires FIRST and shadows the budget on the same input. Mirror of §1000 one phase later — **attribute the RED and attribute the GREEN; a verdict is about the run until your subject is the only variable.** Boundary stated: a 6th token is caught by the lockstep, NOT `audit:design`, whose palette is *derived* from the tokens — the two enforce different halves and neither is redundant |
@@ -59075,3 +59076,63 @@ dependency in 47 gate modules, and it self-heals; three of four standalone gates
 **Re-open when:** a network install becomes possible — then run `pnpm install && pnpm verify:merge` in a
 clone, which is the only complete answer · a new tool module lands (check its path defaults against §1003) ·
 `tools/acceptance/run.ts` gains another `cwd` parameter.
+
+---
+
+## §1004 — PHASE GATE: the cwd-default class, swept — one defect, nine correct, and the rule that tells them apart
+
+§1003 fixed two `cwd = process.cwd()` defaults in the acceptance runner. This record's own discipline says at
+instance #2 you stop fixing and count the class, so I swept every one.
+
+**Nine more functions carry the identical signature.** The naive reading — *the sweep that anchored sixteen
+gates missed nine more* — is wrong, and the sweep that would have "fixed" them would have broken the build.
+
+### The discriminator
+
+`invariants.ts` documents it in prose, and the test proves it: `runCli(cwd, args)`
+(`invariants.test.ts:46-48`) spawns the CLI with an explicit **temp fixture repo** as its cwd. The gate's
+end-to-end tests build a synthetic checkout — one tenant migration, no `apps/` — and drive the real CLI
+against it. Anchoring `main()` to `repoRoot()` would make the CLI ignore that cwd and scan the real
+repository, silently invalidating every fixture test.
+
+> **A `cwd` parameter defaulting to `process.cwd()` is a defect only when no caller ever passes anything
+> else.** Where a fixture harness drives it, the default is the feature — and the two cases are
+> indistinguishable from the signature alone.
+
+Classified all nine by that test — does any caller pass an argument that is not `repoRoot()`?
+
+| verdict | functions |
+|---|---|
+| **cwd is a real input** — fixture harnesses pass temp dirs; default must stay | `buildRepoIndex`, `suppressedLines`, `collectCitations`, `loadRatchetConfig`, `writeRatchetBaseline`, `findStraySql`, `listMarkdownFiles`, `scanTables` |
+| **inherits its CLI's cwd**, which is itself deliberately fixture-driven | `findForbiddenReplaceSources` (one call site, `invariants.ts:968`, no argument) |
+
+**Nine of nine correct.** The one real defect in the class was the acceptance runner, and §1003 already closed
+it — precisely because there the parameter was *never* a real input: its only explicit caller passed
+`repoRoot()`, which is what made it a workaround rather than a use.
+
+### The behavioural check, for completeness
+
+Four gate entrypoints run with only cwd varying:
+
+```
+citation-links.ts    root ≡ subdirectory
+check-table-shape.ts root ≡ subdirectory
+identity-leak.ts     root ≡ subdirectory
+invariants.ts        DIFFERS — "FAIL invariants — scanned 0 migration files"
+```
+
+The one that differs fails **closed**, on the non-vacuity floor §732 added for exactly this. It is
+cwd-relative on purpose and loud when misused: the correct combination.
+
+### Phase gating
+
+**STOP — the class is closed, not merely sampled.** 1 defect found and fixed (§1003), 9 confirmed correct with
+the reason recorded so the next sweep does not "fix" them.
+
+**Re-open when:** a new tool module takes a `cwd`/`root` parameter — apply the discriminator before shipping it
+· a fixture harness is removed (its function's default then becomes a genuine defect, and nothing would say
+so) · `invariants.test.ts:46`'s `runCli` stops passing a cwd.
+
+**Method note this phase reinforces.** Twice now the correct action was *not* to generalise a real fix: §1000
+(a guard defended by the type system, not tests) and here (a default defended by a fixture harness). A fix that
+generalises without a discriminator is how an audit starts producing defects instead of finding them.
