@@ -611,6 +611,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 416 | §968 | **§969** | **THE DENOMINATOR RULE, APPLIED FIRST TO MY OWN MOST RECENT CLEAN NEGATIVE.** §968 adopted *every sweep reports `checked=N`*; a rule adopted and not immediately applied is a resolution, not a practice. **§965 published three bare zeros** — the exact shape §968 condemned, one phase earlier, same author. Re-run: `checked=906 refs bad=0`, `checked=994 files clashes=0`, `checked=994 files dups=0`. **The zeros hold** and are now falsifiable; §965's table backfilled in place with a note. Reviewed all 30 session sections for clean-negative claims: **1 of 30 lacked a denominator**, now supplied; §943/§947/§952/§961/§964/§968 each already carried theirs. **A rule that exempts the work that motivated it is a rule with a survivorship hole** |
 | 417 | §969 | **§970** | **THE HARD BUDGETS, MEASURED AGAINST THEIR OWN DECLARATIONS.** The other constitutional list, unchecked this session. All are gated from `tools/` — the half that never went dark — so **unlike rules 4/5/6/8 (§955) the budgets held through the §940 window.** Values counted from the rosters, not greps: tables **21/22**, surfaces **3/3**, canonical views **11/12**, event kinds **35/35** (`EVENT_KINDS` checked=35 entries, 35 distinct), colours **5 base + 4 derived**, fonts **2**, shadows/gradients/radius `design audit: clean`. **Operational fact: event kinds have ZERO headroom** — CLAUDE.md's *additions = register amendment* is now the live constraint, and *within budget* vs *at the ceiling* read identically in a green gate. Two probes returned `checked=0` (a token regex assuming a `--color-*` convention this repo does not use) and were re-run rather than published — §968's rule, working |
 | 418 | §970 | **§971** | **RULE 1's GATE HAS NEVER RUN — NOT ONCE, IN THE REPOSITORY'S HISTORY.** Completing the rule sweep: rules **2, 3, 10** are gated from `tools/` (append-only 14 files, REQ-030 authority, migrator no-silent-drop) so they held through the §940 window. Rule 1 has two clauses — the ORPHAN half is enforced (`check:traceability`, green), the **PR half is `check:pr`, guarded `if: github.event_name == 'pull_request'`**. Measured: last 8 ci runs **all `event=push` on main**, **pull requests ever = 0**, step 7 SKIPPED on the last run. The audit had filed this as *a policy question… the branch protection this repo assumes is outside it* — **§956 measured that assumption false**, so the deferred question is answered unfavourably. Counterweight, measured: **199 of 200 commits reference a REQ-ID (99%)** — the law is held by hand. Which is the point: **a practice sustained by one author's discipline is not one sustained by a gate** |
+| 419 | §971 | **§972** | **STOPPING POINT II — THE GATES ARE SOUND; NOTHING WAS ENFORCING THEM.** Board at `0948bb2`: 19 PASS · 2 FAIL · 5 BLOCKED. §948 was superseded not for being wrong but for looking INWARD; §949–§971 looked outward. One sentence: **every gate works, and for three weeks essentially none was stopping anything** — no branch protection (§956), **0 pull requests ever** so rule 1's gate never ran (§971), CI red since 07-23 with the **26-gate step SKIPPED** in all three runs (§962) because a **vacuity floor** failed on a GPU-less runner (§963), `origin/main` 1,018 commits behind (§957), the deployed commit's only CI verdict FAIL (§959), and 4 prod vulnerabilities in a step that never ran (§967, now 0). Fixed in-repo: `!cancelled()`, hardware-aware floor, hono 4.13.1, both halves `--no-bail`, 10 gates, rules 1–10 + budgets swept. **Owner-held, best first: PUSH** — one action closes §957, §958 and §966 and gives CI its first run against three weeks of work |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -57065,3 +57066,58 @@ also precisely why the gap matters: **a practice sustained by one author's disci
 practice sustained by a gate**, and rule 1 was written to survive the second kind of change. Recorded, not
 "fixed" — making `check:pr` run on pushes is a governance decision about how work reaches `main` (§956's row),
 not a workflow edit an audit should make unilaterally.
+
+## §972 — PHASE GATE: STOPPING POINT II — the gates are sound; nothing was enforcing them
+
+**Measured at `0948bb2`: 26 gates — 19 PASS · 2 FAIL · 5 BLOCKED**
+(`artifacts/release/0948bb2…/merge/gate-merge-2026-08-11T04-49-57-974Z.json`).
+
+§948 called a stopping point after ten phases. It is superseded, not because it was wrong but because it was
+**looking in the wrong place**: it concluded the assurance system had audited itself and the remainder was
+owner-held. §949–§971 then looked *outward* and found that the system had been sound and unenforced at the
+same time.
+
+### The single sentence
+
+**Every gate in this repo works. For the last three weeks, essentially none of them was stopping anything.**
+
+| link | measured | phase |
+|---|---|---|
+| `main` branch protection | **absent** — nothing blocks a merge or push on a red gate | §956 |
+| pull requests, ever | **0** — so `check:pr`, rule 1's gate, has never executed | §971 |
+| CI since 2026-07-23 | **red every run**; the last green was 07-22 | §962 |
+| the 26-gate step in CI | **SKIPPED** in all three of those runs — a failed browser gate skips it | §962 |
+| what failed that browser gate | a **vacuity floor**, not a budget: `frames > 30` on a GPU-less runner | §963 |
+| `origin/main` | **1,018 commits behind**; CI has evaluated none of this work | §957 |
+| the deployed commit | `0415148` — whose only CI verdict is **FAIL** | §959 |
+| prod dependency audit | CI step 16, also skipped — **4 vulnerabilities**, now patched | §967 |
+
+Each was individually invisible. Together they mean the board's `19 PASS` described a computation nobody was
+obliged to run, on code nobody had pushed, verified by a CI job that stopped before the verification step.
+
+### What is now fixed in-repo
+
+- CI runs the 26-gate surface **even after an earlier step fails** (`if: ${{ !cancelled() }}`) — §962.
+- The perf gate's vacuity floor is **hardware-aware**, so a software rasterizer no longer fails it — §963.
+- `pnpm audit --prod`: **4 vulnerabilities → 0** (hono 4.12.28 → 4.13.1, inside the declared range) — §967.
+- `test` and `typecheck` run **both halves, `--no-bail`** — §940/§949, closing a gate that reached 3 of 17
+  suites on a red day.
+- Ten new gates, 40+ mutations RED, and the constitutional sweep completed: rules 1–10 and every hard budget
+  located, measured, and their enforcement half identified — §953–§955, §970, §971.
+
+### What is owner-held, in the order that unblocks the most
+
+1. **Push.** One action closes three costs: the only copy of 1,018 commits (§957), the 4%-resolvable SHA
+   stamps across four governing records (§958), and the nightly that has audited **one commit ten times**
+   (§966). It also gives CI its first run against three weeks of work — including §962's and §963's fixes,
+   which exist precisely so that run reports something.
+2. **Branch protection + required checks** (§956). Until then every gate is advisory in fact.
+3. **REQ-289's classifiable `status`/`wp`** — both board FAILs, and until it lands `unit-tests` is a binary
+   that cannot distinguish a new regression from the known row.
+4. **Nine private fixtures + `IDENTITY_DENYLIST`** — the 5 BLOCKED, blocked identically in CI (§960).
+5. **17 open repo-owned rows**, each needing a REQ row or an owner decision.
+
+### The reopen trigger for this stopping point
+
+**When a push lands, re-run this audit's external sweep** — §956, §957, §959, §962, §966 are all one command
+each and all of their verdicts change the moment `origin/main` moves. Everything else here is stable.
