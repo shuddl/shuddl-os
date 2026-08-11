@@ -631,6 +631,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 468 | §1020 | **§1021** | **CORPUS NARROWER THAN SUBJECT — SWEPT ACROSS 17 GATES, CLEAN.** §1020's own detector had that defect (docs-only corpus while gates quote SOURCE comments); this turns it on shipped gates. **§120's precedent, in the gate's own words:** *this scanned packages + workers, .ts only — so **4 of 6 (tree × extension) cells were blind**; check:chokepoint already scanned `apps/` for the same class, and **the two gates guard I3 together and disagreed about where it could live**.* Two mechanisms, one invariant, differing in SCOPE with nothing failing. Fixed by making the corpus **shared** — `source-corpus.ts` exports `SOURCE_SCAN_GLOBS` + `isTestPath` + `stripComments`, and **9 gates import it**. The part worth copying is `EXPECTED_EMPTY_GLOBS`: **a glob that legitimately matches nothing is DECLARED**, so a glob that UNEXPECTEDLY matches nothing can fail — §968's `checked=0` law, fourth instrument (after §1015's discarded 90% probe and §1017's Playwright JSON stats). Swept all 17: the 8 `.ts`-only gates are narrow **because their subjects are** — `workers/` has no `.tsx` (declared empty, not merely absent), contracts/rater have no React, `syntax-ban-inheritance` reads a config file, and `and-chain-or-parens` governs **SQL** chains with its scope stated and measured. **No shipped gate has a corpus narrower than its subject** |
 | 467 | §1019 | **§1020** | **CAN §1019's DEFECT BE GATED? — NO, AND THE DETECTOR PROVED IT ON ITSELF.** §1019 found a gate header quoting *"Unbounded list reads — 7 sites"* while the doc said 9. Is that a class, and is it detectable? **First detector: 185 quoted phrases, 75 'missing' — a 40% miss rate that describes the DETECTOR**, since the misses are the gate's own error strings, format strings and rhetorical questions. Not reported. **Narrowed to the repo's own `*"…"*` quotation marker: 22 marked, 6 unresolved — small enough to read, and ALL SIX ARE FALSE POSITIVES** in three ways: two quote a gate's own error/output, one quotes a **superseded comment deliberately**, two are **verbatim in the audit behind backticks** (my normaliser stripped whitespace but not MARKDOWN), and one quotes a **source** comment (`spark-meter.ts:18`) while my corpus was docs-only. **Zero confirmed stale quotations besides §1019's.** No gate is possible: the marker means *this is a quotation*, not *this must still be true* — and a superseded-comment quote that stops resolving is **the point of quoting it**. Third time at this boundary (§1012, §1014). Two transferable detector defects recorded: **normalise both sides to the same alphabet**, and **the corpus must be as wide as the thing QUOTED, not as wide as the thing audited** |
 | 466 | §1018 | **§1019** | **THE DRIFT GATE HAD DRIFTED — IN THE ONE PLACE NO GATE READS.** §1018 found `KNOWN_UNPAGINATED` entries are **filed debt**, raising the question whether the ledger an owner reads knows about them. **It does, and the join is gated better than expected:** `unbounded-reads-roster.test.ts` extracts the doc's NUMBER (`/Unbounded list reads — (\d+) sites/`) and asserts it equals `ROSTER.length`, with *whichever moved, move the other in the SAME commit* — earned at §823, whose row records *this row said '7 sites' while already citing 8, and the agreement test matched only the TITLE, so the disagreement was invisible for two audits*; plus §822's discovery half (*a roster watches what it knows; a ninth site walks past it*). **And its own header still said seven.** The doc says 9; the file's opening paragraph quoted 7. **The file whose entire purpose is stopping doc↔code count drift had drifted, in its own first paragraph** — and nothing could fail, because the assertion reads the DOC and a header comment is prose. Corrected to 9 with provenance kept. **A gate cannot audit its own prose**, so the most rigorous file in a repo is exactly as prone to a stale sentence as the least |
 | 465 | §1017 | **§1018** | **THE EXEMPTION SURFACE — 12 ALLOWLISTS, 0 THAT OUTLIVED THEIR SUBJECT.** §1017 swept suppressions; an allowlist is the same hazard with the opposite sign — **worse, because a suppression is visible where it silences while an exemption sits in a file nobody opens.** 12 allowlists across 16 gate files, every path-like entry checked against the tracked tree: **0 dead.** **§672 already asks this question on the one that matters most:** `append-chokepoint`'s `ALLOWED` is a **`Map<path, reason>`** (justification structurally inseparable from the entry), **2 entries only**, exported so the test pins the **exact key set**, requires every reason to exceed **40 chars**, and asserts *every allowlisted path still exists AND still writes events — no exemption outlives its subject*. **Two corrections to my own reading:** the reason-bearing-vs-bare split (5/7) was a **parser artifact** — I classified by declaration SYNTAX, and reading CONTENTS dissolves it, since every allowlist here carries prose reasons; and 3 'ungated' ones needed no gate because `ALLOWED_FONT`/`_TRANSFORM`/`_HEX` are **value** allowlists — the constitutional budgets themselves, proved by violation at §1001, and a value cannot outlive its subject. Design note: `KNOWN_UNPAGINATED` entries double as **filed debt** (*Remedy needs a REQ row*), so the exemption cannot be read without reading why it is temporary |
@@ -60166,3 +60167,63 @@ past them rather than repeating them.
 **Re-open when:** a quotation marker distinguishing *doc quote* from *any other quote* is introduced for some
 other reason — the detection then costs nothing · a second stale doc-quote is found by reading, which makes the
 class two and changes the §997 arithmetic.
+
+---
+
+## §1021 — PHASE GATE: corpus narrower than subject — swept across 17 gates, clean, with the mechanism that fixed it
+
+§1020's own detector carried a defect worth turning on the repo: **its corpus was narrower than its subject**
+(docs-only, while a gate quotes source comments too). The shipped question is whether any *gate* has the same
+shape — and this record has a precedent that bit hard.
+
+### §120's precedent, in the gate's own words
+
+`findForbiddenReplaceSources` guards I3 by scanning source for `INSERT OR REPLACE INTO events`. Its comment:
+
+> *"Audit §120: this scanned packages + workers, .ts only — so **4 of 6 (tree × extension) cells were blind**.
+> `check:chokepoint` already scanned `apps/` for the same class of violation; **the two gates guard I3 together
+> and disagreed about where it could live.**"*
+
+Two mechanisms enforcing one invariant, differing in **scope** rather than in verdict — with nothing failing.
+
+### The fix generalised into a shared corpus, and 9 gates now use it
+
+`source-corpus.ts` exports `SOURCE_SCAN_GLOBS` plus the shared `isTestPath` exclusion and `stripComments`.
+Nine gates import it: `append-chokepoint`, `invariants`, `inline-tenant-key`, `llm-agent-metering-trigger`,
+`no-focused-tests`, `projection-coverage`, `route-authz-coverage`, `sweep-containment-coverage`,
+`tenant-scope`.
+
+The part worth copying is `EXPECTED_EMPTY_GLOBS`:
+
+```ts
+export const EXPECTED_EMPTY_GLOBS: ReadonlySet<string> =
+  new Set(["workers/*/src/**/*.tsx", "tools/**/*.tsx"]);
+```
+
+**A glob that legitimately matches nothing is DECLARED**, so a glob that *unexpectedly* matches nothing can
+fail. That is the answer to the failure mode this record keeps meeting from other directions — §968's
+`checked=0`, §1015's discarded 90% probe, §1017's Playwright guard reading JSON stats because *"the exit code
+alone cannot distinguish proof from silence."* Same law, fourth instrument.
+
+### The sweep: 17 gates with source globs, mapped tree × extension
+
+The 8 gates that scan `.ts` only are narrow **because their subjects are**:
+
+| gate | scope | why `.tsx` is not a gap |
+|---|---|---|
+| `api-conventions`, `error-envelope-coverage`, `mcp-api-seam`, `migration-fixture-parity`, `sweep-containment-coverage` | `workers/` | no `.tsx` exists there — and it is *declared* empty, not merely absent |
+| `event-payload-strictness`, `rater-purity` | `packages/contracts`, `packages/rater` | schema and pricing modules; no React |
+| `syntax-ban-inheritance` | reads `eslint.config.mjs` | its corpus is a config file, not source |
+| `and-chain-or-parens` | `packages` + `workers` | its subject is **SQL** `AND`-joined chains, and it states its scope: *"exactly two AND-joined chains exist in shipped code (`lens.ts`, `gl/export.ts` — measured)"*. Apps do not build SQL |
+
+**No shipped gate has a corpus narrower than its subject.** The one that did was found at §120 and fixed by
+making the corpus shared rather than re-authored per gate — which is why the class did not recur.
+
+### Phase gating
+
+**STOP.** The tree × extension question is answered across every gate that scans source: 9 share the corpus, 8
+are narrow by subject with the reason stated in each.
+
+**Re-open when:** a gate is added with its own source glob instead of importing `SOURCE_SCAN_GLOBS` — that is
+the only way this class returns · a `.tsx` file appears under `workers/`, which `EXPECTED_EMPTY_GLOBS` asserts
+cannot happen silently · `apps/` gains SQL construction, which would put `and-chain-or-parens` out of scope.
