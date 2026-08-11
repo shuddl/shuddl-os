@@ -103,7 +103,11 @@ describe("§988: a scoped no-restricted-syntax block restates the repo-wide bans
         "earlier's bans, exactly as §988 requires for no-restricted-syntax.",
     ).toEqual([
       '"packages/ledger/**/*.ts"',
-      '"packages/ledger/src/tsa/**/*.ts"', // the sanctioned egress exemption — the only deliberate overlap
+      '"packages/ledger/src/tsa/client.ts"', // §1050 — NARROWED from the `**/*.ts` subtree to the one file
+      // that actually holds the exemption's subject (`fetchImpl: typeof fetch = fetch` at client.ts:76).
+      // The subtree form let a planted `tsa/__p.ts` with a raw fetch lint GREEN with no config edit,
+      // falsifying the config's own promise that a second egress "cannot appear without editing this
+      // file and explaining itself". cms.ts and der.ts have zero network tokens, so the narrowing is free.
       '"packages/driver-core/**/*.ts"',
       '"packages/rater/**/*.ts"',
     ]);

