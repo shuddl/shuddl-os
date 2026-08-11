@@ -631,6 +631,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 471 | §1023 | **§1024** | **THE SKILLS CORPUS — ONE STALE COUNT, IN THE LINE §170's DISCIPLINE STOPPED SHORT OF.** §1023's rule (*the numbers most likely to rot describe the CONTAINER*) points at `.claude/skills/` — 32 tracked files — where §170 already found this class: *a count in a `description` is neither an example nor a citation, so the grounding note did not reach it … a stale scope statement silently narrows who follows the rule.* The corpus is unusually well defended: **12 files open with a grounding note** declaring their examples and `path:line` citations FROZEN as-of writing — **§1023's stamp discipline applied to a whole corpus before this session named it.** Swept every numeric self-claim in all 32 header regions: **one hit** — *"Only **2 of 13** agents exist (Biller, Concierge)"*, against a tree holding biller/collector/concierge/copilot/migrator plus the queue consumers, and this record's own count of **13 of 13**. **2 → 13**, and the grounding note does not reach it for exactly §170's reason: it scopes to *examples and citations*, and a count is neither. §170 fixed the frontmatter; **the body kept its own instance** — the discipline and the gap in one file. Fixed by DELETION not refresh (*13 of 13* decays on agent fourteen): now *every agent repeats this recipe — the ones that exist and the next one* |
 | 470 | §1022 | **§1023** | **THE REST OF THE LIVING REGION — CLEAN, AND THE RULE THAT SEPARATES IT FROM §1022.** §1022 found two rotted values in the rewritten blocks; is there a third? Tractable because this record is append-only — §127's rule: **a number in an append-only record carries its own timestamp, its POSITION**, so a figure inside §843 is a claim about the day §843 was written and cannot rot. **Only the rewritten region can**, lines 1–48. Swept: **one numeric claim, and it is correct** — *57 findings → 12 → 45* is **STAMPED**, the same block opening *HEAD at audit: `0415148`* and closing *Baseline … all PASS at `0415148`*. The nearby *coverage (288/288, drift 7)* proves it: today that is 288/289, and the line is still TRUE because it says *at `0415148`*. **The rule (§294: pin or stamp, neither is not an option) — §1022 is what 'neither' looks like:** stamped claim correct indefinitely; *152 sections* → **1008**; *eight phases* → **52**, contradicted by its own table. Transferable half: **both casualties described the DOCUMENT ITSELF** — the figure nobody thinks to stamp, because a count of your own work feels like a fact about the present rather than a measurement of a moment |
 | 469 | §1021 | **§1022** | **THE FRONT DOOR HAD DECAYED — THE ONE PLACE §162 FIXED, AND THE ONE WAY IT COULD STILL ROT.** §1019 found a stale figure in a gate header; §1020 proved it ungateable; so this asks **where such a figure costs most** — the block every reader lands on first. §162 already fixed this entry point once (*a READ-THIS-FIRST redirect named a SHA re-measured **nine times** since*) with the right rule — **point at the section, never at the value** — and left three values in the surrounding prose. **All three had rotted:** `START HERE` claimed **152 sections** against **1008**; **§4 claimed 'Eight phases have closed' directly above its OWN 24-row table** whose last phase is **52**; and *what blocks release* still pointed at §113 when **§999** is the current verdict. Fixed by **removing the decaying value, not refreshing it** — 1008 would re-arm the same trap — so both sentences are now state-INDEPENDENT, and §4's tells the reader how to find current state themselves (*the last row*), which no growth can falsify. Release pointer leads with §999 → §994, keeping the old three as provenance: **a stale count invites a double-check, a stale POINTER is simply followed.** Third instance of one shape (§1013, §1019): **a fix installs a mechanism; the sentences describing it are not part of the mechanism, and nothing re-reads them** |
 | 468 | §1020 | **§1021** | **CORPUS NARROWER THAN SUBJECT — SWEPT ACROSS 17 GATES, CLEAN.** §1020's own detector had that defect (docs-only corpus while gates quote SOURCE comments); this turns it on shipped gates. **§120's precedent, in the gate's own words:** *this scanned packages + workers, .ts only — so **4 of 6 (tree × extension) cells were blind**; check:chokepoint already scanned `apps/` for the same class, and **the two gates guard I3 together and disagreed about where it could live**.* Two mechanisms, one invariant, differing in SCOPE with nothing failing. Fixed by making the corpus **shared** — `source-corpus.ts` exports `SOURCE_SCAN_GLOBS` + `isTestPath` + `stripComments`, and **9 gates import it**. The part worth copying is `EXPECTED_EMPTY_GLOBS`: **a glob that legitimately matches nothing is DECLARED**, so a glob that UNEXPECTEDLY matches nothing can fail — §968's `checked=0` law, fourth instrument (after §1015's discarded 90% probe and §1017's Playwright JSON stats). Swept all 17: the 8 `.ts`-only gates are narrow **because their subjects are** — `workers/` has no `.tsx` (declared empty, not merely absent), contracts/rater have no React, `syntax-ban-inheritance` reads a config file, and `and-chain-or-parens` governs **SQL** chains with its scope stated and measured. **No shipped gate has a corpus narrower than its subject** |
@@ -60348,3 +60349,59 @@ both are now state-independent rather than freshly-numbered.
 **Re-open when:** a value enters lines 1–48 — it needs a commit stamp or a pin before it lands, and the third
 option (state-independent phrasing) is what §1022 chose · the header's `0415148` stamp is edited, since that
 one SHA is what keeps five separate figures true.
+
+---
+
+## §1024 — PHASE GATE: the skills corpus — one stale count, in the line §170's discipline stopped short of
+
+§1023's transferable rule: **the numbers most likely to rot are the ones describing the container rather than
+the contents.** The corpus where that has already been proven here is `.claude/skills/` — 32 tracked files —
+and §170 found exactly one defect in it:
+
+> *"A count in a `description` is **neither an example nor a citation**, so the grounding note did not reach
+> it … a stale scope statement doesn't just misinform — **it silently narrows who follows the rule**."*
+
+That corpus is unusually well defended. Twelve of its files open with a **grounding note**:
+
+> *"the examples and `path:line` citations in this skill are observations FROZEN as-of its writing
+> (2026-07-15/16) … the LAW each skill states is current; the citations are its provenance, not its proof."*
+
+That is §1023's *stamp* discipline, applied to a whole corpus, before this session named it.
+
+### And the same gap §170 named is still open one line down
+
+Swept every numeric self-claim in the 32 files' header regions. **One hit:**
+
+```
+make-agent-idempotent-and-adapter-ported/SKILL.md:15
+  "Only 2 of 13 agents exist (Biller, Concierge); every new one repeats this exact recipe."
+```
+
+Measured against the tree: `packages/agents/src` holds **biller, collector, concierge, copilot, migrator**,
+and `workers/agents/src` carries the queue consumers and sweeps beside them. This record's own count reached
+**13 of 13**.
+
+**2 → 13.** And the grounding note above it does not reach the sentence, for precisely §170's reason: the note
+scopes itself to *examples and `path:line` citations*, and a count is neither. §170 fixed that class in the
+YAML `description`; **the body kept its own instance**, which is
+[[check-what-a-discipline-stops-one-line-short-of]] with the discipline and the gap in the same file.
+
+The consequence is §170's, verbatim: a maintainer opening this skill reads that only two agents exist and
+concludes it governs *greenfield* work. It does not — it governs every queue consumer in the system, all of
+which now exist.
+
+### Fixed by deletion, not by refresh
+
+Writing *"13 of 13"* would be accurate today and decays on agent fourteen — §1022's lesson. The sentence now
+reads **"Every agent repeats this exact recipe — the ones that exist and the next one"**, which is true at
+2 agents, at 13, and at 14, with the correction recorded inline rather than silently overwritten.
+
+### Phase gating
+
+**STOP.** The skills corpus is swept for self-describing counts: **32 files, 1 numeric self-claim, now zero.**
+The grounding-note discipline covers the rest and is the reason there was only one.
+
+**Re-open when:** a skill gains a numeric claim about the system — it needs the grounding note's scope widened
+or the number removed, and the note's current wording (*examples and citations*) will not cover it · the
+agent roster changes, which no longer falsifies this file · `.claude/skills/` gains a file without the
+grounding note, since that note is what makes the other 31 safe.

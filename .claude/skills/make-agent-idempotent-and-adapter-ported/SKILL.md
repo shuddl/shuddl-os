@@ -12,7 +12,7 @@ description: Use when building any new SHUDDL agent core or its external seam (e
 # Make an Agent Idempotent & Adapter-Ported
 
 ## Overview
-Cloudflare Queues is **at-least-once**: a message redelivers whenever the consumer does not `ack()` (docs: Queues `Message.retry()`). The single law that makes redelivery safe is **determinism** — every id an agent writes must be a pure function of the trigger event id. One `Date.now()` or `Math.random()` in a core breaks dedupe and double-sells freight. Only 2 of 13 agents exist (Biller, Concierge); every new one repeats this exact recipe.
+Cloudflare Queues is **at-least-once**: a message redelivers whenever the consumer does not `ack()` (docs: Queues `Message.retry()`). The single law that makes redelivery safe is **determinism** — every id an agent writes must be a pure function of the trigger event id. One `Date.now()` or `Math.random()` in a core breaks dedupe and double-sells freight. **Every agent repeats this exact recipe — the ones that exist and the next one.** (This sentence read *"Only 2 of 13 agents exist (Biller, Concierge)"* until audit §1024; the roster reached 13 of 13, and the count was **outside** the grounding note's scope above, which covers examples and `path:line` citations. §170 fixed the same class in this corpus's YAML `description`; a body count is the line that discipline stopped short of. Stated without a number so it cannot decay again.)
 
 ## When to Use
 - Writing a new queue consumer in `workers/agents/` or a new core in `packages/agents/`.
