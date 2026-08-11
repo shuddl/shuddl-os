@@ -630,6 +630,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 435 | §987 | **§988** | **FIVE MORE SCOPES WERE DELETING THE REPO-WIDE BAN — CLOSED, AND NOW GATED.** §987 left a 4-instance rule with no gate. Swept every `no-restricted-syntax` block: **parse predicted 5 missing, probe found 3** — both right, because the probe wrote NEW files and two blocks are scoped to NAMED files (`build-214.ts`, `contacts.ts`) a new file can never match. Probing inside `build-214.ts` confirmed those too. **The parse was more precise than the behavioural check here — the reverse of the usual direction.** All five restated (restating can never weaken a scope, so no judgement and no exemption list): **checked=5, caught=5, holes=0**. `syntax-ban-inheritance.test.ts` gates the edge §814/§815 leave uncovered — and writing it exposed that **my §986 repo-wide block was formatted inconsistently**, so the parser swallowed the ledger block and demanded REQ-024 everywhere. A formatting inconsistency became a correctness bug in a gate |
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
+| 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -57992,3 +57993,76 @@ configs are correct on the hazard that would have been invisible until a prod de
 Not gated: `binding-parity.test.ts` already owns the cross-worker half, and a fourth measurement of the same
 files would need its own careful scoping (the physical-name field *must* differ, which is what tripped attempt
 3). Recorded as verified with its date, method, and the three ways the method can be got wrong.
+
+## §991 — PHASE GATE: STOPPING POINT III — the enforcement layer, closed
+
+**Measured at `353a06d`: 26 gates — 19 PASS · 2 FAIL · 5 BLOCKED**
+(`artifacts/release/353a06d…/merge/gate-merge-2026-08-11T07-27-36-762Z.json`).
+
+§972 (Stopping Point II) found that **every gate worked and essentially none was enforcing anything**. §973–§990
+closed that layer. Two consecutive phases (§989, §990) then returned clean positives with most of the effort
+spent on probe correctness rather than on finding defects — the exhaustion signal §948 established.
+
+### What §973–§990 closed
+
+**The CI surface** — §962 restored the 26-gate step that had been SKIPPED in three consecutive runs; §963 found
+the cause was a **vacuity floor, not a budget** (`frames > 30` on a GPU-less runner); §978 found §962's fix
+protected the *consumers* and not the four browser gates that feed them; §979 gated the rule in both
+directions, including the boundary that a *prerequisite* must stay unguarded; §980 asserted why that gate reads
+one workflow.
+
+**The lint config family** — a single hazard, four phases to see: *flat config replaces a named rule's options
+rather than merging them.*
+
+| rule | hazard | gate |
+|---|---|---|
+| `no-restricted-imports` | repo-wide → scoped | §814 |
+| `no-restricted-syntax` | shared → adapters · repo-wide → scoped | §815 · **§988** |
+| `no-restricted-globals` | only the named TSA overlap permitted | **§989** |
+
+Along the way: REQ-024's ledger ban was blind to `import()` (§985); so were REQ-163, REQ-035 and REQ-127
+(§986); five scoped blocks were deleting the repo-wide ban (§988); and §815's *"three disjoint blocks"* was
+four with a deliberate overlap (§989).
+
+**Product surfaces** — §983 pinned that no MCP tool can reach the ledger except through the api service
+binding; §984 verified the append chokepoint **end-to-end** rather than at the matcher; §974 gated the
+supply-chain claim that every action is SHA-pinned; §990 measured Wrangler's non-inheriting `[env.X]` blocks
+clean at the binding level.
+
+**14 gates added this session. Every one mutation-proved.**
+
+### What this layer cost me, and the rule it produced
+
+Nine of these phases contained a defect in my **own** instrument, not the subject: a case-sensitive matcher
+(§983), a line-anchored detector (§983), a `%`-truncated commit message (§961), a stale artifact file (§967),
+`tac` and zsh word-splitting (§968), an over-broad scope (§980), a prose-matched header (§981), a swallowed
+config block (§988), and four successive parser errors on one TOML file (§990).
+
+Every one failed by **producing less** — and less reads as *less to worry about*. The rule that came out of it,
+now applied to every sweep in this audit:
+
+> **`checked=N` alongside the finding count.** A finding count without its denominator cannot be falsified, and
+> a 100% hit rate is a broken probe rather than a catastrophe.
+
+### The board has not moved, and that is still the finding
+
+19 PASS · 2 FAIL · 5 BLOCKED, unchanged across **54 phases**. Both FAILs remain the owner's uncommitted
+REQ-289 register row; the 5 BLOCKED are unvendored private fixtures and `IDENTITY_DENYLIST`, blocked
+identically in CI (§960). Nothing this session touched could move it, because the board reads gate verdicts and
+the gate whose meaning changed was already red for an unrelated reason.
+
+### Owner-held, unchanged in order
+
+1. **Push** — closes the single copy of 1,018+ commits (§957), the 4%-resolvable SHA stamps (§958) and the
+   nightly auditing one commit ten times (§966), and gives CI its first run against three weeks of work
+   including §962/§963, which exist so that run reports something.
+2. **Branch protection + required checks** (§956) — until then every gate is advisory in fact.
+3. **REQ-289's classifiable `status`/`wp`** — both board FAILs.
+4. **Nine private fixtures + `IDENTITY_DENYLIST`** — the 5 BLOCKED.
+5. **Dependabot** (§976), **workflow token posture** (§975), **17 open repo-owned rows**.
+
+### Reopen trigger
+
+**When a push lands**, re-run the external sweep — §956, §957, §959, §962, §966 are one command each and every
+verdict changes the moment `origin/main` moves. **And run `actionlint`** (§973's named residual): four
+workflow edits in this session were verified structurally, never parsed.
