@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 531 | §1083 | **§1084** | **THE CROSS-FIELD SWEEP — 55 ROWS, 0 REAL CONTRADICTIONS, AND A GATE DELIBERATELY NOT BUILT.** §1083 found a row whose severity said *LATENT* while its status said the trigger FIRED, and observed that **no gate reads two fields against each other**. Swept all 55 eight-field rows for two shapes (latent-vs-fired, terminal-status-vs-blocks-a-grade). Raw: **2 hits, both FALSE** — L418's `blocks` reads `~~**R0**~~ none`, with R0 STRUCK. Stripping strikethrough: **1 hit, also FALSE** — §1083's own severity cell explaining the fix by QUOTING the word it removed. **Zero real contradictions.** A gate here has a two-layer irreducible FP floor (preserved history + explanatory quoting), which is §1077's finding reproduced exactly; not built, per §1053. |
 | 530 | §1082 | **§1083** | **A ROW THAT CONTRADICTED ITSELF — SEVERITY SAID *LATENT*, STATUS SAID THE TRIGGER FIRED.** L424 (the Biller's permanently-failed EVIDENCE EMAIL): re-verified at HEAD and the row's own argument is exact. **Concierge (REQ-176)** appends a durable note EVENT through the DO append surface; **Biller** does `console.error(…)` and returns `issued_send_pending`, its comment stating it raises **NO anomaly and writes nothing** — one queryable record, one log line. And it IS reachable: `EVIDENCE_FROM` is set under `[env.staging.vars]` (*"staging evidence sending is ON … evidenceSender() returns ResendSender"*), while prod keeps it **DELIBERATELY ABSENT**. So the `— LATENT` qualifier was falsified by the row's own Status, which records the trigger as FIRED. Struck. Blocks R2, and the surfacing still needs a REQ row. |
 | 529 | §1081 | **§1082** | **THE TOOL CAUGHT ME TWICE IN ONE PHASE, AND I COMMITTED OVER THE SECOND.** §1081 built `pnpm delta`; §1082 is what it found. **(1) Before the commit:** my index row quoted bare-count output with an UNESCAPED PIPE — 5 cells against a 4-cell header. Fixed. **(2) After `git add`:** delta reported a new failure and **I committed anyway — the third time.** `tools/testing/delta.ts` contained a literal **NUL byte**: my key function used `` `${file}\0${title}` `` as a separator, which is collision-free and makes the file **BINARY to git** (`section-refs` refused it: *"every diff renders as Bin X -> Y"*). Replaced with `JSON.stringify([file, title])`. The failure was invisible pre-add because the gate walks TRACKED files — §1049's mechanism, now hit for the second time. |
 | 528 | §1080 | **§1081** | **`pnpm delta` — THE BASELINE RULE MECHANISED AFTER FAILING TWICE AT THE SAME STEP.** §1062 wrote *a delta is not explained until it is reproduced*; §1080 reproduced a 4-vs-3 delta **three times and committed anyway**, because reproducing a count is not IDENTIFYING it. *"baseline" appears in **128 prior verdicts** and NOTHING mechanised it.* `delta` runs the suite and answers one question — **what is failing that was not already failing?** — keyed by (file, title), never by count. Proved by replaying §1080's exact defect: the bare run says *"4 failed / 1251 passed"*; `delta` says **`phase-index.test.ts` — "the index points only at real PHASE GATE sections"**. It also reports **HEALED** baseline entries, so a silently-fixed known failure is news too — the direction a count can never see, since a heal and a new break cancel out. 6 unit cases. |
@@ -64442,4 +64443,68 @@ question about every other field.
 **STOP.** L424 re-verified at HEAD in three parts — provider bound in staging, prod deliberately absent, and
 the Concierge/Biller asymmetry exact — with the self-contradicting severity corrected. The surfacing itself
 still needs a REQ row and stays owner-held. `pnpm delta` clean · `check:tables` OK.
+
+## §1084 — PHASE GATE: the cross-field sweep, and the gate that should not exist
+
+**Why this phase.** §1083 fixed a row whose **severity** said `LATENT` while its **status**, four cells later,
+recorded the trigger as fired — and named the general gap: *every check in this repo validates a cell; none
+reads two fields against each other.* §1053's rule says measure the class before gating it.
+
+### Two shapes, 55 rows
+
+| shape | meaning |
+|---|---|
+| severity says LATENT/dormant **and** status says the trigger fired | §1083's instance |
+| status is terminal (FIXED/RESOLVED/CLOSED) **and** *blocks grade* still names an R-grade | a closed row still claiming to block a release |
+
+### Raw result: 2 hits, both false
+
+- **L418** — status `FIXED`, blocks-grade matched `**R0**`. But the cell reads **`~~**R0**~~ none — the record
+  is in the tree`**. The R0 is **struck**; the live value is `none`.
+- **L424** — §1083's own row, whose struck `~~— LATENT~~` still contains the word.
+
+Both false for the same reason, and it is the reason this record exists in the shape it does: **a ledger that
+preserves superseded values inline necessarily contains its own wrong answers**, in the same cell, one
+strikethrough away from the live one.
+
+### Stripping strikethrough: 1 hit, also false
+
+Re-run with `~~…~~` removed: **one** remaining, and it is §1083's severity cell —
+
+> *"The **LATENT** qualifier contradicted this row's own Status…"*
+
+I explained the correction by **quoting the term I had just removed**. That is §1077's semantic floor
+(*"docs quoting known-bad values"*) reproduced by me, one phase after documenting it, in the row I had just
+edited.
+
+**Zero real contradictions across 55 rows.**
+
+### The gate is deliberately not built
+
+A cross-field checker here would need to survive **two independent layers** of legitimate false positive:
+
+1. **preserved history** — struck values in the same cell as live ones, defeated only by stripping;
+2. **explanatory prose** — a row that says *why* a field changed necessarily names the old value, and no filter
+   distinguishes that from a stale claim.
+
+Layer 2 has no mechanical fix, which is exactly what §1077 measured when it excluded the checklist from the
+sweep-count roster. With **one** historical instance — now fixed — and a floor that cannot go to zero, §1053's
+verdict applies: *a gate at that false-positive rate is a gate people silence.* The sweep is the deliverable;
+its repeatability is the recipe recorded here.
+
+### What this phase says
+
+> **A record designed to be re-readable is hostile to being machine-checked, and that is the correct trade.**
+> Every property that makes this ledger trustworthy to a human — struck-not-deleted verdicts, the reason beside
+> the change, the old number quoted next to the new one — is noise to a matcher. Choosing the human is right;
+> the mistake would be to then pretend a gate covers it.
+
+The narrower one, third instance in eight phases: **when you correct a value, quoting it re-introduces it to
+every scanner.** §1077 measured this, §1082 hit it with an unescaped pipe, and this phase caught me doing it
+again in the very row §1083 fixed. The fix is not to stop explaining; it is to expect the flag and check the
+prose before believing it.
+
+**STOP.** The cross-field class is swept across all 55 rows in two shapes with strikethrough handled: **zero
+real contradictions**, both raw hits and the residual explained. No gate built, with the two-layer FP floor
+measured rather than asserted. `pnpm delta` clean · `check:tables` OK.
 
