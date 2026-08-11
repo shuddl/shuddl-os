@@ -631,6 +631,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 454 | §1006 | **§1007** | **HAS A SECRET EVER BEEN COMMITTED? — THE SCAN CI WAS CONFIGURED TO RUN AND NEVER HAS.** `ci.yml:95` runs **gitleaks with `fetch-depth: 0`**, and §1005 established CI has evaluated **none** of the 1,018 local commits — so the history-wide secret scan has never executed, on the eve of a push that would publish that history. gitleaks is not installable here, so this is an INDEPENDENT scan, not a substitute. **Tracked tree: 968 files, 10 patterns, 2 hits — both test constants that say so in their own value** (`edi-shared-secret-do-not-use-in-prod`). **History: 1,511 commits, 7 patterns, ZERO.** Both scanners **positive-controlled**, because nine zeros is a claim about the scanner: planting `AKIA…`/`sk_live_…` is DETECTED, and `git log -G` finds a known fixture secret in **12 commits** while returning 0 for the never-committed control — without that middle row, seven zeros were indistinguishable from seven broken invocations (§1002's no-op shape, one layer up). **Scope stated: this REDUCES the probability of a surprise on push, it does not eliminate it** — gitleaks' default ruleset is far larger, and the real verdict arrives when CI runs |
 | 453 | §1005 | **§1006** | **DEPENDENCY LICENCES — THE COMPLIANCE SURFACE NOBODY HAD MEASURED.** §967 audited vulnerabilities and §974 pinned actions; the third supply-chain question was never asked — searching this record returns seven hits and **all seven are the word in another sense** (*a licensed dataset*, *what licenses this*). Install scripts ARE gated (`allowBuilds`: esbuild/workerd true, **sharp false**), checked before re-deriving. Measured: 13 declared runtime deps, but **nine are `@shuddl/*` workspace packages** — the external production set is `hono`/`react`/`react-dom`/`zod` + `scheduler`, and `pnpm licenses list --prod` returns **1 licence across 5 packages: MIT**. Counts reconcile against the manifests, which is what makes a suspiciously small number trustworthy. Full tree **335 packages / 13 licences**; ten are non-permissive-simple and **every one is dev-only** — LGPL `sharp-libvips-darwin-arm64` (whose install script `allowBuilds` already blocks), MPL `axe-core`/`lightningcss`, CC-BY `caniuse-lite`. **No copyleft obligation reaches anything distributed.** Deliberately NOT gated: §997's rule — *gating everything you examine is decorating, not measuring* — a 5-package surface with zero defects that moves twice a year gets a measurement + trigger, not a permanent maintenance surface |
 | 452 | §1004 | **§1005** | **WOULD ANY OF THIS WORK ON LINUX? — THE QUESTION CI HAS NEVER BEEN ALLOWED TO ANSWER.** Every gate here has only ever run on **darwin**; CI runs **ubuntu-latest**; and §957 measured that CI has evaluated **none** of the 1,018 local commits — so a platform assumption surfaces for the first time on the day of the push, as a red build with no obvious cause. Seven axes, all decidable without a runner: shell-outs are **only** `git`/`pnpm`/`npx`/`node` (no shell utilities at all) · **0** BSD/GNU-divergent flags (the apparent `tac` hits were substrings of *attached*/*attack*) · **0** tracked path case-collisions · **0** imports resolving only case-INSENSITIVELY — the class that resolves forever on macOS and fails instantly on Linux · **0** absolute paths (already gated) · 12 portable CI `run:` steps · toolchain agrees (`.node-version` **22.15.0** tracked, `engines >=22.15.0 <23`, `pnpm@11.10.0`, matching local). **CLEAN NEGATIVE on all seven.** `.node-version` earns its own line: `setup-node` uses `node-version-file`, so an untracked file fails the workflow at its FIRST step. **This proves the portability class is EMPTY, not that CI passes** — that needs the owner's push, and this narrows what it can go wrong in |
 | 451 | §1003 | **§1004** | **THE CWD-DEFAULT CLASS, SWEPT — 1 DEFECT, 9 CORRECT, AND THE RULE THAT TELLS THEM APART.** §1003 fixed two `cwd = process.cwd()` defaults; at instance #2 you count the class. **Nine more carry the identical signature — and the sweep that would have 'fixed' them would have BROKEN THE BUILD.** `invariants.test.ts:46`'s `runCli(cwd, args)` spawns the CLI against a **temp fixture repo**; anchoring `main()` to `repoRoot()` makes it ignore that cwd and scan the real repository, silently invalidating every fixture test. **The discriminator: a `cwd` default is a defect only when NO caller ever passes anything else** — indistinguishable from the signature alone. Classified all nine: 8 have fixture harnesses passing temp dirs, 1 inherits its CLI's own fixture-driven cwd. **9 of 9 correct.** The acceptance runner was the real defect precisely because its only explicit caller passed `repoRoot()` — a workaround, not a use. Behavioural check: 3 of 4 entrypoints are cwd-identical; `invariants.ts` differs and fails **CLOSED** on §732's floor — cwd-relative on purpose, loud when misused. **Twice now the right move was NOT to generalise a real fix** (§1000: a guard defended by types; here: a default defended by a harness) — generalising without a discriminator is how an audit starts producing defects instead of finding them |
@@ -59252,3 +59253,75 @@ scripts (`allowBuilds`), and now licences — production **5/5 MIT**, all copyle
 `pnpm licenses list --prod --json` and expect **MIT only** · a dev package moves to production · a dependency
 is added whose licence is copyleft, at which point the distribution question becomes real rather than
 theoretical.
+
+---
+
+## §1007 — PHASE GATE: has a secret ever been committed? — the scan CI was configured to run and never has
+
+§1005 established that CI has evaluated none of the 1,018 local commits. That has a consequence sharper than
+portability: `ci.yml:95` runs **gitleaks with `fetch-depth: 0`** — a history-wide secret scan — and it has
+**never executed on any of them.** The stakes are asymmetric: a committed credential is close to irreversible
+once pushed, and the push is the first item on the owner's list.
+
+`gitleaks` is not installable here (§973's finding again). So this is an *independent* scan, not a substitute
+— stated plainly below.
+
+### The tracked tree: 968 files, 2 hits, both self-labelling
+
+Ten high-signal patterns (AWS, private-key blocks, GitHub/Stripe/Slack/Resend/Google/npm tokens, signed JWTs,
+and a generic `secret|api_key|password = "<32+ chars>"`), honouring `.gitleaks.toml`'s allowlist
+(`genesis/*`, `fixtures/*`, and two named test fixtures):
+
+```
+AWS · private key · GitHub · Stripe · Slack · Resend · Google · npm · signed JWT      0
+generic secret-assignment                                                            2
+```
+
+Both hits are test constants that say so in their own value:
+
+```
+workers/translator/test/inbound.test.ts:25            "edi-shared-secret-do-not-use-in-prod"
+workers/translator/test/roundtrip.fixture.test.ts:35  "edi-fixture-shared-secret-synthetic-only"
+```
+
+### The history: 1,511 commits, zero
+
+The half a working-tree scan cannot see — a secret committed and later deleted, which is precisely why the CI
+step sets `fetch-depth: 0`. Seven patterns via `git log --all -G`:
+
+```
+AWS · private key · GitHub · Stripe · Slack · Google · npm    →  0 commits, all seven
+```
+
+### Both scanners positive-controlled, because nine zeros is a claim about the scanner
+
+This record's rule is that a probe returning zero must first be shown capable of returning non-zero:
+
+| control | result |
+|---|---|
+| plant `AKIA…` + `sk_live_…` in a tracked file | **DETECTED** (both) — the tree scanner works |
+| `git log -G` for a known fixture secret | **12 commits** — the history scanner works |
+| `git log -G` for the planted control (never committed) | **0** — the true negative |
+
+Without the middle row, seven zeros would have been indistinguishable from seven broken invocations — the
+§1002 no-op-mutation shape, one layer up.
+
+### Scope, stated precisely
+
+**This is not gitleaks.** Its default ruleset carries well over a hundred detectors; this covers the
+high-signal shapes and the repo's own generic pattern. A clean result here **reduces** the probability of a
+surprise on push; it does not eliminate it. The real answer arrives when CI runs, and that needs the push —
+which is the point: this narrows the risk of the very action that would publish the history.
+
+The `.gitleaks.toml` allowlist is also worth recording as *narrow and appropriate*: two path globs
+(`genesis/`, `fixtures/`) and two named fixtures — the alg:none forgery token used by the REQ-025 isolation
+suite, and the test JWT secret. Neither is a credential, and both are named rather than pattern-matched.
+
+### Phase gating
+
+**STOP.** The highest-stakes pre-push question is measured as far as this environment allows: **0 findings
+across 968 tracked files and 1,511 commits**, with both scanners positive-controlled.
+
+**Re-open when:** the push lands — gitleaks then runs for the first time and its verdict supersedes this one ·
+a new secret-bearing integration is added (Stripe, Resend, a TSA authority) · `.gitleaks.toml`'s allowlist
+grows, since every added path is a region this scan would then skip too.
