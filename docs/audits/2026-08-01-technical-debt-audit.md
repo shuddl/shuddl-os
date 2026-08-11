@@ -604,6 +604,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 409 | §961 | **§962** | **CI's 26-GATE SURFACE WAS *SKIPPED* — THE SAME SHORT-CIRCUIT, AT A THIRD LEVEL.** CI has failed every run since 2026-07-23 (last green 07-22). In the final run — at `0415148`, **the commit production runs** — step 14 `strict performance` FAILED and step 15 *merge evidence gate — the complete non-skippable surface* was **SKIPPED**, not failed. Three consecutive runs ended that way. Third level of the §940 idiom (package `&&` → `pnpm -r` bail → **GitHub step ordering**) and the worst, because the one step running all 26 gates sits AFTER four browser gates: locally `perf:map` passes at p95 **12.00ms** vs an **18.18ms** budget, and **a slower CI runner was enough to silence all 26 gates**. Fixed with `if: !cancelled()` — the job stays red, the surface reports. Also corrected L35: *CI binds the secret* is false (§960, 0 secrets) — referencing is not binding |
 | 410 | §962 | **§963** | **WHAT ACTUALLY BROKE CI WAS A VACUITY FLOOR, NOT A PERFORMANCE BUDGET.** §962 fixed the consequence; this is the cause. CI's perf step failed with `frames=29` against `expect(frames.length).toBeGreaterThan(30)` — while its own log said **enforcing FPS here = false** and the long-task budget was NOT ASSERTED. `perf.spec.ts` carries TWO hardware-awareness mechanisms (`softwareRasterizer`, `isReferenceMachine`) and the vacuity floor used **neither**, though frames-in-a-fixed-window is exactly as hardware-dependent as the numbers they decline to assert. **The guard against a vacuous pass became the only thing that could fail, on the machine where everything it guards was already switched off.** Fixed: floor 10 under a software rasterizer. Reproduced CI's shape locally — frames=21 PASSES with the fix and FAILS at the hard 30 — so the CI failure was reproduced and removed, not reasoned about. **Five phases from *the board says 19 PASS* to one ungated `> 30`** |
 | 411 | §963 | **§964** | **§963's LESSON TURNED ON THIS SESSION'S OWN GATES.** Swept every numeric floor in a browser-executed spec — the only floors over RUNTIME-measured quantities: **9 of 10 are `> 0`** (*did this happen at all*, which cannot depend on machine speed); the single magnitude floor was §963's defect. **The convention was right and there was one deviation** — the reasonable prior (*this class is everywhere*) is false. Then audited my own seven gates (27 cases): all read repo content except `mode-source-coverage`, which shells out. `git grep` **exits 1 on no-match** and `execFileSync` THROWS on non-zero — verified both — so its non-vacuity floor was **unreachable in the exact case it was written for**. Fixed (exit 1 = zero matches; anything else re-throws) and proved. Also stated plainly: **these seven gates have never run in CI**, because §962's step was skipped in all three last runs |
+| 412 | §964 | **§965** | **CROSS-PLATFORM READINESS FOR THE FIRST LINUX RUN THESE GATES WILL EVER GET.** §964 established the seven new gates have never executed on Linux; once §962's fix lands they run on a different OS for the first time. Probed: this filesystem **is case-INSENSITIVE** (`CaseProbe.txt` resolves as `caseprobe.txt`), so a wrong-case `readFileSync` works here and throws there. Three checks, all **0**: case-mismatched path references, filenames differing only by case, and tracked/source iCloud `name 2.ext` duplicates (the standing per-session check). Each would fail loudly and confusingly — an ENOENT inside a gate reads as a broken gate, not a platform difference. **Note for the next reader:** the raw sweep shows **50** duplicates and every one is in `.vite/deps` build cache — tracked 0, source 0, **deleting them is unnecessary**. My first `find -prune` excluded only top-level `node_modules`, the §959 shape again |
 | 384 | the audit's summary-zone status rows duplicate the maintained record | **11 of 12 hold at HEAD** (§938); C3 was the stale one (§937). C2 holds but is pinned by nothing — mutation-proved, now gated |
 
 **CORRECTION (2026-08-09, §804) — "the repo-owned ledger is EMPTY" was FALSE, and it was written into
@@ -56731,3 +56732,44 @@ that step was SKIPPED in each of the last three CI runs. They pass locally on ma
 a Linux runner will be the first time §962's fix lets the merge-evidence step run at all. That is not a
 defect and not a reassurance — it is the honest status of eleven phases of gate-building, and the reason
 §962's one-line `if: ${{ !cancelled() }}` matters more than any gate added after it.
+
+## §965 — PHASE GATE: cross-platform readiness for the first Linux run these gates will ever get
+
+§964 ended on a fact rather than a finding: the seven gates added this session have **never executed on
+Linux**, because §962's step was skipped in all three of the last CI runs. Once that fix lands they run for
+the first time on a different operating system — so the cheap thing to do now is check the ways that first run
+could fail for reasons unrelated to what the gates test.
+
+### The hazard is live on this machine
+
+```
+touch /tmp/…/CaseProbe.txt  →  /tmp/…/caseprobe.txt exists
+YES — case-INSENSITIVE
+```
+
+macOS resolves a wrong-case path; Linux does not. **Any file reference whose case does not match the real
+filename works here and throws there** — and every one of this session's gates is built on `readFileSync`.
+
+### Three checks, all clean
+
+| check | why it would break the first Linux run | result |
+|---|---|---|
+| case-mismatched path references in `tools/`, `packages/`, `workers/`, `apps/` | resolves here, `ENOENT` there | **0** |
+| filenames differing only by case | Linux sees two files, macOS one — globs and counts diverge | **0** |
+| iCloud `name 2.ext` duplicates in tracked or source files | the standing per-session check; they corrupt file-count gates | **0** |
+
+So the first Linux execution will not fail for any of those reasons. That is a genuinely useful negative,
+because each of the three fails *loudly and confusingly* — an `ENOENT` inside a gate reads as a broken gate,
+not as a platform difference, and would have cost a debugging cycle on the run that finally proves §962.
+
+### A note for whoever runs the duplicate check next
+
+The raw sweep reports **50** `* 2.*` files, and every one is inside `apps/driver/node_modules/.vite/deps` —
+Vite's dependency cache, ignored by every gate. Tracked: 0. Source: 0. Recorded because *"50 duplicates"* is
+alarming at a glance and the standing memory note says to delete them; **these are build artifacts and deleting
+them is unnecessary**, which is exactly what the next reader needs to know before spending time on it.
+
+My first pass at that sweep also missed them being nested: `find . -path ./node_modules -prune` excludes only
+the **top-level** directory, not `apps/driver/node_modules`. Same incomplete-exclusion shape as §959's
+pathspec — and, as there, the corrected scope changed the answer's meaning entirely (50 alarming hits → 0 real
+ones).
