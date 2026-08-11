@@ -631,6 +631,7 @@ triggers.** This table is the index — read the row you need, not the ten parag
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 462 | §1014 | **§1015** | **FAULT-INJECTION COVERAGE — A BOUND, AND A PROBE THROWN AWAY FIRST.** 4,534 tests prove the happy paths; failure branches fail precisely when they matter, and this had never been swept as a unit. **The first probe was broken and said so by being too GOOD** — *files touching dep X that also contain a failure verb* gave **93/105 D1, 99/106 R2, 134/144 DO**, a ~90% hit rate, i.e. §968's rule firing on any file containing the word *fail*. Discarded before reporting. Honest count of **deliberate** constructs (`mockRejected*`, throwing implementations, `faultSeam`/`BrokenDb`): **42 sites across 21 of 367 files** — and the DISTRIBUTION is the result: `anchor.test.ts` holds **15 (36% of all injection in the repo)**, the rest are 1–2 each. Not automatically a gap: most failure paths are covered by Zod at every boundary, `GateError` throws and the error-envelope suite, and injection earns its cost only where a failure must be **survived** rather than propagated — which is anchoring's job. **The one critical thin path is already an open row that is MORE CURRENT than my sweep:** L422's trigger was found FIRED today by §944 (the provider IS bound in staging, so the unsurfaced-failure branch is reachable), with the contradicting `wrangler.toml` header corrected and a gate built for that claim class. **I went looking for a gap and found the record ahead of me** |
 | 461 | §1013 | **§1014** | **THE SELF-CONFIRMING-TEST CLASS — SWEPT, CLEAN, AND THE DETECTOR THAT COULD NOT HAVE TOLD ME.** §1013 cited three instances of one shape (§186 fixture-built-with-the-function, §819 client-vs-its-own-drawing, §858 suite-mocks-what-it-composes), which is past the threshold for counting. **Mock-detectable half CLEAN: 367 test files, 20 use `vi.mock`, ZERO mock their own subject.** Only two mock 2+ siblings and both survive: `GatedFlow` is §858's known, remediated instance; `App.test.tsx` mocks map/session/api to assert the portal NEVER falls back to demo data — **asserting a mock was NOT called is a legitimate use of one.** The §186 half is not mock-detectable, so I wrote a detector for its signature (same function both sides): **55 hits, and reading three showed it conflated three different claims** — a sign-mirror INVARIANT (`f(-x)` vs `f(x).map(negate)`), a fail-closed EQUIVALENCE (`effectiveOrigins('')` vs `('prod')`), and bare determinism that is sound because its suite pins real values elsewhere. **The method failure is the finding:** my classifier reported 21 paired + 30 naked out of 34 total — **51 classified out of 34** — so I refused to report from it and read samples instead. **A probe whose counts do not add up has already told you its verdict is unusable**; publishing anyway and letting the reader filter is how §240's 95%-false sweep would have entered this record |
 | 460 | §1012 | **§1013** | **TIME ZONES AND DST — A BOUND, NOT A DISCOVERY.** Freight windows belong to a FACILITY, not a server, and a clock that drifts an hour fails in the world while passing in one-zone tests. `daylight` returns 0 in both the record and the code — clean or unexamined, and measured it is clean. **0 local-time getters in product code** (the two `toLocaleString` hits are MONEY formatting with an explicit locale) · **1 day-boundary derivation** (`anchor.ts:59@dayOf` `toISOString().slice(0,10)` — **UTC by construction**, DST-immune) · **1 genuinely local module** (`appointment-window.ts`, IANA zones via `Intl.DateTimeFormat`, throws on a malformed facility tz rather than falling back) · **3 DST cases green**, including the one people forget — **spring-forward, where 02:00 does not exist** (`07:30Z → 03:30 EDT, not 02:30`), which a fixed-offset implementation fails. **The better lesson is historical:** §186 is titled *the appointment suite was blind to DST because its fixture calls the converter it tests* — **a self-confirming fixture is a mirror, not a test**, the same shape as §819's client-checked-against-its-own-drawing and §858's suite mocking what it composed |
 | 459 | §1011 | **§1012** | **IDENTITY BY SHAPE, NOT BY NAME — FOUR MORE PROXIES SWEPT, CORPUS CLEAN.** §1011's line was that a REQ-167 leak *rode in on a portability defect*; the technique it names is **a denylist catches only names someone thought to add, but a SHAPE needs no list.** `absolute-paths` is that idea applied once — this asks what the others are, which matters for a freight product because an **MC or DOT number IS a carrier identifier**. Five shapes over the tracked corpus: **phone 0 · DOT 0 · MC 0** — the three freight-native identifiers absent entirely, the strongest signal here — SCAC 2 (synthetic, one isolation test), email **340**. The email cut, **including a mis-binning I made and corrected**: 176 RFC-2606 reserved + 17 own domain + **66 on the reserved `.example` TLD my first classifier MISSED** (it matched `example.com` but not the TLD — a classifier that under-recognises the synthetic bucket over-reports the risky one, the safe direction, caught by reading the domain list not the total). Precise question: 43 on non-synthetic domains, **exactly 1 person-shaped local part — and it is a regex artifact** (`@grant.exp` is a JWT field path, not a domain). **0 person identifiers**; local parts redacted throughout, since a record that prints one re-commits it. Email measured NOT gated — §240's wall (most are legitimate fixtures) |
@@ -59788,3 +59789,64 @@ auditing something else** — which is the honest account of how that class has 
 `GatedFlow`-shaped composition test appears (2+ sibling mocks), since that is the reviewable proxy · a
 determinism assertion is written into a suite that pins no real values, which is the only genuinely vacuous
 version of the shape.
+
+---
+
+## §1015 — PHASE GATE: fault-injection coverage — a bound, and a probe that had to be thrown away first
+
+4,534 tests prove the happy paths. A system whose D1/R2/queue/email **failure** branches are untested fails
+precisely when it matters, and this record has never swept fault injection as a unit.
+
+### The first probe was broken and said so by being too good
+
+Counting "test files touching dependency X that also contain a failure verb" gave **93 of 105** for D1, **99
+of 106** for R2, **134 of 144** for DO storage. A ~90% hit rate is §968's rule firing: any test file
+containing the word *fail* or *throw* anywhere matched. **Discarded before reporting.**
+
+### The honest measurement
+
+Counting only **deliberate fault-injection constructs** — `mockRejected*`, an implementation that throws, the
+`faultSeam`/`BrokenDb` helpers, an explicit `throw new Error("D1…")`:
+
+```
+42 deliberate fault-injection sites   across 21 of 367 test files
+```
+
+And the distribution is the actual result:
+
+| file | sites |
+|---|---|
+| `packages/ledger/test/anchor.test.ts` | **15** (36% of all injection in the repo) |
+| `apps/portal/src/api/use-party-board.test.ts` | 5 |
+| `workers/agents/test/queue-dispatch.test.ts` | 3 |
+| everything else | 1–2 each |
+
+**Fault injection is real and concentrated**, overwhelmingly in the anchoring path — which §995 and §1002 both
+independently found well-defended. Outside it, the technique is used sparingly rather than systematically.
+
+### Which is not automatically a gap, and the record already knew where it is one
+
+Most failure paths here are covered by other means: Zod rejection at every boundary, `GateError` throws, the
+error-envelope suite, and the platform's own behaviour (a Worker whose subrequest fails fails the request).
+Fault injection earns its cost where a failure must be **survived** rather than propagated — which is exactly
+the anchoring path's job, and exactly why it holds 15 of the 42.
+
+The one critical path where the thinness is a real gap is already an open row, and it is **more current than
+my sweep**: L422 — *a permanently-failed evidence email surfaces nowhere* — was re-verified **today** by §944,
+which found its trigger had FIRED (the provider IS bound in staging via `[env.staging.vars]`, so
+`index.ts:237@evidenceSender` returns a real sender and the unsurfaced-failure branch is reachable in a
+deployed environment), corrected a `wrangler.toml` header that claimed the opposite, and built
+`wrangler-absence-claims.test.ts` to gate that class of claim.
+
+**I went looking for a gap in the thinnest failure path and found the record ahead of me.** That is the
+correct outcome for a mature ledger and worth recording as such.
+
+### Phase gating
+
+**STOP — recorded as a bound.** Fault injection: **42 sites / 21 files / 367**, concentrated 36% in anchoring;
+the thinnest critical path is an open, currently-accurate row awaiting a REQ row rather than a test.
+
+**Re-open when:** a second path must SURVIVE a dependency failure rather than propagate it — that is the
+signal fault injection is owed, and anchoring is the template · L422 gains its REQ row, at which point the
+evidence-email failure branch becomes buildable and testable · a dependency is added, since the 42 sites cover
+the five that exist today.
