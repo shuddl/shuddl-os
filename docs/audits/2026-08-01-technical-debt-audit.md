@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 681 | §1233 | **§1234** | **§1233'S RULE RUN AS A SEARCH — ABSENCE ASSERTED OVER A PAGE CAPPED AT EXACTLY `LIMIT_CAP`.** Scanned for tests whose meaning depends on a parameter-vs-corpus relationship. **First scan found 8; corrected scan found 15** — my pattern required `?limit=` and missed every `&limit=` form, including one I had read on screen minutes earlier. Seven sites request `limit=1000`, which IS the cap, then assert over the page. Harmless for PRESENCE; for **ABSENCE** it is only sound if the page is the whole set — and two of those are **REQ-025 constitutional cross-tenant checks** (*tenant-b's marker is never reached*). Risk today is low and stated as such (narrow kind filters ⇒ ~1 row); what was missing is the assertion that it stays low, so a corpus crossing the cap would weaken a constitutional check SILENTLY. Premises added to both and proved non-vacuous (tightened to `< 1`, fires). Five presence-only sites named safe. |
 | 680 | §1232 | **§1233** | **A PAGINATION TEST THAT FETCHED ONE PAGE — AND A THIRD PREDICTOR FALSIFIED.** Visibility filtering (I6) is thoroughly defended: deleting `visibility <> 'internal'` reds **8+ tests**, including *still hides internal WHEN PAGINATING*. That suggested *assertable iff removal yields an identifiable ITEM, not a COUNT* — **and ordering falsified it**: swapping the keyset order to `(seq, stream_id)`, which `lens.ts` calls byte-unchanged BECAUSE the cursor depends on it, left 39/39 and 45/45 GREEN. Cause was mundane: the test named *paginates across the whole tenant*, with a **30-second timeout** justified by that walk, used **page size 100 against a 51-row corpus** — the loop ran ONCE and the cursor was never used. Fixed to page size 10 plus a premise assertion (`pages > 1`); the mutation now REDs. **Three predictors, three falsifications** — each a taxonomy of guards, when the cause was ONE parameter. A test can exist, be correctly named, and not execute the property. |
 | 679 | §1231 | **§1232** | **SIX FOR SIX — SIZE BOUNDS ARE A BLIND SPOT AS A CLASS, AND MY SECOND PREDICTOR WAS WRONG TOO.** Worked §1231's queue: `DETAIL_SHIPMENT_CAP`, `ISA_SCAN_LIMIT`, `MAX_INPUT`, `MAX_PAYLOAD_CHARS` all mutated so they can never bind — **all four SURVIVED**, including the two CHEAP ones (200 chars, 2 000 chars), falsifying §1231's cost-based prediction. Tally: **size/truncation bounds 0 of 6 asserted; branches with a named outcome 4 of 4**. The reason is structural, not economic — a truncation produces *a shorter list and nothing else*, so there is no outcome a test would assert while testing the feature; a 403, a flag or a throw gets its guard covered as a side effect. Fixed the per-event half of §1231's bound (`MAX_PAYLOAD_CHARS` on the PAID path — capping the count alone leaves 100 unbounded bodies), asserting the clip AND its visibility; both mutations RED. **Two predictors now falsified by their own tests** — measuring beats predicting here. 4 bounds named still-unasserted. |
 | 678 | §1230 | **§1231** | **THE PREDICTOR IS 2-FOR-2 — THE LLM PROMPT CAP WAS UNASSERTED TOO.** Sharpened §1230's rule into a mechanical signature: a bound on a **collection** needs N items to observe (expensive); a bound on a **scalar** needs one long string (cheap). 11 collection bounds exist; `PROMPT_EVENT_CAP` is the highest-stakes because it bounds a **PAID** LLM call — the only thing between a busy shipment and an arbitrarily large prompt. **Deleting the slice left the package 227/227 GREEN.** Stakes compound with L428 (*the one agent with variable cost and no metering*): an unbounded prompt is expensive AND invisible. Fixed with the seams that already existed (`stubFetch` + `FakeReadPort`), asserting the count **EXACTLY** so it catches removal AND silent tightening — §1230's lesson applied first-try. Both mutations RED. Record: 2 of 2 collection bounds unasserted; every scalar bound checked so far was defended. 9 bounds named unexamined. |
@@ -73374,3 +73375,52 @@ one; this one needed it most, and its absence is why a 30-second pagination test
 **STOP.** Visibility confirmed genuinely defended, ordering confirmed unexercised, the cause traced to a page
 size above the corpus rather than to any property of the guard, the walk repaired and mutation-proved, and the
 third failed predictor recorded alongside the rule that actually generalises.
+
+## §1234 — PHASE GATE: §1233's rule run as a search — absence asserted over a page capped at exactly LIMIT_CAP
+
+**§1233's rule has now been needed four times, which makes it a search rather than a lesson:** *a test whose
+meaning depends on a relationship between a parameter and a corpus must assert that relationship.* Its signature
+is a hardcoded page size against a corpus the test does not control.
+
+**The scan found 8 sites. The corrected scan found 15.** My first pattern required `?limit=`, so every `&limit=`
+form was invisible — including the one at `lens-adversarial.test.ts:631` I had *read on screen minutes earlier*.
+[[floor-the-input-not-the-output]] applied to my own probe: the scanner's pattern bounded its corpus, and the
+under-count read exactly like a small problem.
+
+### The dangerous cluster: `limit=1000` is not "everything", it is the cap
+
+Seven sites request `limit=1000` — **exactly `LIMIT_CAP`** — and then assert over the returned page. For an
+assertion of *presence* that is harmless. For an assertion of **absence** it is not:
+
+```ts
+// isolation.test.ts — REQ-025, a CONSTITUTIONAL check
+expect(body.events.some((e) => e.shipment_id === B_SHP)).toBe(false); // tenant-b's marker is never reached
+```
+
+An absence claimed over a page is only sound if **the page is the whole result set**. At exactly the cap, a full
+page means the view was truncated — and "never reached" becomes a statement about rows nobody looked at. The
+same shape appears in the `includeShadow` cross-tenant drill.
+
+**The risk today is low and is stated as such**: both sites filter by a narrow marker kind, so the real page holds
+about one row. Nothing is broken. What is missing is the *assertion that it is not broken* — the day a corpus
+crosses the cap, a constitutional isolation check would weaken **silently**.
+
+**Premises added to both REQ-025 sites**, and proved non-vacuous rather than assumed: tightening the threshold to
+`toBeLessThan(1)` fires with *"expected 1 to be less than 1"*, so the assertion reads a real length. Isolation
+suite **67/67**.
+
+**Named, not fixed** (presence assertions, where a truncated page cannot produce a false pass):
+`lens-adversarial.test.ts:705/712/734`, `kpis.test.ts:317`, `command-heartbeat.test.ts:319`,
+`source-aware-ledger.test.ts:243`.
+
+### A measurement error worth recording
+
+Applying the second edit failed with `count == 0`. The cause: I had read the line's indentation off a `sed`
+display that my own `sed 's|^|    |'` had prefixed with four spaces, and wrote a pattern with eight. **The
+assertion caught it and the write is atomic, so nothing was half-applied** — the same guard that has fired
+repeatedly this session. Reading a line's *shape* off formatted output is the same error class as reading a
+count off a mis-scoped grep.
+
+**STOP.** The rule run as a search, my own scan corrected from 8 to 15 after it under-matched, the one shape
+where a capped page can produce a FALSE PASS isolated to two constitutional sites, premises added and
+mutation-proved live, the five safe sites named as safe, and the display-vs-source misread recorded.

@@ -675,6 +675,11 @@ describe("REQ-025 growth: a kind-filtered firehose read reads ONLY the JWT tenan
     const res = await SELF.fetch(`https://api.local/v1/events?kind=${KIND}&limit=1000`, { headers: { Authorization: `Bearer ${t}` } });
     expect(res.status).toBe(200);
     const body = (await res.json()) as { events: Array<{ kind: string; shipment_id?: string }> };
+    // PREMISE (§1234), asserted rather than assumed: an ABSENCE claimed over a page is only sound if the page
+    // is the WHOLE result set. `limit=1000` is exactly LIMIT_CAP, so a full page means the view was TRUNCATED
+    // and "tenant-b's marker is never reached" would be an absence over rows nobody looked at. Narrow as that
+    // risk is under a marker-kind filter, the day it stops holding must fail LOUDLY rather than weaken.
+    expect(body.events.length, "the page came back FULL at LIMIT_CAP — the absence below is over a TRUNCATED view").toBeLessThan(1000);
     expect(body.events.every((e) => e.kind === KIND)).toBe(true); // the filter is honored
     expect(body.events.some((e) => e.shipment_id === A_SHP)).toBe(true); // tenant-a's own marker is present
     expect(body.events.some((e) => e.shipment_id === B_SHP)).toBe(false); // tenant-b's marker is never reached
@@ -1146,6 +1151,9 @@ describe("REQ-025 growth: the includeShadow drill reads ONLY the JWT tenant's le
     const aRes = await SELF.fetch(url, { headers: { Authorization: `Bearer ${aTok}` } });
     expect(aRes.status).toBe(200);
     const aBody = (await aRes.json()) as { events: Array<{ id: string; shipment_id?: string }> };
+    // PREMISE (§1234): same reasoning as the kind-filter case above — a full page at LIMIT_CAP would make both
+    // absence assertions below claims about a truncated view rather than about the tenant's data.
+    expect(aBody.events.length, "the page came back FULL at LIMIT_CAP — the absences below are over a TRUNCATED view").toBeLessThan(1000);
     expect(aBody.events.some((e) => e.id === bShadowEventId)).toBe(false); // tenant-b's shadow never bleeds in
     expect(aBody.events.some((e) => e.shipment_id === B_SHADOW_SHP)).toBe(false);
 
