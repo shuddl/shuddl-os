@@ -102,6 +102,26 @@ async function seedNativeEvent(kind: EventKind, shipmentId: string, payload: Rec
     .run();
 }
 
+/** §1179 — seedNativeEvent's twin for `source:'edi'`: a direct row insert, no DO, no projection. */
+async function seedEdiEvent(kind: EventKind, shipmentId: string, payload: Record<string, unknown>): Promise<void> {
+  const overrides: Record<string, unknown> = {
+    id: crypto.randomUUID(),
+    stream_id: `s:${shipmentId}`,
+    shipment_id: shipmentId,
+    seq: 0,
+    source: "edi",
+    visibility: "internal",
+    party_refs: [],
+    payload,
+  };
+  const row = eventToRow(eventFixture(kind, overrides));
+  row.hash = nextHash();
+  const cols = Object.keys(row);
+  await POOL_DB.prepare(`INSERT INTO events (${cols.join(",")}) VALUES (${cols.map(() => "?").join(",")})`)
+    .bind(...cols.map((c) => row[c]))
+    .run();
+}
+
 const num = (v: ParityValue): number => (v === "UNKNOWN" ? 0 : v);
 
 // Captured across the append sequence (before/after), so every parity/KPI assertion is a DELTA — robust to
@@ -259,6 +279,97 @@ describe("WP-15 Task 4b — source-aware ledger: legacy is a parity-only shadow 
     // nothing was written — the native gate blocks BEFORE the append.
     const n = await POOL_DB.prepare("SELECT COUNT(*) AS n FROM events WHERE stream_id = ?").bind(streamId).first<{ n: number }>();
     expect(n?.n).toBe(0);
+  });
+
+  // §1179 (REQ-021/022/030) — THE CARVE-OUT IS `legacy`-ONLY, AND THAT BOUNDARY WAS UNDEFENDED.
+  //
+  // The sequencer keys three independent carve-outs on `source === "legacy"`: the I2 POD gate, the transition-
+  // gate short-circuit, and the projection skip. `edi` and `email` are NOT exempt — sequencer.ts says so
+  // explicitly ("Native (native/edi/email) is byte-for-byte UNCHANGED"). Nothing tested that boundary.
+  //
+  // MEASURED at §1179: widening each of the three from `=== "legacy"` to `!== "native"` — a one-token change,
+  // and a plausible one, since the same file legitimately uses BOTH idioms — left 65 tests across four suites
+  // GREEN. Test (4) above does not catch it: it pins the NATIVE side, and every widening keeps native gated.
+  //
+  // This matters live rather than theoretically. `map-204.ts` stamps `source: "edi"` on EVERY EDI-tendered
+  // event (WP-12), so a widening would silently convert every partner load tender into an ungated, unprojected
+  // shadow record — no POD requirement, no money_lines, no AR — while the suite stayed green.
+  //
+  // `edi` is the right probe value precisely because it is PRODUCED. `email` is declared in the enum and
+  // produced by nothing (§1178), so a test keyed on it would pin a value no seam emits.
+  function ediInput(streamId: string, kind: string, payload: Record<string, unknown>): Record<string, unknown> {
+    return { ...legacyInput(streamId, kind, payload), source: "edi", actor: { party: "agent:translator" } };
+  }
+
+  it("(4b) §1179 an EDI-sourced invoice.issued with no POD is STILL GATE_BLOCKED — the I2 carve-out is legacy-ONLY", async () => {
+    const streamId = "s:lgproof-edi-nopod";
+    await expect(
+      stubFor(streamId).append({
+        tenant: TENANT,
+        streamId,
+        input: ediInput(streamId, "invoice.issued", {
+          invoice_id: "lgp-edi-nopod",
+          party_id: "party-bill-to",
+          division: "main",
+          lines: [{ line_no: 1, kind: "freight", amount_cents: 10_000, gl_map: "4000-REV" }],
+        }),
+      }),
+    ).rejects.toThrow(/GATE_BLOCKED/);
+    const n = await POOL_DB.prepare("SELECT COUNT(*) AS n FROM events WHERE stream_id = ?").bind(streamId).first<{ n: number }>();
+    expect(n?.n, "the gate blocks BEFORE the append, exactly as for native").toBe(0);
+  });
+
+  it("(4c) §1179 an EDI-sourced gated kind is still GATE-CHECKED — the transition short-circuit is legacy-ONLY", async () => {
+    // dispatch.assigned is one of the three gated kinds the legacy carve-out lets through unjudged. On a stream
+    // with no prior booking it must be REFUSED when it arrives as `edi`.
+    const streamId = "s:lgproof-edi-dispatch";
+    await expect(
+      stubFor(streamId).append({ tenant: TENANT, streamId, input: ediInput(streamId, "dispatch.assigned", legacyDispatchPayload) }),
+    ).rejects.toThrow(/GATE_BLOCKED/);
+    const n = await POOL_DB.prepare("SELECT COUNT(*) AS n FROM events WHERE stream_id = ?").bind(streamId).first<{ n: number }>();
+    expect(n?.n).toBe(0);
+  });
+
+  it("(4d) §1179 an EDI-sourced invoice IS PROJECTED — the parity-only shadow path is legacy-ONLY", async () => {
+    // The projection skip is the carve-out with NO gate to announce it: a widened `isLegacy` commits the event
+    // and simply grows no read-model, which is silent by construction — the reason it needs its own pin.
+    //
+    // Uses test (2)'s own definitive observable in mirror image: "a native invoice.issued ALWAYS projects
+    // money_lines + an invoices row". `pod.signed` is not in GATED_KINDS, so an EDI POD seeds the stream and
+    // satisfies I2; the invoice then commits on the SAME terms a native one would, and must project.
+    const shipmentId = "lgproof-edi-proj";
+    const streamId = `s:${shipmentId}`;
+    // The invoice projection writes real AR rows which FK to shipments — seed one exactly as beforeAll does.
+    await POOL_DB.prepare(
+      "INSERT OR IGNORE INTO shipments (id, shipper_party_id, consignee_party_id, bill_to_party_id, created_ts) VALUES (?,?,?,?,0)",
+    )
+      .bind(shipmentId, "legacy-party", "legacy-party", "legacy-party")
+      .run();
+    // I2 needs a committed pod.signed on the stream. DIRECT-INSERT it with source='edi' (the suite's own
+    // seedNativeEvent pattern) rather than appending it: appending a POD drives the custody projection and its
+    // own FK web, which is a different subsystem than the one under test here. assertPodSigned reads `events`,
+    // and 'edi' is native-visible, so this satisfies the gate exactly as a native POD would.
+    await seedEdiEvent("pod.signed", shipmentId, {
+      ...(eventFixture("pod.signed").payload as Record<string, unknown>),
+      unwitnessed: true, // I4 — a custody event needs actor.device OR unwitnessed; an EDI POD has no device.
+    });
+    const appended = (await stubFor(streamId).append({
+      tenant: TENANT,
+      streamId,
+      input: ediInput(streamId, "invoice.issued", {
+        invoice_id: "lgp-edi-proj",
+        party_id: "legacy-party",
+        division: "main",
+        lines: [{ line_no: 1, kind: "freight", amount_cents: 12_500, gl_map: "4000-REV" }],
+      }),
+    })) as AppendedEvent;
+
+    const row = await POOL_DB.prepare("SELECT source FROM events WHERE id = ?").bind(appended.id).first<{ source: string }>();
+    expect(row?.source, "it lands as edi — the DO does not coerce a DO-direct append").toBe("edi");
+    const ml = await POOL_DB.prepare("SELECT COUNT(*) AS n FROM money_lines WHERE event_id = ?").bind(appended.id).first<{ n: number }>();
+    expect(ml?.n, "an EDI invoice projects money_lines exactly like a native one — it is NOT a parity-only shadow").toBeGreaterThan(0);
+    const inv = await POOL_DB.prepare("SELECT COUNT(*) AS n FROM invoices WHERE issued_event_id = ?").bind(appended.id).first<{ n: number }>();
+    expect(inv?.n, "and it backs a real AR row").toBe(1);
   });
 
   it("(6) readEvents (tenant lens) EXCLUDES the legacy shadow by DEFAULT (timeline/queues/export/copilot reconcile with the KPIs); includeShadow:true opts it back in", async () => {

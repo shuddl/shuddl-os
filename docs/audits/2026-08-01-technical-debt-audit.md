@@ -632,7 +632,8 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
-| 625 | §1177 | **§1178** | **A GATE EXEMPTION WITH NO GATE ON WHO MAY CLAIM IT.** `EventInput.source` is `z.enum(["native","legacy","edi","email"])`, and the DO **exempts non-native events from the native physical-precondition gates** (invoice→POD, appointment, dispatch) — so declaring `source:"legacy"` asserts *"the incumbent already did this"* and the DO believes it. The CLIENT half is airtight (both loose-body seams coerce `source="native"`; the other 22 emitters hardcode it — all verified). **The SERVER half was enforced by nothing**: any future route could emit `legacy` directly, which is the likelier regression — a new backfill picks the value that makes the gates stop complaining. Built the closed-set gate: 3 allowlisted producers with reasons. The obvious rule (*every append caller must pin source*) was measured FIRST and **rejected** — 7 of 15 SHIPMENT_SEQ files legitimately do not pin, and an allowlist covering half the corpus is a gate people silence; inverting to positively match the DANGEROUS value gives 3 entries instead of 7 exemptions. Mutation-proved both halves. **Also found: `email` is declared and produced by NOTHING** — an exemption with no seam — and the events.ts comment asserting an *"email pipeline"* was corrected. Third `\s`-in-POSIX-ERE probe error this stretch, caught by a control (0 hits vs 2). |
+| 626 | §1178 | **§1179** | **THE CARVE-OUT IS `legacy`-ONLY, AND ALL THREE BOUNDARIES WERE UNDEFENDED — PLUS A CORRECTION TO §1178.** The sequencer keys **three** independent carve-outs on `source === "legacy"`: the I2 POD gate, the transition-gate short-circuit, and the projection skip. Widening each to `!== "native"` — a **one-token** change, and a plausible one since the same file legitimately uses both idioms — left **65 tests across four suites GREEN**. Test (4) does not catch it: it pins the NATIVE side, and every widening keeps native gated. This is live, not theoretical: `map-204.ts` stamps `source:"edi"` on EVERY EDI-tendered event (WP-12), so a widening silently converts every partner load tender into an ungated, unprojected shadow — no POD requirement, no money_lines, no AR. Three pins added, keyed on `edi` because it is PRODUCED (`email` is emitted by nothing, §1178); **all three mutations now RED, one test each.** **CORRECTION:** §1178 said the DO exempts *non-native* events. Wrong — `legacy` only; `edi`/`email` are fully gated and fully projected, and `NATIVE_VISIBLE_SOURCES = ["native","edi","email"]` says the same thing in the KPI layer. Fixed in three places. |
+| 625 | §1177 | **§1178** | **A GATE EXEMPTION WITH NO GATE ON WHO MAY CLAIM IT.** `EventInput.source` is `z.enum(["native","legacy","edi","email"])`, and the DO **exempts `legacy` events from the native physical-precondition gates** (invoice→POD, appointment, dispatch; `legacy` ONLY — corrected at §1179) — so declaring `source:"legacy"` asserts *"the incumbent already did this"* and the DO believes it. The CLIENT half is airtight (both loose-body seams coerce `source="native"`; the other 22 emitters hardcode it — all verified). **The SERVER half was enforced by nothing**: any future route could emit `legacy` directly, which is the likelier regression — a new backfill picks the value that makes the gates stop complaining. Built the closed-set gate: 3 allowlisted producers with reasons. The obvious rule (*every append caller must pin source*) was measured FIRST and **rejected** — 7 of 15 SHIPMENT_SEQ files legitimately do not pin, and an allowlist covering half the corpus is a gate people silence; inverting to positively match the DANGEROUS value gives 3 entries instead of 7 exemptions. Mutation-proved both halves. **Also found: `email` is declared and produced by NOTHING** — an exemption with no seam — and the events.ts comment asserting an *"email pipeline"* was corrected. Third `\s`-in-POSIX-ERE probe error this stretch, caught by a control (0 hits vs 2). |
 | 624 | §1176 | **§1177** | **A REAL HARDENING ON THE MONEY PATH: THE PLATFORM CREDIT SEAM BOUNDED ITS TENANT, ITS VISIBILITY AND ITS `source` — BUT NOT ITS `kind`.** Followed the roster-vs-selector rule to the highest-stakes roster, `AUTHORITATIVE_FILES`, whose own comment admits *"a NEW emitter in a NEW file passes for free."* Its only completeness guard is a SHRINK check, which catches removal and never omission. Enumerated the ledger emitters via the DO addressing seam (10 callers); five are unrostered and four are benign (`approval.decided`, `authority.flipped` — which does consult authority, `message.received`/`quote.accepted` from the portal). The fifth, `internal-platform.ts`, named **no kind at all** — a `z.record` body, so the kind is caller-supplied. **Nothing bounded it: any of the 35 kinds could land on the reserved `_platform` revenue tenant.** The decisive detail is that the SAME seam already received this exact hardening for a different field — WP-15 Task 4b forces `input.source = "native"` two lines below, reasoning *"NOT reachable today … but forbids leaving the latent hole."* **The discipline stopped one field short.** Bounded to the two kinds its sole caller sends (measured: `credits.ts:213` invoice.issued, `:147` payment.received), REJECT not coerce. Mutation-proved (guard → `if (false)` ⇒ 1 failed/16); 17/17 green. Worse than the `source` hole for one reason: events are APPEND-ONLY, so a forged `settlement.executed` on SHUDDL's own books is permanent. |
 | 623 | §1175 | **§1176** | **THE GATE I SHIPPED ONE PHASE AGO HAD A HOLE, AND THE HOLE WAS ITS ROSTER.** §1175's `RESTATEMENT_DOCS` enumerated three root documents. **`genesis/11-REPO-CLAUDE-MD.md` carries a `## Hard budgets (CI-enforced; …)` SECTION of its own** — it is the spec CLAUDE.md was written from — with **8 more restatements** nothing checked. The two are NOT copies (50 differing lines; CLAUDE.md:15 has `12 canonical views (11 used, one spare)` where genesis/11 has bare `12 canonical views`), which is precisely why the VALUES can drift apart unnoticed. All 8 agree today. Fixed by rostering it AND by closing the class: a discovery half requires **every tracked document carrying a `^#+ Hard budgets` heading** to be on the roster — heading, not mention, so declaring is separated from quoting (5 files contain the phrase; exactly 2 declare it). **MUTATION-PROVED twice:** `6 color tokens` in genesis/11 → RED naming the file; a budgets section appended to an unrostered `docs/wp/WP-16.md` → RED naming it. Each fires exactly one test. 15/15 clean. The lesson is the shape: an ENUMERATION acquires holes, and this one acquired its first before the commit that created it was an hour old. |
 | 622 | §1174 | **§1175** | **THE MECHANISM THAT CONCEALED §1173 IS NOW GATED: 22 BUDGET RESTATEMENTS, ONE OF WHICH WAS CHECKED.** §1173's drift was absorbed by CLAUDE.md:5's prose copy of the surfaces figure, so the obvious follow-on is *how many other copies are there*. Measured across the three root governing documents: **22 restatements of the six ceilings**, of which exactly one — the `(N used)` table figure — had a gate. A budget amendment had to be hand-propagated to sixteen places with fifteen unverified. All twenty-two AGREE today, so this LOCKS a clean state (§486's cheap half). Scans **whitespace-normalised whole text, not lines**, because BUILD-PROMPT.md wraps `12` at the end of :85 and `views` at the start of :86 — a restatement invisible to a line scan purely from where the paragraph broke. Distinguishes the CEILING (`≤N tables`) from the USED figure (a bare `21 tables`, which DOCS owns) — two properties sharing a noun. **MUTATION-PROVED at both sites that matter:** `**4 surfaces**` in CLAUDE.md:5 → RED *"restates surfaces as 4, enforced value is 3"*; `≤23 tables` in the wrapped BUILD-PROMPT paragraph → RED *"restates tables as 23, enforced value is 22"*. Only §1175 fires on either, which is the proof both were previously invisible. 13/13 clean; corpus floored at 15 with a per-budget silence check. |
@@ -69822,8 +69823,9 @@ seam. The inverse question is the natural next one: the `source` field is what �
 ### What the field actually does
 
 `EventInput.source` is `z.enum(["native", "legacy", "edi", "email"])`, and it is not cosmetic. The sequencer
-DO **exempts non-native events from the native physical-precondition gates** — invoice→POD, appointment,
-dispatch. A record declaring itself `legacy` asserts *"the incumbent's system already did this"*, and the DO
+DO **exempts `legacy` events from the native physical-precondition gates** — invoice→POD, appointment,
+dispatch. (`legacy` SPECIFICALLY. This section originally read *"non-native"*, which is wrong and is corrected
+at §1179: `edi` and `email` are fully gated and fully projected.) A record declaring itself `legacy` asserts *"the incumbent's system already did this"*, and the DO
 believes it. `routes/events.ts` says so in as many words:
 
 > *"A client that could self-declare `source:'legacy'` would BYPASS those gates entirely, forging a 'the
@@ -69926,4 +69928,87 @@ by widening the rule, which is the strictly safer of the two.
 **STOP.** The `source` invariant is now closed on both halves: coerced against clients, allowlisted against
 servers, with three named producers, two mutation proofs, a stale-exemption tripwire, and one false comment
 corrected.
+
+## §1179 — PHASE GATE: `legacy`-only, three carve-outs, and a correction to the section before it
+
+**Why this phase.** §1178 established that the `source` field buys a gate exemption. The obvious follow-on is
+the one that phase did not ask: **what exactly is exempted, and is the boundary defended?**
+
+### First, the correction
+
+§1178 wrote that the DO *"exempts non-native events from the native physical-precondition gates."* **That is
+wrong.** Every carve-out keys on `source === "legacy"` specifically. Measured, all four source-dependent
+branches in the sequencer:
+
+| site | condition | meaning |
+|---|---|---|
+| I2 POD gate | `kind === "invoice.issued" && source !== "legacy"` | legacy invoices skip POD |
+| transition gates | `if (source === "legacy") return {}` | legacy skips every gated-kind judgement |
+| projection batch | `isLegacy = source === "legacy"` | legacy writes the event row and nothing else |
+| credit party check | `kind === "credit.checked" && source === "native"` | deliberately native-only, documented |
+
+And the ledger's own comment says it plainly: *"Native (native/edi/email) is byte-for-byte UNCHANGED."* The
+KPI layer agrees from the other side — `NATIVE_VISIBLE_SOURCES = ["native", "edi", "email"]`, applied through
+one shared `nativeVisibleSourceSql` helper at every call site. **One coherent notion across three subsystems**,
+and I widened it in prose. Corrected in three places: the §1178 section, its index row, and the gate's own
+failure message, which would otherwise have told a future reader that an `edi` producer skips gates.
+
+*A claim you inherit is a claim you are making* — and one you wrote an hour ago is the easiest to inherit.
+
+### The finding: all three `legacy` boundaries were undefended
+
+Widening each carve-out from `=== "legacy"` to `!== "native"` is **one token**, and it is a *plausible* edit,
+because the same file legitimately contains both idioms. Measured against four suites (source-aware-ledger,
+gates, pod, sequencer — 65 tests):
+
+| mutation | before |
+|---|---|
+| POD-gate exemption → all non-native | **65 passed** |
+| transition short-circuit → all non-native | **65 passed** |
+| projection skip → all non-native | **65 passed** |
+
+Silent, all three. And the suite is not careless — it has a test named *"(4) a NATIVE invoice.issued with no
+POD is STILL GATE_BLOCKED"*. **That test cannot catch this**, because every widening keeps `native` gated. The
+`native` side was pinned; the boundary was not.
+
+> **A carve-out has two edges, and testing the inside tells you nothing about the outside.** Pinning
+> *"native is still gated"* and *"legacy is exempt"* leaves `edi` and `email` — the values that are neither —
+> free to move to either side without a single test noticing.
+
+This is live rather than theoretical. `map-204.ts` stamps `source: "edi"` on **every** EDI-tendered event
+(WP-12, shipped), so a widening converts every partner load tender into an ungated, unprojected shadow record:
+no POD requirement, no money_lines, no AR — while the suite stays green.
+
+### The three pins, and why `edi`
+
+Keyed on **`edi`, not `email`**: `edi` is *produced* (§1178 measured `email` at zero producers), so a test
+keyed on `email` would pin a value no seam emits.
+
+- **(4b)** an EDI `invoice.issued` on a POD-less stream is still `GATE_BLOCKED`, nothing written.
+- **(4c)** an EDI `dispatch.assigned` with no prior booking is still gate-judged.
+- **(4d)** an EDI invoice **projects** `money_lines` + an `invoices` row — test (2)'s own "definitive"
+  observable, in mirror image. This one needed its own pin precisely because it has *no gate to announce it*:
+  a widened `isLegacy` commits the event and simply grows no read-model, which is silent by construction.
+
+**All three mutations now RED, one test each.**
+
+### What building (4d) cost, and what it proves about the invariants
+
+Four failed attempts, each corrected by measurement rather than by guessing again:
+
+1. asserted `quote.priced` projects money — **wrong**; it is explicitly in money.ts's *"other 30 kinds carry no
+   money"* list. My assertion, not a defect.
+2. hand-wrote a `pod.signed` payload — schema refused. Twice more, including with the canonical fixture.
+   Printing the actual Zod issue named it: **`I4: custody event requires actor.device or payload.unwitnessed`**.
+   An EDI POD is a partner's electronic record with no SHUDDL device, so `unwitnessed` is the modelling I4 asks
+   for — **the invariant explained the domain to me**, which is what a good schema is for.
+3. then a `FOREIGN KEY` failure — which was itself the **first evidence the projection runs for EDI**: a
+   skipped projection writes nothing and cannot violate a constraint.
+4. finally, seeding the POD by direct insert (the suite's own `seedNativeEvent` pattern, twinned for `edi`)
+   rather than appending it — appending a POD drives the custody projection and its own FK web, a different
+   subsystem than the one under test.
+
+**STOP.** Three constitutional carve-outs pinned at the edge nobody had tested, all three mutation-proved from
+silent to RED, and a wrong claim in the immediately preceding section found and corrected in every place it
+was written.
 

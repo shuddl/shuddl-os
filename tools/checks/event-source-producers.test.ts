@@ -6,9 +6,11 @@ import { repoRoot } from "./repo-root.js";
 // §1178 (REQ-021/022/030) — A NON-NATIVE EVENT SOURCE IS A GATE EXEMPTION, SO ITS PRODUCERS ARE A CLOSED SET.
 //
 // `EventInput.source` is `z.enum(["native", "legacy", "edi", "email"])`, and the value is not cosmetic: the
-// sequencer DO EXEMPTS non-native events from the native physical-precondition gates (invoice→POD,
-// appointment, dispatch). A record that declares itself `legacy` is asserting *"the incumbent's system already
-// did this"*, and the DO believes it.
+// sequencer DO EXEMPTS `legacy` events from the native physical-precondition gates (invoice→POD, appointment,
+// dispatch) — `legacy` SPECIFICALLY, not "non-native": `edi` and `email` are fully gated and fully projected
+// (§1179). A record that declares itself `legacy` is asserting *"the incumbent's system already did this"*, and
+// the DO believes it. `edi`/`email` are still pinned here because they are ingest DECLARATIONS the lens and the
+// KPI layer read (NATIVE_VISIBLE_SOURCES), so a rogue producer of either is still a rogue provenance claim.
 //
 // `workers/api/src/routes/events.ts` states the invariant in a comment, and states why it matters:
 //
@@ -116,9 +118,10 @@ describe("§1178 REQ-021/030: only the declared seams may produce a non-native e
       .map((p) => `${p.file} declares source:"${p.value}"`);
     expect(
       rogue,
-      "a file outside the declared ingest seams produces a NON-NATIVE event source. That value is a GATE " +
+      "a file outside the declared ingest seams produces a NON-NATIVE event source. `legacy` is a GATE " +
         "EXEMPTION — the sequencer DO skips the native physical-precondition gates (invoice→POD, appointment, " +
-        "dispatch) for it — so this is a gate bypass, whether or not it was meant as one. If the path is a " +
+        "dispatch) for it — and `edi`/`email` are provenance claims the lens and KPI layer trust. Either way this " +
+        "is an unaudited ingest declaration. If the path is a " +
         "genuine non-native ingest, add it to ALLOWED_PRODUCERS with the seam it implements; if it is a way to " +
         "stop a gate failing, the gate is the thing to satisfy:\n  " +
         rogue.join("\n  "),
