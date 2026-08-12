@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 649 | §1201 | **§1202** | **THE COMPOSITE-KEY SWEEP CLOSES: THE OTHER TWO KEYS ARE DEFENDED, ONE OF THEM TWICE.** §1201's shape — *a key that must keep two things apart* — has three instances. The parity dedup key was the open one. The **DO address** keyed on tenant-plus-stream is what makes REQ-025 structural, and it holds **belt and braces, both mutation-proved**: dropping the tenant from the address at `routes/events.ts` fires the DO's OWN identity check in `sequencer.ts` (*"the caller-declared identity must re-derive to OUR OWN id"*, 403 FORBIDDEN), and removing that check REDs a named test. The third, the offline dedupe key, is enforced by the DATABASE — a UNIQUE INDEX `ux_events_device` over (stream_id, device_id, device_seq) — so a collapsed key is a constraint violation, not a silent merge. **Diagnosability note, not a defect:** the address mutation surfaces as *"seed iso-pub-4-shipment/booking failed: 403"* — a seed throwing, not a named isolation assertion, so the guard fires while the message does not say *tenant isolation*. And the run reported `Test Files 1 failed` with `65 passed | 2 skipped` — a file-level failure my summary pattern missed, the second such near-miss in three phases. |
 | 648 | §1200 | **§1201** | **A SECOND REAL GAP FROM THE SAME MECHANISM: PARITY'S DEDUP KEY COULD CONFLATE THE TWO SIDES IT EXISTS TO SEPARATE.** §1197's deeper lesson — *a check whose inputs share a source cannot see what that source loses* — applied to **parity**, which authorises authority flips (REQ-008/023) on the money path. Both sides come from ONE query split by the `source` column, so the question is whether the split can fail. Three metric paths, each mutated to double-attribute: `count` **2 RED**, `sum` **6 RED** — defended. The third, `latestSumBySource`, dedups on `${source}|${stream_id}` *"so a native quote and a legacy mirror quote on the SAME stream are deduped independently"* — its own comment. **Dropping `${source}|` from that key left the ENTIRE ledger suite green: 698 passed.** Every existing rating case seeds the two sides on DIFFERENT shipments (`rat-p-nat`/`rat-p-leg`), so the fold was never exercised. On a mirrored stream the collision discards one side's quote entirely and parity compares two incomplete aggregates. Pinned with a same-stream case asserted as a DELTA; the mutation now REDs naming the vanished side. |
 | 647 | §1199 | **§1200** | **THE SHARED-PROJECTION SHAPE SWEPT BEYOND THE LEDGER: THE TWO PUBLIC CAP SURFACES ARE SAFE, BY A FOURTH MECHANISM.** §1199's corrected discriminator — *one projection feeding both sides of a verification* — applies wherever a producer and a verifier exist. Outside the ledger that is the capability MACs gating the only unauthenticated endpoints: `/pub/status/:cap` (`{t,s}`) and `/pub/documents/:cap` (`{t,k}`). **The shape does not apply**: both are JWTs, so the MAC covers the ENTIRE payload and `verify` never rebuilds a projection — it checks the signature over the raw token. The live risk there is the different one this record has met (*parsed but unconsumed*), and both consumers bind every claim with **no request-supplied alternative to confuse**: status resolves the tenant DB from `claims.t` and binds `claims.s` into both queries; documents confines `claims.k` to `evidence/${claims.t}/` before the R2 read, so even a MAC-valid cap cannot leave its own tenant. **Mutation-proved**: removing that confinement REDs a test. Four mechanisms now measured across every verification-bearing projection in the build — shared+allowlist (the one gap), shared+denylist, inverse pair, and whole-payload MAC. |
 | 646 | §1198 | **§1199** | **THE PROJECTION SWEEP CLOSES: THREE PROJECTIONS, THREE DIFFERENT REASONS, ONE GAP — AND THE DISCRIMINATOR IS NOT ALLOWLIST-vs-DENYLIST.** `eventToRow` is an explicit ALLOWLIST, the same shape §1197 found unpinned — but blanking `payload` in it REDs **39** tests. So the allowlist/denylist axis §1198 named is not what decides safety. The real discriminator is whether **ONE projection feeds BOTH sides of a verification**: `clientView` is called by `signEvent` AND `verifyEventSig`, so blanking a field makes both sides agree and the check passes over nothing — invisible. `hashView` is likewise shared, and survives only because its denylist shape makes omission impossible. `eventToRow`/`rowToEvent` are INVERSE functions, not a shared one, so a blanked value produces an observable mismatch the round-trip catches. Taxonomy measured, not argued: **shared+allowlist = the gap (§1197, now pinned) · shared+denylist = safe by construction (§1198) · inverse pair = safe by observable mismatch (§1199)**. The ledger's verification-bearing projections are now all accounted for. |
@@ -71544,4 +71545,74 @@ folding in the source."*
 **STOP.** Parity's three metric paths mutated individually; two defended, and the third's identity key found
 undefended by a suite that had only ever tested the two sides on separate streams — the second real gap this
 stretch, from the same mechanism as the first.
+
+## §1202 — PHASE GATE: three composite keys, three enforcements, one that needed a test
+
+**Why this phase.** §1201 found an identity key that could merge the two things it exists to separate. That is
+a shape with a small, enumerable population: **keys whose whole job is keeping two things apart.** There are
+three in this build.
+
+### 1. The parity dedup key — the one that was open
+
+The source-plus-stream key, closed at §1201.
+
+### 2. The DO address — defended twice, both proved
+
+the DO address — tenant and stream id joined — is what makes REQ-025 **structural** rather than procedural: two
+tenants cannot share a sequencer instance because they cannot compute the same DurableObjectId. Eleven call
+sites, all identical.
+
+| mutation | result |
+|---|---|
+| drop the tenant from the address (`routes/events.ts`) | **caught** — `FORBIDDEN {"reason":"sequencer identity mismatch"}` |
+| remove the DO's identity check in `sequencer.ts` | **1 test RED** |
+
+The first is the interesting one. The address alone is not what stops the attack — the **DO checks its own
+identity on arrival**:
+
+```ts
+const expected = this.env.SHIPMENT_SEQ.idFromName(`${tenant}|${streamId}`);
+if (!expected.equals(this.ctx.id)) throw rpcError("FORBIDDEN", …);
+```
+
+So a route that computes the address wrongly does not quietly land in the wrong instance; it lands somewhere
+that refuses it. **Belt and braces, and both were measured rather than assumed.**
+
+### 3. The offline dedupe key — enforced by the database
+
+The (stream_id, device_id, device_seq) triple is a UNIQUE INDEX, `ux_events_device`, partial on device_id NOT NULL.
+A collapsed key is a **constraint violation**, not a silent merge — the strongest of the three enforcements,
+because it does not depend on any code path remembering to check.
+
+> **The same shape, enforced three different ways: by a test, by a runtime belt, by a database constraint.**
+> Only the one enforced by a *test* was open — which is the pattern, not a coincidence. A DB constraint and a
+> runtime assertion cannot be forgotten; a test can simply never have been written for the case.
+
+### Two observations that are not defects
+
+**Diagnosability.** The address mutation surfaces as `seed iso-pub-4-shipment/booking failed: 403`. The guard
+fires correctly, but a reader sees a failing *seed*, not "tenant isolation broken". The isolation suite proves
+the property; the message a future engineer meets first names neither REQ-025 nor the mismatch. Recorded rather
+than fixed, because the fix is a test-fixture change with no effect on the guarantee.
+
+**A summary pattern missed a file-level failure** — `Test Files 1 failed` while `Tests 65 passed | 2 skipped`,
+because the failure was outside any test. My grep matched only the `N failed | N passed` shape and printed
+nothing, which read as no output at all. Second near-miss in three phases (§1198 was the `Snapshots` line), and
+the same rule caught both: **a missing summary is an ERROR, never a green.**
+
+### A third observation: the record's own notation collided with a table
+
+Staging this section reddened **two** gates at once. `check:tables` fired because the key I was writing about —
+tenant and stream id joined by a **pipe** — is a markdown column separator, so quoting it inside a table row
+silently added columns. `citation-ratchet` fired because I had written a bare line-numbered citation into a high-churn
+file — and then, writing THIS paragraph, wrote it again, which is how the fifth instance of the
+collision announced itself.
+
+Both are the same family as §1178/§1187/§1188/§1195: **a record describing a thing cannot always spell the
+thing.** Here it is not even a gate's notation — it is *markdown's*. The fix is the standing one: change the
+notation, never the check. The key is now named in prose, and the citation carries no line.
+
+**STOP.** The composite-key population enumerated and closed: one gap found and pinned last phase, one defended
+by a structural belt proved in both directions, one enforced by a unique index — and the observation that the
+only open instance was the only one whose enforcement was a test.
 
