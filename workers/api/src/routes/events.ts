@@ -1,7 +1,7 @@
 import type { Hono } from "hono";
 import type { ErrorCode, EventKind, LedgerEvent, Role } from "@shuddl/contracts";
 import { EVENT_KINDS, GATE_BLOCKED_PREFIX } from "@shuddl/contracts";
-import { lensFor, readEvents, type ReadQuery } from "@shuddl/ledger/lens";
+import { lensFor, readEvents, DEFAULT_LIMIT, LIMIT_CAP, type ReadQuery } from "@shuddl/ledger/lens";
 import { ApiError } from "../middleware/error.js";
 import { requireRole } from "../middleware/auth.js";
 import { resolveTenantDb } from "../tenants.js";
@@ -113,8 +113,8 @@ const BLESSED_DECISION_KINDS: ReadonlySet<string> = new Set<string>(["approval.d
 // t:root (defense in depth); the blessed flip route appends on t:root directly and never traverses this route.
 const CONTROL_PLANE_KINDS: ReadonlySet<string> = new Set<string>(["authority.flipped"]);
 
-const LIMIT_CAP = 1000;
-const DEFAULT_LIMIT = 200; // mirrors @shuddl/ledger/lens readEvents so next_cursor agrees with the page size
+// §1228 — DEFAULT_LIMIT / LIMIT_CAP now come FROM the lens (see its note): `nextCursor` below must
+// use the same numbers `readEvents` applied to the SQL LIMIT, or a full page reads as short.
 // A shipment id far under any DO-name / KV-key limit; a real id is a slug, never kilobytes. Length only —
 // the DO owns the format check. 200 chars leaves ample headroom below the 2KB DO-name and 512B KV limits.
 const MAX_SHIPMENT_ID_LEN = 200;

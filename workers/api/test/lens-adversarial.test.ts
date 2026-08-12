@@ -665,6 +665,24 @@ describe("firehose GET /v1/events", () => {
     const res = await SELF.fetch("https://api.local/v1/events?after_seq=1", { headers: { Authorization: `Bearer ${await opsTok()}` } });
     expect(res.status).toBe(400);
   });
+
+  // §1228 — THE TERMINATION HALF OF THE CURSOR CONTRACT. Every case above walks pages while a cursor comes
+  // back; none asserts that the walk ENDS. Measured: replacing `nextCursor`'s `events.length < effective`
+  // with `false` — so a cursor is returned even on the final page — left all 44 tests in this file GREEN,
+  // because dropping that check can only turn nulls into strings and nothing asserted a null. The pagination
+  // loop at the top of this describe (`if (!page.next_cursor) break;`) would then never break.
+  it("a SHORT page ends the walk — next_cursor is null (REQ-010 termination)", async () => {
+    const LIMIT = 500; // under LIMIT_CAP (1000), far above the rows this shared test D1 holds
+    const res = await listFirehose(await opsTok(), `?limit=${LIMIT}`);
+    expect(res.status).toBe(200);
+    // PREMISE, asserted not assumed: the D1 is shared across test files, so if the corpus ever reached LIMIT
+    // this case would silently exercise the FULL-page branch and pass for the wrong reason.
+    expect(res.events.length, `a FULL page came back at limit=${LIMIT}; raise LIMIT or this case is vacuous`).toBeLessThan(LIMIT);
+    expect(
+      res.next_cursor === null,
+      "a short page must end the walk with a null cursor; a non-null cursor sends the client back for a page that does not exist",
+    ).toBe(true);
+  });
 });
 
 // REQ-082/083 — the command queues + KPI click-through list a specific kind (or set) lens-scoped. The kind

@@ -174,4 +174,25 @@ describe("REQ-010: the archive bundles events + journal + documents + anchors, w
     expect(p2.events.length).toBe(1);
     if (p1.events[0] && p2.events[0]) expect(k(p2.events[0])).not.toBe(k(p1.events[0]));
   });
+
+  // §1228 — THE OTHER HALF OF THE CURSOR CONTRACT, which nothing asserted. The test above pins only that a
+  // FULL page hands back a cursor. Removing the length check entirely — so a cursor comes back even on the
+  // final page — left BOTH route suites green (measured: 44/44 and 7/7), because deleting that check can only
+  // turn nulls into strings and no test ever asserted a null. Without this, a client walking
+  // `events_next_cursor` never learns from the cursor that it is done: it makes one extra round trip that
+  // returns nothing, and the documented contract ("a short page is the end") is unenforced.
+  it("a SHORT page ends the walk — events_next_cursor is null (REQ-010 termination)", async () => {
+    const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "admin" });
+    const LIMIT = 500; // under LIMIT_CAP (1000), far above anything the shared test D1 holds
+    const a = (await (await getExport(t, `&limit=${LIMIT}`)).json()) as Archive;
+    // PREMISE, asserted rather than assumed: this really is a short page. The tenant D1 is SHARED across test
+    // files, so the count is not fixed here — if it ever reached LIMIT this test would silently be exercising
+    // the full-page branch instead, and pass for the wrong reason.
+    expect(a.events.length, `the export returned a FULL page at limit=${LIMIT}; raise LIMIT or this case is vacuous`).toBeLessThan(LIMIT);
+    // Both directions in one unconditional property: null iff the page was short.
+    expect(
+      a.events_next_cursor === null,
+      "a short page must end the walk with a null cursor; a non-null cursor here sends the client back for a page that does not exist",
+    ).toBe(true);
+  });
 });

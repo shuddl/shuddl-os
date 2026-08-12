@@ -65,7 +65,7 @@ Transition gates are pure deterministic decisions over `(prior events, incoming 
 | Keys | sorted, no whitespace | `canonical.ts:41-44` |
 | `undefined` | OMITTED | `canonical.ts:42` |
 | `null` | EMITTED as `null` | `canonical.ts:22` |
-| SQL NULL read-back | → omitted key, never `null` | `packages/ledger/src/lens.ts:191@undefined` (rule) · `:245@shipment_id` (impl) |
+| SQL NULL read-back | → omitted key, never `null` | `packages/ledger/src/lens.ts:197@undefined` (rule) · `:245@shipment_id` (impl) |
 | Position leaf | byte-identical ingest ↔ anchor | `packages/ledger/src/anchor.ts:88@canonicalPositionBytes` |
 | hashView | envelope − `sig` − `hash` | `chain.ts:9` |
 | clientView | offline field set (no source/confidence/party_refs) | `sign.ts:7` |

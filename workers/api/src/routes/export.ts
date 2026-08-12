@@ -1,7 +1,7 @@
 import type { Hono } from "hono";
 import { z } from "zod";
 import type { LedgerEvent } from "@shuddl/contracts";
-import { lensFor, readEvents, type Lens, type ReadQuery } from "@shuddl/ledger/lens";
+import { lensFor, readEvents, DEFAULT_LIMIT, LIMIT_CAP, type Lens, type ReadQuery } from "@shuddl/ledger/lens";
 import { exportJournal, type JournalLine } from "@shuddl/ledger/gl/export";
 import { serializeJournalIIF } from "@shuddl/ledger/gl/iif";
 import { ApiError } from "../middleware/error.js";
@@ -32,8 +32,7 @@ import type { Env, Vars } from "../index.js";
 // module exports `mountFullExportRoutes` (GET /v1/export) to avoid the name clash. Distinct paths, no route
 // collision.
 
-const DEFAULT_LIMIT = 200; // mirrors @shuddl/ledger/lens readEvents so events_next_cursor agrees with the page
-const LIMIT_CAP = 1000;
+// §1228 — imported from the lens rather than mirrored here; see its note on why the two must be one value.
 
 // The full documents row for an admin export — the REF, never the bytes. r2_key IS included (an admin export is
 // tenant-lens; the key lives in THIS tenant's `evidence/<tenant>/…` namespace and can only ever be resolved by

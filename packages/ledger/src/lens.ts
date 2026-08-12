@@ -105,8 +105,14 @@ export interface ReadQuery {
   includeShadow?: boolean;
 }
 
-const LIMIT_CAP = 1000;
-const DEFAULT_LIMIT = 200;
+// §1228 — EXPORTED because two API routes recompute this exact expression to decide whether a page was
+// FULL. `readEvents` applies these to the SQL `LIMIT`; `routes/events.ts` and `routes/export.ts` apply
+// them again in their own `nextCursor()` (`if (events.length < effective) return null`). Both carried
+// private copies and a comment saying they "mirror" this file — with nothing comparing them. If a route's
+// copy were ever LARGER than this one, a full page would read as short, `nextCursor` would return null,
+// and the client would silently never see rows past the first page. One declaration removes the class.
+export const LIMIT_CAP = 1000;
+export const DEFAULT_LIMIT = 200;
 
 export async function readEvents(db: D1Database, lens: Lens, q: ReadQuery = {}): Promise<LedgerEvent[]> {
   // `seq` is per-stream. A bare `after_seq` across streams silently drops rows (two streams
