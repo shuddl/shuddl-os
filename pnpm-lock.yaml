@@ -463,7 +463,7 @@ importers:
         specifier: ^5.9.0
         version: 5.9.3
       vitest:
-        specifier: ^3.2.7
+        specifier: ~3.2.4
         version: 3.2.7(@types/node@26.1.1)(jsdom@29.1.1)(lightningcss@1.32.0)(tsx@4.23.0)
       wrangler:
         specifier: ^4.51.0
