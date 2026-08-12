@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 636 | §1188 | **§1189** | **SWEPT EVERY GATE'S CORPUS; ONE MONEY CHECK EXCLUDED A TREE FOR NO STATED REASON — MEASURED, AND THE EXCLUSION IS RIGHT.** §1188's lesson is that a corpus is a choice nobody revisits. Swept all ~50 gate corpora: almost all are correctly scoped to their subject (a `wrangler.toml` gate scans `wrangler.toml`). One file uses **three different scopes across five checks** — `float-money-division` — and two are justified in their own text (§845 is explicitly *"the pure layer"*; §843 scans all three trees). The main float-division check excluded `apps/` **with no stated reason**. Measured by widening it and running the gate: **exactly one hit, a false positive** — `` `/v1/shipments/${id}/events?limit=200` ``, URL path separators — and **zero real findings**. The FP is STRUCTURAL: `codeSkeleton` deliberately does not blank template literals because they can carry real interpolated arithmetic (`${a / b}`), and front-end code is dense with relative API paths in exactly that position. So the exclusion is correct — money is DISPLAYED in `apps/`, computed server-side — and `apps/` is not unguarded anyway: §843 covers it at the identifier level. **Nothing changed but the record**: the choice is now written down with the number that justifies it, so the next reader revisits it with data instead of re-deriving it. |
 | 635 | §1187 | **§1188** | **THE SECTION-REFERENCE GATE SCANNED MARKDOWN ONLY, AND SOURCE CARRIES MORE REFERENCES THAN MARKDOWN DOES.** §1187's shape — a fact recorded where the gate does not look — swept across launch prerequisites: most `PREREQUISITE` hits in source are GATE semantics, the rate-limit one is filed (§1182), and `sequencer.ts`'s *"every bound tenant needs a `tenants` row"* resolves to a real row. But its pointer said **GO-LIVE §1** (*Purpose & upkeep*) when the row lives in **§2** — corrected. That prompted the real question: `check:section-refs` builds its corpus from `git ls-files "*.md"`. Measured: tracked `.ts`/`.tsx` carry **2,492** `§N` references — **more than the markdown corpus the gate was built for** — all unchecked. **Five dangle, every one at section 624, which was never allocated** (the audit runs §623 → §625; the phase those comments describe is §625, confirmed by content: *"a finding that was wrong"* ↔ *"the sweep's premise turned out to be WRONG"*). That number appears ZERO times in markdown, so the original corpus could never have seen it — **§508's own defect, recurring in the one place its gate does not look.** Five refs fixed, corpus extended (cost measured at 5 BEFORE the change), floor raised 10 → 200. |
 | 634 | §1186 | **§1187** | **TWO OF THE FIVE ACCEPTANCE-DEMO OPERATOR ROWS UNDERSTATE THEIR BLOCKERS, AND `demos.ts` PREDICTED IT.** §1186 emptied the repo-actionable ledger, so this audits what is NOT yet in it: CLAUDE.md's five demos — the build's own definition of *done enough to show*. The machinery is excellent (manifest parity both directions, all five declared, spine-file existence, a case-count floor, a may-not-be-gutted guard), so the unexamined half is each demo's stated **filmed delta**. **Demo #2:** the operator row's blocker read *"Bind the R4 flag/secret set, then the observed human run"* — binding the flags does **not** make it runnable. **THERE IS NO SIGNUP SURFACE**, re-verified at HEAD with a positive control: 0 references to `/pub/signup` in `apps/`, **0** `<form`, **0** `type="email"`, **0** `onSubmit` (control: 61 `onClick` in the same corpus). **Demo #3:** status read **PILOT**, implying the software is ready; REQ-069 (driver login) is `F0-SPEC'D` and *"a real driver cannot authenticate at all today"*, plus a HIGH-graded custody-parties block. `demos.ts` warns of exactly this — *"disclosed elsewhere ONLY as a browser-TEST gap … reads as a coverage limitation rather than the filming blocker it is"* and *"neither block is visible from this file otherwise"* — **and these rows were that elsewhere.** Demo #1 (photos) and #4 (staging smoke) are accurate; #5 needs no operator row. Both corrected. |
 | 633 | §1185 | **§1186** | **TRIAGED ALL 15 LIVE REPO-OWNED ROWS: THE REPO-ACTIONABLE SET IS EMPTY, AND ONE ROW IS ALREADY FIXED.** §1185 produced the count; this reads every row and asks what actually blocks it. **Row 436 is FIXED** — verified in the code, not inherited: `tenant-scope.test.ts` carries `}, 30_000);` on the §702 assertion, the exact remedy §1052 recorded. It is unstruck only because it holds a watch trigger, so the live figure is **14 open + 1 fixed-with-watch**. Every one of the 14 is blocked by construction: *"not a defect to fix"* (407, 408, 415), *"needs a REQ row first"* (428, 429, 430), *"needs a decision"* / *"needs a definition"* (409, 410, 411), owner-held (412, 413 — *"the fix is one line … but the FIX is an owner decision"*), a private input (416), accepted-for-now (431), and R4-with-a-reverted-fix (432 — written, REVERTED, and §1056 measured the wall as a **dependency** property, `isolatedStorage: false`). **CLAUDE.md forbids building what has no REQ row, so the correct action on all 14 is to leave them.** Also: a keyword scan for resolution markers FALSE-POSITIVED on 416 — its "CLOSED" is *"this gate fails CLOSED in CI"*, a mechanism, not a status. |
@@ -70666,4 +70667,66 @@ first on source comments exactly as it already did on markdown.
 **STOP.** Launch prerequisites swept, one wrong cross-document pointer corrected, and the section-reference
 gate's corpus extended to the tree where most of its subject matter actually lives — closing five live dangling
 references that the original scan was structurally unable to see.
+
+## §1189 — PHASE GATE: a corpus that was right, and could not be known to be
+
+**Why this phase.** §1188 found a gate whose markdown-only corpus hid five live dangling references, and named
+the mechanism: **a corpus is a choice, and nobody revisits it.** That is a sweepable shape — so sweep every
+gate's corpus.
+
+### The sweep
+
+~50 `git ls-files` corpora across `tools/`. Almost all are correctly scoped **to their subject**: a
+`wrangler.toml` parity gate scans `workers/*/wrangler.toml`; a service-worker lint scans the service worker; a
+migration-safety gate scans `db/*/migrations/*.sql`. Narrow is not suspicious when the subject is narrow.
+
+The signal worth chasing is **disagreement within one file**, because sub-checks of one law should share a
+corpus unless something says otherwise. Exactly one file disagrees with itself:
+`float-money-division.test.ts`, with **three scopes across five checks**.
+
+| check | corpus | justified in its own text? |
+|---|---|---|
+| §845 — the pure layer reads no ambient clock/randomness | `packages` | **yes** — it is explicitly about *the pure layer* |
+| §843 — no `*CENTS*` identifier holds a fractional value | `packages` `workers` `apps` | **yes** — an identifier can appear anywhere |
+| **the main float-division scan** | `packages` `workers` | **no reason given** |
+
+### Measured, not argued
+
+Widened `prodSources` to include `apps` and ran the gate's own logic — no re-derived detector, which is how
+§1183's mistake was made:
+
+```
+Tests  1 failed | 9 passed
+apps/command/src/intake/intake.ts:255
+  const feed = await api.get<EventsResponse>(`/v1/shipments/${…}/events?limit=200`)
+```
+
+**One hit, a false positive, zero real findings.** The `/` are URL path separators.
+
+And the false positive is **structural, not a pattern bug**. `codeSkeleton` drops quoted string content but
+**deliberately does not blank template literals**, because a template literal can carry genuine interpolated
+arithmetic — `${a / b}` — and blanking it would hide precisely what this gate exists to catch. The allowlist
+entry on `workers/billing/src/credits.ts` records that decision already. Front-end code is dense with relative
+API paths inside template literals, so widening buys a permanent false-positive stream in exchange for
+coverage of a tree where **money is displayed, not computed** — *money as a projection of physics* puts the
+arithmetic server-side.
+
+`apps/` is also not unguarded: **§843 already scans it**, at the identifier level, and is green.
+
+### What changed
+
+**Nothing but the record — and that is the point.** The exclusion is correct and stays. What it lacked was the
+one sentence that separates a decision from an oversight, plus the number behind it.
+
+> **An unstated corpus choice is indistinguishable from an unrevisited default.** §1188's five dangling
+> references and this file's correct exclusion look identical from outside the code: both are a tree the gate
+> does not read. Only the written reason tells you which one you are looking at — and the reason costs one
+> measurement.
+
+The comment now carries the finding (1 hit, false positive, structural), the reason (template literals cannot
+be blanked without losing interpolated arithmetic), the compensating coverage (§843), and a revisit trigger
+(app-side money arithmetic, or a skeleton that can tell a URL path from an interpolation).
+
+**STOP.** Every gate corpus swept; the single self-inconsistent file measured rather than assumed; the
+exclusion confirmed correct and converted from a default into a documented decision with its cost attached.
 

@@ -111,6 +111,27 @@ function floatMoneyDivisions(files: ReadonlyArray<{ path: string; text: string }
 const isAllowed = (h: Hit): boolean =>
   NOT_A_MONETARY_VALUE.some((a) => a.path === h.path && h.text.includes(a.snippet));
 
+// §1189 — WHY THIS CORPUS EXCLUDES `apps/`, stated because it was previously just a default.
+//
+// §843 below scans `packages/ workers/ apps/`; this scan does not, and nothing said why. A corpus is a choice,
+// and an unstated one is indistinguishable from an oversight (§1188 found a gate whose markdown-only corpus
+// hid five live defects for exactly that reason).
+//
+// MEASURED at §1189 by widening this function to include `apps` and running the gate: **exactly one hit, and
+// it is a false positive** — `api.get(`/v1/shipments/${id}/events?limit=200`)`, whose `/` are URL path
+// separators. Zero real findings.
+//
+// The false positive is STRUCTURAL, not fixable by a better pattern. `codeSkeleton` deliberately does NOT
+// blank template literals, because a template literal can carry real interpolated arithmetic (`${a / b}`) and
+// blanking it would hide the very thing this gate exists to catch — the allowlist entry at
+// `workers/billing/src/credits.ts` records that decision. Front-end code is dense with relative API paths
+// inside template literals, so widening trades a permanent false-positive stream for coverage of a tree where
+// money is DISPLAYED rather than computed (money is a projection of physics; the arithmetic is server-side).
+//
+// `apps/` is not unguarded: §843 covers it at the identifier level — no `*CENTS*` identifier may hold a
+// fractional value, scanned across all three trees and green. The split is deliberate, and now written down.
+// Revisit if app-side money arithmetic ever appears, or if the skeleton learns to distinguish a URL path from
+// an interpolation.
 function prodSources(root: string): Array<{ path: string; text: string }> {
   return execSync('git ls-files "packages" "workers"', { cwd: root, encoding: "utf8" })
     .split("\n")
