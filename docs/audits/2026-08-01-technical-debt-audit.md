@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 620 | §1172 | **§1173** | **A REAL DEFECT IN THE GATE THAT GUARDS THE GOVERNING DOCUMENT: ONE OF THE SIX HARD BUDGETS WAS READ OUT OF PROSE.** `claude-md-budgets.test.ts` exec'd each `stated` regex against **all of CLAUDE.md**, and `exec` returns the FIRST match. Five patterns occur once — they hit the budgets line by luck of phrasing. `/(\d+) surfaces/` occurs **twice**, and CLAUDE.md:5's *"**3 surfaces** (Command, Driver PWA, Portal)"* precedes the budgets line at :15. **MUTATION-PROVED:** setting the budgets line to `4 surfaces` while `SURFACE_ROSTER` held three left the file **9/9 GREEN** — the governing document stating a budget its enforcer contradicts, which is the one thing this gate exists to catch. Fixed by reading the LAW where the law is (`budgetsLine()`); the planted drift now REDs naming *"surfaces: CLAUDE.md says 4 … enforces 3"*, clean is 10/10. Separately probed all six extractors against the **runtime** constants: 22/3/12/35/5/2, six-for-six agreement. |
 | 619 | §1171 | **§1172** | **I6 CLOSED STRUCTURALLY: NO VIEW CAN BYPASS THE LENS, BECAUSE NO VIEW TOUCHES THE DATABASE.** I6 — *`events.visibility` respected by every view, tested adversarially* — was the last invariant unexamined. The adversarial half is emphatic: `lens-adversarial.test.ts` carries **44** assertions including **case 9, a table-driven I6 visibility sweep**, and **case 9b, *independent I6 guards that do NOT import the map under test*** — the mirror-shaped-gate hazard deliberately avoided. The *views* half holds by construction: **no file under `apps/` reaches D1**, so every read crosses the lens-gated API. Near-miss: my probe flagged **4** app files, and all four were noise — three are UI copy (*"SELECT A KPI"*, *"SELECT A SHIPMENT"*) and one is a `.d.ts` type declaration. |
 | 618 | §1170 | **§1171** | **THE ARC'S TWO TRANSFERABLE LESSONS WERE NOT IN MEMORY — NOW THEY ARE.** A session's most durable output is the rule it leaves behind, and two of this one's were unrecorded. **(1)** §1143/§1144's *a clean negative contains two claims* — extended `a-false-clean-invites-no-follow-up`, whose existing rule fired only on **zero** results while both failures here were **populated and unsurprising**: a 43-file sweep that read everything and still filtered the violation out as safe, and a probe that **agreed** with the row it checked. **(2)** §1170's *a rule applied only forwards is half a rule* — extended `self-review-with-the-reviewers-questions`, adding the rules variant plus the corollary that **building is the most expensive way to discover a thing exists**. Both indexed. |
 | 617 | §1169 | **§1170** | **STOPPING POINT XX — FOUR SELF-CORRECTIONS, EACH FOUND BY APPLYING A RULE BACKWARDS.** Board at `2f17d87`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs measured to `REQ-289`. §1166–§1169 corrected **my own** output, not the build: §1166 struck a false I7 observation (I searched `net zero`; the test says `net to exactly 0` — the trap that phase had just named) · §1167 **deleted a gate I built** that already existed, proved by watching the pre-existing one catch my plant · §1168 finished that sweep on all three gates (2 survive) · §1169 verified the deletion across four signals. **Net enforcement this session: 2 gates**, both mutation-proved, non-duplicate, cwd-independent. |
@@ -69441,4 +69442,88 @@ Three are **UI copy** in this build's uppercase display style; one is a `.d.ts`.
 independent non-importing guards, and structurally for views by the absence of any database handle under
 `apps/`; the four-file alarm read and dissolved into three strings of UI copy and one type declaration, with
 the permanent collision recorded for the next scan. Zero source changed.
+
+## §1173 — PHASE GATE: the gate that guards the governing document read one budget out of prose
+
+**Why this phase.** `pnpm recall` returned *"appears in NO governing record"* for the hard budgets as a set —
+CLAUDE.md line 15 states seven of them under the header **"CI-enforced; exceeding = the PR is wrong"**, and
+nothing in fifty thousand lines of audit had asked whether each is enforced. That is a law with no measured
+verdict, so it is the phase.
+
+### What already existed, and it is good
+
+`tools/checks/claude-md-budgets.test.ts` is one of the strongest gates in the repo: six roster entries pairing
+CLAUDE.md's stated figure to the file that enforces it, a **non-vacuity** test for both halves, a
+`(N used)` check that calls `checkMigrationSql` — the *same authority the script calls* rather than a second
+implementation — a **discovery half** over root-level markdown, and a **§743 completeness floor** derived from
+the document that requires every number on the budgets line to be claimed by a roster entry or exempted with
+its reason. Four exemptions, each carrying one.
+
+### The defect
+
+Every `stated` regex was exec'd against **the whole of CLAUDE.md**, and `exec` returns the **first** match:
+
+```
+≤[0-9]+ tables          1 line   → 15
+[0-9]+ surfaces         2 lines  → 5, 15      ← the intro prose comes FIRST
+[0-9]+ canonical views  1 line   → 15
+[0-9]+ event kinds      1 line   → 15
+[0-9]+ color tokens     1 line   → 15
+[0-9]+ font families    1 line   → 15
+```
+
+Five patterns read the budgets line **by luck of phrasing**. `surfaces` did not: CLAUDE.md:5 —
+*"**13 agents** that run the protocol; **3 surfaces** (Command, Driver PWA, Portal)"* — precedes line 15, so
+the surfaces budget was read from a sentence in *"What you are building"* and the governing line was never
+consulted for it.
+
+**MUTATION-PROVED.** Editing the budgets line to `· 4 surfaces + command bar + queues ·` and leaving
+`SURFACE_ROSTER` at three:
+
+```
+Test Files  1 passed (1)
+     Tests  9 passed (9)
+```
+
+The governing document stated a budget its enforcer contradicts, and the gate built to catch exactly that was
+green. **The prose restatement absorbed the drift** — the second copy of a number did not just fail to help,
+it actively concealed the first copy going stale.
+
+### The fix, and why it is one line
+
+The completeness floor was **already correct**, because it execs against `line`. The whole defect is that two
+other tests execed against the document. `budgetsLine()` is now hoisted and both read it. Re-planted:
+
+```
+surfaces: CLAUDE.md says 4, tools/checks/invariants.ts enforces 3
+     Tests  1 failed | 9 passed (10)
+```
+
+Clean tree: **10/10**. The tenth is a regression test carrying the defect as a self-contained document — prose
+saying three, law saying four — asserting the whole-document read returns `"3"` and `budgetsLine()` returns
+`"4"`.
+
+> **A document-scoped regex is a positional bet, and the bet is invisible when it wins.** Five of six patterns
+> won it. Nothing about the passing five tells you the sixth was reading a different line, because a gate that
+> reads the wrong place and finds the right number is indistinguishable from a correct one — until the two
+> places disagree, which is the only moment the gate matters.
+
+### The extractors, separately
+
+Each `enforced` extractor is a regex over source, and the non-vacuity test only catches `null` — never a
+*wrong* number. Probed all six against the **runtime constants** (importing `EVENT_KINDS`, `TOKENS`, `FONTS`,
+`SURFACE_ROSTER`, `TABLE_BUDGET`, `MAX_CANONICAL_VIEWS` and comparing):
+
+```
+tables 22/22 · surfaces 3/3 · views 12/12 · event kinds 35/35 · colors 5/5 · fonts 2/2
+```
+
+Six-for-six. **No gate added, and the reason is the failure direction:** an extractor that over- or
+under-counts makes `stated !== enforced` and fails LOUDLY. A false *pass* needs the extractor's error to
+exactly cancel a real drift — a conjunction, not a mechanism. Recorded as a read (§1146's middle class).
+
+**STOP.** The hard-budgets law measured for the first time: the gate is strong, and one of its six budgets was
+nonetheless read out of the intro paragraph — proved by planting a drift that stayed 9/9 green, fixed by
+reading the law where the law is, and re-proved by the same plant now REDing with the right subject named.
+Extractors verified against runtime, six-for-six.
 

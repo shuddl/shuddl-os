@@ -109,16 +109,37 @@ const BUDGETS: readonly Budget[] = [
   },
 ];
 
+// §1173 — A BUDGET IS LAW ONLY ON THE HARD-BUDGETS LINE, SO THAT IS THE ONLY PLACE TO READ IT.
+//
+// Every `stated` regex above used to be exec'd against the WHOLE of CLAUDE.md, and `exec` returns the FIRST
+// match. Five of the six patterns occur exactly once, so they read the budgets line — by luck of phrasing,
+// not by construction. `/(\d+) surfaces/` occurs TWICE: CLAUDE.md:5 ("**3 surfaces** (Command, Driver PWA,
+// Portal)", the "What you are building" paragraph) comes before CLAUDE.md:15, so the surfaces budget was read
+// out of PROSE and the budgets line was never consulted.
+//
+// MEASURED: editing the budgets line to `· 4 surfaces + command bar + queues ·` and leaving SURFACE_ROSTER at
+// three left this file **9/9 GREEN** — the governing document stating a budget its enforcer contradicts, in
+// the exact scenario this gate exists for. The prose restatement absorbed the drift.
+//
+// The completeness floor below was already correct, because it execs against the LINE. That is the whole
+// difference, and it is why this is one line of fix rather than a redesign: read the law where the law is.
+/** The hard-budgets line — the one place in CLAUDE.md where a budget is stated AS LAW. */
+export function budgetsLine(claudeMd: string): string {
+  return /## Hard budgets[^\n]*\n([^\n]*)/.exec(claudeMd)?.[1] ?? "";
+}
+
 describe("REQ-118 §611: CLAUDE.md's hard budgets match what enforces them", () => {
   const root = repoRoot();
   const claudeMd = readFileSync(`${root}/CLAUDE.md`, "utf8");
+  // §1173 — read every stated budget from HERE, never from the document at large.
+  const line = budgetsLine(claudeMd);
 
   it("every budget is stated in CLAUDE.md and readable from its source (non-vacuity)", () => {
     // Both halves can go silent: a reworded CLAUDE.md line stops matching, and a renamed/restructured
     // constant stops parsing. Either would compare undefined to undefined and pass — the class this repo met
     // in eleven gates (§487/§554/§572/§584/§586/§590/§592/§593/§598/§607/§608).
     const unreadable = BUDGETS.filter((b) => {
-      const stated = b.stated.exec(claudeMd);
+      const stated = b.stated.exec(line);
       const enforced = b.enforced(readFileSync(`${root}/${b.source}`, "utf8"));
       return stated === null || enforced === null;
     }).map((b) => b.label);
@@ -221,7 +242,6 @@ describe("REQ-118 §611: CLAUDE.md's hard budgets match what enforces them", () 
   });
 
   it("every budget STATED in CLAUDE.md is covered by the roster (§743 completeness floor)", () => {
-    const line = /## Hard budgets[^\n]*\n([^\n]*)/.exec(claudeMd)?.[1] ?? "";
     expect(line.length, "the hard-budgets line did not parse — a broken scan, not a clean record").toBeGreaterThan(60);
 
     // ZERO-TOLERANCE RULES ARE NOT COUNT COMPARISONS. "0 shadows/gradients/radius>4px" is enforced by the
@@ -283,9 +303,21 @@ describe("REQ-118 §611: CLAUDE.md's hard budgets match what enforces them", () 
     ).toEqual([]);
   });
 
+  it("§1173: a budget is read from the BUDGETS LINE, never from prose that restates it", () => {
+    // The defect this pins, as a self-contained document: the intro says three surfaces, the LAW says four.
+    // Reading the document at large returns the prose figure and the drift disappears.
+    const synthetic =
+      "SHUDDL: the freight operating system … **13 agents**; **3 surfaces** (Command, Driver PWA, Portal) …\n" +
+      "\n## Hard budgets (CI-enforced; exceeding = the PR is wrong)\n" +
+      "≤22 tables (21 used) · 4 surfaces + command bar + queues · 12 canonical views · 35 event kinds\n";
+    const surfaces = /(\d+) surfaces/;
+    expect(surfaces.exec(synthetic)![1], "whole-document exec reaches the intro prose first").toBe("3");
+    expect(surfaces.exec(budgetsLine(synthetic))![1], "the LAW says four — this is the figure the gate must check").toBe("4");
+  });
+
   it("each stated budget equals the number its gate actually enforces", () => {
     const drift = BUDGETS.map((b) => {
-      const stated = Number(b.stated.exec(claudeMd)![1]);
+      const stated = Number(b.stated.exec(line)![1]);
       const enforced = b.enforced(readFileSync(`${root}/${b.source}`, "utf8"))!;
       return { label: b.label, stated, enforced, source: b.source };
     }).filter((d) => d.stated !== d.enforced);
