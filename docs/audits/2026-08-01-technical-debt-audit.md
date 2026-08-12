@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 540 | §1092 | **§1093** | **TWO DEAD STRUCTURES VERIFIED, ONE ROW CORRECTED, AND A WORD THAT MEANS TWO THINGS 18:1.** §1092's *dead field has two ends* applied to the tier's two structural instances. **`passports`** — still WRITE-ONLY at HEAD: the projection holds the INSERT, the sequencer imports the projector, and there is **no `SELECT … FROM passports` in production**, so every qualifying append pays an upsert that returns nothing. **`assets`** — still a table with no readers or writers, but the row says its only references are the `CREATE TABLE` and the `MUTABLE_TABLES` entry; there are **three** — a schema test also asserts its `kind` CHECK values. *Zero tests* was wrong; *zero readers, zero writers* holds. **Grep hazard:** the bare word `assets` returns **54** hits that are Cloudflare's `[assets]` config key and **3** that are the table — one word, two meanings, 18:1. |
 | 539 | §1091 | **§1092** | **I4's WAIVER: NO READER *AND* NO WRITER — WHICH CHANGES WHICH OPTION THE OWNER IS CHOOSING.** L186 says the `unwitnessed` waiver has no downstream reader. Verified exact: it appears in **one** non-test file (`contracts/src/events.ts` — twice as a schema field, twice in the I4 refines) and **zero** times in `workers/`, `apps/` or any other package. Then measured the direction the row did NOT: **nothing in production SETS it either.** Every `unwitnessed: true` in the tree is a test fixture satisfying I4 without a device signature — one says so in a comment. So the waiver is exercised only by tests, which makes the row's option (a) *accept it* currently **free**, and option (b) *give it a reader* a **precondition** for any surface that starts setting it. The API accepts it from any authenticated client today; the driver app never sends it. |
 | 538 | §1090 | **§1091** | **WHY SOME §3 FIGURES STAY TRUE AND MOST DECAY — TWO GATES, NINETY-FOUR CLAIMS.** Continuing §1090's sweep, L202 (*unbounded list reads — 9 sites*) turned out to be the **best-instrumented row in the tier**: `unbounded-reads-roster.test.ts` is green and its header says the assertion *compares the doc's number to `ROSTER.length`* — so that figure **cannot drift without failing a gate**, which is exactly why it is current while three other §3 figures re-measured at §1085 had gone stale. Measured the tier: **21 gates read the checklist**, **31 of 94 live items have a gate naming their source file** (a basename proxy, an upper bound), and only **2 gates compare a doc FIGURE to code**. So ~92 numeric claims in §3 are unpinned prose. |
 | 537 | §1089 | **§1090** | **THE UNSWEPT TIER, OPENED — 92 ITEMS TRIAGED, AND THE TWO SHARPEST Med ONES VERIFIED EXACT.** §1089 found §3's inventory unswept; this triages it: **2 High (both EDI, both inert), 11 live Med, 73 live Low, 13 already resolved.** Verified in full at HEAD: **L228** — `actor{party}` is client-supplied → the biller's resolveInterline call → `approval.ts:126@executor` `if (leg.executor === tenantParty)`. **A client-named party still chooses which leg's share the REQ-040 floor judges** — the $222,084 guard. Fix is the stated owner decision (the biller is a queue consumer with no session). **L210** — `sent214Key` is still `edi/${tenant}/214/${key}`, tenant- not partner-scoped, safe only because §1066 proved no live transport exists. The citation gates rejected my write-up **twice**: a wrong anchor line, then an unanchored citation into a ratcheted file. |
@@ -65027,4 +65028,61 @@ never authenticity; it is that a downstream reader treats two different things a
 **STOP.** L186 verified exact in the direction it claims, and extended with the writer count that determines
 which of its two options is urgent. Still an owner decision, now with the population attached: **zero today**.
 `pnpm delta` clean · `check:tables` OK · `check:citations` 0.
+
+## §1093 — PHASE GATE: two dead structures, and a word that means two things
+
+**Why this phase.** §1092 established that a dead field has two ends — readers and writers — and that measuring
+only one decides the wrong question. The tier holds two *structural* instances of the same class, both Low, both
+about things the system maintains and never uses.
+
+### `passports` — write-only, and on the hot path
+
+Verified at HEAD: `packages/ledger/src/projection/passports.ts` holds the `INSERT INTO passports (…)`,
+`workers/api/src/do/sequencer.ts` imports `projectPassport`, and **no `SELECT … FROM passports` exists in
+production** — the only other mention is a comment in `routes/rate.ts` explaining what is *not* a `/rate`
+responsibility.
+
+The cost is precisely stated by the row and confirmed: `projectPassport` is **batched into the sequencer's
+append transaction**, so every qualifying event pays an upsert for a table nothing reads. Not a correctness
+defect — a correct projection, maintained on the hot path, returning nothing.
+
+And the fix is properly framed as not-mine: *"Either a surface reads it … or the projection comes off the append
+path. **Not a deletion decision to make here** — CLAUDE.md requires a written deletion."*
+
+### `assets` — dead, and the row slightly understates it
+
+Zero readers and zero writers confirmed. But the row says the **only** references are the `CREATE TABLE` and the
+`MUTABLE_TABLES` classification entry. There are **three**: `packages/ledger/test/schema-domain.test.ts` also
+asserts the table's `kind` CHECK values (`tractor`, `trailer`, `pup`).
+
+That is a schema assertion, not a use — so *"zero readers, zero writers"* survives and *"zero tests"* does not.
+Corrected in the row, because a claim of exhaustiveness is exactly the kind that invites nobody to re-check.
+
+It still costs what the row says: **one of the 21 used table slots**, against a hard budget of 22 with a spare
+that CLAUDE.md says *"requires a written deletion."* So the live picture is 20 working tables, one dead one, and
+one spare.
+
+### The grep hazard, measured
+
+The bare word `assets` returns **54** hits that have nothing to do with the table — Cloudflare's `[assets]`
+static-asset config block in the three surface `wrangler.toml`s, plus the surface-contract gate that validates
+it. The **table** has **3**.
+
+**One word, two unrelated meanings, 18:1 in favour of the wrong one.** A word-grep here does not merely
+over-report; it buries the real answer under a plausible, entirely unrelated population — and both meanings are
+legitimate, so no filter distinguishes them without knowing which subject you meant.
+
+### What this phase says
+
+> **A claim of exhaustiveness is the most fragile sentence in a record.** *"The ONLY references anywhere"* was
+> wrong by one, and being wrong by one is enough to make the next reader stop looking. A count invites
+> re-checking; the word *only* forecloses it.
+
+The narrower one, third form this session of the same lesson: **before grepping a name, ask whether the name is
+owned by two things.** §1078 hit it with worker-vs-database names, §1090 with a table's two shapes, and here a
+schema table shares its identifier with a deployment config key.
+
+**STOP.** Both structural dead-weight items verified at HEAD, one row corrected for over-claiming
+exhaustiveness, and the 18:1 name collision recorded so the next reader of either `assets` knows which one the
+grep will find. `pnpm delta` clean · `check:tables` OK · `check:citations` 0.
 
