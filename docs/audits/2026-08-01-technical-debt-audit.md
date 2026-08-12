@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 603 | §1155 | **§1156** | **ROW CLOSED — 24 → 4 → 1 → 0, AND THE LAST STEP IS STRUCTURAL.** The final assertion, `rate.test.ts`'s *"a role not in {ops,admin,finance} is 403"*, tests a `read` role — rejected by `rate.ts:112@requireRole` **before the handler runs**, while both of rate's own 403 guards sit inside `if (session.role === "portal")` and are unreachable for that principal. Identical for `board.test.ts:111`. **§81's defect requires two guards reachable BY THE SAME PRINCIPAL**, and a middleware `requireRole` preceding role-scoped handler guards cannot produce that — whichever rejects, the other was never in play. The portal-scoped guards that CAN be ambiguous *are* distinguished (`status-cap.test.ts` PS-7 asserts the `cap` is undefined). A row that began at ~24 units of wedge-risky work closes at **zero**. |
 | 602 | §1154 | **§1155** | **24 → 4 → 1: THE ROW'S THIRD MEASUREMENT, AND THE LAST PIECE WAS MY OWN INFERENCE.** §1154 called `status-link.ts`'s missing test FILE *"the real gap"* — a filename inference, and §1115 had already taught me not to make one. It is covered: `status-cap.test.ts` exercises **both** guards and NAMES one — *"translates LENS_UNRESOLVED to a clean 403, not an opaque 500"* (§927) — while `:117` covers the scope guard as *"PS-7: a portal party NOT on the shipment is denied"*, asserting `cap` is **undefined** so the mint provably did not happen. With `board.test.ts` unassertable (helper discards the body) and one of its guards unreachable, **the entire residual of a row that began at ~24 guards is ONE assertion in `rate.test.ts`.** Three measurements, no executions. |
 | 601 | §1153 | **§1154** | **WENT TO FIX THE FOUR ASSERTIONS AND FOUND TWO ARE NOT ASSERTABLE AND ONE GUARD IS UNREACHABLE.** §1153 bounded the row to *four message assertions*; implementing it required knowing each intended message, and reading rather than guessing changed the answer twice. **The `board()` test helper returns `{status, items}` and parses `body.board` — it DISCARDS the error body**, which is why those assertions are status-only: the message was never available. And `board.ts:169@requireRole` admits `admin·ops·finance·read·portal`, so the `:186` ROLE guard is — by its own comment — *"unreachable via requireRole; kept fail-closed as defence-in-depth"*. A driver's 403 comes from the **middleware**, so that test has no sibling ambiguity and nothing to distinguish. **An unreachable guard cannot be mutation-checked by a route test, and that is correct, not debt.** |
 | 600 | §1152 | **§1153** | **A ROW'S ESTIMATE RE-MEASURED: "~24 GUARDS" IS 3 ROUTES AND 4 ASSERTIONS.** §1152 said reducing the ledger is the work that shortens the owner's queue, so I took the most concrete open row — *multi-guard 403 routes, ~24 guards not yet mutation-checked* — and measured it instead of running its ~24-iteration mutation loop (the wedge-risk §1114 forbids). **6** route files carry ≥2 `FORBIDDEN 403` guards (18 total), and §81/§82 already closed three. The remaining three each have **2 guards with DISTINCT messages**, so the gap is the ASSERTION, not the guard: `board.test.ts` has **3** status-only 403s, `rate.test.ts` **1**, and **`status-link.ts` has no dedicated test file**. The residual is four assertions and one route's coverage. |
@@ -68585,4 +68586,58 @@ knows can wedge for days.
 tracing ownership rather than filenames, correcting my own inference from the previous phase; the
 outcome-based distinguishing assertion recognised as satisfying §82's intent; the full arc 24 → 4 → 1 recorded
 with the method that produced each step. Zero source changed.
+
+## §1156 — PHASE GATE: the row closes at zero, on a structural reason
+
+**Why this phase.** §1155 left exactly one assertion: `rate.test.ts`'s *"a role not in {ops,admin,finance} is
+403"*. Implementing it needed the intended guard's message — and reading it dissolved the last of the row.
+
+### The final assertion is not the class either
+
+`rate.ts:112` is `requireRole("ops", "admin", "finance", "portal")`. A `read` role is rejected **by the
+middleware, before the handler runs**. And rate's own two 403 guards live inside:
+
+```
+if (session.role === "portal") {
+  … if (visible.length === 0) throw ApiError("FORBIDDEN", 403, "SHIPMENT NOT IN YOUR SCOPE");
+  … if (msg.startsWith("LENS_UNRESOLVED")) throw ApiError("FORBIDDEN", 403, "SESSION LENS UNRESOLVED");
+}
+```
+
+For a `read` principal **neither is reachable**. There is nothing to distinguish; the status *is* the reason.
+`board.test.ts:111` is the same shape, and §1154 had already found its second guard documented-unreachable.
+
+### The structural reason the row was never as large as it looked
+
+> **§81's defect requires two guards reachable BY THE SAME PRINCIPAL.** A route with `requireRole` in front
+> and a role-scoped guard inside has two guards and *cannot* have that ambiguity: whichever one rejects, the
+> other was never in play for that caller. Counting `ApiError("FORBIDDEN", 403` per file finds guards; it does
+> not find **ambiguity**, which is a property of a principal's path through them.
+
+That is why the count kept collapsing. Of the six routes with ≥2 guards, the ones where two guards really can
+contend for the same caller are the **portal-scoped** paths — and those are exactly the ones already
+distinguished: `status-cap.test.ts`'s PS-7 asserts `res.json?.cap` is **undefined**, proving *which* guard
+fired by the side-effect that did not happen.
+
+### The arc, complete
+
+| measurement | residual | method |
+|---|---|---|
+| as filed | ~24 guards | estimate |
+| §1153 | 4 assertions + 1 route | counted guards per route |
+| §1154 | 1 assertable | read the helper and the guard comments |
+| §1155 | 1 | traced `status-link`'s real test owner |
+| **§1156** | **0** | read `requireRole` against the guards' scope |
+
+**Four measurements, zero executions**, against a fix specifying ~24 runs on the harness this repo knows can
+wedge for days. **Row CLOSED.**
+
+> **A count of guards is not a count of risk.** The row's number was honest and its unit was wrong — it
+> counted `throw`s where the hazard is *reachable pairs*. Every re-measurement narrowed it, and the final
+> narrowing came free from a line (`requireRole(...)`) that had been sitting above the guards the whole time.
+
+**STOP.** The multi-guard 403 row closed at a residual of zero, on the structural ground that a preceding
+`requireRole` and a role-scoped handler guard cannot both be reachable for one principal; the genuinely
+ambiguous portal paths confirmed already distinguished by an outcome assertion; the arc 24 → 4 → 1 → 0
+recorded with the method behind each step. Zero source changed.
 
