@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 558 | §1110 | **§1111** | **DEFECT — LAW 5's SOLE DEFENCE AGAINST A 150% EXECUTING SHARE HAD NO TEST.** A law is not one proposition: REQ-040 has **four** falsifiable clauses, and §305 proved one (the arithmetic, RED 13) while §1109 proved another (the partial-signal refusal, RED 3). Mutating the remaining two: the 10000-total check REDs 2 — but the **per-leg range check went GREEN, 166/166**. One probe separated redundant-from-untested: with it removed, `[+15000, -5000]` (summing to exactly 10000, so the total-check is blind) yields **`shareCents: 150000` on a 100000 gross — a 150% share**, which clears any floor. That is the $222,084 DIRECTION. Test added and mutation-proved. And the second test I wrote asserted a mechanism that was **false** — the fractional shape is caught downstream by `mulDivHalfUp`'s BigInt, not by the guard — caught by mutating my own comment before commit. |
 | 557 | §1109 | **§1110** | **STOPPING POINT X — SIX PHASES, ONE HARDENING, ONE LAW PROVED, ONE ALARM WITHDRAWN.** Board re-earned at `6c672f8`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs attributed BY MEASUREMENT to the owner's uncommitted `REQ-289` row. §1104 named an untracked deferral to REQ-267 · §1105 learned the staging boundary by breaking it (40 verified duplicates removed) · §1106 **hardened** an allowlist that argued one rule while exempting two (5/5 measured) · §1107 **withdrew** its own alarm — the delta was my regex · §1108 swept all 7 credentials (fail-closed on two layers) · §1109 **mutation-proved CLAUDE.md Law 5** (3/3 REDs, 163 green). Two of six phases corrected ME, which is the ratio worth keeping. |
 | 556 | §1108 | **§1109** | **CLAUDE.md LAW 5 MUTATION-PROVED: 3 REDs, ALL THREE PARTIAL SHAPES.** Audited REQ-040 (*"interline floors compare the executing share, never gross"*) by the shape of its gate. Structure first: there is exactly **ONE** floor-comparison function (`evaluateApproval` — two `>=`), and **ONE** orchestrator choosing its input, so the entire law lives in the CHOICE of figure. The forbidden case is named in the code — a PARTIAL interline signal falling through to DIRECT compares the gross — and it **fails loud** rather than defaulting, which is right because there is no safe default for *which figure*. Mutated the guard to fall through: **3 RED**, every one in the `REQ-040 anti-$222K` block, covering legs-without-tenant, tenant-without-legs, and the subtle **EMPTY legs with a tenantParty**. Zero collateral; restore verified twice. |
 | 555 | §1107 | **§1108** | **EVERY SECRET, AND WHAT IT DOES WHEN UNBOUND — 7/7 FAIL CLOSED, ON TWO LAYERS.** Swept the KIND not yet audited this stretch. Enumerated the Env surface (**20** uppercase string bindings, **7** genuine credentials) and asked the only question that matters per [[fail-closed-is-about-the-fallback-value]]: what is the FALLBACK VALUE when it is absent? Every credential is read at a **composition root** that returns a NotConfigured port — and each selector rejects **`""` as well as `undefined`**, which is the non-obvious half (an empty `wrangler secret` would otherwise mint a live client with a blank credential). The second layer is the deploy preflight: `REQUIRED_BINDINGS.<worker>.secrets` BLOCKS a deploy missing one, and also blocks the test affordance **present-and-forbidden** in prod. Neither layer alone suffices — runtime-only runs prod silently dark; deploy-only misses dev. Both exist. Clean negative. |
@@ -66084,4 +66085,67 @@ exemptions they license.
 **STOP.** Board 19/2/5 at `6c672f8` with both FAILs measured; one hardening landed; one constitutional law
 mutation-proved; one self-inflicted alarm withdrawn on evidence; the owner's untracked workstream restored
 untouched and never committed.
+
+## §1111 — PHASE GATE: a law is not one proposition, and its untested clause was the dangerous one
+
+**Why this phase.** §1109 mutation-proved Law 5 and I nearly filed it as done. Then `pnpm recall REQ-040`
+returned **37 prior verdicts**, including §305–§307, which had *already* mutation-proved Law 5 — by replacing
+`mulDivHalfUp(grossSellCents, tenantBps, BPS_TOTAL)` with `grossSellCents`, RED 13, the failure output naming
+`222084` and `35-lb`.
+
+Two proofs of "the same law", and neither is redundant, because they falsify **different propositions**:
+
+| clause | what it asserts | proved |
+|---|---|---|
+| 1 — arithmetic | the share is `gross × bps / 10000`, not gross | §305 — RED 13 |
+| 2 — branch guard | a PARTIAL interline signal refuses, never falls through to DIRECT | §1109 — RED 3 |
+| 3 — split total | every leg's `split_bps` sums to exactly 10000 | **§1111 — RED 2** |
+| 4 — per-leg range | each `split_bps` is an integer in `[0, 10000]` | **§1111 — GREEN ⚠️** |
+
+Breaking any one leaves the other three green, which is the whole point: **"Law 5 is proved" was never a
+single fact.** A build can compute the share correctly (1), refuse partial signals (2), validate the total
+(3), and still be wrong.
+
+### Clause 4 went GREEN, and that was the finding
+
+Deleting the per-leg range check left **166/166 passing**. [[a-silent-mutation-has-two-explanations]] — the
+guard is redundant, or nothing tests it — and one probe separates them.
+
+With the guard removed:
+
+```
+executingShare(100_000, [ +15_000 (tenant), −5_000 (other) ], "tenant")
+  →  { shareCents: 150000, tenantBps: 15000 }
+```
+
+A **150% executing share on the gross.** And the total-check cannot see it: `15000 + (−5000)` is exactly
+`10000`, a perfectly valid split set. So clause 4 is the **sole** defence against compensating out-of-range
+legs, and it was defended by nothing.
+
+The direction matters. An inflated share is not a harmless malformation — it makes a **below-floor deal clear
+the floors**, which is precisely the shape that produced the $222,084-on-35-lb anomaly this repo calls a
+permanent regression. The guard was correct; only its evidence was missing, so a future refactor could have
+deleted it with a green suite and no signal.
+
+**Fixed:** a test for the compensating case, then mutation-proved — RED with the guard gone, green with it
+back, 168/168.
+
+### The second test I wrote was wrong about WHY it passed
+
+I added a fractional pair (`5000.5 + 4999.5`, also summing to 10000) as "the same blind spot". Mutating again:
+it stayed **GREEN** without the guard. The probe named the real mechanism —
+`mulDivHalfUp: a, b and divisor must be integers` — the BigInt conversion downstream refuses it. Genuine
+layered defence, and **not** evidence for the guard.
+
+The comment now says so. [[state-the-mechanism-not-the-outcome]]: I asserted a mechanism and a mutation
+falsified it inside five minutes, before commit, because the claim was written in a form that could be run.
+
+> **Count a law's clauses before declaring it proved.** "Mutation-proved" attaches to a *proposition*, not to
+> a REQ number — and the clauses of one law are reached by different inputs, so a suite can pin three and be
+> blind to the fourth. The blind one here was the only guard standing between a malformed split and a 150%
+> share. Ask instead: *how many independent ways could this law be broken?* — then mutate each.
+
+**STOP.** Law 5 decomposed into 4 clauses, all four now mutation-proved (3 pre-existing RED, 1 defect found
+and closed); a 150%-share hole pinned by a test that is itself mutation-proved; one self-authored mechanism
+claim falsified and corrected before commit. 168/168 · typecheck OK · lint OK.
 

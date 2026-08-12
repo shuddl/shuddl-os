@@ -266,6 +266,32 @@ describe("executingShareCents — the tenant's revenue share, with the split=100
     expect(() => executingShareCents(50_000, over, "carrier-0")).toThrow(/10000|total|malformed/i);
   });
 
+  // §1111 — THE PER-LEG RANGE GUARD. Deleting it left 166/166 GREEN, and a silent mutation has two
+  // explanations: the guard is redundant, or nothing tests it. One probe separated them — with the guard
+  // removed, `executingShare(100_000, [+15000, -5000], tenant)` returns `{shareCents: 150000}`, a **150%
+  // executing share**. The total-check cannot catch it (the pair sums to exactly 10000), so this guard is
+  // the SOLE defence, and it was untested. An INFLATED share is the $222,084 direction — it makes a
+  // below-floor deal clear the floors (REQ-040 / CLAUDE.md Law 5), which is the one thing the law forbids.
+  it("COMPENSATING out-of-range legs that total exactly 10000 ⇒ THROWS (the total-check cannot see this)", () => {
+    const compensating: readonly Leg[] = [
+      { kind: "linehaul", executor: "carrier-0", split_bps: 15_000 },
+      { kind: "delivery", executor: "carrier-x", split_bps: -5_000 }, // sums to exactly 10000
+    ];
+    expect(() => executingShareCents(100_000, compensating, "carrier-0")).toThrow(/integer|\[0, 10000\]/i);
+  });
+
+  // The fractional shape is NOT the same blind spot — measured, not assumed. With the per-leg guard removed
+  // this case still THROWS, from `mulDivHalfUp: a, b and divisor must be integers`: the BigInt conversion
+  // downstream refuses it. So this is a genuine LAYERED defence and only the case above pins the guard. Kept
+  // as a regression pin for the arithmetic boundary, labelled with the mechanism that actually holds it.
+  it("NON-INTEGER split_bps that total exactly 10000 ⇒ THROWS (downstream, at mulDivHalfUp's BigInt)", () => {
+    const fractional: readonly Leg[] = [
+      { kind: "linehaul", executor: "carrier-0", split_bps: 5_000.5 },
+      { kind: "delivery", executor: "carrier-x", split_bps: 4_999.5 }, // sums to exactly 10000
+    ];
+    expect(() => executingShareCents(100_000, fractional, "carrier-0")).toThrow(/integer/i);
+  });
+
   it("a tenant that executes NO legs ⇒ share 0 (split still valid at 10000)", () => {
     expect(executingShareCents(50_000, legs, "carrier-nobody")).toBe(0);
   });
