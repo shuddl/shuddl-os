@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 673 | §1225 | **§1226** | **§1225'S SIBLING-MISSED PATTERN MADE SYSTEMATIC — CLEAN NEGATIVE, PLUS THE RULE THAT SEPARATES SAFE DUPLICATION FROM DEBT.** Extracted every comment sentence ≥55 chars appearing in ≥2 shipped files: **67**. Two substantive clusters verified against CODE, both accurate — pool-binding exclusivity (4×; L432 still open, no UNIQUE index) and authority-seam dormancy (3×), the latter **stronger than claimed**: `authoritativeSource(a, false)` returns "native" in BOTH branches and **all TEN** call sites pass a literal `false`, with an exhaustive 4-pair truth table testing it. The forward risk (Tasks 4/6/8 flip the sites one at a time) is already covered by `invariants.ts:656` — a DORMANCY TRIPWIRE that reds when any site stops passing false — and §454 had already caught its weaker form (a test NAMED for call sites whose body checked only the function). **Rule: duplicated claims are debt only when nothing but prose binds the copies.** §1225's concierge line stays the sole stale sibling in this class. |
 | 672 | §1224 | **§1225** | **TWO STALE OPERATOR MESSAGES IN THE MONEY PATH — AND §131 FIXED ONE INSTANCE OF A TWO-INSTANCE DEFECT.** The three best-effort trigger enqueues log-and-continue, so **the log line is the entire operator interface** for that failure. Measured: `pod.signed` HAS a recovery sweep, `quote.accepted` and `message.received` do NOT. (1) The POD message said the sweep covers *STATIC-ROSTER tenants only* — stale, C3's enumeration half is closed (`allTenantSlugs()` unions claimed pool tenants; `claimed-tenants.test.ts:144` bans bare `TENANT_SLUGS`). Cost: wasted manual re-drive. (2) The CONCIERGE message said *"the sweep recovers it for static-roster tenants only"* — **the exact wording §131 found false on the booking sibling and corrected THERE**, left here. Wrong twice, and in the DANGEROUS direction: an operator believes a customer's inbound self-heals when it stays unanswered indefinitely. Both corrected (no behaviour change; 27/27); the concierge sweep needs a REQ row so the GAP is filed as new debt, not built. |
 | 671 | §1223 | **§1224** | **THE DORMANT WORKFLOW'S FIRST-RUN FAILURE MODE, CLOSED — AND THE PARSER THAT REPORTED IT WRONG FIRST.** §1223 found every `ci.yml` job dormant (0 PRs, 1,287 unpushed), so its first execution is its first test — and the thing that fails first is a command that no longer resolves. `ci-contract.test.ts`'s 26 assertions pin that the workflow SAYS the right things; nothing checked its commands can RUN. Measured: **all 11 resolve, zero defects** — but the naive parser flagged 2 FALSE positives (`pnpm -r --if-present build` dispatches to WORKSPACE manifests; `pnpm exec playwright` runs a binary from `@playwright/test`, whose dep name ≠ bin name). A gate with that parser reds two correct lines on day one and gets deleted. New gate resolves each of 4 dispatch forms against what it actually targets; mutation-proved BOTH ways (renaming `check:pr` reds it with file:line; the naive-parser forms stay green) and floored against vacuity (≥3 of 4 forms must appear). **A gate's parser is itself a corpus filter** — same class as §1211's brace-matcher reporting 94 when the answer was 0. |
 | 670 | §1222 | **§1223** | **THE MECHANISM INVENTORY §1222 DEMANDED — AND THE TURN §1222 ITSELF MISSED: CONFIGURED ≠ EXECUTED.** Full enumeration of every enforcement surface (local 26 gates · `ci.yml` merge-gate / design-gate / **secrets** · `nightly.yml` · eslint+tsc+Zod+D1 triggers · Dependabot/branch-protection). The finding: `ci.yml` fires on `pull_request`+`push:[main]`; `origin/main` is `0415148` (2026-07-31), **1,287 commits unpushed, 0 PRs ever** — so **gitleaks has never scanned any of them**, nor has the merge-gate job. §1222 wrote *"a committed secret does not reach main"*; accurate form is *"…does not reach origin/main, on the push that has not happened"*. NOT claimed as novel — §966 (*nightly is a clock, not a check*) and §1005 already hold it; what is new is applying it to the mechanism I had cited as THE enforcement one phase earlier. Net: the §1221 gate is the ONLY EXECUTED secret check for the current tree — its justification's third and accurate version. **The first correction of an overclaim tends to overshoot toward what it just found.** |
@@ -72940,3 +72941,60 @@ the half that could be fixed without a register amendment.
 **STOP.** The three trigger recoveries measured rather than read off their own comments, one stale message
 corrected, one message that would have suppressed necessary human action corrected and its real gap filed as
 debt, and §131's single-instance fix generalised to the sibling it never looked for.
+
+## §1226 — PHASE GATE: §1225's sibling-missed pattern made systematic — clean negative, and the rule that separates safe duplication from debt
+
+**Method.** §1225 found a claim sentence living in three places, corrected in one. That is mechanically
+searchable: extract every comment sentence ≥55 characters appearing in **two or more shipped source files**,
+because a correction applied to one instance leaves the others asserting the old world. **67** such sentences
+exist. The two substantive clusters were verified against the code rather than against each other.
+
+**Cluster 1 — pool-binding exclusivity (4×: `provision.ts` + three `tenants.ts`).** *"…the guard was written and
+REVERTED … a control-plane UNIQUE index on the claimed pool_binding is the structural answer; dark today."*
+**Accurate.** L432 is still open and no `UNIQUE` index on `pool_binding` exists anywhere in SQL or TS — verified
+independently at §1215.
+
+**Cluster 2 — authority-seam dormancy (3×: `concierge.ts`, `inbound.ts`, `pub/quote.ts`).** *"DORMANT until a
+legacy price mirror exists. Unreachable today (native always wins)."* **Accurate, and the real property is
+stronger than the sentence claims:**
+
+```ts
+export function authoritativeSource(authority: AuthorityLevel, legacyValueAvailable: boolean): AuthorityLevel {
+  if (authority === "native") return "native";
+  return legacyValueAvailable ? "legacy" : "native";     // false ⇒ "native" in BOTH branches
+}
+```
+
+**All ten** production call sites pass a literal `false` — not just the three carrying the sentence — so the
+`=== "legacy"` branch is dead across the entire build. The function is exhaustively tested: all four
+`(authority, legacyValueAvailable)` pairs plus a loop over both authority values.
+
+### The forward risk is already gated, and by the better mechanism
+
+Ten sites sharing a literal is §1225's shape **prospectively**: when Tasks 4/6/8 supply a real
+`legacyValueAvailable`, the sites get changed one at a time and N−1 are stale mid-flight. That is exactly what
+`invariants.ts:656@AUTHORITY-SEAM` covers — a **dormancy tripwire** that reds the moment any call site stops
+passing `false`. And §454 had already caught the weaker version of this gate: a test *named* *"TODAY every
+caller passes legacyValueAvailable=false"* whose body only checked the **function**, never the call sites — the
+same name-vs-body defect this session met at §1210.
+
+### The rule this yields
+
+**Duplicated claims are not debt when a mechanism binds the copies; they are debt when the only thing holding
+them together is prose.**
+
+| | Cluster 2 (safe) | §1225's sentence (debt) |
+|---|---|---|
+| Copies | 3 comments + 10 call sites | 3 comments |
+| What binds them | a tripwire that fails on divergence | nothing — three independent authors of one sentence |
+| Result | correction propagates or CI reds | one corrected at §131, two left false for months |
+
+So the search that matters is not "which sentences repeat" — 67 do, and most are fine — but **which repeated
+claims have no gate that would notice them diverging.**
+
+**Verdict: CLEAN NEGATIVE.** §1225's concierge line remains the only stale sibling found in this class.
+
+**STOP.** The sibling-missed pattern generalised into a mechanical sweep, 67 duplicated claims reduced to two
+substantive clusters, both verified accurate against the code and one found stronger than it claimed, the
+forward-divergence risk confirmed already tripwired, and the distinction between safe and unsafe duplication
+written down as the thing to search for next time.
