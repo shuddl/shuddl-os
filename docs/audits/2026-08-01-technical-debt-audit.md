@@ -632,7 +632,8 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
-| 668 | §1220 | **§1221** | **A CONSTITUTIONAL RULE WAS DECLARED ON FOUR FILES NO GATE READ — MEASURED, THEN CLOSED.** CLAUDE.md's *NO SECRETS EVER IN wrangler.toml* (REQ-154/134) was enforced by nothing for **4 of 9** configs. Planting a live-shaped `RESEND_API_KEY` + `STRIPE_WEBHOOK_SECRET` in `apps/portal/wrangler.toml` left the tools suite **byte-identical** (3 failed / 1292 passed, both runs) — not one of 1,295 assertions saw a committed API key. Cause: three gates read wrangler configs and **all three are correct for their own subject**, but the union of their corpora missed `apps/*` and `packages/ledger`. **The tell was in the files** — all four carry the *NO SECRETS EVER IN THIS FILE* banner, so the rule was DECLARED where nothing read it. Generalisation: *look for rules declared on files outside every gate's corpus* — a scope gap between correct gates is invisible to every one of them. Closed by `wrangler-no-secrets.test.ts` (whole corpus, no entropy rule because `database_id` is a UUID, comments exempt because 100% of today's mentions are comments), mutation-proved RED, auto-wired, re-narrowing pinned by name. |
+| 669 | §1221 | **§1222** | **§1221 SAID "ENFORCED BY NOTHING" AND CI HAS RUN GITLEAKS ALL ALONG — THE THIRD OVERCLAIM, ONE PHASE AFTER WRITING THE RULE AGAINST IT.** `.github/workflows/ci.yml` has a dedicated `secrets:` job: history-wide gitleaks at `fetch-depth: 0`, pinned SHA, configured by a `.gitleaks.toml` whose FIRST LINE cites REQ-154/134, and gated by `ci-contract.test.ts`. A committed secret never reaches main. **What is true is narrower: no LOCAL gate scans for secrets** — 26 merge gates, none — so the control lived only past a push, with **1,278 commits unpushed**. The new gate's justification is restated: it moves the check EARLIER and makes it locally provable, it does not close an absence. The corpus finding stands. Cause: the probe was `grep --include="*.ts" tools` and gitleaks is a root TOML invoked by YAML — **the search space excluded the class of enforcement it asked about**. Rule: enumerate MECHANISMS (CI, hooks, external scanners), not files. Falls out: `.gitleaks.toml` allowlists `genesis/.*` + `fixtures/.*` — the one place a credential passes BOTH controls; pen-test scope. |
+| 668 | §1220 | **§1221** | **A CONSTITUTIONAL RULE WAS DECLARED ON FOUR FILES NO *WRANGLER* GATE READ — CLOSED (⚠ this row's original "enforced by nothing" is CORRECTED by §1222: CI runs history-wide gitleaks; what was missing is a LOCAL gate).** CLAUDE.md's *NO SECRETS EVER IN wrangler.toml* (REQ-154/134) was enforced by nothing for **4 of 9** configs. Planting a live-shaped `RESEND_API_KEY` + `STRIPE_WEBHOOK_SECRET` in `apps/portal/wrangler.toml` left the tools suite **byte-identical** (3 failed / 1292 passed, both runs) — not one of 1,295 assertions saw a committed API key. Cause: three gates read wrangler configs and **all three are correct for their own subject**, but the union of their corpora missed `apps/*` and `packages/ledger`. **The tell was in the files** — all four carry the *NO SECRETS EVER IN THIS FILE* banner, so the rule was DECLARED where nothing read it. Generalisation: *look for rules declared on files outside every gate's corpus* — a scope gap between correct gates is invisible to every one of them. Closed by `wrangler-no-secrets.test.ts` (whole corpus, no entropy rule because `database_id` is a UUID, comments exempt because 100% of today's mentions are comments), mutation-proved RED, auto-wired, re-narrowing pinned by name. |
 | 667 | §1219 | **§1220** | **THIS SESSION'S OWN CLAIMS AUDITED — THE ERROR MODE IS SCOPE PROSE, NEVER A MEASUREMENT.** 57 quantified claims extracted from §1211–§1219; the three load-bearing ones re-derived by a DIFFERENT method than produced them. All hold: `provisionTenant`'s single caller survives a re-export/barrel/dispatch check; the single `INSERT INTO users` survives a behavioural *any-verb* query (nuance recorded — two `UPDATE users SET device_keys` exist in devices.ts, so "one INSERT" is right but "written in one place" would not be); and the **4,616 denominator, previously INHERITED, is now MEASURED** at 4,613 passed + 3 failed across 22 project runs, so §1216's 43.7% cross-check stands on a measured base. **Diagnosis: both prior overclaims were scope SENTENCES about a search, never wrong numbers** — which rules out "measure more carefully" as the fix. Rule: a scope sentence must name the SEARCH, not the SUBJECT, unless the subject was enumerated. |
 | 666 | §1218 | **§1219** | **§1218 SAID "EVERY CAPABILITY FLAG" AND HAD ENUMERATED BY MECHANISM — TWO MONEY SEAMS WERE OUTSIDE THE GREP.** Re-enumerated BY BEHAVIOUR (what moves money, sends mail, bills an external API) the corpus is **six, not four**. Missed: **Anthropic LLM egress** (3 ports; selects on binding presence, never compares to `"true"`) and the **Stripe webhook** (gate reads `secret !== undefined && secret !== ""`). Both CLEAN — and the Stripe boundary is the strongest gate in the build: raw scheme, no SDK, HMAC-SHA256 over `${t}.${rawBody}`, constant-time against EVERY v1 candidate, 300s replay tolerance, idempotency behind it. The idiom recurring across independently-written seams is evidence it is a discipline, not a reused helper. **The defect is the corpus claim — second in three phases** (§1215's "22 verified" from six): the scope sentence written from the shape of the SEARCH, not the SUBJECT. This phase's own fetch probe was also wrong (excluded `.fetch(`, returned only inbound handlers); the hostname scan disagreeing with it is the only reason the seams surfaced. |
 | 665 | §1217 | **§1218** | **EVERY CAPABILITY FLAG SWEPT — FOUR SEAMS, ONE IDIOM, ZERO FAIL-OPENS.** §1217's question (*is this flag the ONLY thing between a stranger and the capability?*) applied to every `Env` flag gating a real side effect: `PROVISIONING_ENABLED`, `PLATFORM_INTERNAL_SECRET`, `ALLOW_TEST_SEND`, `RESEND_API_KEY`+`EVIDENCE_FROM`. All fail closed. Three break-points of this class named because each is handled correctly here: the **empty-string arm** (`secret === undefined \|\| secret === ""` ⇒ 503 — the one implementations omit), **the flag alone never opens the send route** (armed but tokenless ⇒ 500 misconfigured, not an open outbound-email endpoint), and **a disabled sender REFUSES rather than skipping** (biller.ts: a silent skip would be *"a NotConfiguredSender-shaped lie"*). The idiom: EXACT comparison + absence as a DISTINCT LOUD state + a SECOND independent gate. Limit: "absent from wrangler.toml" proves this REPO ships nothing on; a dashboard-set var is invisible to any in-repo scan. |
@@ -72618,9 +72619,16 @@ being over-read, and the recurring error diagnosed precisely enough to name the 
 
 ## §1221 — PHASE GATE: a CONSTITUTIONAL rule was declared on four files that no gate read — measured, then closed
 
+> ⚠ **CORRECTED BY §1222 — READ THAT FIRST.** The claim below that the rule was "enforced by nothing" is
+> **FALSE**. `.github/workflows/ci.yml` runs a history-wide gitleaks `secrets:` job, itself gated by
+> `ci-contract.test.ts`. What is true is narrower and still worth the gate: **no LOCAL gate scans for
+> secrets**, so the check lived only past a push. The mutation measurement below is correct; the inference
+> drawn from it was not. Everything about the CORPUS gap (four configs outside every wrangler gate's reach)
+> stands unchanged.
+
 **The finding.** CLAUDE.md lists **"NO SECRETS EVER IN wrangler.toml — secrets live in `wrangler secret` + OIDC
 (REQ-154/134)"** among its non-negotiables. For **four of the nine** tracked wrangler configs it was enforced by
-nothing.
+no LOCAL gate, and by no wrangler-aware gate at all.
 
 **Mutation-proved before it was believed.** A live-shaped `RESEND_API_KEY = "re_live_…"` and
 `STRIPE_WEBHOOK_SECRET = "whsec_…"` were planted in `apps/portal/wrangler.toml` and the full tools suite run:
@@ -72689,3 +72697,67 @@ This section and index row 668 are its record.
 hole between three correct gates, closed by a gate that owns the whole corpus and is mutation-proved in both
 directions, with the re-narrowing regression pinned by name and the generalisation — rules declared on unread
 files — written down.
+
+## §1222 — PHASE GATE: §1221 said "enforced by nothing" and CI has run gitleaks all along — the third overclaim, one phase after writing the rule against it
+
+**The correction.** §1221 claimed CLAUDE.md's *"NO SECRETS EVER IN wrangler.toml"* was **enforced by nothing**
+for four configs. That is **false**. `.github/workflows/ci.yml` runs a dedicated `secrets:` job:
+
+```yaml
+secrets:
+  - uses: actions/checkout@…  with: { fetch-depth: 0 }     # full history, not the tip
+  - name: history-wide secret scan (gitleaks)
+    uses: gitleaks/gitleaks-action@ff98106e…                # pinned SHA
+```
+
+…configured by `.gitleaks.toml` whose first line is *"REQ-154/134: secrets live in `wrangler secret` + GitHub
+OIDC — never in the repo"*, and itself gated by `ci-contract.test.ts:260`, which asserts the scan runs at full
+fetch depth **inside that job** (§622 having already caught a shallow-clone regression there). A committed
+secret does not reach `main`.
+
+### What was actually true, and why the gate still stands
+
+**No LOCAL gate scans for secrets.** `verify:merge` runs 26 gates; none is a secret scan, and gitleaks is not
+installed in this dev environment. So the check existed **only on the far side of a push** — and this repo has
+**1,278 unpushed commits**, which is exactly the window where a CI-only control provides no feedback.
+
+The new gate's justification therefore changes, and the record should say so plainly:
+
+| | §1221 claimed | actually |
+|---|---|---|
+| Coverage before | nothing enforced it | CI enforced it history-wide; nothing local did |
+| What the gate adds | closes a hole | moves the check **earlier** — merge-time, deterministic, locally provable |
+| Corpus finding | 4 configs outside every wrangler gate's reach | **unchanged and still correct** |
+
+The mutation measurement was sound — planting secrets left the tools suite byte-identical. The **inference** was
+not. *A local suite's silence is a statement about that suite.*
+
+### Why the search could not have found it
+
+The §1221 probe was `grep -rln "…secret…" --include="*.ts" tools`. gitleaks is a **TOML config at the repo root
+invoked by a YAML workflow**. No amount of care inside that grep would have surfaced it: the search space
+excluded the entire class of enforcement it was asking about.
+
+**This is the third overclaim this session, and it landed ONE PHASE after §1220 wrote the rule against it.**
+§1220's rule — *a scope sentence must name the SEARCH, not the SUBJECT* — would have caught it verbatim:
+"enforced by nothing" claims the subject; "not enforced by any gate under `tools/`" claims the search, is true,
+and would have prompted the obvious next question.
+
+> **Writing a rule down does not install it.** The mechanical form, which is what actually transfers: before
+> claiming *nothing enforces X*, the search must cover every **enforcement mechanism** — CI workflows, git
+> hooks, external scanners, branch protection — not merely the directory where this repo's gates usually live.
+> Enumerate mechanisms, not files.
+
+### One real finding falls out of the correction
+
+`.gitleaks.toml` allowlists two path trees outright: `genesis/.*` and `fixtures/.*`. That is a deliberate,
+documented carve-out (*"genesis docs and fixtures contain no live credentials"*) plus two named regexes for the
+test JWT secret and the REQ-025 `alg:none` forgery fixture — all sound reasons. But it means those trees are
+scanned by **neither** gitleaks nor the new gate, which covers only `*wrangler*.toml`. Recorded as a bounded,
+intentional exemption rather than a defect — with the note that it is the one place a committed credential
+would pass both controls, so it belongs in the pre-GA pen-test scope.
+
+**STOP.** A false claim in this record corrected at all three sites it reached — the audit section, its index
+row, and the shipped gate's own header — the gate's justification restated honestly as "earlier, not
+otherwise-absent", the search failure explained as a mechanism-class omission rather than carelessness, and the
+one exemption that survives both controls named.

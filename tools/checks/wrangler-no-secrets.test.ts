@@ -3,11 +3,22 @@ import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { repoRoot } from "./repo-root.js";
 
-// §1221 (REQ-154/134) — CLAUDE.md's "NO SECRETS EVER IN wrangler.toml" WAS ENFORCED BY NOTHING FOR 4 OF 9 CONFIGS.
+// §1221/§1222 (REQ-154/134) — CLAUDE.md's "NO SECRETS EVER IN wrangler.toml", enforced LOCALLY by nothing.
+//
+// ⚠ CORRECTED AT §1222, and the correction is the point of this header. §1221 first wrote that the rule was
+// "enforced by NOTHING for 4 of 9 configs". **That is FALSE.** `.github/workflows/ci.yml` runs a dedicated
+// `secrets:` job — history-wide gitleaks (`fetch-depth: 0`, pinned action SHA), itself gated by
+// `tools/release/ci-contract.test.ts`. Secrets committed anywhere ARE caught, in CI, before merge.
+//
+// WHAT IS TRUE, and why this gate still earns its place: **no LOCAL gate scans for secrets.** `verify:merge`
+// runs 26 gates and not one of them is a secret scan, and gitleaks is not installed in the dev environment. So
+// the check existed only on the far side of a push. This gate moves it to merge time, makes it deterministic
+// and locally provable, and covers the corpus by name.
 //
 // MEASURED, not suspected. A live-shaped `RESEND_API_KEY = "re_live_…"` and `STRIPE_WEBHOOK_SECRET = "whsec_…"`
 // were planted in `apps/portal/wrangler.toml` and the whole tools suite was run: **3 failed | 1292 passed** —
-// byte-identical to the baseline. Nothing saw them.
+// byte-identical to the baseline. That measurement was correct; the INFERENCE drawn from it ("nothing catches
+// this") was not. A local suite's silence is a statement about that suite (§1222).
 //
 // WHY THE GAP EXISTED. Every gate that reads wrangler configs scoped itself to the WORKERS directory:
 //   · `wrangler-absence-claims.test.ts` → globSync("workers/*/wrangler.toml")   (5 configs)
