@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 676 | §1228 | **§1229** | **THE NULLABLE-RETURN SWEEP — AND MY PREDICTOR FOR WHERE COVERAGE FAILS WAS WRONG.** 41 functions return `T \| null`; five (six sites) were **mutated to never return null** and their owning suites run. Only `nextCursor` survived — the §1228 gap. `conciergeTriggerFor`, `internalGate`, `deriveDeviceId`, `detectAnomaly` all RED, the last with explicit *does NOT flag* cases. **Mid-sweep I predicted the untested direction would be the QUIET one** (reject = loud = tested; nothing-to-do = silent = skipped). `detectAnomaly` falsifies it: its null is the quietest outcome and the MOST two-sided function in the sample. What actually separates `nextCursor` is **SETUP COST** — asserting *cursor is null at the end* needs a page exhausted against a shared corpus, while every other null is one crafted input away. **Coverage fails where the assertion is EXPENSIVE, not where the behaviour is unimportant** — the same shape §1211 found inverted. Scope stated: 5 of 41, chosen by stakes; the other 36 unexamined. |
 | 675 | §1227 | **§1228** | **THE PAGINATION CONSTANTS WERE THREE COPIES OF ONE CORRECTNESS DEPENDENCY — AND FIXING IT EXPOSED A ONE-SIDED CONTRACT.** `DEFAULT_LIMIT`/`LIMIT_CAP` declared 3× (lens + both routes) with a comment saying they *"mirror"* each other *"so next_cursor agrees with the page size"* — a stated dependency held together by prose, no test naming both. The lens applies them to the SQL LIMIT; each route re-applies them to decide **was this page full**. A route copy LARGER than the lens's makes a full page read as short ⇒ null cursor ⇒ **the client silently never sees rows past page one**. Fixed by exporting from the lens. **Then the fix's own mutation test found a second defect:** deleting the length check went GREEN on both (44/44 and 7/7) — because dropping it can only turn nulls into STRINGS, and the existing tests assert only *full ⇒ string*. **A boolean contract asserted one-way is undefended the other way**, and the undefended side was TERMINATION — what a client uses to stop. Both halves pinned, each mutation-proved RED (7→8, 44→45). |
 | 674 | §1226 | **§1227** | **§1226'S RULE APPLIED TO CONSTANTS — ONE DOMAIN CLAIM WRITTEN TWICE, NOW IMPOSSIBLE TO DIVERGE.** 32 `UPPER_CASE` consts are declared in ≥2 shipped files; most are benign (`DAY_MS`, `BPS_DIVISOR`, length caps). One was not: **`EXCEPTION_KINDS`** — *what counts as an exception* — authored independently in `routes/exceptions.ts` (the Command board's queue) and `copilot/answer.ts` (the `open_exceptions` answer), neither importing the other, **no test naming both**. Identical today, so no live defect; the exposure is the next edit, and the question is **the exception-pulse acceptance demo** — a user would get a different answer from the copilot than the board shows. Fixed by SHARING (moved beside the frozen 35-catalog in `@shuddl/contracts`), not by a parity test — a shared import leaves nothing to diverge. `satisfies readonly EventKind[]` mutation-proved load-bearing: a non-catalog member fails TS2322. Verified 331/331 · 227/227 · 7/7, one declaration left. |
 | 673 | §1225 | **§1226** | **§1225'S SIBLING-MISSED PATTERN MADE SYSTEMATIC — CLEAN NEGATIVE, PLUS THE RULE THAT SEPARATES SAFE DUPLICATION FROM DEBT.** Extracted every comment sentence ≥55 chars appearing in ≥2 shipped files: **67**. Two substantive clusters verified against CODE, both accurate — pool-binding exclusivity (4×; L432 still open, no UNIQUE index) and authority-seam dormancy (3×), the latter **stronger than claimed**: `authoritativeSource(a, false)` returns "native" in BOTH branches and **all TEN** call sites pass a literal `false`, with an exhaustive 4-pair truth table testing it. The forward risk (Tasks 4/6/8 flip the sites one at a time) is already covered by `invariants.ts:656` — a DORMANCY TRIPWIRE that reds when any site stops passing false — and §454 had already caught its weaker form (a test NAMED for call sites whose body checked only the function). **Rule: duplicated claims are debt only when nothing but prose binds the copies.** §1225's concierge line stays the sole stale sibling in this class. |
@@ -73109,3 +73110,50 @@ empty and reads as "untested".
 mode named, and the one-sided-contract defect the fix's mutation test exposed closed on both routes with the
 generalisation — *assert both directions of a boolean contract, because deleting a guard only moves the value
 one way* — written down.
+
+## §1229 — PHASE GATE: the nullable-return sweep — and my predictor for where coverage fails was wrong
+
+**Method.** §1228's rule — *deleting a guard moves values one way, so a one-sided assertion cannot see it* —
+applies wherever a function returns `T | null`. **41** such functions exist in shipped source. Rather than
+reason about which are covered, each candidate was **mutated to never return null** and its owning suite run.
+
+| Function | `null` means | Mutation result |
+|---|---|---|
+| `nextCursor` (events + export) | pagination is finished | **SURVIVED — 44/44 and 7/7 green** → the §1228 gap |
+| `conciergeTriggerFor` | an internal note never enqueues | RED (1) |
+| `internalGate` | the caller is authorized | RED (2) — the 503 dark path and the 403 wrong-secret path |
+| `deriveDeviceId` | the JWK is unusable | RED (3) |
+| `detectAnomaly` | this price is not anomalous | RED (6+), including explicit *"does NOT flag"* cases |
+
+Five functions, six sites, **one gap** — the one already closed at §1228.
+
+### My predictor was wrong, and the correction is the useful part
+
+Mid-sweep I proposed that the untested direction would be the **quiet** one: where `null` means *reject*, the
+rejection is loud and gets tested; where it means *nothing to do*, no observable event exists and nobody writes
+the test. `detectAnomaly` falsifies it outright — its `null` is the quietest possible outcome (a normal price,
+no flag) and it is the **most** thoroughly two-sided function in the sample, with dedicated cases for a 1-lb
+minimum charge, a normal LTL per-lb, and a price sitting exactly at the cap (`strict >`).
+
+What actually separates `nextCursor` from the other four is **setup cost**, not quietness or importance:
+
+> Asserting *"the cursor is null at the end"* requires exhausting a page — seeding enough rows, or picking a
+> limit against a corpus you do not control. Every other null in this sample is reachable with **one crafted
+> input**: a malformed JWK, an internal-visibility event, a missing header, a normal quote.
+
+**The predictor that survives: coverage fails where the ASSERTION IS EXPENSIVE TO SET UP, not where the
+behaviour is unimportant.** That is the same shape §1211 found from the other side — the files pinning the most
+adversarial syntax were exactly the ones a text probe could not read. **Hardest to handle correlates with least
+handled**, and importance does not rescue it.
+
+It also explains why the fix needed a premise assertion. Both new tests must first prove the page really is
+short, because the tenant D1 is shared across files — the very expense that kept the assertion from being
+written is still present, and is now paid explicitly and guarded against going vacuous.
+
+**Scope stated honestly** (§1220's rule): **5 of 41** nullable-returning functions were mutation-tested, chosen
+by stakes — authorization, money, device identity, trigger dispatch, pagination. The other 36 were not, and this
+phase makes no claim about them.
+
+**STOP.** The nullable-return class probed by mutation rather than by reading, one gap confirmed as already
+closed, four high-stakes gates confirmed genuinely two-sided, a wrong predictor stated and replaced with one the
+evidence supports, and the unexamined 36 named as unexamined.
