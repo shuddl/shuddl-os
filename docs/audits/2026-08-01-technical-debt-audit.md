@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 605 | §1157 | **§1158** | **STOPPING POINT XVIII — THE LEDGER IS EXHAUSTED OF WHAT I CAN REDUCE.** Board at `551421d`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs measured to `REQ-289`. §1151–§1157 did the two things §1152 distinguished: **built enforcement** (three gates, each mutation-proved end-to-end, verified cwd-independent against the defect that once hit sixteen scripts) and **reduced the ledger** — the multi-guard 403 row closed at **zero** through four measurements and no executions, and one owner signature removed. The counted-row sweep then found **no second instance**. Everything remaining needs input from outside the repo: two code decisions, three product rulings, nine fixtures, a denylist, a register row, three demo blockers, and a push. |
 | 604 | §1156 | **§1157** | **§1156's DEFECT WAS SPECIFIC, NOT SYSTEMIC — SWEPT THE OTHER COUNTED ROWS, NOTHING FOLLOWS.** *A count of guards is not a count of risk* invited a sweep: **9** live rows carry a count in their title. Five are owner-held (private fixtures · the denylist · the photos demo · the authority roster §1124 ruled ungateable). The one that matched the shape — *Unbounded list reads, 9 sites* — turns out to be **the best-instrumented item in the ledger**: its count was corrected twice (7 → 8 → 9, the 9th found by enumerating every API list endpoint), and `unbounded-reads-roster.test.ts` (13 tests) **compares the doc's number to `ROSTER.length`** so it cannot drift. Crucially its **unit is right** — each site IS a hazard, where guards were not reachable pairs. The ledger is now exhausted of items I can reduce. |
 | 603 | §1155 | **§1156** | **ROW CLOSED — 24 → 4 → 1 → 0, AND THE LAST STEP IS STRUCTURAL.** The final assertion, `rate.test.ts`'s *"a role not in {ops,admin,finance} is 403"*, tests a `read` role — rejected by `rate.ts:112@requireRole` **before the handler runs**, while both of rate's own 403 guards sit inside `if (session.role === "portal")` and are unreachable for that principal. Identical for `board.test.ts:111`. **§81's defect requires two guards reachable BY THE SAME PRINCIPAL**, and a middleware `requireRole` preceding role-scoped handler guards cannot produce that — whichever rejects, the other was never in play. The portal-scoped guards that CAN be ambiguous *are* distinguished (`status-cap.test.ts` PS-7 asserts the `cap` is undefined). A row that began at ~24 units of wedge-risky work closes at **zero**. |
 | 602 | §1154 | **§1155** | **24 → 4 → 1: THE ROW'S THIRD MEASUREMENT, AND THE LAST PIECE WAS MY OWN INFERENCE.** §1154 called `status-link.ts`'s missing test FILE *"the real gap"* — a filename inference, and §1115 had already taught me not to make one. It is covered: `status-cap.test.ts` exercises **both** guards and NAMES one — *"translates LENS_UNRESOLVED to a clean 403, not an opaque 500"* (§927) — while `:117` covers the scope guard as *"PS-7: a portal party NOT on the shipment is denied"*, asserting `cap` is **undefined** so the mint provably did not happen. With `board.test.ts` unassertable (helper discards the body) and one of its guards unreachable, **the entire residual of a row that began at ~24 guards is ONE assertion in `rate.test.ts`.** Three measurements, no executions. |
@@ -68691,4 +68692,58 @@ truncates silently, which the Migrator no-silent-drops rule forbids.
 structural match identified as correctly-counted and already gated by a roster test that pins its number to
 the roster itself; the distinction between a wrong *unit* and a merely large *number* recorded; the ledger
 confirmed exhausted of items reducible without owner input. Zero source changed.
+
+## §1158 — PHASE GATE: STOPPING POINT XVIII — the ledger, exhausted
+
+**Board at `551421d`** — **19 PASS · 2 FAIL · 5 BLOCKED**, unchanged across nine stopping points; both FAILs
+measured to `REQ-289`. **Zero repo-owned reds.**
+
+### What §1151–§1157 did
+
+§1152 drew the distinction that organises this arc: **building enforcement** and **reducing the ledger** are
+different activities, and only the second shortens the owner's queue. Both were done.
+
+**Enforcement — three gates, each mutation-proved end to end:**
+
+| gate | REQ | proved by |
+|---|---|---|
+| `tenant-source.test.ts` | 025 | a planted `?? session.tenant` override → RED |
+| `credential-blank-guard.test.ts` | 154 | stripping `&& secret !== ""` from the live Stripe selector → RED |
+| `wp-exit-audit.test.ts` | 119 | renaming WP-13's heading → RED |
+
+§1151 then checked them against this repo's worst gate defect — CWD-dependence, whose worst form is *"a pass
+over nothing"* — and found them independent both mechanically and behaviourally.
+
+**Ledger — one row closed at zero, one signature removed:**
+
+- The **multi-guard 403 row** went **24 → 4 → 1 → 0** across four measurements and **zero executions**,
+  against a fix that specified ~24 runs on the harness this repo knows can wedge for days. It closed on a
+  structural reason: §81's defect needs two guards reachable **by the same principal**, and a preceding
+  `requireRole` plus a role-scoped handler guard cannot produce that.
+- The **rule-9 row** closed on both halves — its premise was false (§1142) and its fact is now gated (§1149) —
+  removing an owner signature from the queue.
+- §1157 swept the remaining counted rows for §1156's defect and found **no second instance**; the one
+  structural match is the best-instrumented row in the ledger, with a roster test pinning its number.
+
+### What remains, in full, and none of it is mine
+
+| item | needs |
+|---|---|
+| the two-kind rule (`quote.priced`, `quote.accepted`) | a code decision — it 403s a public API surface |
+| `message.sent` · `message.received` · `agent.acted` | a product ruling on whether the dedicated route is the only legitimate producer |
+| `REQ-289` | a classifying status — clears both board FAILs |
+| nine private fixtures + `IDENTITY_DENYLIST` | data; the five BLOCKED gates hide no unproven logic (§1118) |
+| REQ-267 | confirm it owns the evidence-email re-render purity, or add a row |
+| demos 1–3 | the agents worker's bindings · a signup surface · a driver-login producer |
+| unbounded-reads keyset work | a REQ row — and **not** a bare `LIMIT`, which truncates silently |
+| **1,190 commits** | a push; `origin/main` is at 2026-07-31 |
+
+> **An audit ends when the next honest action belongs to someone else.** Everything above was measured rather
+> than assumed, and each carries the evidence class it was established in — mutation-proved where a RED can be
+> reproduced, read where files were opened, and explicitly *not* mechanised where two attempts failed their
+> controls. That last category is not a gap in the work; it is the work refusing to overstate itself.
+
+**STOP.** Board 19/2/5 at `551421d` with both FAILs attributed; three gates built, mutation-proved and
+cwd-verified; one ledger row closed at zero and one owner signature removed; the generalisation swept and
+found specific; the remaining queue enumerated with what each item needs and from whom.
 
