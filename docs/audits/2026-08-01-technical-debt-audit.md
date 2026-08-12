@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 602 | §1154 | **§1155** | **24 → 4 → 1: THE ROW'S THIRD MEASUREMENT, AND THE LAST PIECE WAS MY OWN INFERENCE.** §1154 called `status-link.ts`'s missing test FILE *"the real gap"* — a filename inference, and §1115 had already taught me not to make one. It is covered: `status-cap.test.ts` exercises **both** guards and NAMES one — *"translates LENS_UNRESOLVED to a clean 403, not an opaque 500"* (§927) — while `:117` covers the scope guard as *"PS-7: a portal party NOT on the shipment is denied"*, asserting `cap` is **undefined** so the mint provably did not happen. With `board.test.ts` unassertable (helper discards the body) and one of its guards unreachable, **the entire residual of a row that began at ~24 guards is ONE assertion in `rate.test.ts`.** Three measurements, no executions. |
 | 601 | §1153 | **§1154** | **WENT TO FIX THE FOUR ASSERTIONS AND FOUND TWO ARE NOT ASSERTABLE AND ONE GUARD IS UNREACHABLE.** §1153 bounded the row to *four message assertions*; implementing it required knowing each intended message, and reading rather than guessing changed the answer twice. **The `board()` test helper returns `{status, items}` and parses `body.board` — it DISCARDS the error body**, which is why those assertions are status-only: the message was never available. And `board.ts:169@requireRole` admits `admin·ops·finance·read·portal`, so the `:186` ROLE guard is — by its own comment — *"unreachable via requireRole; kept fail-closed as defence-in-depth"*. A driver's 403 comes from the **middleware**, so that test has no sibling ambiguity and nothing to distinguish. **An unreachable guard cannot be mutation-checked by a route test, and that is correct, not debt.** |
 | 600 | §1152 | **§1153** | **A ROW'S ESTIMATE RE-MEASURED: "~24 GUARDS" IS 3 ROUTES AND 4 ASSERTIONS.** §1152 said reducing the ledger is the work that shortens the owner's queue, so I took the most concrete open row — *multi-guard 403 routes, ~24 guards not yet mutation-checked* — and measured it instead of running its ~24-iteration mutation loop (the wedge-risk §1114 forbids). **6** route files carry ≥2 `FORBIDDEN 403` guards (18 total), and §81/§82 already closed three. The remaining three each have **2 guards with DISTINCT messages**, so the gap is the ASSERTION, not the guard: `board.test.ts` has **3** status-only 403s, `rate.test.ts` **1**, and **`status-link.ts` has no dedicated test file**. The residual is four assertions and one route's coverage. |
 | 599 | §1151 | **§1152** | **RECONCILED MY OWN WORK WITH THE LEDGER — ONE OWNER DECISION REMOVED FROM THE QUEUE.** Building a gate does not close a row; somebody has to say so. The rule-9 row asked the owner to *"either amend rule 9 … or resume per-WP swarms"* on a premise §1142 proved **false**, and §1149 has since made the fact **enforced**. Both halves now recorded and the row **CLOSED — no owner action**. Checked the sibling: the authority-registry row (§1124's manual roster) stays **OPEN**, because gating its completeness needs the kind-classification §1145 proved is not pattern-decidable — ruled out on evidence rather than left ambiguous. |
@@ -68539,4 +68540,49 @@ message assertion because the helper discards the body, and one of those guards 
 has nothing to distinguish; the genuine residual narrowed to one assertion and one uncovered route; the
 principle that an unreachable guard's absence from coverage is correct rather than owed, recorded. Zero source
 changed.
+
+## §1155 — PHASE GATE: 24 → 4 → 1, and the last piece was my own inference
+
+**Why this phase.** §1154 left the row at *"one assertable assertion, plus `status-link.ts` has no dedicated
+test file — the real gap."* That last clause was an **inference from a filename**, made one phase after
+§1115 recorded the cost of exactly that: *directory adjacency is not ownership; trace by import, not by name.*
+
+### `status-link` is covered, and covered by name
+
+`status-cap.test.ts` owns it, under `describe("POST /v1/shipments/:id/status-link (authed, lens-scoped mint)")`,
+and both of the route's 403 guards are exercised:
+
+| guard | test |
+|---|---|
+| `SESSION LENS UNRESOLVED` | *"translates LENS_UNRESOLVED to a clean 403, not an opaque 500"* (§927) — **names the guard** |
+| `SHIPMENT NOT IN YOUR SCOPE` | *"PS-7: a portal party NOT on the shipment is denied (cross-party mint → 403)"* |
+
+The second is stronger than a status assertion without saying so: it also asserts `res.json?.cap` is
+**undefined**, so the test distinguishes its guard by **outcome** rather than message — the mint provably did
+not happen. §82's rule was *"assert the DISTINGUISHING message rather than the shared status"*; asserting that
+the protected side-effect is absent satisfies the same intent by a different route, and is arguably better
+evidence than a string.
+
+### The row's whole arc
+
+| measurement | residual |
+|---|---|
+| as filed | *"~24 guards not yet mutation-checked"* |
+| §1153 | 6 routes / 18 guards, 3 already closed → **4 assertions + 1 route** |
+| §1154 | 3 of the 4 unassertable (helper discards body; one guard unreachable) |
+| §1155 | `status-link` covered by name → **1 assertion, in `rate.test.ts`** |
+
+**Three measurements, zero executions**, against a fix that specified ~24 runs on the one harness this repo
+knows can wedge for days.
+
+> **Every step of this row's shrinkage came from reading the thing rather than doing the thing it asked for,
+> and the last step corrected me rather than the record.** The row was written honestly; estimates are written
+> when the least is known, and this one then sat as a standing claim about ~24 units of dangerous work. That
+> is the same failure as a reopen trigger (§1101) and a restated number (§1128) — a sentence authored once,
+> re-read never, and progressively more expensive to believe.
+
+**STOP.** The row measured a third time and reduced to a single assertion; `status-link`'s coverage found by
+tracing ownership rather than filenames, correcting my own inference from the previous phase; the
+outcome-based distinguishing assertion recognised as satisfying §82's intent; the full arc 24 → 4 → 1 recorded
+with the method that produced each step. Zero source changed.
 
