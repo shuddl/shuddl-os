@@ -1,7 +1,7 @@
 import type { Hono } from "hono";
 import type { ErrorCode, EventKind, LedgerEvent, Role } from "@shuddl/contracts";
 import { EVENT_KINDS, GATE_BLOCKED_PREFIX } from "@shuddl/contracts";
-import { lensFor, readEvents, DEFAULT_LIMIT, LIMIT_CAP, type ReadQuery } from "@shuddl/ledger/lens";
+import { lensFor, readEvents, effectiveLimit, type ReadQuery } from "@shuddl/ledger/lens";
 import { ApiError } from "../middleware/error.js";
 import { requireRole } from "../middleware/auth.js";
 import { resolveTenantDb } from "../tenants.js";
@@ -163,7 +163,7 @@ function parseCursor(raw: string | undefined): { stream_id: string; seq: number 
 // A full page implies more rows may follow: hand back a keyset cursor on the last row. A short page is
 // the end (null). Keyed on (stream_id, seq) so it is stable across streams (doc 14 §04).
 function nextCursor(events: LedgerEvent[], limit: number | undefined): string | null {
-  const effective = Math.min(limit ?? DEFAULT_LIMIT, LIMIT_CAP);
+  const effective = effectiveLimit(limit);
   if (events.length < effective) return null;
   const last = events[events.length - 1];
   return last ? `${last.stream_id}:${last.seq}` : null;

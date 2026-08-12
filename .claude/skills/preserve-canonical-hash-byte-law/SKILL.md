@@ -35,7 +35,7 @@ JCS (RFC 8785) restricted to **integer-only numbers**. Five rules, all load-bear
 This is the subtlety that breaks everything if you get it wrong. When an event is read back from D1, `rowToEvent` must map a SQL `NULL` column to an **absent key**, not a literal `null`:
 
 ```ts
-// packages/ledger/src/lens.ts:245-249@shipment_id — present only when non-NULL
+// packages/ledger/src/lens.ts:267-271@shipment_id — present only when non-NULL
 // (this fence read `:188-193` until 2026-08-04, audit §195: that range is the COMMENT stating the rule,
 //  not the code implementing it — the guards live inside rowToEvent)
 if (r.shipment_id !== null) e.shipment_id = r.shipment_id;

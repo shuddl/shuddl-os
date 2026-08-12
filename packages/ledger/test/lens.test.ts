@@ -2,7 +2,7 @@ import { env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 import { EVENT_KINDS, eventFixture, type EventKind, type LedgerEvent, type SessionClaims } from "@shuddl/contracts";
 import { buildChain, hashEvent } from "../src/chain.js";
-import { eventToRow, lensFor, lensWhere, readEvents, rowToEvent } from "../src/lens.js";
+import { DEFAULT_LIMIT, LIMIT_CAP, effectiveLimit, eventToRow, lensFor, lensWhere, readEvents, rowToEvent } from "../src/lens.js";
 import { Role } from "@shuddl/contracts";
 import { applyMigrations } from "../src/migrate.js";
 import ledgerCore from "../../../db/tenant/migrations/0001_ledger_core.sql?raw";
@@ -447,5 +447,48 @@ describe("§923: every Role the contract declares has a decided lens (a new role
       const lens = role === "portal" ? lensFor({ ...base, role, party_id: "party-923" }) : lensFor({ ...base, role });
       expect(lens.scope, `${role} must never resolve to the unredacted tenant lens`).not.toBe("tenant");
     }
+  });
+});
+
+// §1230 (REQ-010) — THE PAGE-SIZE BOUND, which nothing asserted.
+//
+// `LIMIT_CAP` is the SOLE upper bound on a client-supplied page size. `routes/events.ts` validates only
+// `Number.isInteger(n) && n >= 1`; `routes/export.ts`'s Zod is `.int().positive()`. Neither carries a `.max()`,
+// so `?limit=100000000` reaches the SQL bounded by this and nothing else.
+//
+// It went untested because the assertion was EXPENSIVE: the cap can only be OBSERVED by a query returning more
+// rows than any test corpus holds. Measured — raising `LIMIT_CAP` from 1000 to 100_000 left this file 34/34
+// green. Extracting `effectiveLimit()` (previously the same `Math.min` written in three files) makes the bound
+// assertable directly, for free. The §1229 lesson applied: when coverage is missing because the assertion is
+// costly, make the assertion cheap rather than skipping it.
+describe("§1230 REQ-010: effectiveLimit — the only bound on a client-supplied page size", () => {
+  // THE VALUES THEMSELVES, pinned as literals — and this pin exists because the first draft of this block
+  // did NOT have it. Every case below compares against `LIMIT_CAP`, so raising the cap to 100_000 keeps them
+  // all green: a check whose two inputs come from one source cannot detect that source changing (§1197/§1210,
+  // met again here in a test written to close a different gap). The mechanism and the VALUE need separate pins.
+  // These numbers are a REQ-010 policy decision: changing one must be a deliberate edit here, not a side effect.
+  it("the bounds are the values REQ-010 fixed — not whatever the constants happen to say", () => {
+    expect(DEFAULT_LIMIT, "the default page size is a product decision").toBe(200);
+    expect(LIMIT_CAP, "the maximum a client may request — raising it widens a resource-exhaustion surface").toBe(1000);
+  });
+
+  it("defaults when the client asks for nothing", () => {
+    expect(effectiveLimit(undefined)).toBe(DEFAULT_LIMIT);
+  });
+
+  it("honours a request BELOW the cap (the bound must not be a constant)", () => {
+    // Without this, `return LIMIT_CAP` would satisfy every other case here.
+    expect(effectiveLimit(5)).toBe(5);
+    expect(effectiveLimit(DEFAULT_LIMIT + 1)).toBe(DEFAULT_LIMIT + 1);
+  });
+
+  it("CAPS a request above the cap — including one no D1 could serve", () => {
+    expect(effectiveLimit(LIMIT_CAP + 1)).toBe(LIMIT_CAP);
+    expect(effectiveLimit(100_000_000), "an unbounded page is a resource-exhaustion vector, not a big read").toBe(LIMIT_CAP);
+  });
+
+  it("is exact AT the boundary (off-by-one in either direction is a real bug)", () => {
+    expect(effectiveLimit(LIMIT_CAP)).toBe(LIMIT_CAP);
+    expect(effectiveLimit(LIMIT_CAP - 1)).toBe(LIMIT_CAP - 1);
   });
 });

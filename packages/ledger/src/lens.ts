@@ -114,6 +114,22 @@ export interface ReadQuery {
 export const LIMIT_CAP = 1000;
 export const DEFAULT_LIMIT = 200;
 
+/**
+ * §1230 — THE EFFECTIVE PAGE SIZE, computed in ONE place.
+ *
+ * `LIMIT_CAP` is the SOLE upper bound on a client-supplied page size: `routes/events.ts` validates only
+ * `Number.isInteger(n) && n >= 1`, and `routes/export.ts`'s Zod is `.int().positive()` — neither has a `.max()`.
+ * So a request for `?limit=100000000` is bounded by this `Math.min` and by nothing else.
+ *
+ * It was written out three times and asserted ZERO times. Raising the cap to 100_000 left the lens suite
+ * 34/34 green (§1230), because the cap can only be OBSERVED with more rows than any test corpus holds — the
+ * §1229 predictor exactly: coverage fails where the assertion is expensive to set up. Extracting it makes the
+ * bound assertable for free, without seeding a thousand rows.
+ */
+export function effectiveLimit(requested?: number): number {
+  return Math.min(requested ?? DEFAULT_LIMIT, LIMIT_CAP);
+}
+
 export async function readEvents(db: D1Database, lens: Lens, q: ReadQuery = {}): Promise<LedgerEvent[]> {
   // `seq` is per-stream. A bare `after_seq` across streams silently drops rows (two streams
   // share seq values), so it is valid ONLY inside a single-shipment scope. The firehose uses
@@ -164,7 +180,7 @@ export async function readEvents(db: D1Database, lens: Lens, q: ReadQuery = {}):
     clauses.push("e.ts < ?");
     params.push(q.before_ts);
   }
-  const limit = Math.min(q.limit ?? DEFAULT_LIMIT, LIMIT_CAP);
+  const limit = effectiveLimit(q.limit);
   // REQ-197 — the DEFAULT "seq" order (`e.stream_id, e.seq`) is BYTE-UNCHANGED (the keyset cursor depends on
   // it). "ts_desc" makes the LIMIT retain the FRESHEST rows (stable tiebreak on stream_id/seq), backed by
   // ix_events_kind_ts(kind, ts) whenever a kind filter is present.

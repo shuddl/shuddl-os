@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 677 | §1229 | **§1230** | **§1229'S PREDICTOR USED AS A SEARCH — THE PAGE-SIZE CAP WAS THE SOLE BOUND AND ASSERTED BY NOTHING.** *Coverage fails where the assertion is EXPENSIVE* names its own first target: `LIMIT_CAP` can only be OBSERVED with more rows than any corpus holds. Measured — raising it 1000 → 100_000 left the lens suite **34/34 green**, and the only test mentions of the name were two comments I wrote at §1228. **It is not defence-in-depth: it is the ONLY bound** — `routes/events.ts` validates only `Number.isInteger(n) && n >= 1` and `routes/export.ts`'s Zod has no `.max()`, so `?limit=100000000` is stopped by that `Math.min` alone. Fixed by EXTRACTING `effectiveLimit()` (the expression was written 3× after §1228 shared the constants), making the bound assertable without seeding 1,000 rows. **Then my own first draft failed its mutation:** every case compared against `LIMIT_CAP`, so RAISING the cap stayed green — §1197/§1210's shape in a test written to close a different gap. Value now pinned separately. lens 34 → 39. |
 | 676 | §1228 | **§1229** | **THE NULLABLE-RETURN SWEEP — AND MY PREDICTOR FOR WHERE COVERAGE FAILS WAS WRONG.** 41 functions return `T \| null`; five (six sites) were **mutated to never return null** and their owning suites run. Only `nextCursor` survived — the §1228 gap. `conciergeTriggerFor`, `internalGate`, `deriveDeviceId`, `detectAnomaly` all RED, the last with explicit *does NOT flag* cases. **Mid-sweep I predicted the untested direction would be the QUIET one** (reject = loud = tested; nothing-to-do = silent = skipped). `detectAnomaly` falsifies it: its null is the quietest outcome and the MOST two-sided function in the sample. What actually separates `nextCursor` is **SETUP COST** — asserting *cursor is null at the end* needs a page exhausted against a shared corpus, while every other null is one crafted input away. **Coverage fails where the assertion is EXPENSIVE, not where the behaviour is unimportant** — the same shape §1211 found inverted. Scope stated: 5 of 41, chosen by stakes; the other 36 unexamined. |
 | 675 | §1227 | **§1228** | **THE PAGINATION CONSTANTS WERE THREE COPIES OF ONE CORRECTNESS DEPENDENCY — AND FIXING IT EXPOSED A ONE-SIDED CONTRACT.** `DEFAULT_LIMIT`/`LIMIT_CAP` declared 3× (lens + both routes) with a comment saying they *"mirror"* each other *"so next_cursor agrees with the page size"* — a stated dependency held together by prose, no test naming both. The lens applies them to the SQL LIMIT; each route re-applies them to decide **was this page full**. A route copy LARGER than the lens's makes a full page read as short ⇒ null cursor ⇒ **the client silently never sees rows past page one**. Fixed by exporting from the lens. **Then the fix's own mutation test found a second defect:** deleting the length check went GREEN on both (44/44 and 7/7) — because dropping it can only turn nulls into STRINGS, and the existing tests assert only *full ⇒ string*. **A boolean contract asserted one-way is undefended the other way**, and the undefended side was TERMINATION — what a client uses to stop. Both halves pinned, each mutation-proved RED (7→8, 44→45). |
 | 674 | §1226 | **§1227** | **§1226'S RULE APPLIED TO CONSTANTS — ONE DOMAIN CLAIM WRITTEN TWICE, NOW IMPOSSIBLE TO DIVERGE.** 32 `UPPER_CASE` consts are declared in ≥2 shipped files; most are benign (`DAY_MS`, `BPS_DIVISOR`, length caps). One was not: **`EXCEPTION_KINDS`** — *what counts as an exception* — authored independently in `routes/exceptions.ts` (the Command board's queue) and `copilot/answer.ts` (the `open_exceptions` answer), neither importing the other, **no test naming both**. Identical today, so no live defect; the exposure is the next edit, and the question is **the exception-pulse acceptance demo** — a user would get a different answer from the copilot than the board shows. Fixed by SHARING (moved beside the frozen 35-catalog in `@shuddl/contracts`), not by a parity test — a shared import leaves nothing to diverge. `satisfies readonly EventKind[]` mutation-proved load-bearing: a non-catalog member fails TS2322. Verified 331/331 · 227/227 · 7/7, one declaration left. |
@@ -73067,7 +73068,7 @@ dependency, held together by nothing but that sentence.** No test named both.
 The two sides do different jobs with the same numbers:
 
 ```
-lens.ts:167@limit      const limit = Math.min(q.limit ?? DEFAULT_LIMIT, LIMIT_CAP);   → the SQL `LIMIT ?`  (page SIZE)
+lens.ts:183@limit      const limit = Math.min(q.limit ?? DEFAULT_LIMIT, LIMIT_CAP);   → the SQL `LIMIT ?`  (page SIZE)
 events.ts:166@effective    const effective = Math.min(limit ?? DEFAULT_LIMIT, LIMIT_CAP); → `if (events.length < effective) return null`  (page FULL?)
 ```
 
@@ -73157,3 +73158,53 @@ phase makes no claim about them.
 **STOP.** The nullable-return class probed by mutation rather than by reading, one gap confirmed as already
 closed, four high-stakes gates confirmed genuinely two-sided, a wrong predictor stated and replaced with one the
 evidence supports, and the unexamined 36 named as unexamined.
+
+## §1230 — PHASE GATE: §1229's predictor used as a search — the page-size cap was the SOLE bound and asserted by nothing
+
+**§1229 ended with a predictor: coverage fails where the assertion is EXPENSIVE to set up.** Used as a search
+rather than a conclusion, it names its own first target — `LIMIT_CAP`, whose effect can only be *observed* by a
+query returning more rows than any test corpus holds.
+
+**Predicted, then measured.** Raising `LIMIT_CAP` from 1000 to 100_000 left the lens suite **34/34 green**. The
+only occurrences of the name in any test were two comments **I had written at §1228**.
+
+### It is not a defence-in-depth constant. It is the only one.
+
+| Route | Client-supplied `limit` validation | Upper bound |
+|---|---|---|
+| `routes/events.ts` | `Number.isInteger(n) && n >= 1` | **none** |
+| `routes/export.ts` | Zod `.int().positive()` | **none — no `.max()`** |
+
+So `?limit=100000000` reaches the SQL bounded by `Math.min(…, LIMIT_CAP)` and by nothing else. A plausible
+refactor — reading that expression as "just a default" and simplifying it to `q.limit ?? DEFAULT_LIMIT` — leaves
+every suite green and hands D1 an unbounded page.
+
+### The fix makes the expensive assertion cheap instead of skipping it
+
+§1228 shared the two constants but left the `Math.min` expression written in **three** files. Extracting
+`effectiveLimit(requested?)` into the lens finishes that job and, more importantly, moves the bound somewhere it
+can be asserted without seeding a thousand rows. Four boundary cases now pin it: default, a request below the
+cap (so `return LIMIT_CAP` cannot satisfy the suite), a request above it including `100_000_000`, and exactness
+**at** the boundary.
+
+### My first draft of that test carried the exact defect this session has been documenting
+
+Mutation-testing the new tests found them **one-sided in a way I had already written about**:
+
+| Mutation | First draft | After |
+|---|---|---|
+| cap **removed** (`return requested ?? DEFAULT_LIMIT`) | RED ✓ | RED ✓ |
+| cap **raised** to 100_000 | **GREEN — still undetected** | RED ✓ |
+
+Every case compared against `LIMIT_CAP` itself, so raising the constant moved both sides of the assertion
+together. **A check whose two inputs derive from one source cannot detect that source changing** — §1197's
+mechanism, §1210's tautology, met again in a test written to close a different gap. The mechanism and the
+**value** need separate pins, so the literal now has its own: `DEFAULT_LIMIT === 200`, `LIMIT_CAP === 1000`,
+labelled as the REQ-010 policy decision they are.
+
+**Verified:** lens **39/39** (was 34), export + lens-adversarial **53/53**, typecheck clean, one `Math.min` page
+expression left in the tree.
+
+**STOP.** The predictor used as a search rather than a summary, the cap it named confirmed unasserted and sole,
+the expensive assertion made cheap by extraction rather than skipped, and the one-sided test I wrote while
+closing it caught by its own mutation and pinned in both directions.

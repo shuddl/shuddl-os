@@ -1,7 +1,7 @@
 import type { Hono } from "hono";
 import { z } from "zod";
 import type { LedgerEvent } from "@shuddl/contracts";
-import { lensFor, readEvents, DEFAULT_LIMIT, LIMIT_CAP, type Lens, type ReadQuery } from "@shuddl/ledger/lens";
+import { lensFor, readEvents, effectiveLimit, type Lens, type ReadQuery } from "@shuddl/ledger/lens";
 import { exportJournal, type JournalLine } from "@shuddl/ledger/gl/export";
 import { serializeJournalIIF } from "@shuddl/ledger/gl/iif";
 import { ApiError } from "../middleware/error.js";
@@ -94,7 +94,7 @@ export interface AssembleOptions {
  */
 export async function assembleTenantExport(opts: AssembleOptions): Promise<TenantExportArchive> {
   const { db, lens, tenant, generatedAt, journalRange } = opts;
-  const limit = Math.min(opts.limit ?? DEFAULT_LIMIT, LIMIT_CAP);
+  const limit = effectiveLimit(opts.limit);
 
   // EVENTS — the lens-scoped ledger page. admin ⇒ tenant lens ⇒ the unredacted stream. The composite
   // (stream_id, seq) keyset cursor pages across streams (the firehose contract), so it is bounded per page.
