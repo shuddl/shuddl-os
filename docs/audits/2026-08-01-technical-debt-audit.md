@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 586 | §1138 | **§1139** | **CI CARRIES §1138's SHAPE CORRECTLY — AND MY ALARM WAS A FLAT READ OF A NESTED FILE, THE FOURTH TIME.** Extended the short-circuit sweep from npm scripts to the pipeline. CI is **three independent jobs** (`merge-gate` · `design-gate` · `secrets`) with **no `needs:`**, so they run in parallel; and inside `merge-gate` the six verdict-bearing steps carry `if: ${{ !cancelled() }}` (§978) — including **the merge evidence gate itself**, so `verify:merge` produces its complete verdict even after an earlier step fails. I first reported that a design-audit failure would skip the history-wide **secret scan**: FALSE. My extractor flattened the YAML and lost the job boundaries — `gitleaks` is a separate JOB. Same class as §1129's switch and §1131's nested `kind`: **a flat read of a nested structure, failing toward alarm.** |
 | 585 | §1137 | **§1138** | **SWEEPING §1137's SHAPE: 3 `&&` CHAINS, AND THE ONE THAT MATTERS IS CITED AS COVERAGE BY A GATE.** *A gate can be wired, green, and not running* generalises to every `&&` between steps, so I enumerated: **3 of 51** scripts chain with `&&`. The load-bearing negative first — **`verify:merge` is not among them**, so the shippable verdict runs its gates independently, as it claims. `deploy:surfaces` is correct (do not deploy a failed build); `verify:dev` is documented in CLAUDE.md. That leaves **`verify:docs`**, which is not in CI — but `dev-loop-parity.test.ts:49@covered` cites it as the REASON `check:citations`/`check:tables`/`check:section-refs` may be absent from `verify:dev`: *"covered by `verify:docs`, which a session runs."* It short-circuits, so that coverage is conditional on the first check passing. **Bounded to Low**: the merge board runs all four as INDEPENDENT gates (verified in the artifact). |
 | 584 | §1136 | **§1137** | **LAW 8's LAST CLAUSE CLOSED — AND A NOTE I WAS CARRYING WAS STALE.** §1136 left one bound: does the isolation suite actually RUN on every merge? `tools/checks/isolation-suite.test.ts` records that this exact claim was **FALSE WHEN WRITTEN** (§954): `pnpm test` used `&&`, short-circuited on the REQ-289 trio, and **105 of 112 isolation cases were not executing** — only the 7 roster cases were. Restored at §940/§949. My own working note still said the short-circuit persists, so the two disagreed. **Measured at HEAD:** `test` now reads `test:tools; t=$?; pnpm -r --no-bail …; p=$?; exit $(( t || p ))` — both halves run unconditionally, exit is the OR. Board artifact confirms isolation files executing among **4,564** passing tests. Law 8: 4/4 clauses. |
 | 583 | §1135 | **§1136** | **LAW 8's R2 CLAUSE CLOSED: KEYS ARE EITHER BUILT FROM THE CLAIM OR CHECKED AGAINST IT — NEVER TRUSTED RAW.** §1135 named two uncovered clauses; leaving a stated bound open is how a partial result reads as complete (§1122), so I closed the checkable one. Every client-reachable R2 site follows one of exactly **two disciplines**: **CONSTRUCT** the key from the authenticated tenant (`evidence.ts:200@evidenceKey` · `import.ts` · the anchor manifests) or **VERIFY** the prefix when the key arrives from elsewhere (`documents.ts:135@claims` checks `claims.k.startsWith('evidence/' + claims.t + '/')` as *"defense in depth"* OVER the MAC, so even a mis-minted cap cannot cross tenants; the Biller does the same for a key read from D1, §1102). Remaining bound, still open and named: the isolation SUITE itself is pool-workers and reports inside unit-tests. |
@@ -67670,4 +67671,54 @@ captured and OR'd, so every check runs and the script still fails.
 source rather than from CLAUDE.md's claim about it; two chains confirmed correct or already-documented; one
 recorded where a *gate* accepts a short-circuiting script as coverage, bounded to Low by the board's four
 independent gate lines. Zero source changed.
+
+## §1139 — PHASE GATE: CI holds the shape; my reading of it did not
+
+**Why this phase.** §1138 enumerated the short-circuit shape across npm scripts. The shape is not specific to
+`&&` — a CI step also skips when an earlier one fails, unless told otherwise. So the sweep extends to the
+pipeline, and the question is whether an early failure can hide a later **verdict**.
+
+### CI is built correctly, on two independent mechanisms
+
+**Jobs.** `ci.yml` declares **three** jobs — `merge-gate`, `design-gate`, `secrets` — and **none declares
+`needs:`**. GitHub runs them in parallel, so a design-audit failure cannot suppress the secret scan, and
+neither can suppress the merge gate. The isolation is structural, exactly like §1135's DO addressing: not a
+rule someone follows, but a shape in which the violation cannot be expressed.
+
+**Steps.** Inside `merge-gate`, every verdict-bearing step carries `if: ${{ !cancelled() }}` (§978) — strict
+visual, a11y, e2e, perf, the production dependency audit, and **the merge evidence gate itself**. So
+`verify:merge` runs and reports its complete 26-gate surface even when an earlier step has already failed,
+and the evidence upload carries `always()`. The steps that *do* skip on failure are `build`, `acceptance` and
+the Playwright install — each a genuine precondition for what follows, which is §1138's rule (`&&` is earned
+when steps are **sequenced**, not merely **collected**).
+
+### The alarm I raised, and why it was false
+
+I reported that a **design-audit failure would skip the history-wide secret scan** — a pixel violation
+suppressing credential detection. That would have been a real and serious finding.
+
+It is false. My step-extractor walked `ci.yml` line by line collecting `- name:` entries and their `if:`
+values, **without tracking job boundaries**. It rendered three parallel jobs as one 16-step sequence, so
+`gitleaks` appeared to follow `audit:design` when it is in a different job entirely.
+
+That is the **fourth** time this session a flat read of a nested structure produced a wrong first answer:
+
+| § | structure | flat read said |
+|---|---|---|
+| §1128 | a `kind:` inside a payload vs the event's | a data-derived event kind |
+| §1129 | a switch over a *narrowed* union | 9 cases = the whole 35-kind catalog |
+| §1131 | `basis[]` entries vs event kinds | `rate.ts` emits `config` and `event` |
+| §1139 | steps inside parallel **jobs** | one 16-step sequence |
+
+Three of the four failed toward alarm, which is the direction that gets written down.
+
+> **Nesting is invisible to a line-oriented read, and YAML/TS/SQL all encode meaning in it.** The fix is not a
+> better line pattern — §1132 already learned that with the kind catalog. It is to parse the structure or read
+> the boundaries first: for a workflow, *list the jobs and their `needs:` before looking at any step.* One
+> command would have prevented this, and it is the same one command that answers the real question.
+
+**STOP.** The short-circuit sweep extended from scripts to CI and found the pipeline **correct on both
+mechanisms** — parallel jobs with no `needs:`, and `!cancelled()` on every verdict-bearing step including the
+merge gate; a serious-sounding alarm raised and **withdrawn on evidence** before it reached a finding; the
+recurring flat-read failure tabulated across four phases with the preventive read named. Zero source changed.
 
