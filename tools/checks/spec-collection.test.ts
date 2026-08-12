@@ -93,6 +93,10 @@ describe("REQ-158/285/288 §727: every browser spec is claimed by a playwright p
     expect(dupes, `two browser specs share a basename, which breaks how this gate matches collected files to the corpus. Rename one, or teach collectedBasenames() to resolve full paths per config root:\n  ${dupes.join("\n  ")}`).toEqual([]);
   });
 
+  // §1162 — SUBPROCESS TEST: this shells out, and the suite runs at vitest's DEFAULT 5000ms. Measured
+  // at 5044-7725ms under the load of consecutive full-suite runs, where it failed as a TIMEOUT —
+  // indistinguishable from a real defect. A per-test allowance; the suite default stays 5000ms so nothing
+  // else's ceiling moves (audit §1162).
   it.each(configs(repoRoot()))("%s collects at least one spec (a config that runs nothing is a dead gate)", (config) => {
     // Per-config, not just in aggregate: the union could stay complete while one config silently stopped
     // matching anything, and that config's gate would report PASS over zero tests.
@@ -100,7 +104,7 @@ describe("REQ-158/285/288 §727: every browser spec is claimed by a playwright p
       collectedBasenames(root, config).size,
       `${config} collects NO spec files. Whatever gate selects this config now runs nothing and still exits 0`,
     ).toBeGreaterThanOrEqual(1);
-  });
+  }, 20_000);
 
   it("the acceptance registry's `browser` field is not a no-op (dormant today — all five are null)", () => {
     // §679's shape. `Demo.browser` is declared once, set to `null` five times, and read by NOTHING — so the

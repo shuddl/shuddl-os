@@ -48,6 +48,10 @@ describe("§1051: skill reference code passes the lint its copier will face", ()
     expect(files.length, `no tracked .ts/.tsx found under ${SKILLS} — the glob or the skills tree moved`).toBeGreaterThanOrEqual(4);
   });
 
+  // §1162 — SUBPROCESS TEST: this shells out, and the suite runs at vitest's DEFAULT 5000ms. Measured
+  // at 5044-7725ms under the load of consecutive full-suite runs, where it failed as a TIMEOUT —
+  // indistinguishable from a real defect. A per-test allowance; the suite default stays 5000ms so nothing
+  // else's ceiling moves (audit §1162).
   it("every reference file lints clean", () => {
     // `--no-ignore` is REQUIRED: `.claude/**` is globally ignored, and without this eslint exits 0 having
     // linted nothing — a pass that means "I looked at no files".
@@ -69,5 +73,5 @@ describe("§1051: skill reference code passes the lint its copier will face", ()
         "Fix the reference. If a parameter is deliberately unused in a stub, prefer `void param;` over an `_` " +
         "prefix: it satisfies the rule while keeping the signature the copier should actually write.",
     ).toBe("");
-  });
+  }, 30_000);
 });

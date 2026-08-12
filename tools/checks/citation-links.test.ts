@@ -349,12 +349,16 @@ describe("§272: the citation escape hatch is bounded", () => {
 describe("REQ-118 §487: the citation corpus does not depend on the caller's directory", () => {
   const REPO = new URL("../..", import.meta.url).pathname.replace(/\/$/, "");
 
+  // §1162 — SUBPROCESS TEST: this shells out, and the suite runs at vitest's DEFAULT 5000ms. Measured
+  // at 5044-7725ms under the load of consecutive full-suite runs, where it failed as a TIMEOUT —
+  // indistinguishable from a real defect. A per-test allowance; the suite default stays 5000ms so nothing
+  // else's ceiling moves (audit §1162).
   it("collectCitations finds the same corpus from a subdirectory as from the root", () => {
     const fromRoot = collectCitations(REPO);
     const fromSubdir = collectCitations(`${REPO}/tools/checks`);
     expect(fromSubdir.length, "cwd must not narrow the scan — this is the §487 defect").toBe(fromRoot.length);
     expect(fromRoot.length, "and the corpus is non-empty, or the assertion above is vacuous").toBeGreaterThan(500);
-  });
+  }, 20_000);
 
   it("buildRepoIndex resolves the same universe, and can still READ what it lists", () => {
     // Listing and reading must share ONE root: rooting the list while reading against `cwd` would resolve

@@ -134,6 +134,10 @@ describe("§824: no NEW unpaginated list endpoint", () => {
     }
   });
 
+  // §1162 — SUBPROCESS TEST: this shells out, and the suite runs at vitest's DEFAULT 5000ms. Measured
+  // at 5044-7725ms under the load of consecutive full-suite runs, where it failed as a TIMEOUT —
+  // indistinguishable from a real defect. A per-test allowance; the suite default stays 5000ms so nothing
+  // else's ceiling moves (audit §1162).
   it("§825: the scan's SCOPE is still the whole HTTP surface — no routes outside workers/api/src", () => {
     // §824 scans `workers/api/src` and named that as its blind spot: a list endpoint in another worker would
     // be invisible. Measured (§825) and now PINNED rather than left as a point-in-time note — the other four
@@ -157,7 +161,7 @@ describe("§824: no NEW unpaginated list endpoint", () => {
         "look there, so any list endpoint it serves is ungated. Widen `listEndpoints()` to cover it — do " +
         "not relax this assertion, which exists precisely to make that scope change deliberate.",
     ).toEqual([]);
-  });
+  }, 20_000);
 
   it("no list endpoint returns an unbounded row set outside the filed set", () => {
     const known = new Set(KNOWN_UNPAGINATED.map((k) => k.route));

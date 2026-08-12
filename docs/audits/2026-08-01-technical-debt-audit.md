@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 610 | §1162 | **§1163** | **FIXED §1162 SURGICALLY — AND FOUND THE REPO HAD ALREADY SET THE CONVENTION.** §1162 filed the four subprocess gates as an owner decision because a suite-level timeout raises the ceiling on a genuinely hung child. There is a narrower fix that does not: a **per-test** allowance on exactly the four, leaving the suite default at **5000ms** so nothing else moves. Applied (`20_000` ×3, `30_000` for the eslint one), 81 tests green. **The corroboration came after the edit:** `spec-collection.test.ts` already carried `30_000` on a sibling, citing *"the convention already set at `cwd-parity.test.ts` (120_000 for an 11.5s test)"* — so this **extends an existing, documented practice** at ~3× headroom where the precedent uses ~10×. The decision I flagged was real; it just had a narrower answer. |
 | 609 | §1161 | **§1162** | **NEW DEBT, FOUND BY THE GATE THAT REFUSED MY COMMIT: FOUR SUBPROCESS GATES RUN AT VITEST'S DEFAULT 5000ms.** §1161's chained `delta && commit` refused and named four newly-failing tests. Not waved off: all four **shell out** (`execSync`/`execFileSync` → eslint, playwright, git-from-a-subdirectory), all pass **in isolation**, all passed in the board at `551421d`, and `pnpm reap` found **zero** orphans. **Mechanism measured:** `vitest.tools.config.ts` sets **no `testTimeout`**, so the **5000ms** default governs — and the observed durations were **5044 · 5758 · 7725ms**. Under load a child process outruns the timeout and the gate reports a failure indistinguishable from a real defect. Filed as a new row; a false RED erodes a gate faster than a slow one. |
 | 608 | §1160 | **§1161** | **I7 TRACED: THE JOURNAL-BALANCE HALF IS PINNED; THE CORRECTION-PAIR HALF IS STRUCTURAL, NOT ASSERTED.** Enumerated I1–I8 from `genesis/10` rather than memory (§1160's rule) and took the one this session had never touched. **I7 — *correction pairs net zero in GL export*.** Its enforcement is real: `iif.ts@serializeJournalIIF` Guard 2 throws on `Σdebits !== Σcredits`, pinned by *"unbalanced input … throws — never emits a lopsided journal"*. But that is **journal balance**, a different claim. Correction-pair netting holds by **construction** instead: `export.ts` emits each money_line as a debit/credit PAIR of the same `amount_cents`, so a correction carrying a negated amount nets against its original — *"signed amounts carry corrections through unchanged"*. **Structural, and no test names it.** My probe also missed it twice: the code says *"nets to 0.00"*, never *"net zero"*. |
 | 607 | §1159 | **§1160** | **LAW 7 DECOMPOSED — ALL TEN LAWS NOW COMPLETE, AND §111's SELF-DECLARED GAP IS CLOSED.** I claimed after §1159 that all ten were done; **that was wrong — Law 7 was outstanding**, and correcting it is the phase. Its audit half was proved at §111/§252 (twelve rules each failing alone; a planted shadow, over-budget radius and raw hex). Its **screenshot half** is what §111 explicitly did NOT touch — *"the screenshot half runs through a different mechanism the section never touched"*. It is gated: **5 blessed PNGs** with `visual-corpus.test.ts` asserting non-vacuity, **BIDIRECTIONAL** registry↔reference matching, the five canonical WP-03 screens by name, and that **an iCloud collision copy is not mistaken for an unregistered screen** (§673). Ten of ten. |
@@ -68980,4 +68981,50 @@ isolation.*
 subprocess-spawning established as their common property and the absent `testTimeout` measured as the cause;
 corroborated by isolation, by the board, and by a clean reap; filed as a new Low–Med row with its fix framed as
 a decision and a reopen trigger that fires on the exact symptom.
+
+## §1163 — PHASE GATE: the narrower fix, and the convention that was already there
+
+**Why this phase.** §1162 filed four subprocess-spawning gates as **owner-decision** debt, on the reasoning
+that raising a timeout also raises the ceiling on a genuinely hung child process. That reasoning is sound for
+a **suite-level** change — and it does not apply to the narrower one.
+
+### The surgical version
+
+A **per-test** allowance on exactly the four measured tests:
+
+| test | spawns | allowance |
+|---|---|---|
+| `citation-links` — root-vs-subdirectory collection | two collections | 20s |
+| `list-endpoint-pagination` | `execSync` | 20s |
+| `spec-collection` — *"collects at least one spec"* | `execFileSync` + `execSync` → playwright | 20s |
+| `skill-reference-lints` — *"every reference file lints clean"* | `execFileSync` → eslint | 30s |
+
+**The suite default stays 5000ms.** No other test's ceiling moves, and a hung child anywhere else still fails
+fast — which is precisely the property §1162 was protecting. Verified: **81 tests green** across the four,
+typecheck and lint clean.
+
+### The corroboration arrived after the edit
+
+Checking whether the change was consistent with the repo, `spec-collection.test.ts` turned out to **already**
+carry a `30_000` on a sibling test, whose comment states the rule:
+
+> *"30s follows the convention already set at `cwd-parity.test.ts` (**120_000 for an 11.5s test**)."*
+
+So the repo had already decided this, twice, and written down its reasoning. The four I found were simply the
+ones that had never been given the treatment — and at ~3× headroom over measured durations, my values are
+**more conservative** than the precedent's ~10×.
+
+That reframes §1162's filing. The decision I flagged was real, and the answer was narrower than the question:
+not *"should timeouts be raised?"* but *"should these four join a convention the repo already applies?"*
+
+> **Check for the convention before filing the decision.** §1162 was right that a suite-level timeout is an
+> owner's call; it did not ask whether a per-test one was already standard practice here — and it was, in the
+> same file, four lines from the code being examined. The record's own rule (§1140: *the record is a search
+> index, not a diary*) applies to conventions as much as to verdicts: **the repo usually already has an
+> opinion, and it is cheaper to find it than to escalate.**
+
+**STOP.** §1162's debt closed by the narrow fix rather than escalated: per-test allowances on the four
+measured subprocess gates, suite default untouched at 5000ms, 81 tests green; the change verified as an
+extension of a documented in-repo convention (120s for an 11.5s test) rather than a new policy; the row moved
+from OPEN-proposed to FIXED with the reasoning recorded.
 
