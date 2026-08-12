@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 651 | §1203 | **§1204** | **THE TEN LAWS CLASSIFIED THE SAME WAY — AND THE SPLIT IS EXACTLY PROCESS vs BEHAVIOUR.** §1203 did I1–I8; this does CLAUDE.md's ten. Six are BEHAVIOURAL and every one is stopped by something that cannot be forgotten: law 2 by DB triggers, law 3 by the sequencer chokepoint, law 4 by three runtime guards returning a discriminated union (**12 RED** when the weight guard is dropped — measured here), law 5 by `executingShareCents` throwing, law 8 by the DO identity belt (§1202), law 10 by an exhaustive `ColumnDecision` whose unmapped values are RETAINED. Four are PROCESS laws — REQ-IDs per PR, fixtures gate merges, design CI, swarm at WP exit — and a **lint is the correct enforcement** for each, because no runtime can observe what a PR did; same shape as I8. **None is test-only.** Two probe notes: the missing-physics return appears **3 times**, so my first mutation asserted and did NOT apply — the clean 168-passed would have read as *defended* had the assert not fired (§1194's conflated identity, in my own tooling); and law 5's clause 4 was the one genuine gap in either set, found undefended and closed at §1111 earlier this session. |
 | 650 | §1202 | **§1203** | **ALL EIGHT SCHEMA INVARIANTS CLASSIFIED BY ENFORCEMENT KIND — NONE IS TEST-ONLY.** §1202's real result was that of three identical keys, the only OPEN one was the only one enforced by a TEST: a DB constraint and a runtime belt cannot be forgotten, a test can simply never have been written. That inverts into the sharpest production-readiness question available — **which constitutional invariants rest on a test alone?** Classified I1–I8 by what actually stops a violation: I1 a FOREIGN KEY · I2 a runtime gate (`assertPodSigned`) · I3 DB triggers + the append-chokepoint lint · I4 a SCHEMA refusal (it refused three of my own payloads at §1179) · I5 a schema `.min(1)` on `rate_config_ids` · I6 the lens, with 44 adversarial assertions incl. non-importing guards · I7 **construction** (`amount_cents: -o.amount_cents`) + a UNIQUE index preventing double-reversal + a fixture · I8 a lint with `TABLE_BUDGET`, which is the correct enforcement for a GOVERNANCE rule since no runtime can stop a migration. **My I7 hypothesis was wrong** — I predicted test-only and measurement found three layers. Mutation-proved the one layer never mutated: dropping the negation REDs **6 tests across 2 files**. |
 | 649 | §1201 | **§1202** | **THE COMPOSITE-KEY SWEEP CLOSES: THE OTHER TWO KEYS ARE DEFENDED, ONE OF THEM TWICE.** §1201's shape — *a key that must keep two things apart* — has three instances. The parity dedup key was the open one. The **DO address** keyed on tenant-plus-stream is what makes REQ-025 structural, and it holds **belt and braces, both mutation-proved**: dropping the tenant from the address at `routes/events.ts` fires the DO's OWN identity check in `sequencer.ts` (*"the caller-declared identity must re-derive to OUR OWN id"*, 403 FORBIDDEN), and removing that check REDs a named test. The third, the offline dedupe key, is enforced by the DATABASE — a UNIQUE INDEX `ux_events_device` over (stream_id, device_id, device_seq) — so a collapsed key is a constraint violation, not a silent merge. **Diagnosability note, not a defect:** the address mutation surfaces as *"seed iso-pub-4-shipment/booking failed: 403"* — a seed throwing, not a named isolation assertion, so the guard fires while the message does not say *tenant isolation*. And the run reported `Test Files 1 failed` with `65 passed | 2 skipped` — a file-level failure my summary pattern missed, the second such near-miss in three phases. |
 | 648 | §1200 | **§1201** | **A SECOND REAL GAP FROM THE SAME MECHANISM: PARITY'S DEDUP KEY COULD CONFLATE THE TWO SIDES IT EXISTS TO SEPARATE.** §1197's deeper lesson — *a check whose inputs share a source cannot see what that source loses* — applied to **parity**, which authorises authority flips (REQ-008/023) on the money path. Both sides come from ONE query split by the `source` column, so the question is whether the split can fail. Three metric paths, each mutated to double-attribute: `count` **2 RED**, `sum` **6 RED** — defended. The third, `latestSumBySource`, dedups on `${source}|${stream_id}` *"so a native quote and a legacy mirror quote on the SAME stream are deduped independently"* — its own comment. **Dropping `${source}|` from that key left the ENTIRE ledger suite green: 698 passed.** Every existing rating case seeds the two sides on DIFFERENT shipments (`rat-p-nat`/`rat-p-leg`), so the fold was never exercised. On a mirrored stream the collision discards one side's quote entirely and parity compares two incomplete aggregates. Pinned with a same-stream case asserted as a DELTA; the mutation now REDs naming the vanished side. |
@@ -71668,4 +71669,98 @@ a future reader asking "how safe is I5?" gets **schema** rather than "green at s
 **STOP.** All eight schema invariants classified by what actually stops a violation; none rests on a test alone;
 one wrong prediction of my own corrected by measurement; and I7's construction layer mutation-proved for the
 first time.
+
+## §1204 — PHASE GATE: the other constitutional set, and why four of them are lints
+
+**Why this phase.** §1203 classified I1–I8 by what actually stops a violation and found none resting on a test
+alone. CLAUDE.md's **Ten Laws** are the other constitutional set, decomposed clause-by-clause earlier in this
+record but never classified this way.
+
+### The ten, by enforcement kind
+
+| law | what stops a violation | kind |
+|---|---|---|
+| 2 · events append-only | DB triggers (0003/0008) + the append-chokepoint lint | **DB** |
+| 3 · gates are server-side | one sequencer DO; every gate applied before the single INSERT | **runtime** |
+| 4 · no price on air | three guards returning `UNKNOWN`, in a discriminated union callers must handle | **runtime + type** |
+| 5 · interline floors on the executing share | `executingShareCents` throws on an out-of-range share | **runtime** |
+| 8 · tenant isolation | the DO address, and the DO's own identity check on arrival | **runtime belt** |
+| 10 · no silent drops in migration | an exhaustive `ColumnDecision` (apply / review / unmapped) whose unmapped values are RETAINED | **type + construction** |
+| 1 · every PR references REQ-IDs | traceability CI, both directions | **lint** |
+| 6 · fixtures gate merges | the fixture gates (5 BLOCKED on private inputs) | **lint** |
+| 7 · design CI | the design audit, blocking since WP-10 | **lint** |
+| 9 · adversarial swarm at WP exit | the WP-exit-audit gate | **lint** |
+
+### The split is not arbitrary
+
+Six laws are **behavioural** — they constrain what the running system may do — and every one is enforced by
+something that cannot be forgotten. Four are **process** laws: they constrain what a *pull request* did, and
+**no runtime can observe that.** For those, a lint is not a weak substitute for a real guard; it is the only
+possible enforcement, exactly as §1203 found for I8's table budget.
+
+> **"Test-only is the fragile class" is a claim about behavioural rules.** A process law has no runtime to hide
+> in, so the lint *is* the mechanism — and the right question about it is not "is there something stronger?"
+> but "does it fail closed, and is its own firing tested?" Law 9's gate carries a boundary test that pins all
+> three heading conventions; law 7's is proved by a planted shadow, radius and raw hex.
+
+### Measured here, not inherited
+
+Law 4 is the one behavioural law whose guard this record had never mutated. Removing the weight check —
+a weightless shipment reaching the pricer — **REDs 12 tests**.
+
+### Two probe notes
+
+**The first attempt did not apply, and the assert is why I know.** `return { status: "UNKNOWN", reason:
+"missing_physics" }` appears **three** times (weight, dims-presence, dims-measure), so `assert count == 1`
+fired and nothing was mutated. The suite printed **168 passed** — which, without the assert, reads exactly like
+*"the guard is defended"*. §1194's conflated identity, this time inside my own mutation tooling, and the
+`assert old in s` habit is what separated a real verdict from a fabricated one.
+
+**Law 5 was the one genuine gap in either constitutional set**, and it is already closed: §1111 found clause 4
+— a 150% executing share — defended by nothing, and fixed it with a throw plus the compensating-legs test that
+the total-check cannot see. One gap across eighteen constitutional rules, found and closed inside this session.
+
+### The gate that exists for this exact defect has a false negative — found by committing it
+
+Writing the table above I put `ColumnDecision = apply | review | unmapped` inside a **table cell**. That row has
+**5 cells against a 3-column header** — the precise defect §1202 had just documented, repeated one phase later.
+
+`check:tables` passed.
+
+That gate exists for nothing else: *"a markdown table row with MORE cells than its header does not error —
+GitHub renders the first N and silently DROPS the rest. Audit §50 found three rows in the threat model carrying
+a 4th cell … the dropped cells held the residual-risk statements."* Its flagging logic is right
+(`cols > header.cols`). The defect is in how it counts:
+
+```ts
+// A pipe inside `code` or escaped as \| is not a delimiter.
+const stripped = line.replace(/`[^`]*`/g, blank).replace(/\\\|/g, "  ");
+```
+
+**The premise in that comment is false for GFM**, whose table rule says a pipe must be escaped *"including
+inside other inline spans"* — a code span does **not** protect it. So the gate counts fewer cells than GitHub
+renders, and an over-wide row passes.
+
+**And §1202 was caught by accident.** Its row was `` `idFromName(\`${tenant}|${streamId}\`)` `` — *nested*
+backticks, which defeat the `` /`[^`]*`/ `` stripper, leaving the pipe exposed and counted. Measured both:
+
+```
+simple backticks (this phase)  → counted 3 against a 3-col header → MISSED
+nested backticks (§1202)       → counted 4 against a 3-col header → CAUGHT
+```
+
+One phase apart, the same mistake, opposite verdicts — and the one that fired did so for a reason unrelated to
+the rule.
+
+**Measured cost of the fix: 24 rows.** Counting every tracked markdown row that the lenient rule calls fine and
+the GFM rule calls over-wide yields **24** (by this measure — the header is counted leniently in both, so the
+figure is an estimate of the same sign, not a proof of each row). Those rows are rendering with dropped content
+on GitHub **today**. The gate cannot simply be tightened: it would red on all 24 immediately, so the change is
+coupled — fix the rows, then tighten — which is a single mechanical commit against the record, and a decision
+about the record rather than about the code. **Filed rather than taken unilaterally**, with the remedy and the
+number attached, per §1184's rule that an option's cost belongs beside it.
+
+**STOP.** Both constitutional sets now classified by enforcement kind: eighteen rules, none test-only, the
+four lint-enforced ones identified as *process* laws where a lint is the only possible mechanism, law 4's guard
+mutation-proved for the first time, and the single historical gap named with the phase that closed it.
 
