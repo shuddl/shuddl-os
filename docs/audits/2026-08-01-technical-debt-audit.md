@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 606 | §1158 | **§1159** | **LAW 6 DECOMPOSED: 2 OF 4 CLAUSES ENFORCED, 1 PENDING A FIXTURE, 1 A PHANTOM — AND I NEARLY CLOSED THE PHANTOM ON A COINCIDENCE.** The last undecomposed law. **QB penny-reconcile** (vendored, 7 tests) and **airplane soak** (in-repo, 2 tests) are real; **legacy-export replay ±2%** is a pending private fixture; **`routes ±10%` has no gate, no manifest row, no REQ row and no routing capability anywhere** — a clause naming a gate that does not exist, in TWO source-of-truth docs. **The near-miss:** I found `PARITY_TOLERANCE_BPS.rating = 1_000` — exactly 10% — and almost concluded the clause was satisfied. It is an unrelated module tolerance. **A number matching is not a claim matching**, and closing it would have removed a live owner decision from the queue on a coincidence of magnitude. |
 | 605 | §1157 | **§1158** | **STOPPING POINT XVIII — THE LEDGER IS EXHAUSTED OF WHAT I CAN REDUCE.** Board at `551421d`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs measured to `REQ-289`. §1151–§1157 did the two things §1152 distinguished: **built enforcement** (three gates, each mutation-proved end-to-end, verified cwd-independent against the defect that once hit sixteen scripts) and **reduced the ledger** — the multi-guard 403 row closed at **zero** through four measurements and no executions, and one owner signature removed. The counted-row sweep then found **no second instance**. Everything remaining needs input from outside the repo: two code decisions, three product rulings, nine fixtures, a denylist, a register row, three demo blockers, and a push. |
 | 604 | §1156 | **§1157** | **§1156's DEFECT WAS SPECIFIC, NOT SYSTEMIC — SWEPT THE OTHER COUNTED ROWS, NOTHING FOLLOWS.** *A count of guards is not a count of risk* invited a sweep: **9** live rows carry a count in their title. Five are owner-held (private fixtures · the denylist · the photos demo · the authority roster §1124 ruled ungateable). The one that matched the shape — *Unbounded list reads, 9 sites* — turns out to be **the best-instrumented item in the ledger**: its count was corrected twice (7 → 8 → 9, the 9th found by enumerating every API list endpoint), and `unbounded-reads-roster.test.ts` (13 tests) **compares the doc's number to `ROSTER.length`** so it cannot drift. Crucially its **unit is right** — each site IS a hazard, where guards were not reachable pairs. The ledger is now exhausted of items I can reduce. |
 | 603 | §1155 | **§1156** | **ROW CLOSED — 24 → 4 → 1 → 0, AND THE LAST STEP IS STRUCTURAL.** The final assertion, `rate.test.ts`'s *"a role not in {ops,admin,finance} is 403"*, tests a `read` role — rejected by `rate.ts:112@requireRole` **before the handler runs**, while both of rate's own 403 guards sit inside `if (session.role === "portal")` and are unreachable for that principal. Identical for `board.test.ts:111`. **§81's defect requires two guards reachable BY THE SAME PRINCIPAL**, and a middleware `requireRole` preceding role-scoped handler guards cannot produce that — whichever rejects, the other was never in play. The portal-scoped guards that CAN be ambiguous *are* distinguished (`status-cap.test.ts` PS-7 asserts the `cap` is undefined). A row that began at ~24 units of wedge-risky work closes at **zero**. |
@@ -68746,4 +68747,56 @@ over nothing"* — and found them independent both mechanically and behaviourall
 **STOP.** Board 19/2/5 at `551421d` with both FAILs attributed; three gates built, mutation-proved and
 cwd-verified; one ledger row closed at zero and one owner signature removed; the generalisation swept and
 found specific; the remaining queue enumerated with what each item needs and from whom.
+
+## §1159 — PHASE GATE: Law 6, and the coincidence that nearly closed a live decision
+
+**Why this phase.** Laws 1, 2, 3, 4, 5, 8, 9 and 10 have been decomposed clause by clause. **Law 6** —
+*"Fixtures gate merges: legacy-export replay ±2% aggregate · routes ±10% · QB export reconciles to the penny ·
+airplane-mode soak for driver flows"* — is four named clauses and had never been taken apart.
+
+### The four clauses
+
+| clause | state |
+|---|---|
+| QB export reconciles to the penny | **enforced** — vendored fixture, 7 tests green |
+| airplane-mode soak | **enforced** — in-repo, 2 tests green (and the e2e board gate carries *"driver offline capture survives and reconnects"*) |
+| legacy-export replay ±2% | **pending** — `legacy-export-replay` in the manifest, awaiting the private fixture; one of the five BLOCKED |
+| **`routes ±10%`** | **no gate exists at all** |
+
+The fourth is the interesting one, and the record already had it right: no row in `fixtures/manifest.json`, no
+row in `fixtures/README.md` — *the file rule 6 itself cites* — no REQ row, and **no routing or mileage
+capability anywhere in the build**. It appears in **two** source-of-truth documents (`genesis/11` and
+`genesis/14`), which makes it settled intent rather than a stray phrase, and therefore an owner decision:
+**add a register row if route parity is real scope, or strike the clause as vestigial.**
+
+Its severity is correctly **Low** for a precise reason: *no false green*. The gate does not exist, so nothing
+reports PASS for it. A phantom clause misleads a reader of the law; it does not mislead the board.
+
+### The near-miss worth recording
+
+Tracing the clause, I found `packages/ledger/src/parity.ts@PARITY_TOLERANCE_BPS`:
+
+```
+rating: 1_000,   // 1000 bps = 10%
+invoicing: 200,  settlement: 200,  dispatch: 200,  comms: 200
+```
+
+**Exactly ten percent**, consumed at `:270` by a real gate (`within_gate = drift_bps <= PARITY_TOLERANCE_BPS[module]`).
+The temptation to conclude *"routes ±10% is implemented after all"* was immediate — and it is **wrong**. That
+table is the authority-parity tolerance per **overlay module**; `rating` is not `routes`, and the 10% is a
+coincidence of magnitude between an unrelated threshold and a phrase in a law.
+
+Had I taken it, the cost would have been the worst available: **a live owner decision removed from the queue
+on a false ground**, and a clause recorded as satisfied that names a capability the build does not have.
+
+> **A number matching is not a claim matching.** The strongest false positives in this audit have all been
+> coincidences of *form* — a `kind:` at two nesting levels (§1128), `assets` as a word (§1093), `register` vs
+> `registry` (§1120), and now `10%` meaning two different things. Each looked like confirmation, and
+> confirmation is the reading that gets written down without a second look (§1143). The check is always the
+> same and always cheap: **does this artifact answer the question the claim is about, or merely resemble it?**
+
+**STOP.** The last undecomposed law taken apart: 2 of 4 clauses enforced, 1 pending a private fixture, 1 a
+phantom naming a gate with no implementation, no fixture row and no capability — correctly filed as an owner
+decision and correctly rated Low for producing no false green; a near-miss recorded in which a coincidental
+10% would have closed that decision on the wrong evidence. Zero source changed.
 
