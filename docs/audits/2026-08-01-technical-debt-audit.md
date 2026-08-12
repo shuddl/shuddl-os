@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 578 | §1130 | **§1131** | **THE RULE ENUMERATED: 7 KINDS HAVE A DEDICATED RECORDING ROUTE, 2 ARE REFUSED, 5 ARE NOT.** §1130 said the remedy is a rule and that the rule is enumerable, so I enumerated it — the owner should get the decision CONTENT, not a principle. Refused: `approval.decided`, `authority.flipped`. **Not refused:** `quote.priced` (§1125) · `quote.accepted` (§1130) · `message.sent` (dunning) · `message.received` (portal-actions) · `agent.acted` (paired with /v1/rate). The first two are the confirmed money-authority pair; the other three need a per-kind ruling on whether the dedicated route is the ONLY legitimate producer — I do not assert that it is. Extraction hit the two-level `kind` collision a THIRD time: `rate.ts`'s only literals are `basis` payload entries, which is exactly why §1124's literal-kind sweep missed it. |
 | 577 | §1129 | **§1130** | **§1125 ESCALATES: `quote.accepted` IS APPENDABLE TOO, SO THE WHOLE AUTHORITY CHAIN IS FORGEABLE — AND THE FIX IS A RULE, NOT AN ENTRY.** Ran §1129's condition (c) on the sharpest candidate. `quote.accepted` decides WHICH quote gets billed (§1101's GUARD 2) and has a **dedicated gated route** — `/v1/shipments/:id/accept-quote`: lens gate on `:id` FIRST, then the `quote_event_id` must exist as a `quote.priced` on that stream. That is exactly the structure of `approval.decided` and `authority.flipped`, **both refused by name at the generic route for that very reason**. `quote.accepted` is not refused. Forge a `quote.priced` (§1125) + the `quote.accepted` naming it → a self-consistent chain that GUARD 2 accepts, because it verifies **consistency and existence, never provenance**. So the fix is the RULE the file already applies twice: **any kind with a dedicated recording route is refused here.** |
 | 576 | §1128 | **§1129** | **§1125's CLASS, BOUNDED EXACTLY: 9 KINDS CARRY A DO TRANSITION GATE, 26 DO NOT — BY CONSTRUCTION.** Asked which OTHER kinds could repeat §1125 (protections living OUTSIDE the append path). The sequencer answers structurally: `if (!isGatedKind(incoming.kind)) return {};` then an **exhaustive** switch over `GatedKind` whose `default:` is `assertNever` — *"a GatedKind with no case above = a Set/switch desync … never a silent fall-through to an ungated append"* (compile-time belt, runtime suspenders). The 9: `stop.departed` · `delivery.evidenced` · `custody.transferred` · `exception.raised` · `osd.captured` · `stop.arrived` · `appointment.set` · `booking.created` · `dispatch.assigned`. So **26 kinds are ungated at the DO deliberately**, and §1125's class is exactly: those 26, minus the 7 the route refuses, whose protections live elsewhere. `quote.priced` is one CONFIRMED member; the rest is per-kind work, not a grep. My first extraction said 9-of-9 and was imprecise (grouped fall-through, default bleed) — corrected by reading. |
 | 575 | §1127 | **§1128** | **AFTER ASSERTING AN UNMEASURED NUMBER, I RE-DERIVED MY MOST LOAD-BEARING ONE — IT HOLDS.** §1127 caught me reporting an unpushed-commit count I had never run (*137*; the measured figure is **1,190** — `origin/main` is at 2026-07-31). The repo-relevant question is whether that habit reached the RECORD, so I re-derived §1126's Law 3 verdict, whose probe output had been mangled when I first read it: **19** append-seam callers · 5 API routes with literal kinds · 2 without. Confirmed. Then closed the one part that rested on ASSERTION rather than measurement — *"the other 12 are internal with no client-facing body"* — because `translator/inbound.ts` **is** externally reachable (a partner POSTs an X12 204). It emits **literal** kinds; the single data-derived `kind:` is a MONEY-LINE kind inside a payload, not the event kind. Two `kind` fields, two levels. |
@@ -67229,4 +67230,61 @@ reason as §1125: it 403s a public API surface with no deprecation, and now for 
 member of §1125's class confirmed against all three conditions; the compounding stated precisely (consistency
 and existence are checkable, provenance is not); the remedy re-framed from an entry to the rule the file
 already applies twice; the checklist row escalated in place. Zero source changed.
+
+## §1131 — PHASE GATE: enumerating the rule, so the decision is content rather than principle
+
+**Why this phase.** §1130 concluded that the remedy for §1125/§1130 is a **rule** — *any kind with a dedicated
+recording route must be refused by the generic events route* — and asserted that the rule is **enumerable**
+(route inventory → kinds each emits). An enumerable claim left un-enumerated is the shape this record keeps
+finding wrong, and the owner cannot rule on a principle. So: enumerate it.
+
+### The inventory
+
+| kind | dedicated route | refused at `/v1/shipments/:id/events`? |
+|---|---|---|
+| `approval.decided` | `/approval-decision` | **YES** |
+| `authority.flipped` | `/v1/authority/:module/flip` | **YES** |
+| `quote.priced` | `/v1/rate` · `/pub/quote` | **no** — §1125 |
+| `quote.accepted` | `/v1/shipments/:id/accept-quote` | **no** — §1130 |
+| `message.sent` | the dunning send route | **no** |
+| `message.received` | portal-actions | **no** |
+| `agent.acted` | `/v1/rate` (paired with the price) | **no** |
+
+**7 kinds have a dedicated recording route; 2 are refused; 5 are not.**
+
+### What I am and am not claiming about the five
+
+Two are **confirmed** members of §1125's class, with all three conditions checked and their compounding traced
+(§1130): `quote.priced` and `quote.accepted` — the money-authority pair.
+
+The other three are **candidates, not findings**. Each needs a judgement I cannot make from the code:
+*is the dedicated route the ONLY legitimate producer of this kind?* For `approval.decided` and
+`authority.flipped` the answer was yes and the refusal says so. For `message.received` it is genuinely
+unobvious — an inbound arrives from email and EDI, and whether an ops principal recording one by hand is a
+legitimate flow or a forged inbound is a product question. Asserting they belong on the list would be
+[[a-false-clean-invites-no-follow-up]] inverted: over-claiming on three to strengthen a finding that already
+stands on two.
+
+So the decision content is: **two to close, three to rule on.**
+
+### The collision, a third time
+
+Extracting *"which kinds does this route emit"* by grepping `kind: "` returned `config` and `event` for
+`rate.ts` — both **payload-level** entries inside a `basis: [...]` array, not event kinds. That is the same
+two-level `kind` trap §1128 recorded in the translator, and it is *why* `rate.ts` never appeared in §1124's
+literal-kind sweep: **its event kinds are built through a helper, so it has no event-kind literal at all.**
+
+The corrected reading also caught `portal-actions.ts:75` — `kind: "quote.accepted" | "message.received"` — a
+**type annotation**, not a construction, which happens to be the most reliable statement of what that route
+can emit.
+
+> **The same field name at two nesting levels defeats every flat extraction**, and it has now produced a
+> wrong first answer in three consecutive phases (§1128 translator, §1129 switch attribution, here). A grep
+> reports the string; only the surrounding structure says whether it is the event's kind or a line's kind.
+> Where a route builds its kind through a helper, the flat method returns **nothing** and reads as clean.
+
+**STOP.** §1130's rule enumerated to seven kinds with the refusal status of each; two confirmed for closure
+and three explicitly left as owner judgements rather than padded into the finding; the two-level `kind`
+collision recorded as the reason a literal sweep both over- and under-reports on this exact question. Zero
+source changed.
 
