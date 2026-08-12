@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 551 | §1103 | **§1104** | **A DEFERRAL THAT CLAIMS A REGISTER ROW, ONE CLAUSE AWAY FROM THE ROW THAT DISCLAIMS IT.** Checked the `referralBase` row's CONDITION the §1101 way — by its clause, not its noun: the URL *is* in the body, but the hazard fires only if the send's idempotency keys off it, and it keys `evidence-email/<invoice event id>`. **UNFIRED.** The defect was the comment's OTHER claim — *"tracked as its own REQ"*, naming no ID. Measured the register: the redelivery-purity rows are all CONCIERGE-scoped, REQ-129 is the referral SURFACE, and the nearest owner is **REQ-267**, whose acceptance *"same referral facts reproduce one attribution"* is exactly what a drifting re-render breaks. Comment corrected to name it. The sweep's sharpest output was about ITSELF: the original sat on the SAME LINE as `REQ-178` — the row it explicitly disclaims — so a proximity detector scores it **NAMED**. Fixing it also rotted **4 citations across 3 files**, caught by the ratchet. |
 | 550 | §1102 | **§1103** | **STOPPING POINT IX — THE RECORD WAS THE DEFECT, FOUR PHASES RUNNING.** Board re-earned at `50276d8`: **19 PASS · 2 FAIL · 5 BLOCKED**, and the 2 FAILs MEASURED (not assumed) to the owner's single uncommitted `REQ-289` row — `check:coverage` names it. Across §1100–§1102 **zero source files changed**: 1 row closed as already-fixed, 2 triggers corrected to UNFIRED, 1 blocker re-labelled, and four clean negatives with denominators (7/7 non-invoice outcomes bounded+visible · caps 3/3 claims · the POD-gate exemption inert and mutation-proved · `clientView`'s ten frozen fields). Every defect this stretch was in the RECORD, not the behaviour. |
 | 549 | §1101 | **§1102** | **THE SEVEN WAYS A DELIVERED LOAD DOES NOT BILL — AND THE ONE PREDICATE THAT NEEDED TWO DIFFERENT ANSWERS.** Enumerated the Biller's terminal non-invoice outcomes: **5 holds + 2 skips**. All 5 holds are test-pinned (`interline_unresolved` only because an earlier phase caught it living in two COMMENTS). The 2 skips were checked against the unbounded-re-drive shape the hold marker exists to prevent: `shipment_not_found` **would** have reproduced it exactly, and **REQ-199 (WP-11 exit audit) already closed it** — but by WRAPPING the anti-join, deliberately leaving the SHARED `unbilledShipmentsSql` untouched so the Watchtower alarm still surfaces the data fault. `pod_not_found` is unreachable by the anti-join by construction. **Clean negative, 7/7.** The finding is the engineering: bounding and surfacing pulled OPPOSITE ways on one shared predicate, and fixing it at the shared layer would have made the fault invisible while looking fixed. |
 | 548 | §1100 | **§1101** | **FOUR ROWS PROMISE A RE-LOOK ON A CONDITION. ALL FOUR CONDITIONS LOOK FIRED. EXACTLY ONE HAS.** §1100 re-derived one stake-bearing Low; this generalised the SHAPE — a fix cell containing *"unpick when…"*, *"switch to…"*, *"once X lands"*. **Four** carry one, and every trigger names something that has since happened. Checked each instead of pattern-matching the noun: **1 genuinely fired** (accepted-quote → the fix had ALREADY landed at Task 7, unrecorded, pinned three ways); **2 were NOUN COLLISIONS** — `check:coverage` is the *register*-coverage gate (REQ-118/119), not line/branch instrumentation, and `booking` landed while the agent deliberately never sends `bill_terms`; **1 changed nouns** — WP-05 landed, so the blocker is now the control-plane root key. Confirms [[a-reopen-trigger-is-written-at-least-evidence]] at the same 3-of-4 ratio, from the opposite direction. |
@@ -42165,8 +42166,8 @@ content-checked so it can never rot silently again:
 
 | file | now |
 |---|---|
-| `workers/api/src/routes/dunning.ts` | `biller.ts:608@resolveRecipient` |
-| `workers/translator/src/core/build-214.ts` | `biller.ts:625@idempotency_key` |
+| `workers/api/src/routes/dunning.ts` | `biller.ts:613@resolveRecipient` |
+| `workers/translator/src/core/build-214.ts` | `biller.ts:630@idempotency_key` |
 | `packages/ledger/src/documents/retention.ts` | `anchor.ts:213@documents` |
 | `packages/ledger/src/projection/agent-runs.ts` | `events.ts:152@cost_cents` |
 | `workers/api/test/isolation.test.ts` | `sequencer.ts:246@idFromName` |
@@ -65649,4 +65650,72 @@ otherwise be mistaken for the clause — the §1101 failure, pre-empted in the p
 down one row at a time with denominators recorded; four decidable triggers filed. The next phase resumes at
 the remaining stake-bearing Lows — `referralBase` config-drift, the 3-event `/rate` atomicity, and the
 half-loaded-tariff `400`.
+
+## §1104 — PHASE GATE: a deferral that claims a register row, one clause from the row that disclaims it
+
+**Why this phase.** §1103 left three stake-bearing Lows. The half-loaded-tariff `400` is already an owner
+decision, fully measured at §930. The `/rate` atomicity row is mitigated by a required Idempotency-Key. That
+leaves **`referralBase` config-drift on the evidence fast-path**, whose severity is *conditional* — the row
+says drift matters *"if it becomes body-load-bearing"* — which is a §1101-shaped trigger, decidable now.
+
+### The condition: UNFIRED, checked by its clause
+
+The referral URL **is** rendered into the evidence email body. Checking the noun, the trigger reads as fired.
+The clause says otherwise: the stated hazard is a **409 / idempotency** risk, and
+`workers/agents/src/biller.ts:630@idempotency_key` keys the send on
+`` `evidence-email/${invoiceEventId}` `` — the invoice event, never the URL. A between-send config change
+re-renders a different link under the same key; it cannot duplicate or conflict a send. Unfired, exactly as
+written.
+
+### The defect was the comment's OTHER claim
+
+The same comment ended: *"Tracked as its own REQ, deliberately not widened into REQ-178."* That names **no
+ID**, so I measured the register:
+
+- REQ-173 / 174 / 177 / **178** — the redelivery-purity family, every one **Concierge / `message.sent`**. The
+  comment is right to disclaim REQ-178.
+- **REQ-129** — *"referral surface on every delivery email"*: the feature, not its purity.
+- **REQ-267** (V2.5/vNEXT) — *"referral attribution is deterministic and event-backed"*, accepted by **"same
+  referral facts reproduce one attribution."** A drifting re-render breaks precisely that. This is the row.
+
+So the hazard does have a plausible owner, and nothing in the code said so. **An unnamed reference is
+invisible to the traceability gate in both directions** — the gate matches source annotations against
+register rows, and prose claiming tracking without an ID is neither an annotation nor a row. It reads as
+"handled" and stops the next reader from looking, which is strictly worse than claiming nothing.
+
+### The sweep's sharpest finding was about the sweep
+
+Generalising (instance #1 → count, don't fix): a first detector for *"claims register tracking"* returned
+**17 unnamed** hits, of which essentially none were real — *"a 22nd table requires a register amendment"* is a
+correct statement of **law**, complete without an ID, and *"its own row"* in a test means a **database** row.
+Three classes, one vocabulary. Narrowed to the actual violation — *asserts something IS tracked, names no ID* —
+the corpus holds **one** hit, and it is `"an SLA-tracked inbound"`, a third sense again.
+
+Then the part worth keeping. The original text was:
+
+> `// it back here, exactly like from_name. Tracked as its own REQ, deliberately not widened into REQ-178.`
+
+`REQ-178` is on the **same line**. Any proximity-based detector — including the one I just wrote — scores that
+**NAMED** and moves on. The ID it sits beside is the ID it exists to disclaim.
+
+> **A claim's nearest ID is the one it is arguing with.** Proximity is the natural way to check whether a
+> traceability claim is grounded, and it inverts exactly on the deferrals that matter: the careful author
+> writes *"not X"*, and the detector reads *"X"*. A grounded claim must name its row in a form the gate can
+> resolve, not merely occur near one. Same family as
+> [[invert-a-detector-whose-boundary-is-english]] — the boundary here is the word **"not"**.
+
+### Cost, recorded
+
+Correcting a comment shifted five lines and rotted **4 citations across 3 files** — the `resolveRecipient`
+anchor moved 608→613 and the `idempotency_key` anchor 625→630, each cited twice. The ratchet caught all four
+and named the new lines. [[line-numbers-are-not-a-key]], demonstrated at the cheapest possible price.
+
+And then it caught this paragraph. Writing those two anchors in `basename:line` form created a **new**
+unanchored citation into the same high-churn file, and the ratchet refused it — so the sentence now names the
+SYMBOLS and lets the reader resolve them. Describing the rot re-committed the rot, which is the §1062 shape
+exactly: **a record that preserves its own history is the one corpus where quoting a defect reproduces it.**
+
+**STOP.** Condition re-derived UNFIRED by its clause; the untracked deferral named to REQ-267 with the
+owner asked to confirm; the generalisation measured to **1 corpus-wide hit** with the detector's own blind
+spot stated rather than hidden. `check:citations` 0 · `check:tables` OK · typecheck OK · lint OK.
 

@@ -592,7 +592,12 @@ async function sendEvidence(cx: SendContext): Promise<BillerOutcome> {
     // pin closes (a between-send change to referralBase would drift the re-rendered body). Unlike the Concierge
     // reply, the evidence send's idempotency does not key off this URL today, so it is not a 409 risk — but if a
     // future change makes the referral URL body-load-bearing, PIN it into invoice.issued (or a sibling) and read
-    // it back here, exactly like from_name. Tracked as its own REQ, deliberately not widened into REQ-178.
+    // it back here, exactly like from_name. Deliberately not widened into REQ-178 (that row is Concierge /
+    // message.sent). NOT tracked by a NAMED row here — audit §1104 measured the register: the nearest owner is
+    // REQ-267 (V2.5/vNEXT), whose acceptance *"same referral facts reproduce one attribution"* is exactly what a
+    // drifting re-render breaks; REQ-129 is the referral SURFACE, not its purity. An unnamed "tracked as its own
+    // REQ" is invisible to the traceability gate in BOTH directions — name REQ-267 or add a row before making
+    // this URL body-load-bearing.
     referral_url: `${referralBase}?ref=${encodeURIComponent(shipmentRef)}`,
   };
   // REQ-170 (Task 9 note — pairs with REQ-168's pre-upload residual, see

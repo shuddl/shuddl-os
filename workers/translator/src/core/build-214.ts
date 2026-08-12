@@ -86,7 +86,7 @@ export function buildStatusView(input: BuildStatusViewInput): BuildStatusViewRes
   });
 
   // dedupeKey = "edi214/" + the id of the NEWEST status event (the Biller's `evidence-email/<invoiceEventId>`
-  // precedent at workers/agents/src/biller.ts:625@idempotency_key ): one 214 per newest-status, deterministic under redelivery so
+  // precedent at workers/agents/src/biller.ts:630@idempotency_key ): one 214 per newest-status, deterministic under redelivery so
   // the worker INSERT OR IGNOREs / dedups on it. "Newest" = the greatest NUMERIC epoch-ms ts, ties resolving to
   // the later event in ledger order (append order is chronological). Empty status list → a stable "none" marker
   // (a 214 with no AT7 stops is a no-op the worker can skip, but the key stays deterministic).
