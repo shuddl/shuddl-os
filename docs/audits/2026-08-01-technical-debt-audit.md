@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 580 | §1132 | **§1133** | **WHAT PASSING A GATE ACTUALLY MEANS — NOT A DEFECT, BUT A BOUNDARY WORTH WRITING DOWN.** The last unexamined slice: **13** kinds are client-appendable, ungated and route-less, and **5 of them are read by the gates as PRECONDITIONS** (`freight.counted` · `dims.captured` · `freight.photographed` · `seal.applied` · `document.attached`). That looked like §1130's provenance problem generalised — and it is **not**, for a reason worth stating: these kinds have no dedicated route precisely because **the client IS the legitimate sensor**. The gates check them by **presence** (`prior.some(e => e.kind === …)`); the one cryptographic check is the receiver **cosig on the INCOMING** `custody.transferred`, never on a prior. Two priors are stronger (the placed-photo binds `photo_hash === incomingPlaced`), and the money path is byte-verified downstream (REQ-170/§1102). So gate passage certifies **that an authenticated principal asserted these facts**, not that they physically occurred — which is correct, and is not what "gated" reads like. |
 | 579 | §1131 | **§1132** | **STOP GREPPING CONSTRUCTIONS; READ THE CATALOG — AND THE POPULATION BECOMES COMPUTABLE.** The two-level `kind` collision produced a wrong first answer in THREE consecutive phases, so I stopped restating it and changed instrument: `packages/contracts@EVENT_KINDS` is the authoritative list, and it is **exactly 35** — CLAUDE.md's budget, confirmed. Computing against it rather than grepping: **27 of 35 kinds are client-appendable** through `/v1/shipments/:id/events` (35 − 5 server-emitted − 2 dedicated-route refusals − 1 rejected at the DO); **9** of those carry a DO transition gate (§1129); **5** have a dedicated recording route with no refusal (§1131). Every number in this arc now derives from the catalog instead of from a pattern that cannot see nesting. |
 | 578 | §1130 | **§1131** | **THE RULE ENUMERATED: 7 KINDS HAVE A DEDICATED RECORDING ROUTE, 2 ARE REFUSED, 5 ARE NOT.** §1130 said the remedy is a rule and that the rule is enumerable, so I enumerated it — the owner should get the decision CONTENT, not a principle. Refused: `approval.decided`, `authority.flipped`. **Not refused:** `quote.priced` (§1125) · `quote.accepted` (§1130) · `message.sent` (dunning) · `message.received` (portal-actions) · `agent.acted` (paired with /v1/rate). The first two are the confirmed money-authority pair; the other three need a per-kind ruling on whether the dedicated route is the ONLY legitimate producer — I do not assert that it is. Extraction hit the two-level `kind` collision a THIRD time: `rate.ts`'s only literals are `basis` payload entries, which is exactly why §1124's literal-kind sweep missed it. |
 | 577 | §1129 | **§1130** | **§1125 ESCALATES: `quote.accepted` IS APPENDABLE TOO, SO THE WHOLE AUTHORITY CHAIN IS FORGEABLE — AND THE FIX IS A RULE, NOT AN ENTRY.** Ran §1129's condition (c) on the sharpest candidate. `quote.accepted` decides WHICH quote gets billed (§1101's GUARD 2) and has a **dedicated gated route** — `/v1/shipments/:id/accept-quote`: lens gate on `:id` FIRST, then the `quote_event_id` must exist as a `quote.priced` on that stream. That is exactly the structure of `approval.decided` and `authority.flipped`, **both refused by name at the generic route for that very reason**. `quote.accepted` is not refused. Forge a `quote.priced` (§1125) + the `quote.accepted` naming it → a self-consistent chain that GUARD 2 accepts, because it verifies **consistency and existence, never provenance**. So the fix is the RULE the file already applies twice: **any kind with a dedicated recording route is refused here.** |
@@ -67335,4 +67336,61 @@ the catalog method reproduces what careful reading produced, and would have prod
 35-kind constitutional budget derived from source for the first time and confirmed; the client-appendable
 population computed as **27**, with §1129's 9 gated and §1131's 5 dedicated-route kinds both surviving
 re-derivation. Zero source changed.
+
+## §1133 — PHASE GATE: what passing a gate certifies, and what it does not
+
+**Why this phase.** §1132's arithmetic left one slice unexamined: **13** kinds are client-appendable, carry no
+DO transition gate, and have no dedicated recording route. The interesting question about them is not their
+own protection — it is whether the **nine gates read them as preconditions**, because §1130 established that
+an append-only ledger cannot check the *provenance* of its own events.
+
+**Five do:** `freight.counted` · `dims.captured` · `freight.photographed` · `seal.applied` ·
+`document.attached`.
+
+### Why this is not §1130 generalised
+
+The shape looked identical, and it is not — the difference is *why* these kinds have no dedicated route.
+`quote.priced` has one because a **server computes** it. These have none because **the client is the
+legitimate sensor**: a driver's PWA is what records a count, a dimension, a photo, a seal. There is no
+server-side source that could be authoritative instead. An ops principal recording a phoned-in count is a
+real workflow, not an attack.
+
+So the gates reading them by **presence** is correct:
+
+```
+if (!prior.some((e) => e.kind === "freight.counted"))  missing.push(…)
+if (ctx?.dimsRequired === true && !prior.some((e) => e.kind === "dims.captured")) …
+if (!prior.some((e) => e.kind === "seal.applied"))     missing.push(…)
+```
+
+### Where the guarantee is actually carried
+
+Three mechanisms, and none of them is the presence check:
+
+1. **The cryptographic check is on the INCOMING event, not a prior.** `assertInterline` requires the
+   *receiver's* `cosig` on the `custody.transferred` payload — and the code is explicit that the sender's own
+   device signature will not do: *"the `actor` of a `custody.transferred` is the TRANSFERRING (sending) party,
+   so the sender's own `actor.device` signature is NOT the receiver's acknowledgment REQ-045 requires."*
+2. **Two priors are bound, not merely present.** The placed-photo check requires
+   `photo_hash === incomingPlaced` — the prior must match a value carried by the event being gated, which no
+   independently-forged prior satisfies.
+3. **The money path re-verifies bytes downstream.** §1102/REQ-170: the Biller requires an *active* POD
+   document **and** a present R2 object for the recorded signature hash before an invoice mints; a miss is
+   `held(evidence_missing)`. Gate passage is not what releases money.
+
+### The boundary, stated
+
+> **Passing a transition gate certifies that an authenticated principal ASSERTED these facts, in this order,
+> immutably — not that the facts occurred.** That is the correct guarantee for a ledger of physical reality,
+> and it is exactly what the word "gated" does *not* convey. The distinction matters at two moments: when
+> reading a gate's green as physical verification, and when adding a *new* precondition — a presence check
+> over a client-appendable kind adds an ordering requirement and no evidentiary strength. Where evidentiary
+> strength is needed, this build already shows the three ways to get it: co-sign the **incoming** event, bind
+> the prior by **hash**, or verify the **bytes** downstream.
+
+**STOP.** The last slice of §1132's population examined; the five gate-precondition kinds identified and the
+apparent §1130 generalisation **withdrawn on the reason it does not apply**; the three mechanisms that do
+carry evidentiary weight located and quoted; the boundary between *asserted* and *occurred* written down where
+a future reader of "gated" will meet it. Zero source changed — this arc (§1124–§1133) leaves two owner
+decisions and no unresolved defect.
 
