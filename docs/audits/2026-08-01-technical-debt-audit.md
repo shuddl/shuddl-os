@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 595 | §1147 | **§1148** | **SECOND READ-CLASS VERDICT HARDENED: A BLANK CREDENTIAL CANNOT READ AS A CONFIGURED ONE.** §1108 verified by READING that all seven credentials test `!== undefined` **and** `!== ""` — the second half being the one that matters, since an empty `wrangler secret put` satisfies a presence check and yields a LIVE client holding a blank credential. Now gated: `tools/checks/credential-blank-guard.test.ts` requires an empty-string comparison on every local bound from a `*_SECRET`/`*_KEY`/`*_TOKEN` binding. **Polarity is deliberately not prescribed** — this build uses both (`secret !== undefined && secret !== ""` and `if (token === undefined \|\| token === "")`), and a gate demanding one would red the other. Mutation-proved end to end: stripping the `!== ""` half from the real `STRIPE_WEBHOOK_SECRET` selector turned it **RED**, naming the binding. |
 | 594 | §1146 | **§1147** | **HARDENED: THE FIRST READ-CLASS VERDICT CONVERTED INTO A MUTATION-PROVED GATE.** §1146 graded the session's verdicts and named the gap — the READ class is right but **not re-runnable**. So I converted the one whose method had demonstrably failed: `tools/checks/tenant-source.test.ts` enforces REQ-025's *the tenant never comes from the request*. It **positive-matches the danger** instead of subtracting the safe (the defect §1144 planted), carries a **non-vacuity floor** (>25 call sites), a **boundary** test over the six legitimate forms, comment-immunity, and — the point — **its own sensitivity test**, plus an END-TO-END plant in real source that turned it **RED** naming the exact line. Collected by `vitest.tools.config.ts`, so it runs in the unit-tests merge gate: 1,261 tools tests, +6. |
 | 593 | §1145 | **§1146** | **STOPPING POINT XVI — THE SESSION'S VERDICTS, GRADED BY EVIDENCE CLASS.** Board re-earned at `efb8f9a`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs measured to `REQ-289`. §1142–§1145 established that a clean negative carries a hidden claim (*this probe would find a violation*) and that mine often could not: **§1135's filter would have missed a planted tenant injection**, **§1126's would have missed a coexisting client-kind path**, and a replacement probe **failed its own control**. So this stopping point grades every verdict by evidence class — **mutation-proved** (a RED is positive evidence) · **read** (files opened, unauditable but strong) · **probe-only** (weakest, and two have now failed). The purpose is that the owner can see which conclusions to lean on. |
 | 592 | §1144 | **§1145** | **CONTROLLED §1126 THE SAME WAY — AND BOTH OF MY MECHANICAL PROBES FAILED, IN DIFFERENT DIRECTIONS.** §1144 said presence-of-a-safe-pattern needs a sensitivity control, so I planted against §1126's *"17 of 19 append paths are server-fixed"*. Plant 1 was too weak — it REPLACED the literal, so the method re-classified correctly; the real hazard is **coexistence**. Plant 2 kept the literal and added a client-kind path: the literal count stayed 1 and **§1126's method still said SERVER-FIXED** — a false negative. My replacement probe (`kind:` from client data) then returned `<none>` across all 19 — and **failed its own control**, because the two KNOWN client-kind routes never assign `kind:` at all: they pass an opaque parsed body as `input` (`stub.append({ …, input })`). **The classification is not establishable by pattern**; §1126's verdict rests on reading, as §1122 said of §1121. |
@@ -68168,4 +68169,60 @@ It is collected by `vitest.tools.config.ts`, so it runs under `pnpm test:tools` 
 danger after its predecessor was shown to filter the violation out as safe; non-vacuity, boundary,
 comment-immunity and sensitivity all pinned in-file; end-to-end mutation-proved against real source with clean
 attribution; wired into the merge path (+6 tools tests). `delta` clean · typecheck OK · lint OK.
+
+## §1148 — PHASE GATE: hardening the second read-class verdict
+
+**Why this phase.** §1147 converted one read-class verdict into an enforced gate and named the remaining
+candidates. Law 3's classification is **out** — §1145 proved it is not pattern-decidable, and shipping a third
+attempt after two failed their controls would be exactly the dishonesty that phase warned against. That leaves
+the credentials.
+
+§1108's finding: all seven credentials are selected at a composition root testing `!== undefined` **and**
+`!== ""`. The empty half is the load-bearing one. `undefined` fails safe by itself; **`""` is the only thing
+between *"not configured"* and *"configured with nothing"* — an empty `wrangler secret put`, or a var set to
+the empty string, satisfies a presence check and produces a live client holding a blank credential.
+
+### The gate, and the constraint that shaped it
+
+`tools/checks/credential-blank-guard.test.ts` (REQ-154/134): a local bound from an `*_SECRET` / `*_KEY` /
+`*_TOKEN` env binding must be compared against `""` somewhere in its file.
+
+**Polarity is deliberately not prescribed**, because this build legitimately uses both and I found that out by
+reading before writing the rule:
+
+```
+workers/billing/src/billing.ts      secret !== undefined && secret !== ""       (positive selector)
+workers/agents/src/index.ts:341     if (token === undefined || token === "")    (inverted early return)
+```
+
+A gate demanding the positive form would have redded the inverted one — a false positive on correct code,
+which is how a new gate gets weakened or deleted. Checking that the **comparison exists** covers both.
+
+Carried over from §1147's pattern: a **non-vacuity floor** (≥4 bindings, throws if a glob matches zero files),
+a **boundary** test asserting both polarities pass, **comment-immunity**, and its **own sensitivity test**.
+
+### Mutation-proved end to end
+
+Synthetic sensitivity proves the detector; only a plant in real source proves the corpus reaches it. Stripping
+`&& secret !== ""` from the live `STRIPE_WEBHOOK_SECRET` selector:
+
+**RED**, naming `"binding": "STRIPE_WEBHOOK_SECRET"` — one assertion failed, four stayed green. Restored, tree
+verified clean.
+
+### The bound, stated
+
+The gate cannot see a check hidden behind a helper (`isBlank(token)`) — that is within-file textual analysis,
+not data flow. Recorded rather than papered over, per §1145: **an unsound mechanisation is worse than an
+honest one with a stated limit.** Today no site uses that form, so the gate is complete over the current
+corpus and would need extending if one appeared.
+
+> **Two verdicts have now moved from read to enforced, and both cost one file.** The pattern is repeatable
+> wherever the danger is *positively* matchable and the legitimate forms are enumerable — which is exactly the
+> test for whether a read-class verdict CAN be hardened. Where it fails (Law 3's `input`-passing routes), the
+> honest answer is to leave the verdict in the read class and say so.
+
+**STOP.** Second read-class verdict converted to an enforced gate; polarity-agnostic by measurement rather
+than by guess; non-vacuity, boundary, comment-immunity and sensitivity pinned in-file; mutation-proved end to
+end against a real credential selector with clean attribution; the helper-indirection limit stated. `delta`
+clean · typecheck OK · lint OK.
 
