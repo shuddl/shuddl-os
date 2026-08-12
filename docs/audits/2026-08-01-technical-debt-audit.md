@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 574 | §1126 | **§1127** | **STOPPING POINT XIII — TWO FINDINGS ON THE MONEY PATH, BOTH AWAITING ONE OWNER RULING.** Board re-earned at `6bbdb7c`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs measured to `REQ-289`. Three phases: §1124 ran §313's trigger and **documented the one money emitter that is RIGHT to be outside the authority roster** (adding it would fail-close SHUDDL's own revenue) · §1125 found a **real Med defect** — `quote.priced` appendable through the public events route, bypassing the rater, REQ-040's floors and the anomaly detector · §1126 answered Law 3 across **all 19** append paths (17 server-fixed, 2 client-chosen) and bounded the second to **Low**. Both open items are the same class — *prose narrower than schema* — and should be ruled on together. |
 | 573 | §1125 | **§1126** | **LAW 3, ANSWERED COMPLETELY: 2 OF 19 APPEND PATHS TAKE A CLIENT-SUPPLIED KIND — 17 ARE SERVER-FIXED.** §1125 found the defect in one caller; Law 3 asks about *every* API-reachable flow, so I finished the enumeration. `approvals` · `authority` · `dunning` · `portal-actions` · `rate` all append **literal** kinds — a client cannot choose. Only two take the kind from the body: **`events.ts`** (§1125's Med defect, ops/admin reachable) and **`internal-platform.ts`**, whose `AppendBody.input` is an unconstrained `z.record(z.string(), z.unknown())` — so a `PLATFORM_INTERNAL_SECRET` holder may append **any** of the frozen 35 kinds to `_platform`, not just the *"ONE credit money event"* its header promises. Bounded to **Low**: secret-gated server-to-server (503 unbound / 403 mismatch), never customer-JWT reachable, `source` forced to native, and `sequencer.ts:275@EventInput` still validates kind + payload. |
 | 572 | §1124 | **§1125** | **DEFECT — A HAND-CRAFTED `quote.priced` IS APPENDABLE THROUGH THE PUBLIC EVENTS ROUTE.** Closing §1124's stated bound with the CHOKEPOINT (one `INSERT INTO events`, so append-seam callers ARE the emitter set) surfaced 19 callers, and the generic `POST /v1/shipments/:id/events` among them. Its `SERVER_EMITTED_KINDS` refuses `invoice.issued` · `invoice.corrected` · `split.computed` · `payment.received` · `settlement.executed` — **but not `quote.priced`**, while the constant's own comment says these are appended *"ONLY through server-internal seams … and the Rater."* Read the whole guard chain: `quote.priced` passes all eight checks for `ops`/`admin` (and a `driver` on an assigned shipment). A forged quote bypasses the rater, REQ-040's floors and the anomaly detector — which the comment itself places in `composeInvoice`, **not** the DO gate — and §1102 established the Biller bills the RECORDED basis. Fix is one line and breaks nothing in-repo; **not applied** — it 403s a public API surface, so the owner rules. |
 | 571 | §1123 | **§1124** | **RAN §313's OWN REOPEN TRIGGER: ONE MONEY EMITTER SITS OUTSIDE THE AUTHORITY ROSTER, CORRECTLY — AND ADDING IT WOULD BREAK PLATFORM REVENUE.** The authority-coverage gate states its own limitation: *"registration is MANUAL … a NEW emitter in a NEW file passes for free."* §313 filed the matching trigger; §1101 says triggers go unread, so I ran it. `workers/billing/src/credits.ts` constructs `invoice.issued` and is **not** registered. Correct — it writes the reserved `_platform` tenant, and `resolveAuthority` FAIL-CLOSES to **'legacy'**, i.e. *the incumbent is authoritative*. `_platform` has no incumbent, so a consult would gate SHUDDL's own revenue against a system that does not exist. **The harm is two plausible steps**: rostering it fails the gate; the natural fix is to add the consult. Reason now recorded in the roster. Also: my emitter probe MISSED rostered `rate.ts` — literal-kind grep is incomplete, stated. |
@@ -66991,4 +66992,58 @@ same class and should be decided together.
 **STOP.** Law 3's question answered across all 19 append paths rather than the one that failed: 17 append
 literal kinds and cannot be steered; 2 accept a client-supplied kind, one already filed Med (§1125), the
 other bounded to Low with four independent limiting facts checked rather than assumed. Zero source changed.
+
+## §1127 — PHASE GATE: STOPPING POINT XIII — two money-path findings, one decision
+
+**Board re-earned at `6bbdb7c`** — full 26-gate `verify:merge`:
+
+**19 PASS · 2 FAIL · 5 BLOCKED**
+
+Both FAILs measured: `check:coverage` names `REQ-289`; `delta` accounts for unit-tests (3 failing, all
+BASELINE). **Zero repo-owned reds.** (Two counting artifacts on the way in — a `^    PASS` pattern that
+matched nothing and a `"FAIL "` grep that counted the aggregate line and the blocking-reason echoes as
+gates. Both caught by the same reflex the rest of this session has needed: **a board number that contradicts
+the board is the measurement.**)
+
+### The three phases
+
+| § | subject | outcome |
+|---|---|---|
+| §1124 | §313's reopen trigger, run | the one unrostered money emitter is **correct** — and adding it would fail-close platform revenue |
+| §1125 | the append chokepoint as an enumerator | **DEFECT (Med)** — `quote.priced` appendable through the public events route |
+| §1126 | Law 3 across all 19 append paths | 17 server-fixed · 2 client-chosen · the second bounded to **Low** |
+
+### The two open items are one decision
+
+Both are the same shape — **a comment that promises a constraint the schema does not enforce** — and both sit
+on money:
+
+1. **`events.ts` (Med).** `SERVER_EMITTED_KINDS` omits `quote.priced` while its own comment says these kinds
+   come *"ONLY through server-internal seams … and the Rater."* An `ops`/`admin` principal (or an assigned
+   `driver`) can append a forged quote; the Biller then bills its **recorded basis** (§1102), so REQ-040's
+   floors and the anomaly detector never see real numbers. One-line fix, breaks nothing in-repo — but it
+   **403s a public API surface** with no deprecation, which is why it is yours and not mine.
+2. **`internal-platform.ts` (Low).** `input` is `z.record(z.string(), z.unknown())` while the header promises
+   *"append ONE credit money event."* Bounded by a server-to-server secret, no customer-JWT reach, a forced
+   `source`, and full `EventInput` validation — so the exposure is well-formed wrong-kind events on SHUDDL's
+   own ledger.
+
+**They should be ruled on together**, because the rule is the same one and splitting it invites the drift that
+produced both. The Low is the unambiguous half: pinning `input.kind` to the credit money kinds breaks no
+caller, since the sole caller emits exactly those.
+
+### What the method contributed
+
+§1125 and §1126 are one finding and its completion, and the completion is what makes the finding trustworthy:
+
+> **A defect found in one member of a population is a claim about that member only.** Law 3 speaks about every
+> API-reachable flow; finding a hole in `events.ts` said nothing about the other eighteen. What answered the
+> law was enumerating by the property that *makes the defect possible* — **who chooses the kind** — under
+> which 19 collapses to 2. Searching instead for *"other short denylists"* would have returned nothing and
+> read as reassurance, because the other seventeen have no denylist at all: they need none.
+
+**STOP.** Board 19/2/5 at `6bbdb7c` with both FAILs measured and two counting artifacts caught; Law 3
+answered across its whole population rather than at the point of failure; one Med and one Low filed on the
+money path, each with its blast radius bounded by checked facts rather than assumed ones, and both left
+deliberately unapplied pending a single owner ruling.
 
