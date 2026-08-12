@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 588 | §1140 | **§1141** | **STOPPING POINT XV — LAW 8 CLOSED 4/4, AND THE RETURN CURVE IS NOW MEASURABLE.** Board re-earned at `b764d5e`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs measured to `REQ-289`. Six phases: **Law 8 verified 4/4** (tenant source across 43 sites · structural DO pinning · R2 keys built-or-checked · the suite executes) and the short-circuit shape swept through scripts AND CI. **Yield across the six: one stale note of my own, corrected; zero new defects.** §1139 withdrew a false alarm, §1140 found the work already done. Recording the curve because it is decision-relevant: §1111 (a real hole) → §1125/§1130 (a real pair) → six phases of confirmation. The build is answering the same way from every new angle. |
 | 587 | §1139 | **§1140** | **THE HAZARD I WAS SWEEPING FOR ALREADY HAPPENED — AND IS NOW GATED IN BOTH DIRECTIONS.** `tools/checks/workflow-step-guards.test.ts` records the incident: on **2026-07-31 the `perf` step failed and the NEXT step — the 26-gate merge evidence surface — was SKIPPED**, on three consecutive CI runs, *"the last being the commit production still serves."* §978 then measured 14 steps: 4 guarded, 10 sequential, **all four browser gates unguarded** — only the accident that `perf` ran last prevented a `visual` failure from erasing a11y, e2e and perf as well. It is now pinned by **4 assertions** including a non-vacuity floor AND the reverse direction (*genuine prerequisites stay unguarded*), plus 26 more in `ci-contract.test.ts`. §1138–§1139's sweep terminates: scripts and CI both enforced. Cost: I ran the sweep without `pnpm recall` first — the record held §962/§978/§979 the whole time. |
 | 586 | §1138 | **§1139** | **CI CARRIES §1138's SHAPE CORRECTLY — AND MY ALARM WAS A FLAT READ OF A NESTED FILE, THE FOURTH TIME.** Extended the short-circuit sweep from npm scripts to the pipeline. CI is **three independent jobs** (`merge-gate` · `design-gate` · `secrets`) with **no `needs:`**, so they run in parallel; and inside `merge-gate` the six verdict-bearing steps carry `if: ${{ !cancelled() }}` (§978) — including **the merge evidence gate itself**, so `verify:merge` produces its complete verdict even after an earlier step fails. I first reported that a design-audit failure would skip the history-wide **secret scan**: FALSE. My extractor flattened the YAML and lost the job boundaries — `gitleaks` is a separate JOB. Same class as §1129's switch and §1131's nested `kind`: **a flat read of a nested structure, failing toward alarm.** |
 | 585 | §1137 | **§1138** | **SWEEPING §1137's SHAPE: 3 `&&` CHAINS, AND THE ONE THAT MATTERS IS CITED AS COVERAGE BY A GATE.** *A gate can be wired, green, and not running* generalises to every `&&` between steps, so I enumerated: **3 of 51** scripts chain with `&&`. The load-bearing negative first — **`verify:merge` is not among them**, so the shippable verdict runs its gates independently, as it claims. `deploy:surfaces` is correct (do not deploy a failed build); `verify:dev` is documented in CLAUDE.md. That leaves **`verify:docs`**, which is not in CI — but `dev-loop-parity.test.ts:49@covered` cites it as the REASON `check:citations`/`check:tables`/`check:section-refs` may be absent from `verify:dev`: *"covered by `verify:docs`, which a session runs."* It short-circuits, so that coverage is conditional on the first check passing. **Bounded to Low**: the merge board runs all four as INDEPENDENT gates (verified in the artifact). |
@@ -67782,4 +67783,63 @@ with a non-vacuity floor; the incident that motivated it surfaced in full (three
 verdict, including the commit production serves); the short-circuit arc closed across scripts and pipeline;
 the recall failure that made this a two-phase sweep instead of one query recorded against myself. Zero source
 changed.
+
+## §1141 — PHASE GATE: STOPPING POINT XV — Law 8 closed, and the return curve stated
+
+**Board re-earned at `b764d5e`** — full 26-gate `verify:merge`:
+
+**19 PASS · 2 FAIL · 5 BLOCKED**
+
+Unchanged across seven stopping points. Both FAILs measured: `check:coverage` names `REQ-289`; `delta`
+accounts for unit-tests. **Zero repo-owned reds.**
+
+### The six phases
+
+| § | subject | outcome |
+|---|---|---|
+| §1135 | Law 8 — *who chooses the tenant?* | 43 sites, **zero** from a header or body |
+| §1136 | Law 8 — R2 key scoping | keys are **built from** the claim or **checked against** it |
+| §1137 | Law 8 — does the suite run? | **yes** at HEAD; a note of mine said otherwise and was stale |
+| §1138 | the short-circuit shape, scripts | 3 of 51 chain; `verify:merge` is `&&`-free |
+| §1139 | the short-circuit shape, CI | correct — and my alarm was a flat read of nested jobs |
+| §1140 | is CI's discipline enforced? | **yes**, both directions, on an incident that already happened |
+
+**Law 8 is 4/4:** tenant source · structural DO pinning · R2 key scoping · suite execution.
+
+### The return curve, stated because it is decision-relevant
+
+Across these six phases the yield was: **one stale note of my own, corrected. Zero new defects.** Two phases
+ended in withdrawal — §1139 retracted a false alarm about a skipped secret scan, §1140 found the hazard
+already measured, fixed and gated before I swept for it.
+
+That is not a complaint about the loop; it is a measurement of it:
+
+| stretch | yield |
+|---|---|
+| §1111 | a real hole — Law 5's clause 4, a 150% executing share defended by nothing |
+| §1125 / §1130 | a real pair — `quote.priced` + `quote.accepted`, forgeable authority chain |
+| §1135–§1140 | confirmations, one stale note, two withdrawals |
+
+**The build keeps answering the same way from every new angle.** Laws 1, 2, 3, 4, 5 and 8 are now decomposed
+and verified clause by clause; the five BLOCKED gates hide no unproven logic; the append surface is accounted
+for end to end; the acceptance demos are re-derived; the pipeline is enforced in both directions.
+
+> **A loop that keeps returning "sound" is producing information, but not the information it was started for.**
+> The honest report at that point is the curve itself, so the owner can decide whether the next phase is worth
+> its cost — rather than a fifteenth stopping point that reads like the fourteenth.
+
+### What is genuinely open — all of it owner-held
+
+1. **The two-kind rule** (§1125/§1130/§1131) — `quote.priced` + `quote.accepted` refused at the generic
+   events route; three further kinds need a product ruling.
+2. **`REQ-289`** — clears both board FAILs, and (§1137) removes the red that once made a test-half
+   short-circuit possible.
+3. **Nine private fixtures + `IDENTITY_DENYLIST`** — the five BLOCKED gates wait on data, not work (§1118).
+4. **REQ-267** — confirm it owns the evidence-email re-render purity, or add a row (§1104).
+5. **The three demo blockers** — photos, the signup surface, the driver login producer (§1120).
+6. **1,190 unpushed commits**, `origin/main` at 2026-07-31.
+
+**STOP.** Board 19/2/5 at `b764d5e` with both FAILs attributed; Law 8 closed 4/4; the short-circuit arc
+terminated across scripts and CI; the six-phase yield reported honestly as one self-correction and zero new
+defects, with the return curve tabulated so the decision to continue is the owner's and is informed.
 
