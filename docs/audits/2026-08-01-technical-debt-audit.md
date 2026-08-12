@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 571 | §1123 | **§1124** | **RAN §313's OWN REOPEN TRIGGER: ONE MONEY EMITTER SITS OUTSIDE THE AUTHORITY ROSTER, CORRECTLY — AND ADDING IT WOULD BREAK PLATFORM REVENUE.** The authority-coverage gate states its own limitation: *"registration is MANUAL … a NEW emitter in a NEW file passes for free."* §313 filed the matching trigger; §1101 says triggers go unread, so I ran it. `workers/billing/src/credits.ts` constructs `invoice.issued` and is **not** registered. Correct — it writes the reserved `_platform` tenant, and `resolveAuthority` FAIL-CLOSES to **'legacy'**, i.e. *the incumbent is authoritative*. `_platform` has no incumbent, so a consult would gate SHUDDL's own revenue against a system that does not exist. **The harm is two plausible steps**: rostering it fails the gate; the natural fix is to add the consult. Reason now recorded in the roster. Also: my emitter probe MISSED rostered `rate.ts` — literal-kind grep is incomplete, stated. |
 | 570 | §1122 | **§1123** | **STOPPING POINT XII — THE PRODUCTION-READY VERDICT, STATED PLAINLY.** Board re-earned at `89ced98`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs measured to the owner's `REQ-289` row. Five phases: §1118 the five BLOCKED gates hide **no unproven logic** (5/5) · §1119 all three parity gates floor **count AND composition** · §1120 the five acceptance demos re-derived — **still 3 of 5 blocked**, demo 3 narrowed to *a token store with no producer* · §1121 489 exports → 11 uncalled → **0 defects** · §1122 that sweep's bound proved **unclosable by grep**, with a witness in each direction. **The verdict: every gate the repo owns is green; everything blocking launch is an absent private input or an owner decision.** Zero source changed across all five. |
 | 569 | §1121 | **§1122** | **TRIED TO CLOSE §1121's STATED BOUND; PROVED THE INSTRUMENT CANNOT.** §1121 left the sweep bounded to `export function` and said so. Extending it to interface methods failed in **both** directions, each with a concrete witness: **false NEGATIVE** — `setToken` (§1120's own confirmed finding) is not flagged, because three separate modules (`command`, `driver`, `portal`) declare a method of that name and a token counter cannot tell them apart; **false POSITIVE** — `checkAndReserve` is flagged yet is genuinely called at `spark-caps.ts:112@stub` and `caps.ts:213@stub`, because both call sites sit INSIDE files that also declare the interface. A name-frequency sweep cannot resolve module-scoped symbols. The bound is not closed and **cannot be** by grep — it needs an import/type graph. Corrective to §1121: its clean result rests on the manual triage of 11, not on the sweep. |
 | 568 | §1120 | **§1121** | **489 EXPORTED FUNCTIONS → 11 WITH NO PRODUCTION CALLER → 0 DEFECTS. AND THE SWEEP'S FIRST RUN FLAGGED 100%.** §1120's *setter with no caller* is a CLASS, so I swept it. Four candidates were security-shaped and each had an innocent explanation that only reading the protocol's DIRECTION could supply: `verifyWebhook`/`verifyInclusion` are **recipient-side** counterparts (SHUDDL signs and builds; the receiver verifies) · `assertHazmatEnabled` is a thin wrapper over `hazmatEnabled`, which IS called at `sequencer.ts:883@hazmatEnabled` and was mutation-measured at §740 · the proof-to-cash pair gates a `[HYPOTHESIS]` SKU not provisioned until M-H/R1. Reporting *"an unverified webhook"* was one unchecked step away. The first run flagged **489/489** — `\b` is not a word boundary in `git grep -E`, a KNOWN error repeated. **A sweep that flags its whole population is measuring nothing.** Honest bound: the population is `export function` only, so it would NOT have found §1120's own `setToken`. |
@@ -66804,4 +66805,62 @@ my own instruments rather than the build — which is where the errors were.
 their block; the acceptance-demo verdict re-derived at HEAD; one sweep's soundness limit established and
 published rather than its output; the launch posture stated in full — green everywhere the repo has authority,
 blocked only on private inputs and owner decisions.
+
+## §1124 — PHASE GATE: running §313's trigger — the money emitter that is right to be absent
+
+**Why this phase.** `tools/checks/authority-coverage.ts` enforces Law 3 / REQ-030 (*no compute path emits,
+prices, invoices or settles without consulting the authority seam*) and is unusually honest about what it
+cannot do:
+
+> *"Registration is MANUAL: a NEW authoritative function added to an already-registered file, or a NEW emitter
+> in a NEW file, passes for free until a human adds it to `AUTHORITATIVE_FILES` below."*
+
+§313 filed the matching reopen trigger — *"any new file that appends `quote.priced`, `invoice.issued`, a
+`settlement.*` or `message.sent`"* — and §1101's finding is that written triggers are the sentences nobody
+re-reads. So: run it.
+
+### One emitter sits outside the roster
+
+`workers/billing/src/credits.ts` constructs `kind: "invoice.issued"` and appears in **no** roster entry
+(`invoicing` lists only `workers/agents/src/biller.ts`). By the gate's own limitation, it *passes for free*.
+
+**It is correct.** `credits.ts` is the credit-purchase emitter on the **reserved `_platform` revenue tenant** —
+SHUDDL's own ledger for Stripe credit-pack sales, not a customer's. And the reason it must stay out is
+stronger than "unnecessary":
+
+`resolveAuthority(db, module)` reads `authority_map` on **this tenant's** D1 and **fail-closes to `'legacy'`**,
+which means *"the incumbent's system is authoritative; SHUDDL's native computation is not."* `_platform` has
+no incumbent and no migration — there is no legacy TMS that could own SHUDDL's own revenue. A consult there
+would return `'legacy'` **forever** and gate the platform's money path against a system that does not exist.
+
+### The failure mode is two plausible steps
+
+This is why the absence needed documenting rather than merely confirming:
+
+1. A reader runs §313's trigger, finds `credits.ts` emitting `invoice.issued`, and **adds it to the roster** —
+   which looks like closing a gap.
+2. The gate now **FAILS** (the file has no consult). The natural fix for that failure is to **add the
+   consult** — which fail-closes platform revenue recording to `'legacy'`.
+
+Each step is locally reasonable and the pair is destructive. So the roster now carries the reason, ending with
+the constraint that matters: **if a future platform path ever needs gating, it needs its own seam, not this
+one.** Gate re-run after the edit: `authority-coverage OK — 9 (module, file) consults across 5 modules`.
+
+> **An absence that is correct still needs a reason written next to it**, because the next reader's most
+> natural action is to remove the absence. A registry that says *"shrinking this is a red flag"* protects one
+> direction only; growing it wrongly is equally available and looks like diligence.
+
+### The probe's own incompleteness, stated
+
+My enumeration searched for the literal `kind: "<k>"`. It found `concierge.ts` and `inbound.ts` for
+`quote.priced` — **but not `rate.ts`**, which is *rostered* for exactly that module and does emit it. So the
+literal-kind grep is a **lower bound** on emitters: any file constructing the kind through a variable, a
+helper, or a schema parse is invisible to it.
+
+That means this phase confirms *one* unrostered emitter and cannot claim there are no others — the §1122
+lesson arriving in a third form. Recording the bound so the trigger is not marked "run and clean".
+
+**STOP.** §313's trigger executed rather than inherited; the one unrostered money emitter found, verified
+correct, and its correctness documented in the roster with the two-step failure it prevents; the gate re-run
+green (9 consults, 5 modules); the probe's lower-bound nature stated so the trigger stays live.
 

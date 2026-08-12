@@ -51,6 +51,23 @@ export interface AuthorityModuleFiles {
 // Concierge); comms has TWO emitters of message.sent (the Concierge auto-reply and the dunning human-send).
 // concierge.ts therefore appears under BOTH rating and comms. Shrinking this registry is itself a red flag —
 // the coverage test guards its shape.
+//
+// THE ONE DELIBERATE ABSENCE (audit §1124). `workers/billing/src/credits.ts` constructs `invoice.issued` and
+// is NOT registered under `invoicing`. That is correct, and adding it would be actively harmful — so the
+// reason is recorded here rather than left to be re-derived by whoever next runs §313's trigger ("any new
+// file that appends quote.priced / invoice.issued / settlement.* / message.sent").
+//
+// credits.ts writes on the RESERVED `_platform` revenue tenant — SHUDDL's OWN ledger for credit-pack sales,
+// not a customer's. `resolveAuthority` reads `authority_map` on THIS tenant's D1 and FAIL-CLOSES to
+// 'legacy', which means "the incumbent's system is authoritative, SHUDDL's native computation is not."
+// `_platform` has no incumbent and no migration: there is no legacy TMS that could own SHUDDL's own revenue.
+// So a consult there would return 'legacy' forever and gate the platform's own money path against a system
+// that does not exist.
+//
+// The failure mode this comment exists to prevent is two steps long and each step looks reasonable: adding
+// credits.ts to the roster makes this gate FAIL (the file has no consult), and the natural fix for that
+// failure is to ADD the consult — which fail-closes platform revenue recording. If a future platform path
+// ever needs gating, it needs its OWN seam, not this one.
 export const AUTHORITATIVE_FILES: readonly AuthorityModuleFiles[] = [
   { module: "rating", files: ["workers/api/src/routes/rate.ts", "workers/api/src/pub/quote.ts", "workers/agents/src/concierge.ts", "workers/translator/src/inbound.ts"] },
   { module: "invoicing", files: ["workers/agents/src/biller.ts"] },
