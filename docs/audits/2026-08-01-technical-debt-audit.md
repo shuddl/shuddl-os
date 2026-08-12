@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 641 | §1193 | **§1194** | **THE FAN-IN SWEEP FOUND NO UNCOVERED PRODUCT MODULE — AND TWO OF MY OWN COUNTING PROBES WERE WRONG BEFORE IT COULD SAY SO.** §1193's shape (highest fan-in, zero assertions) applied to `packages/`. **Probe 1 was broken**: matching importers by BASENAME gave every `index.ts` an identical 106 and conflated three different `money.ts`. Rewritten to resolve specifiers relative to the importer (and `@shuddl/pkg/sub.js` subpaths), the ranking became sane — `contracts/src/index.ts` at **255**, the most depended-upon module in the product. **Probe 2 was also wrong**: `rater/src/money.ts` looked uncovered (no `money.test.ts` in either location) but `roundHalfUp` and `mulDivHalfUp` are asserted in **7 and 5** test files — a NAMING artifact, not a gap. Barrels carry no tests, and that is correct, now MEASURED rather than assumed: deleting one `export *` line from the contracts barrel REDs typecheck, so a lost re-export cannot be silent. The adjacent unpinned property — a barrel *widening* the public API — has exactly one known instance (§1184's `EventBase`), already filed as an owner decision, so no detector was built. **Third counting-probe failure in this stretch**, and they share one mechanism: conflated identity. |
 | 640 | §1192 | **§1193** | **98 FILES IMPORT IT; NOTHING ASSERTED IT. `repoRoot()` — THE MODULE THAT ENDS 'A GATE THAT CANNOT FAIL FOR LACK OF INPUT' — HAD NO TEST.** §1192's finding came from a FILE LISTING, not the record, so the probe was generalised: in every directory following a sibling-test convention, which files are the exceptions? Most hits are convention artifacts (`packages/contracts` keeps tests in `test/`, so its "18 missing" is my probe misreading the tree) — the real one is **`tools/checks/repo-root.ts`, the single exception among twelve**. Its header records the stakes: three gates once certified constitutional laws against an EMPTY SET (*"OK (0 markdown files)"*, *"OK — 0/22 tables … (0 migration files)"*, *"OK — 0 path:line citations resolve"*) because each resolved inputs against `process.cwd()`. **The regression it pins is not a deletion but a KINDNESS** — a `try/catch` returning `cwd`, which reads as defensive programming and would leave all 98 gates green while scanning whatever directory they were started from. Mutation-proved: adding exactly that fallback REDs two of four, the second naming the returned temp path. |
 | 639 | §1191 | **§1192** | **THE ONE RELEASE GATE WITH NO TESTS, AND THE ONLY PATH IT CAN TAKE WAS THE UNTESTED ONE.** Asked which board gates the record never pairs with a mutation: 7 of 31. Three are BLOCKED on private inputs (and `identity-leak` WAS proved at §1002 — my pattern missed the wording, a false positive worth naming). `backup-manifest` is `kind:"external"` (OIDC), correctly unrunnable. Of the three runnable release gates, `preflight` executes fully here (**85 assertions**, 8 unsatisfied prerequisites) and `restore-verify`'s decision surface carries **47 `it()` blocks** — so my *never-proved* hypothesis was about the RECORD's wording, not coverage. **The real finding was in the file listing:** every tool in `tools/deploy/` has a sibling test except **`staging-smoke.ts`**. And `SMOKE_API_BASE` appears in **no workflow**, `smoke:staging` in **no CI job** — so the ONLY path that gate can take anywhere today is prerequisite-absent, which was its entire observable behaviour and was untested. Pinned with 5 assertions; **mutation-proved**: flipping `PREREQ_BLOCKED` → `OK` turns a release blocker into a green light and now REDs on *"a release gate with no environment must not exit 0"*. |
 | 638 | §1190 | **§1191** | **THE RELEASE EVIDENCE'S `assertions` FIELD IS A TEST-RUN COUNT ON EVERY BROWSER GATE, AND I MISREAD IT ONE PHASE AGO.** §1190's board carries per-gate counts, which makes the *hollow gate* shape measurable: `perf` reports **1**, `a11y` 4, `visual` 5, `e2e` 6. Traced to `playwright-guard.ts:141` — `assertions: stats.expected + stats.flaky`, i.e. **test RUNS**, because Playwright's JSON reporter exposes no `expect()` count. Measured against the specs: `perf` is **1 test carrying 5 budget checks** (long-task, frame p50/p95, interaction p95, frame-count floor); `visual` is 1 test × 5 blessed screens; `e2e` is 11 tests / 45 expects. **The contract already warns about this — but only for the SYNTHESIZED case** (*"`assertions: 1` and `detail: "command exited 0"` … means the command succeeded, not that a specific number of assertions held"*), and a real Playwright run reports `detail: "1 passed"`, so rule 5's tell does not fire. Nothing covered the real-run case, which is exactly why §1190 read `perf — 1 passed` as a candidate hollow gate. The perf spec is in fact strong: software-rasterizer detection, cold boot reported-not-budgeted, and a frame-count floor added because a prior CI failure came from that line rather than any budget. Rule 6 added to the misreading list. |
@@ -71006,4 +71007,68 @@ spend §1190's six bisect runs tracing that string to a benign source.
 **STOP.** The sibling-test probe generalised, its convention noise identified rather than reported, and the one
 real exception closed: the module that ends *"a gate that cannot fail for lack of input"* now has a test that
 fails when it stops failing closed.
+
+## §1194 — PHASE GATE: a clean sweep, and the three probes that had to be fixed to earn it
+
+**Why this phase.** §1193 found the gate corpus's most-imported helper untested. The same instrument —
+**rank by fan-in, check for direct assertions** — points at `packages/`, where a high-fan-in helper with no
+coverage would matter more than a tooling one.
+
+### The answer is clean, and getting there took two corrections
+
+**Probe 1 was broken.** Counting importers by matching the module's **basename** in import specifiers gave
+every `index.ts` in every package an identical **106**, and merged three unrelated `money.ts` modules into one
+row. A count that reports the same number for nine different files is not a measurement.
+
+Rewritten to resolve each specifier **relative to the importing file** (and to expand `@shuddl/pkg/sub.js`
+subpath exports), the ranking became sane:
+
+```
+255  packages/contracts/src/index.ts     ← the most depended-upon module in the product
+ 46  packages/agents/src/index.ts
+ 22  packages/rater/src/price.ts        (covered)
+  9  packages/rater/src/money.ts        ← the candidate
+```
+
+**Probe 2 was also wrong.** `rater/src/money.ts` has no `money.test.ts` in either the sibling or the `test/`
+position — but its two exports, `roundHalfUp` and `mulDivHalfUp`, are asserted in **7** and **5** test files
+respectively. A file-name convention says nothing about whether a symbol is tested; the gap was in my probe's
+definition of coverage, not in the tree.
+
+### The one assumption left, converted to a measurement
+
+Barrels (`index.ts`) carry no tests, and the reason offered is that a lost re-export fails to compile. That is
+an assumption until someone runs it, so:
+
+```
+removed `export * from "./roles.js";` from the contracts barrel  →  typecheck: RED
+```
+
+**Compile-protected, measured.** A barrel cannot silently stop exporting.
+
+What a barrel *can* do silently is **widen** the public API — and that class has exactly one known instance,
+§1184's `EventBase` (public, re-exported, no consumer), already filed as an **owner decision** because
+deleting public API is not a lint's call. Building a dead-export detector for one filed instance would be
+over-building, so none was built.
+
+### The finding that is actually portable
+
+This is the **third counting probe in this stretch that produced a confident wrong number**, and they share one
+mechanism:
+
+| phase | the probe counted | it should have counted |
+|---|---|---|
+| §1185 | every table row in the file (323), then the whole section (49) | the debt table alone (42) |
+| §1192 | the gate name within 160 chars of "mutation"/"plant" | whether the gate's behaviour was actually proved |
+| §1194 | import specifiers by **basename** | specifiers **resolved** against the importer |
+
+> **A counting probe fails by conflating identity** — two things that share a name, a line, or a neighbourhood
+> are counted as one. Every one of these produced a *plausible* number, which is why none announced itself.
+> The tell is invariance: nine files with the same count, one number for two conventions, a proximity that
+> never checks what it is near. **Before believing a count, ask what would have to be true for two different
+> things to land in the same bucket** — and check whether they did.
+
+**STOP.** No uncovered high-fan-in product module exists; both candidates dissolved under correct measurement,
+the barrel assumption was converted to a typecheck proof, the one unpinned property has a single instance
+already owner-filed, and the recurring counting-probe failure mode is now named with three measured instances.
 
