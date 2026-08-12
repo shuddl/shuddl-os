@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 564 | §1116 | **§1117** | **STOPPING POINT XI — SIX PHASES OF CLAUSE-DECOMPOSITION; ONE REAL DEFECT, FOUR SELF-CORRECTIONS.** Board re-earned at `e867417`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs attributed by measurement to the owner's `REQ-289` row. §1111 **found and closed a real hole** (Law 5's clause 4 — a 150% executing share defended by nothing) · §1112 Law 4 5/5 · §1114 Law 2 ~13 shapes (summary UNDERstated) · §1115 Law 1 both directions · §1116 the anomaly detector 5/5. **The method's yield: 1 defect in ~40 guards.** Its cost: **four** harness errors, every one failing toward 'undefended'. Both numbers belong in the record. |
 | 563 | §1115 | **§1116** | **THE $222K DETECTOR ITSELF: 5/5 GUARDS DEFENDED.** Applied §1111's per-guard method to `packages/rater/src/anomaly.ts` — the module that names the permanent regression — using §1112's corrected TOTAL mutation form. Five guards, five REDs: cap-positive-integer (1) · sell-integer (2) · weight-positive-integer (1) · negative-sell (1) · **over-threshold (9)**. The core detection carries nine pins; the input validators carry one or two each, which is sufficient — a single pin is all that stops a silent deletion. Clean negative, zero source changed. With §1112 (Law 4, 5/5) and §1109/§1111 (Law 5, 4 clauses, 1 gap closed), the rater's constitutional surface is now proved guard-by-guard. |
 | 562 | §1114 | **§1115** | **LAW 1 HOLDS IN BOTH DIRECTIONS — AND IT TOOK FOUR PROBES, THREE OF THEM WRONG THE SAME WAY.** Planted a real violation per direction. **Built-but-unspec'd:** a `REQ-999` annotation in live source → gate prints `FAIL built-but-unspec'd`. ✓ end-to-end. **Spec'd-but-unbuilt:** three probes returned GREEN and every one was MY error — REQ-029's only hit is the coverage manifest the scanner **excludes**; REQ-001's singleton was an artifact of scoping to `packages/workers/apps/db` when the scanner also reads `tools`, `docs/wp`, `docs/ops`; and I had assumed `F0-SPEC'D` was deferred when only **vNEXT / CONFIRM-GATED** are. Reading the gate's own pathspec: **zero** active non-deferred REQs are singletons, so no single-file edit can orphan one — the direction is pinned at the FUNCTION level (`specdButUnbuilt` ⊇ REQ-025). §1107's rule, violated three more times in one phase. |
 | 561 | §1113 | **§1114** | **LAW 2's SUMMARY UNDERSTATED IT — 2 MUTATIONS NAMED, ~13 SHAPES DEFENDED. THE MIRROR OF §1111.** Decomposed REQ-002/I3/I7 the §1111 way: **11 append-only triggers** across events/positions/money_lines, whose `WHEN` clauses enumerate distinct REPLACE surfaces. §305 recorded *two* mutations (`events_guard_upd`, `events_guard_del`) — but the suite carries a purpose-built test for **every** shape, three of them titled *"colliding ONLY on X"* (hash · ux_events_device · ux_ml_corrects), plus two I had not enumerated: `INSERT OR IGNORE` of a duplicate and `ON CONFLICT DO UPDATE`. So §1111's error runs BOTH ways: Law 5's summary **overstated** (4 clauses, 1 blind), Law 2's **understated** (2 named, ~13 defended). Done at ZERO wedge risk — `packages/ledger` is pool-workers, so I READ instead of running 11 mutations. Residual stated: presence of purpose-built tests, not mutation proof, for 11 of 13. |
@@ -66424,4 +66425,65 @@ law-by-name, and the one hole that existed was invisible to every law-level summ
 
 **STOP.** 5 guards mutated with the total form, 14 REDs, zero silent; baseline restored and re-verified; zero
 source changed.
+
+## §1117 — PHASE GATE: STOPPING POINT XI — clause-decomposition, its yield and its cost
+
+**Board re-earned at `e867417`** — full 26-gate `verify:merge`:
+
+**19 PASS · 2 FAIL · 5 BLOCKED**
+
+Unchanged from §1096, §1103, §1110. Both FAILs attributed **by measurement**: `check:coverage` names
+`REQ-289` (*"wp GTM-0 names no active WP"*), and `delta` accounts for unit-tests (3 failing, all BASELINE).
+Five BLOCKED are absent private inputs. **Zero repo-owned reds.**
+
+### The six phases
+
+| § | law / module | clauses | outcome |
+|---|---|---|---|
+| §1111 | Law 5 (REQ-040) | 4 | **DEFECT FOUND + CLOSED** — a 150% executing share defended by nothing |
+| §1112 | Law 4 (REQ-004) | 5 | 5/5 · a harness bug produced two false "undefended" |
+| §1114 | Law 2 (I3/I7) | ~13 | all defended · the *summary* understated by 11 |
+| §1115 | Law 1 (REQ-118) | 2 | both hold · three self-inflicted false GREENs |
+| §1116 | anomaly detector | 5 | 5/5 |
+| §1117 | the board | — | 19/2/5, FAILs measured |
+
+### The method's yield, and its cost, both stated
+
+**Yield: one real defect in roughly forty guards.** Law 5's clause 4 — the per-leg `split_bps` range check —
+was the *sole* defence against compensating out-of-range legs (`+15000` and `−5000` sum to exactly 10000, so
+the total-check is blind), and removing it produced a **150% executing share**, which clears any floor. That
+is the direction the law exists to forbid. The guard was correct; only its evidence was missing, so a refactor
+could have deleted it against a green suite.
+
+**Cost: four harness errors, every one failing toward "undefended".** A `false &&` mutation that operator
+precedence rendered inert (§1112, twice); a corpus narrower than the gate's (§1115, twice); a status set I
+assumed rather than read (§1115). Every single one produced a GREEN that reads as *a missing test on a
+constitutional law* — the most publishable-looking result available, and false each time.
+
+> **A method that finds real defects also manufactures plausible ones, and both come out of the same probe.**
+> The yield here is 1 true : 4 false, so the decisive skill is not running the mutation — it is refusing to
+> credit its output until the probe itself has been checked. The three checks that caught all four:
+> **(a)** a positive control that reproduces a known number, **(b)** the gate's own matcher/pathspec copied
+> verbatim rather than reconstructed, **(c)** for any GREEN, one direct probe separating *redundant guard*
+> from *vacuous test* before writing a word.
+
+This is also why §1114 is worth as much as §1111 despite finding nothing: it established that Law 2's
+two-mutation summary understated a suite defending **thirteen** shapes. **A proof summary can err in either
+direction and looks identical both ways** — overstatement costs a hole, understatement costs redundant work,
+and only counting the clauses distinguishes them.
+
+### Reopen triggers (decidable now)
+
+1. **Law 5 clause 4** — reopens if `executingShare`'s per-leg range check is ever relaxed; the new test names
+   the compensating case (`+15000 / −5000`) explicitly, so a deletion now REDs.
+2. **Law 2's 11 unproved shapes** — 2 of ~13 are mutation-proved; the rest rest on reading, deliberately,
+   because `packages/ledger` is `vitest-pool-workers` and can wedge uninterruptibly. Reopens if that suite
+   ever moves off pool-workers, at which point the eleven become cheap.
+3. **Any new `>= floors.` comparison** — Law 5 is auditable *because* it has one comparison site; a second
+   makes one mutation insufficient.
+4. **`REQ-289`** — the two board FAILs clear the moment the owner commits a classifying status.
+
+**STOP.** Board 19/2/5 at `e867417`, both FAILs measured; five constitutional laws decomposed and proved
+guard-by-guard; one real defect found, fixed, and its fix mutation-proved; four self-inflicted false alarms
+documented with the three checks that catch them.
 
