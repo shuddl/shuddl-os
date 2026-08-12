@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 538 | §1090 | **§1091** | **WHY SOME §3 FIGURES STAY TRUE AND MOST DECAY — TWO GATES, NINETY-FOUR CLAIMS.** Continuing §1090's sweep, L202 (*unbounded list reads — 9 sites*) turned out to be the **best-instrumented row in the tier**: `unbounded-reads-roster.test.ts` is green and its header says the assertion *compares the doc's number to `ROSTER.length`* — so that figure **cannot drift without failing a gate**, which is exactly why it is current while three other §3 figures re-measured at §1085 had gone stale. Measured the tier: **21 gates read the checklist**, **31 of 94 live items have a gate naming their source file** (a basename proxy, an upper bound), and only **2 gates compare a doc FIGURE to code**. So ~92 numeric claims in §3 are unpinned prose. |
 | 537 | §1089 | **§1090** | **THE UNSWEPT TIER, OPENED — 92 ITEMS TRIAGED, AND THE TWO SHARPEST Med ONES VERIFIED EXACT.** §1089 found §3's inventory unswept; this triages it: **2 High (both EDI, both inert), 11 live Med, 73 live Low, 13 already resolved.** Verified in full at HEAD: **L228** — `actor{party}` is client-supplied → the biller's resolveInterline call → `approval.ts:126@executor` `if (leg.executor === tenantParty)`. **A client-named party still chooses which leg's share the REQ-040 floor judges** — the $222,084 guard. Fix is the stated owner decision (the biller is a queue consumer with no session). **L210** — `sent214Key` is still `edi/${tenant}/214/${key}`, tenant- not partner-scoped, safe only because §1066 proved no live transport exists. The citation gates rejected my write-up **twice**: a wrong anchor line, then an unanchored citation into a ratcheted file. |
 | 536 | §1088 | **§1089** | **STOPPING POINT VII OVERCLAIMED — MY ROW SCANNER REQUIRED 8 CELLS AND THE CHECKLIST HAS TWO SHAPES.** §1085 said *every repo-owned OPEN row read against HEAD*. True of the 55-row *Repository-owned failures & debt* table; the checklist ALSO carries **§3 Technical debt & known limitations — 92 severity-tagged items in 5-cell tables**, never touched, because every scan I wrote this session filtered `len(cells)==8`. Found by following a `recall "squint"` hit to **L185**, a row that could not exist under my own tally. The two **High** items are both EDI and both inert behind the unwired transport §1066 verified, so no verdict changes — but the CLAIM was wrong and is corrected at its source. Also: my resolution check returned **0 of 105** until I uppercased the severity token (13th shape error). |
 | 535 | §1087 | **§1088** | **ALL EIGHT SCHEMA INVARIANTS RE-VERIFIED BY LAYER — EVERY 'MISSING' LAYER IS THE WRONG LAYER FOR ITS RULE.** §1087's method applied to I1–I8. Four have a zero in some column, and **none is a gap**: **I2** (no invoice without pod.signed) has 0 migrations because a DB cannot express *no invoice unless a pod.signed exists on this stream* — it is enforced at the **chokepoint** (`invoice-gate.ts` at ledger level + `append-chokepoint` statically refusing any direct `events` write, *"bypassing the sequencer DO — and with it EVERY gate"*). **I5** has 0 source-gates because it is a **Zod parse-time refusal** (`rate_config_ids: z.array(z.string()).min(1)`), pinned by a test that plants the empty array. **I6** has 0 source-gates because genesis/10 itself designates the layer: *"tested adversarially"*. **I7** has 0 migrations because netting is an export-time property. Also: `$i[:/ ]` is ARRAY SUBSCRIPTING in zsh — my first table was all zeros. |
@@ -64926,4 +64927,52 @@ unanchored pointer.
 **STOP.** The tier §1089 exposed is triaged (2 High / 11 Med / 73 Low live) and its two sharpest untouched Med
 items are verified exact at HEAD, both owner-held for stated reasons. `pnpm delta` clean · `check:citations` 0 ·
 `check:tables` OK.
+
+## §1091 — PHASE GATE: why some §3 figures stay true and most decay
+
+**Why this phase.** §1090 opened the tier and §1085 had already found **3 of 4** re-measured figures stale. That
+raises a sharper question than "which else are stale": **what distinguishes the ones that stayed true?**
+
+### L202 is the answer, and it is the tier's best-instrumented row
+
+*"Unbounded list reads — 9 sites, no LIMIT and no cursor."* Its figure has a history of drift — the row itself
+records *"count CORRECTED §823 — this row said 7 sites while already citing 8"* — and it is **current now**,
+because something checks it: `tools/checks/unbounded-reads-roster.test.ts`, green at 13 tests, whose header
+states the assertion **compares the doc's number to `ROSTER.length`**.
+
+That figure cannot drift without failing a gate. The three that *had* drifted (§1085's driver-suite count,
+status-drift population, citation totals) have no such comparison.
+
+### The tier, measured
+
+| | |
+|---|---|
+| gates that read `GO-LIVE-CHECKLIST` at all | **21** |
+| live §3 items whose cited source file is named by one | **31 of 94** |
+| gates that compare a **figure in the doc** to code | **2** |
+
+The middle row is a **basename proxy and an upper bound** — a gate referencing `invoices.ts` proves it touches
+that file, not that it pins this row's claim. Stated because the number would otherwise read as coverage.
+
+The bottom row is the real one. `checklist-figures.test.ts` (three figures, plus the sweep count §1077 added)
+and `unbounded-reads-roster.test.ts` (this row) are the whole of it. **Every other numeric claim in §3 — on the
+order of ninety — is prose that decays silently**, which is not a criticism of the rows but a measurement of
+what the record can enforce about itself.
+
+### What this phase says
+
+> **The figures that stayed true are exactly the figures something re-derives.** That is not a coincidence to
+> be noted, it is the whole mechanism: §1085 found 3 of 4 stale by hand, and the fourth was stale-proof for a
+> reason visible in its own test header. A record's accuracy is not a property of its authors' care; it is a
+> property of how many of its claims are computed rather than remembered.
+
+The corollary, and why this does **not** end in "gate everything": §1084 measured the false-positive floor for
+generic checklist matchers and rejected one at a 50% rate; §1053 rejected another at 40:1. The two gates that
+exist work because each pins a **specific named figure against a specific derivation** — a roster length, a
+CONFIRM-GATED count, a canonical-view usage. That does not generalise to ninety heterogeneous prose claims, and
+pretending otherwise would produce the noisy gate both those phases refused.
+
+**STOP.** L202 verified current and identified as the tier's best-instrumented row, with the mechanism that
+keeps it true made explicit; the tier's instrumentation measured (21 / 31-of-94 / **2**) with the proxy's
+weakness stated rather than hidden. `pnpm delta` clean · `check:citations` 0 · `check:tables` OK.
 
