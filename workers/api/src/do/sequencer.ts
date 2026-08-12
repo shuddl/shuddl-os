@@ -557,7 +557,13 @@ export class ShipmentSequencer extends DurableObject<Env> {
         const trigger = { kind: "pod.signed", tenant, shipment_id: full.shipment_id, event_id: full.id };
         this.ctx.waitUntil(
           this.env.AGENT_QUEUE.send(trigger).catch((err: unknown) => {
-            console.error(`biller trigger enqueue failed for pod ${full.id} (POD committed; the REQ-169 sweep recovers it for STATIC-ROSTER tenants only — the agents crons cannot enumerate claimed pool tenants):`, err);
+            // §1225 — the "STATIC-ROSTER tenants only" clause that stood here was STALE: it described C3's
+            // enumeration gap, which is closed. `runReconSweep` fans out over `allTenantSlugs()`, which unions
+            // the static roster with CLAIMED POOL tenants (workers/agents/src/tenants.ts:159), and
+            // `claimed-tenants.test.ts` pins both the union and that no src module iterates bare TENANT_SLUGS.
+            // Left standing it would tell an operator a pool tenant's POD is unrecoverable and provoke a manual
+            // re-drive that the sweep was already going to perform.
+            console.error(`biller trigger enqueue failed for pod ${full.id} (POD committed; the REQ-169 recon sweep RECOVERS this — it re-drives unbilled PODs for every enumerated tenant, static roster AND claimed pool. No operator action unless that sweep also logs a claimed-enumeration failure, which degrades it to the static roster for one tick):`, err);
           }),
         );
       }
@@ -607,7 +613,15 @@ export class ShipmentSequencer extends DurableObject<Env> {
     if (conciergeTrigger) {
       this.ctx.waitUntil(
         this.env.AGENT_QUEUE.send(conciergeTrigger).catch((err: unknown) => {
-          console.error(`concierge trigger enqueue failed for message ${full.id} (message committed; the sweep recovers it for static-roster tenants only):`, err);
+          // §1225 — THE SIBLING §131 MISSED. This line read "the sweep recovers it for static-roster tenants
+          // only" — the EXACT wording §131 found false on the booking trigger and corrected there, left
+          // uncorrected here. It is wrong twice: the static-roster clause is stale (see the biller note above),
+          // and more seriously it names a recovery that DOES NOT EXIST. `runReconSweep` re-drives ONLY
+          // `kind: "pod.signed"` (recon-sweep.ts:100); none of the eight sweeps anti-joins committed
+          // `message.received` events against concierge output. A lost trigger here leaves a customer's inbound
+          // email committed and UNANSWERED indefinitely. Building the sweep needs a register row first
+          // (CLAUDE.md: no build without a REQ) — proposed alongside §131's booking row.
+          console.error(`concierge trigger enqueue failed for message ${full.id} (message committed; NO SWEEP RECOVERS THIS — the recon sweep re-drives PODs only, so the inbound stays unanswered until a human re-drives it; see audit §1225):`, err);
         }),
       );
     }
