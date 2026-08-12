@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 601 | §1153 | **§1154** | **WENT TO FIX THE FOUR ASSERTIONS AND FOUND TWO ARE NOT ASSERTABLE AND ONE GUARD IS UNREACHABLE.** §1153 bounded the row to *four message assertions*; implementing it required knowing each intended message, and reading rather than guessing changed the answer twice. **The `board()` test helper returns `{status, items}` and parses `body.board` — it DISCARDS the error body**, which is why those assertions are status-only: the message was never available. And `board.ts:169@requireRole` admits `admin·ops·finance·read·portal`, so the `:186` ROLE guard is — by its own comment — *"unreachable via requireRole; kept fail-closed as defence-in-depth"*. A driver's 403 comes from the **middleware**, so that test has no sibling ambiguity and nothing to distinguish. **An unreachable guard cannot be mutation-checked by a route test, and that is correct, not debt.** |
 | 600 | §1152 | **§1153** | **A ROW'S ESTIMATE RE-MEASURED: "~24 GUARDS" IS 3 ROUTES AND 4 ASSERTIONS.** §1152 said reducing the ledger is the work that shortens the owner's queue, so I took the most concrete open row — *multi-guard 403 routes, ~24 guards not yet mutation-checked* — and measured it instead of running its ~24-iteration mutation loop (the wedge-risk §1114 forbids). **6** route files carry ≥2 `FORBIDDEN 403` guards (18 total), and §81/§82 already closed three. The remaining three each have **2 guards with DISTINCT messages**, so the gap is the ASSERTION, not the guard: `board.test.ts` has **3** status-only 403s, `rate.test.ts` **1**, and **`status-link.ts` has no dedicated test file**. The residual is four assertions and one route's coverage. |
 | 599 | §1151 | **§1152** | **RECONCILED MY OWN WORK WITH THE LEDGER — ONE OWNER DECISION REMOVED FROM THE QUEUE.** Building a gate does not close a row; somebody has to say so. The rule-9 row asked the owner to *"either amend rule 9 … or resume per-WP swarms"* on a premise §1142 proved **false**, and §1149 has since made the fact **enforced**. Both halves now recorded and the row **CLOSED — no owner action**. Checked the sibling: the authority-registry row (§1124's manual roster) stays **OPEN**, because gating its completeness needs the kind-classification §1145 proved is not pattern-decidable — ruled out on evidence rather than left ambiguous. |
 | 598 | §1150 | **§1151** | **CHECKED MY OWN THREE GATES AGAINST THE FAILURE MODE THAT ONCE HIT SIXTEEN SCRIPTS — CLEAN.** This repo fixed **16** gates for CWD-dependence, whose worst form is *a pass over nothing* (`design-audit` once printed `clean` from the wrong directory). My three new gates resolve their corpus through `repoRoot()` → `git rev-parse --show-toplevel`, which returns the identical path from the root, `workers/api/src` and `docs/wp`; run from a subdirectory, `tenant-source` still passes **6/6 including its >25-call-site floor**. The repo enforces this **behaviourally** — `cwd-parity.test.ts` runs every package.json gate from a subdirectory and compares verdicts — which is why `repo-root.ts` may legitimately contain `process.cwd()`: it is the FIX, and a lint on the mechanism would flag it. |
@@ -68478,4 +68479,64 @@ denominator had to be routes-with-≥2-guards rather than assertions.
 routes with 3 already closed; the remaining three shown to have distinctly-messaged guards, relocating the gap
 from the guards to four test assertions plus one uncovered route; the whole-corpus figure explained as the
 wrong denominator; the wedge-risk mutation loop avoided on evidence. Row stamped with the precise residual.
+
+## §1154 — PHASE GATE: the fix that dissolved on contact
+
+**Why this phase.** §1153 reduced *"~24 guards not yet mutation-checked"* to **four message assertions plus
+one route's coverage**, and §1152 established that closing rows — not adding gates — is what shortens the
+owner's queue. So: implement the four.
+
+Writing a message assertion requires knowing which message. Guessing would be worse than the status-only
+assertion it replaces — a test that asserts the *wrong* guard's message is pinned to a fiction. So each was
+read, and the reading changed the answer twice.
+
+### The helper discards the body
+
+```
+async function board(t: string): Promise<{ status: number; items: BoardItem[] }> {
+  const res  = await SELF.fetch("https://api.local/v1/board", { headers: bearer(t) });
+  const body = (await res.json().catch(() => ({ board: [] }))) as { board?: BoardItem[] };
+  return { status: res.status, items: body.board ?? [] };
+}
+```
+
+It parses `body.board` and returns `{status, items}`. **The error message never reaches the test.** That is
+not an oversight in the assertions — it is why they are status-only, and no assertion can be added without
+changing the helper first. The row's fix was one layer shallower than the problem.
+
+### And one of the two guards is unreachable
+
+`board.ts:169@requireRole` admits `admin · ops · finance · read · portal`. The second 403 guard sits at `:186`
+with its own verdict on itself:
+
+> *"driver — no board (unreachable via requireRole; kept fail-closed as defence-in-depth)."*
+
+So a driver's 403 is produced by the **middleware**, not by either of board's guards. The test at
+`board.test.ts:111` — *"a driver (non-command role) is 403"* — has **no sibling ambiguity to resolve**: only
+one thing can answer it. There is nothing to distinguish, and a message assertion would pin the middleware's
+wording, not a guard's.
+
+> **A guard that is unreachable by construction cannot be mutation-checked by a route test, and its absence
+> from the coverage is correct rather than owed.** §81's defect was a test passing for a *sibling's* reason —
+> which presupposes two reachable siblings. Where `requireRole` already excludes the role, the second guard is
+> defence-in-depth against a future mount, and the only thing that could exercise it is a unit test on the
+> handler, not a request.
+
+### What the residual actually is
+
+| item | status |
+|---|---|
+| `board.test.ts` ×3 | **not assertable** without a helper change; and `:111`'s guard is unreachable anyway |
+| `rate.test.ts` ×1 | genuinely assertable — two reachable guards, distinct messages |
+| `status-link.ts` | no dedicated test file — the real gap |
+
+Row stamped with all three. **The estimate has now moved twice under measurement** — 24 → 4 → 1 assertable
+plus a missing test file and an optional helper change — and each step came from reading the thing rather
+than executing the plan attached to it.
+
+**STOP.** The bounded fix attempted and found to rest on a false premise: two of its four sites cannot carry a
+message assertion because the helper discards the body, and one of those guards is documented-unreachable so
+has nothing to distinguish; the genuine residual narrowed to one assertion and one uncovered route; the
+principle that an unreachable guard's absence from coverage is correct rather than owed, recorded. Zero source
+changed.
 
