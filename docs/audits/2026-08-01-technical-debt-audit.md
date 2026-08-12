@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 600 | §1152 | **§1153** | **A ROW'S ESTIMATE RE-MEASURED: "~24 GUARDS" IS 3 ROUTES AND 4 ASSERTIONS.** §1152 said reducing the ledger is the work that shortens the owner's queue, so I took the most concrete open row — *multi-guard 403 routes, ~24 guards not yet mutation-checked* — and measured it instead of running its ~24-iteration mutation loop (the wedge-risk §1114 forbids). **6** route files carry ≥2 `FORBIDDEN 403` guards (18 total), and §81/§82 already closed three. The remaining three each have **2 guards with DISTINCT messages**, so the gap is the ASSERTION, not the guard: `board.test.ts` has **3** status-only 403s, `rate.test.ts` **1**, and **`status-link.ts` has no dedicated test file**. The residual is four assertions and one route's coverage. |
 | 599 | §1151 | **§1152** | **RECONCILED MY OWN WORK WITH THE LEDGER — ONE OWNER DECISION REMOVED FROM THE QUEUE.** Building a gate does not close a row; somebody has to say so. The rule-9 row asked the owner to *"either amend rule 9 … or resume per-WP swarms"* on a premise §1142 proved **false**, and §1149 has since made the fact **enforced**. Both halves now recorded and the row **CLOSED — no owner action**. Checked the sibling: the authority-registry row (§1124's manual roster) stays **OPEN**, because gating its completeness needs the kind-classification §1145 proved is not pattern-decidable — ruled out on evidence rather than left ambiguous. |
 | 598 | §1150 | **§1151** | **CHECKED MY OWN THREE GATES AGAINST THE FAILURE MODE THAT ONCE HIT SIXTEEN SCRIPTS — CLEAN.** This repo fixed **16** gates for CWD-dependence, whose worst form is *a pass over nothing* (`design-audit` once printed `clean` from the wrong directory). My three new gates resolve their corpus through `repoRoot()` → `git rev-parse --show-toplevel`, which returns the identical path from the root, `workers/api/src` and `docs/wp`; run from a subdirectory, `tenant-source` still passes **6/6 including its >25-call-site floor**. The repo enforces this **behaviourally** — `cwd-parity.test.ts` runs every package.json gate from a subdirectory and compares verdicts — which is why `repo-root.ts` may legitimately contain `process.cwd()`: it is the FIX, and a lint on the mechanism would flag it. |
 | 597 | §1149 | **§1150** | **STOPPING POINT XVII — THE READ CLASS WORKED DOWN TO WHAT CANNOT BE MECHANISED.** Board re-earned at `277cc5b` **with the three new gates in it**: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs measured to `REQ-289`; tools tests **1,255 → 1,271**. §1146 graded the session's verdicts and found the READ class right but not re-runnable; §1147–§1149 converted **three** of them into mutation-proved gates — tenant-never-from-client-input · no-blank-credential · every-WP-records-its-exit-audit. The remainder is ruled OUT on evidence, not skipped: Law 3's `input`-passing routes, R2 key derivation and the uncalled-exports classification each failed a control (§1122/§1145). **Three gates, three files, +16 tests.** |
@@ -68421,4 +68422,60 @@ it into breaking platform revenue.
 its now-enforced fact, removing an owner signature from the queue; the structurally-similar sibling checked and
 kept open with the reason it cannot be gated; the distinction between hardening a verdict and closing a row
 recorded. `check:tables` OK.
+
+## §1153 — PHASE GATE: measuring a row's estimate instead of executing it
+
+**Why this phase.** §1152 drew the distinction that matters for the loop's stated goal: building enforcement
+and **reducing the ledger** are different activities, and only the second shortens the owner's queue. So: take
+the most concrete open row and move it.
+
+*"Multi-guard 403 routes: ~24 guards not yet mutation-checked."* Its fix is *"run the remaining mutations per
+guard"* — approximately 24 `vitest-pool-workers` runs, which §1114 identifies as the riskiest activity in this
+repo (an uninterruptible wedge, cleared only by reboot). Before spending that, the estimate itself is worth
+checking, because **an estimate is a claim**.
+
+### The estimate was high by a factor of four
+
+Counting `ApiError("FORBIDDEN", 403` per route file:
+
+| finding | measured |
+|---|---|
+| route files with **≥2** 403 guards | **6** (the row's "eleven" is already struck) |
+| guards across them | **18** |
+| already closed by §81/§82 | **3 routes** — `positions.ts` fixed, `events.ts` + `portal-actions.ts` verified |
+| **remaining** | **3 routes** — `board.ts`, `rate.ts`, `status-link.ts` |
+
+And the remaining three are in better shape than the row implies: **each has two guards with DISTINCT
+messages** —
+
+```
+board.ts        "SESSION LENS UNRESOLVED"      /  "ROLE NOT PERMITTED"
+rate.ts         "SHIPMENT NOT IN YOUR SCOPE"   /  "SESSION LENS UNRESOLVED"
+status-link.ts  "SESSION LENS UNRESOLVED"      /  "SHIPMENT NOT IN YOUR SCOPE"
+```
+
+— so they are distinguishable in principle. **The gap is the assertion, not the guard.** §81's defect was
+never a missing guard; it was a test that asserted the shared status and therefore passed for a sibling's
+reason.
+
+### The residual, exactly
+
+Reading the tests for those three routes: **`board.test.ts` 3 status-only 403 assertions · `rate.test.ts` 1 ·
+`status-link.ts` has NO dedicated test file.** Four assertions to strengthen and one route's coverage to
+establish.
+
+A first pass over the whole corpus said *"126 assertions, 89 status-only"* — which is true and useless: on a
+route with **one** 403 guard, asserting the status **is** naming the reason, and `isolation.test.ts`'s 25 are
+exactly that. The defect only exists where a fixture could trip more than one guard, which is why the
+denominator had to be routes-with-≥2-guards rather than assertions.
+
+> **Measure an estimate before executing it.** *"~24 guards"* implied ~24 mutation runs on the one harness
+> this repo knows can wedge for days; the real shape is four assertions and a missing test file, reachable by
+> reading. An estimate written when a row was filed is exactly the kind of claim this record keeps finding
+> stale — and here the staleness was in the direction that would have cost the most.
+
+**STOP.** The row's own estimate re-measured rather than executed; guard count established at 18 across 6
+routes with 3 already closed; the remaining three shown to have distinctly-messaged guards, relocating the gap
+from the guards to four test assertions plus one uncovered route; the whole-corpus figure explained as the
+wrong denominator; the wedge-risk mutation loop avoided on evidence. Row stamped with the precise residual.
 
