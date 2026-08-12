@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 609 | §1161 | **§1162** | **NEW DEBT, FOUND BY THE GATE THAT REFUSED MY COMMIT: FOUR SUBPROCESS GATES RUN AT VITEST'S DEFAULT 5000ms.** §1161's chained `delta && commit` refused and named four newly-failing tests. Not waved off: all four **shell out** (`execSync`/`execFileSync` → eslint, playwright, git-from-a-subdirectory), all pass **in isolation**, all passed in the board at `551421d`, and `pnpm reap` found **zero** orphans. **Mechanism measured:** `vitest.tools.config.ts` sets **no `testTimeout`**, so the **5000ms** default governs — and the observed durations were **5044 · 5758 · 7725ms**. Under load a child process outruns the timeout and the gate reports a failure indistinguishable from a real defect. Filed as a new row; a false RED erodes a gate faster than a slow one. |
 | 608 | §1160 | **§1161** | **I7 TRACED: THE JOURNAL-BALANCE HALF IS PINNED; THE CORRECTION-PAIR HALF IS STRUCTURAL, NOT ASSERTED.** Enumerated I1–I8 from `genesis/10` rather than memory (§1160's rule) and took the one this session had never touched. **I7 — *correction pairs net zero in GL export*.** Its enforcement is real: `iif.ts@serializeJournalIIF` Guard 2 throws on `Σdebits !== Σcredits`, pinned by *"unbalanced input … throws — never emits a lopsided journal"*. But that is **journal balance**, a different claim. Correction-pair netting holds by **construction** instead: `export.ts` emits each money_line as a debit/credit PAIR of the same `amount_cents`, so a correction carrying a negated amount nets against its original — *"signed amounts carry corrections through unchanged"*. **Structural, and no test names it.** My probe also missed it twice: the code says *"nets to 0.00"*, never *"net zero"*. |
 | 607 | §1159 | **§1160** | **LAW 7 DECOMPOSED — ALL TEN LAWS NOW COMPLETE, AND §111's SELF-DECLARED GAP IS CLOSED.** I claimed after §1159 that all ten were done; **that was wrong — Law 7 was outstanding**, and correcting it is the phase. Its audit half was proved at §111/§252 (twelve rules each failing alone; a planted shadow, over-budget radius and raw hex). Its **screenshot half** is what §111 explicitly did NOT touch — *"the screenshot half runs through a different mechanism the section never touched"*. It is gated: **5 blessed PNGs** with `visual-corpus.test.ts` asserting non-vacuity, **BIDIRECTIONAL** registry↔reference matching, the five canonical WP-03 screens by name, and that **an iCloud collision copy is not mistaken for an unregistered screen** (§673). Ten of ten. |
 | 606 | §1158 | **§1159** | **LAW 6 DECOMPOSED: 2 OF 4 CLAUSES ENFORCED, 1 PENDING A FIXTURE, 1 A PHANTOM — AND I NEARLY CLOSED THE PHANTOM ON A COINCIDENCE.** The last undecomposed law. **QB penny-reconcile** (vendored, 7 tests) and **airplane soak** (in-repo, 2 tests) are real; **legacy-export replay ±2%** is a pending private fixture; **`routes ±10%` has no gate, no manifest row, no REQ row and no routing capability anywhere** — a clause naming a gate that does not exist, in TWO source-of-truth docs. **The near-miss:** I found `PARITY_TOLERANCE_BPS.rating = 1_000` — exactly 10% — and almost concluded the clause was satisfied. It is an unrelated module tolerance. **A number matching is not a claim matching**, and closing it would have removed a live owner decision from the queue on a coincidence of magnitude. |
@@ -68925,4 +68926,58 @@ path list was wrong.
 guard on **journal balance**, with its named property (**correction pairs netting**) shown to hold
 structurally through paired same-amount emission rather than by assertion; the distinction recorded as an
 evidentiary gap rather than a defect, since no mis-signed correction is producible today. Zero source changed.
+
+## §1162 — PHASE GATE: the gate that refused my commit found the debt
+
+**Why this phase.** §1161's `pnpm -s delta && git commit` **refused to commit** — the chained form §1113
+introduced after four unidentified-delta commits. It named four newly-failing tests on a **docs-only** change,
+which is the shape that should never happen.
+
+§1080's rule is that reproducing a count is not identifying it, so they were identified rather than re-run
+until quiet.
+
+### The four, and what they have in common
+
+| test | spawns |
+|---|---|
+| `citation-links.test.ts` — *"finds the same corpus from a subdirectory as from the root"* | runs the collection **twice**, from two directories |
+| `list-endpoint-pagination.test.ts` | `execSync` |
+| `skill-reference-lints.test.ts` — *"every reference file lints clean"* | `execFileSync` → eslint |
+| `spec-collection.test.ts` — *"collects at least one spec"* | `execFileSync` + `execSync` → playwright |
+
+**Every one shells out to a child process.** That is not a coincidence in a set of four drawn from ~1,271
+tests.
+
+### The mechanism, measured
+
+`vitest.tools.config.ts` sets **no `testTimeout`**, so vitest's **5000ms** default governs, and three of the
+four set no allowance of their own. Observed durations when they failed: **5044ms · 5758ms · 7725ms** — at and
+over the line.
+
+The corroboration is complete: they failed **together**, passed **in isolation**, passed in the board run at
+`551421d` minutes earlier, escalated 2 → 3 → 4 across consecutive runs, and `pnpm reap` reported **zero**
+orphaned processes — so it is not debris (§1052's mechanism) but the load of my own back-to-back full-suite
+runs.
+
+### Why it is worth filing rather than shrugging at
+
+A slow gate costs time. **A gate that fails for a reason unrelated to what it checks costs trust** — and the
+failure presents identically to a real defect, so the first response is to investigate the code, and the
+second, after it happens twice, is to skip or weaken the gate. This record already contains that arc: §978's
+browser gates were unguarded until a `perf` failure **skipped the 26-gate merge surface on three consecutive
+CI runs**.
+
+The fix is a per-test or suite-level `testTimeout` on the four — **not** removing them — and it is a decision
+rather than an edit, because raising a timeout also raises the ceiling on a genuinely hung child process. Filed
+with the reopen trigger that matters: *when CI reports a red in one of the four that does not reproduce in
+isolation.*
+
+> **A gate refusing a commit is the gate working, and what it refuses over is worth reading.** The four
+> failures were not my change and not a defect — they were a property of the harness that had never been
+> written down, surfaced only because the commit was chained behind the check rather than beside it.
+
+**STOP.** Four load-sensitive gates identified by name and mechanism rather than dismissed as flakes;
+subprocess-spawning established as their common property and the absent `testTimeout` measured as the cause;
+corroborated by isolation, by the board, and by a clean reap; filed as a new Low–Med row with its fix framed as
+a decision and a reopen trigger that fires on the exact symptom.
 
