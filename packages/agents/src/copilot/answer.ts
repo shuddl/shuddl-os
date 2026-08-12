@@ -1,4 +1,4 @@
-import { z, AnswerResult, EXCEPTION_KINDS, type EventRef, type EventKind } from "@shuddl/contracts";
+import { z, AnswerResult, EXCEPTION_KINDS, type EventRef } from "@shuddl/contracts";
 import type { CopilotReadPort, ReadEvent } from "./port.js";
 
 // WP-10 Task 7 (REQ-038/024) — the COPILOT core: a read-only question-answerer over the ledger. It is config-

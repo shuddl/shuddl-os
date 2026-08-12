@@ -651,8 +651,16 @@ describe("firehose GET /v1/events", () => {
     // calls byte-unchanged BECAUSE the keyset cursor depends on it — left this file 45/45 GREEN. A page size
     // below the corpus is what makes this test a pagination test.
     let pages = 0;
-    for (let i = 0; i < 200; i++) {
-      const q: string = cursor ? `?limit=10&cursor=${encodeURIComponent(cursor)}` : "?limit=10";
+    // §1235 — START JUST BEFORE FIRE_1 AND STOP ONCE ITS SUBJECT IS COVERED. §1233 walked the WHOLE tenant at
+    // page size 10; in isolation that corpus is 51 rows, but under `pnpm test` every sibling file has seeded
+    // into the same D1 and it exceeds 500 — 50+ round trips, and the run TIMED OUT at 30s. The six rows this
+    // test asserts live on two adjacent streams, so the walk only has to span THEM: `s:adv-fire-0:0` sorts
+    // immediately below `s:adv-fire-1`, and the loop breaks as soon as all six are seen. Deterministic at any
+    // corpus size, and it still crosses the FIRE_1 → FIRE_2 boundary, which is the property.
+    cursor = `s:adv-fire-0:0`;
+    const want = new Set([FIRE_1, FIRE_2].flatMap((shp) => [0, 1, 2].map((n) => `s:${shp}:${n}`)));
+    for (let i = 0; i < 40; i++) {
+      const q: string = cursor ? `?limit=2&cursor=${encodeURIComponent(cursor)}` : "?limit=2";
       pages += 1;
       const page: ListResult = await listFirehose(ops, q);
       expect(page.status).toBe(200);
@@ -661,6 +669,7 @@ describe("firehose GET /v1/events", () => {
         expect(seen.has(key), `duplicate keyset row ${key}`).toBe(false);
         seen.add(key);
       }
+      if ([...want].every((k) => seen.has(k))) break; // subject covered — do not walk the rest of the tenant
       if (!page.next_cursor) break;
       cursor = page.next_cursor;
     }
@@ -684,12 +693,17 @@ describe("firehose GET /v1/events", () => {
   // because dropping that check can only turn nulls into strings and nothing asserted a null. The pagination
   // loop at the top of this describe (`if (!page.next_cursor) break;`) would then never break.
   it("a SHORT page ends the walk — next_cursor is null (REQ-010 termination)", async () => {
-    const LIMIT = 500; // under LIMIT_CAP (1000), far above the rows this shared test D1 holds
-    const res = await listFirehose(await opsTok(), `?limit=${LIMIT}`);
+    // §1235 — SCOPED TO ONE STREAM, not the whole tenant. The first version asked the firehose for 500 and
+    // asserted the page came back short; under `pnpm test` the shared D1 holds MORE than 500, so it got a full
+    // page and the premise (correctly) fired. A single shipment stream is seeded by THIS file — three rows —
+    // so "short" is a property of the fixture rather than of whatever else has run.
+    const LIMIT = 10; // > the 3 rows seeded on FIRE_1, so the page is short by construction
+    const res = await listShipment(FIRE_1, await opsTok(), `?limit=${LIMIT}`);
     expect(res.status).toBe(200);
     // PREMISE, asserted not assumed: the D1 is shared across test files, so if the corpus ever reached LIMIT
     // this case would silently exercise the FULL-page branch and pass for the wrong reason.
-    expect(res.events.length, `a FULL page came back at limit=${LIMIT}; raise LIMIT or this case is vacuous`).toBeLessThan(LIMIT);
+    expect(res.events.length, `a FULL page came back at limit=${LIMIT}; the fixture grew — raise LIMIT`).toBeLessThan(LIMIT);
+    expect(res.events.length, "an EMPTY page would take the `last === undefined` branch and prove nothing").toBeGreaterThan(0);
     expect(
       res.next_cursor === null,
       "a short page must end the walk with a null cursor; a non-null cursor sends the client back for a page that does not exist",

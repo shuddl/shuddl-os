@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 682 | §1234 | **§1235** | **STOPPING POINT — THE BOARD RE-MEASURED AFTER 23 COMMITS, AND IT CAUGHT TWO REGRESSIONS I HAD INTRODUCED.** 26 gates: **18 PASS · 3 FAIL · 5 BLOCKED** (§1214 was 19·2·5). (1) **`lint` FAILED for eight commits** — §1227 removed the only consumers of an `EventKind` type import in two files; unused imports are not TYPE errors, so the `typecheck` I ran passed. Verified with the adjacent tool, not the one owning the rule. (2) **Three of my own tests failed in the suite and passed alone** — the shared tenant D1 holds 51 rows in isolation (the number I published at §1233) and **over 500** under `pnpm test`, so a `limit=500` short page came back FULL and a page size of 10 timed out at 30s. **The premise assertions did their job**, failing ON the premise with the cause in the message. Fixed by removing the corpus dependency, not re-tuning: scope to one stream · bound the walk to its subject · walk to termination. The export fix escaped its own mutation first (dropping the length check costs ONE empty round trip, not a loop) — the invariant with teeth is per-page. **A test verified in isolation is not verified.** api now 70 files / 831 tests / 0 failures. |
 | 681 | §1233 | **§1234** | **§1233'S RULE RUN AS A SEARCH — ABSENCE ASSERTED OVER A PAGE CAPPED AT EXACTLY `LIMIT_CAP`.** Scanned for tests whose meaning depends on a parameter-vs-corpus relationship. **First scan found 8; corrected scan found 15** — my pattern required `?limit=` and missed every `&limit=` form, including one I had read on screen minutes earlier. Seven sites request `limit=1000`, which IS the cap, then assert over the page. Harmless for PRESENCE; for **ABSENCE** it is only sound if the page is the whole set — and two of those are **REQ-025 constitutional cross-tenant checks** (*tenant-b's marker is never reached*). Risk today is low and stated as such (narrow kind filters ⇒ ~1 row); what was missing is the assertion that it stays low, so a corpus crossing the cap would weaken a constitutional check SILENTLY. Premises added to both and proved non-vacuous (tightened to `< 1`, fires). Five presence-only sites named safe. |
 | 680 | §1232 | **§1233** | **A PAGINATION TEST THAT FETCHED ONE PAGE — AND A THIRD PREDICTOR FALSIFIED.** Visibility filtering (I6) is thoroughly defended: deleting `visibility <> 'internal'` reds **8+ tests**, including *still hides internal WHEN PAGINATING*. That suggested *assertable iff removal yields an identifiable ITEM, not a COUNT* — **and ordering falsified it**: swapping the keyset order to `(seq, stream_id)`, which `lens.ts` calls byte-unchanged BECAUSE the cursor depends on it, left 39/39 and 45/45 GREEN. Cause was mundane: the test named *paginates across the whole tenant*, with a **30-second timeout** justified by that walk, used **page size 100 against a 51-row corpus** — the loop ran ONCE and the cursor was never used. Fixed to page size 10 plus a premise assertion (`pages > 1`); the mutation now REDs. **Three predictors, three falsifications** — each a taxonomy of guards, when the cause was ONE parameter. A test can exist, be correctly named, and not execute the property. |
 | 679 | §1231 | **§1232** | **SIX FOR SIX — SIZE BOUNDS ARE A BLIND SPOT AS A CLASS, AND MY SECOND PREDICTOR WAS WRONG TOO.** Worked §1231's queue: `DETAIL_SHIPMENT_CAP`, `ISA_SCAN_LIMIT`, `MAX_INPUT`, `MAX_PAYLOAD_CHARS` all mutated so they can never bind — **all four SURVIVED**, including the two CHEAP ones (200 chars, 2 000 chars), falsifying §1231's cost-based prediction. Tally: **size/truncation bounds 0 of 6 asserted; branches with a named outcome 4 of 4**. The reason is structural, not economic — a truncation produces *a shorter list and nothing else*, so there is no outcome a test would assert while testing the feature; a 403, a flag or a throw gets its guard covered as a side effect. Fixed the per-event half of §1231's bound (`MAX_PAYLOAD_CHARS` on the PAID path — capping the count alone leaves 100 unbounded bodies), asserting the clip AND its visibility; both mutations RED. **Two predictors now falsified by their own tests** — measuring beats predicting here. 4 bounds named still-unasserted. |
@@ -67026,7 +67027,7 @@ consult that §1124's roster exists to guarantee.
 Adding `"quote.priced"` to the set closes it, and **breaks nothing in this repository**: every legitimate
 producer (`/v1/rate`, `pub/quote.ts`, the Concierge, the EDI 204 inbound) calls `SHIPMENT_SEQ.append`
 **directly** and never traverses this route, and no test or app flow posts the kind here. The existing
-refusal is already well tested — including its ordering — at `lens-adversarial.test.ts:822@SERVER-EMITTED`,
+refusal is already well tested — including its ordering — at `lens-adversarial.test.ts:836@SERVER-EMITTED`,
 so mirroring the forged-invoice case for a forged quote is a small, obvious addition.
 
 It is still an **owner decision**, and that is the honest scope boundary: this route is a **public API
@@ -73424,3 +73425,83 @@ count off a mis-scoped grep.
 **STOP.** The rule run as a search, my own scan corrected from 8 to 15 after it under-matched, the one shape
 where a capped page can produce a FALSE PASS isolated to two constitutional sites, premises added and
 mutation-proved live, the five safe sites named as safe, and the display-vs-source misread recorded.
+
+## §1235 — PHASE GATE: stopping point — the board re-measured after 23 commits, and it caught two regressions I had introduced
+
+**Why re-measure.** §1214 was the last authoritative board. Twenty-three commits later — 17 source files across
+`contracts`, `ledger`, `api` and `agents`, plus two new gates — a re-run was overdue. It found **two defects of
+mine that every check I had run individually said were fine.**
+
+```
+26 gates   18 PASS · 3 FAIL · 5 BLOCKED     at 14c30d1   (§1214 was 19 · 2 · 5)
+```
+
+### Regression 1 — `lint` FAILED, and typecheck could never have seen it
+
+§1227 removed the local `EXCEPTION_KINDS` declarations, which were the only consumers of the `EventKind` **type
+import** in two files. Unused imports are not type errors, so `pnpm typecheck` — which I *did* run — passed. The
+lint gate is a different gate:
+
+```
+answer.ts     1:64  'EventKind' is defined but never used
+exceptions.ts 3:32  'EventKind' is defined but never used
+```
+
+Both dropped; `pnpm lint` exits 0. **Eight commits stood with a red gate because I verified with the adjacent
+tool rather than the one that owns the rule.**
+
+### Regression 2 — three of my OWN tests fail in the suite and pass alone
+
+`unit-tests` carried three failures beyond the known register-row ones — **all three written by me at §1228 and
+§1233, and all three green when run file-by-file:**
+
+| Test | Isolated | Full suite |
+|---|---|---|
+| export: a SHORT page ends the walk | pass | `expected 500 to be less than 500` |
+| firehose: a SHORT page ends the walk | pass | `expected 500 to be less than 500` |
+| firehose: keyset walk across the tenant | pass | **`Test timed out in 30000ms`** |
+
+**The cause is the thing those very tests were written about.** The tenant D1 is SHARED across test files: alone,
+`lens-adversarial.test.ts` sees 51 rows — the number I calibrated against and *published* at §1233. Under
+`pnpm test` every sibling has seeded first and it exceeds **500**. So a `limit=500` "short page" came back full,
+and a page size of 10 needed 50+ round trips.
+
+**The premise assertions did exactly their job.** Both short-page tests failed *on their premise*, naming the
+problem in the message — `a FULL page came back at limit=500; raise LIMIT or this case is vacuous` — rather than
+silently exercising the wrong branch. That is the design working; the calibration was what was wrong.
+
+**Fixed by removing the dependency rather than re-tuning the constant:**
+
+- **firehose short page** → scoped to ONE shipment stream (3 rows seeded by this file), so "short" is a property
+  of the fixture, not of whatever else ran. Plus an explicit non-empty assertion, because an empty page takes the
+  `last === undefined` branch and proves nothing.
+- **keyset walk** → starts at `s:adv-fire-0:0` (immediately below `adv-fire-1`) and breaks once its six subject
+  rows are seen. Still crosses the FIRE_1 → FIRE_2 boundary, which is the property; no longer walks the tenant.
+- **export** → walks to termination, which is corpus-independent.
+
+### The export fix escaped its own mutation once, and the reason is worth keeping
+
+Walk-to-termination is **too weak**: deleting `events.length >= limit` does not loop forever, it costs **one extra
+empty round trip** and then terminates. The mutation passed. The invariant with teeth is per-page —
+*the page that comes back SHORT must be the page that ends the walk* — asserted every iteration. All three
+mutations now RED: the export cursor, the events cursor, and the keyset `ORDER BY`.
+
+Also mine, and caught by the same run: `page?.events_next_cursor ?? "MISSING"` — `??` coalesces **null**, the
+exact value under assertion, turning a correct result into a failure.
+
+### What this phase is actually evidence for
+
+**A test verified in isolation is not verified.** I ran each new test individually, saw green, and committed —
+three times. The merge gate runs them together, and that is the only context whose verdict counts. The same
+sentence applies to gates: `typecheck` passing is not `lint` passing.
+
+**Verified after the fixes:** `pnpm lint` exit 0 · `workers/api` **70 files / 831 tests, 0 failures** (was
+3 failed / 828 passed) · `packages/ledger` and `packages/agents` green individually. The remaining `unit-tests`
+and `coverage` failures are the three owner-held REQ-289 register-row tests in `tools/traceability`, unchanged —
+so the board returns to **19 PASS · 2 FAIL · 5 BLOCKED**, stated as a component-verified inference rather than a
+re-run of all 26 gates.
+
+**STOP.** The board re-measured rather than assumed, a red lint gate that had stood for eight commits found and
+closed, three self-inflicted suite-scale failures diagnosed to the shared-corpus dependency they were written
+about, fixed by removing the dependency instead of re-tuning the number, and every repaired test mutation-proved
+against the defect it exists for.

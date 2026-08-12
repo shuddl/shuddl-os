@@ -1,6 +1,6 @@
 import { TERMINAL_STATES } from "@shuddl/ledger/queries/metrics";
 import type { Hono } from "hono";
-import { EXCEPTION_KINDS, type EventKind } from "@shuddl/contracts";
+import { EXCEPTION_KINDS } from "@shuddl/contracts";
 import { lensFor, readEvents } from "@shuddl/ledger/lens";
 import { ApiError } from "../middleware/error.js";
 import { requireRole } from "../middleware/auth.js";

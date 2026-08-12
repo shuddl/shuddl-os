@@ -183,16 +183,37 @@ describe("REQ-010: the archive bundles events + journal + documents + anchors, w
   // returns nothing, and the documented contract ("a short page is the end") is unenforced.
   it("a SHORT page ends the walk — events_next_cursor is null (REQ-010 termination)", async () => {
     const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "admin" });
-    const LIMIT = 500; // under LIMIT_CAP (1000), far above anything the shared test D1 holds
-    const a = (await (await getExport(t, `&limit=${LIMIT}`)).json()) as Archive;
-    // PREMISE, asserted rather than assumed: this really is a short page. The tenant D1 is SHARED across test
-    // files, so the count is not fixed here — if it ever reached LIMIT this test would silently be exercising
-    // the full-page branch instead, and pass for the wrong reason.
-    expect(a.events.length, `the export returned a FULL page at limit=${LIMIT}; raise LIMIT or this case is vacuous`).toBeLessThan(LIMIT);
-    // Both directions in one unconditional property: null iff the page was short.
+    // §1235 — WALK TO THE END rather than assuming one page is short. The first version asked for 500 and
+    // asserted the page came back short; the tenant D1 is SHARED across test files and under `pnpm test` it
+    // holds MORE than 500, so the premise (correctly) fired and this failed. Termination is the property that
+    // actually matters and it is corpus-independent: whatever the size, walking must reach a null cursor.
+    const LIMIT = 500;
+    const MAX_PAGES = 20; // 20 x 500 = 10 000 events; far past any test corpus, so exhausting it means NO end
+    let cursor: string | null = null;
+    let pages = 0;
+    let page: Archive | undefined;
+    for (let i = 0; i < MAX_PAGES; i += 1) {
+      const q = cursor === null ? `&limit=${LIMIT}` : `&limit=${LIMIT}&cursor=${encodeURIComponent(cursor)}`;
+      page = (await (await getExport(t, q)).json()) as Archive;
+      pages += 1;
+      // THE PER-PAGE INVARIANT, and the one that actually has teeth: the page that comes back SHORT must be the
+      // page that ends the walk. Asserting only "the walk terminates" is too weak — dropping the length check
+      // merely costs one extra EMPTY round trip, which still terminates (measured §1235). Tying shortness to
+      // the null cursor is what distinguishes a correct cursor from one that hands back a page that is empty.
+      expect(
+        page.events_next_cursor === null,
+        `page ${pages} returned ${page.events.length} of ${LIMIT} rows — a short page must END the walk, and a full page must continue it`,
+      ).toBe(page.events.length < LIMIT);
+      if (page.events_next_cursor === null) break;
+      cursor = page.events_next_cursor;
+    }
+    expect(pages, "the walk never terminated — a cursor came back on every page, so a client would loop forever").toBeLessThan(MAX_PAGES);
+    // NOTE: no `?? "MISSING"` here — `??` coalesces null, which is the very value being asserted, so it would
+    // turn a CORRECT result into a failure. `page` is proven defined by the loop having run at least once.
+    expect(page, "no page was fetched").toBeDefined();
     expect(
-      a.events_next_cursor === null,
-      "a short page must end the walk with a null cursor; a non-null cursor here sends the client back for a page that does not exist",
-    ).toBe(true);
+      page?.events_next_cursor,
+      "the final page must end the walk with a null cursor; a non-null cursor sends the client back for a page that does not exist",
+    ).toBeNull();
   });
 });
