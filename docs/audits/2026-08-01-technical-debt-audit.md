@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 592 | §1144 | **§1145** | **CONTROLLED §1126 THE SAME WAY — AND BOTH OF MY MECHANICAL PROBES FAILED, IN DIFFERENT DIRECTIONS.** §1144 said presence-of-a-safe-pattern needs a sensitivity control, so I planted against §1126's *"17 of 19 append paths are server-fixed"*. Plant 1 was too weak — it REPLACED the literal, so the method re-classified correctly; the real hazard is **coexistence**. Plant 2 kept the literal and added a client-kind path: the literal count stayed 1 and **§1126's method still said SERVER-FIXED** — a false negative. My replacement probe (`kind:` from client data) then returned `<none>` across all 19 — and **failed its own control**, because the two KNOWN client-kind routes never assign `kind:` at all: they pass an opaque parsed body as `input` (`stub.append({ …, input })`). **The classification is not establishable by pattern**; §1126's verdict rests on reading, as §1122 said of §1121. |
 | 591 | §1143 | **§1144** | **CONTROLLED MY OWN CLEAN NEGATIVE — THE CONCLUSION HELD, THE METHOD FAILED.** §1143 warned that false confirmations go uninvestigated, so I planted a violation against §1135's *"43 sites, zero take the tenant from a header or body"*. The plant — `resolveTenantDb(c.env, c.req.header("X-Tenant") ?? session.tenant)`, i.e. a client override with the claim as FALLBACK, which is how such a bug actually looks — **was not flagged**, because §1135's filter was `grep -v "session.tenant"` and the malicious line CONTAINS that string. **A negative filter is defeated by any line carrying both tokens, and `??` is exactly that shape.** Replaced with a positive match on the DANGER, control-verified to catch the plant; re-derived across **11 distinct argument forms** — all safe (31 claim · 12 cron roster · 2 claim-by-other-spelling · 1 MAC'd cap · 1 queue trigger · 1 DO-pinned · 4 declarations). |
 | 590 | §1142 | **§1143** | **SWEEPING THE ABSENCE CLAIMS — AND A FALSE CONFIRMATION, WHICH IS WORSE THAN A FALSE ALARM.** §1142's false row was an ABSENCE claim, the kind a pattern read gets wrong, so I swept for siblings: **25** live unstamped rows assert that something does not exist. Re-derived the one whose method I had already proved unsound — *"seven of the 35 kinds have no emitter"*, traced by *literal* emitter, the method §1131 showed misses `rate.ts` entirely. Checked against the **append-seam** corpus instead: the count **survives**, with one refinement — **`credit.checked` has no SERVER emitter but IS client-appendable** (§1125), so *"no emitter"* must not read as *"cannot appear in the ledger"*. **The phase's real content:** my first probe had broken shell quoting and returned `<none>` for all five — **agreeing with the row**. Caught only because §1125 had told me otherwise. |
 | 589 | §1141 | **§1142** | **LAW 9 IS 16/16 — AND I GOT THREE DIFFERENT ANSWERS BEFORE THE RIGHT ONE.** CLAUDE.md rule 9 demands an adversarial swarm at EVERY WP exit; a note of mine said *"WP-04…WP-16 have no exit-audit section at all."* **False at HEAD: all sixteen have one.** Getting there took three passes, and the direction of the error ALTERNATED — counting *mentions* said all 16 (too generous: a mention is not a section); matching `## REQ-119 exit audit` said 4 of 16 (too harsh: a heading-format artifact); matching **both** conventions said 16. The corpus uses **three** heading forms (`## WP-exit audit swarm (REQ-119)` for WP-01–11, `## REQ-119 exit audit — CLEAR-TO-CLOSE` for 12–15, `launch audit` for 16) because it was written over months by an evolving convention. **No single pattern matches a corpus whose convention drifted.** |
@@ -68009,4 +68010,63 @@ realistic violation shape; the original method **failed** the control and is sup
 filter defeat named as a general rule; the replacement control-verified by an actually-executed plant; the
 conclusion re-derived over 11 distinct argument forms and confirmed. Zero source changed, plant restored and
 verified clean twice.
+
+## §1145 — PHASE GATE: the same control on §1126, and two probes that both failed
+
+**Why this phase.** §1144 established that a clean negative carries a hidden claim — *"this probe would find
+a violation"* — and that presence of a safe pattern is not evidence of safety. §1126's Law 3 verdict is
+exactly that shape: **17 of 19 append paths classed "server-fixed" because they contain a literal kind.**
+Containing a literal does not exclude a *second*, client-driven path in the same file.
+
+### Plant 1 was too weak, and that is itself the lesson
+
+I first replaced `kind: "message.sent"` with a client-derived expression. The literal count fell to **0**, so
+§1126's method re-classified the route as client-chosen — it *passed*. But the plant had **removed the safe
+signal**, which is not how the hazard arrives.
+
+> **A sensitivity plant must PRESERVE the safe signal**, because the failure mode being tested is
+> **coexistence**. Replacing the safe pattern tests whether the probe notices its absence; adding an unsafe
+> path beside it tests whether the probe notices the danger. Only the second is the real question.
+
+### Plant 2 shows the false negative
+
+Keeping `kind: "message.sent"` and adding a second append taking the kind from the body: the literal count
+stayed **1**, and §1126's method still reported **SERVER-FIXED**. A route with a live client-kind path would
+have been counted among the seventeen "safe" ones.
+
+### And my replacement probe failed its own control
+
+I then wrote a positive-danger probe — `kind:` assigned from `body` / `input` / `parsed` / `c.req` — and ran
+it across all 19 appenders. It returned **`<none>`**.
+
+That result **agrees with §1126**, which is exactly when §1143 says to demand a control. The control is
+already known: `events.ts` and `internal-platform.ts` **are** client-kind routes. The probe found **neither**.
+
+The reason is the mechanism: those routes never assign `kind:` at all. They pass the parsed body through
+whole —
+
+```
+event = await stub.append({ tenant: session.tenant, streamId, input });
+event = await stub.append({ tenant: PLATFORM_TENANT_ID, streamId, input, platform: true });
+```
+
+— and the kind lives *inside* `input`. A probe looking for `kind:` from client data is blind to the only form
+the danger actually takes here.
+
+### What this leaves
+
+**§1126's conclusion stands, and it stands on reading.** Two mechanical probes were attempted; the first is
+blind to coexistence, the second blind to the real mechanism, and neither could have produced the verdict.
+That is the third time this session a classification has come back to reading — §1122 (uncalled exports),
+§1132 (the kind catalog), and now this.
+
+> **When two independent mechanisation attempts both fail their controls, the property is probably not
+> pattern-decidable**, and the honest record says so rather than shipping the third attempt. What makes
+> §1126's verdict trustworthy is that nineteen files were opened, not that a regex agreed with it.
+
+**STOP.** §1144's control discipline applied to a second clean negative; a weak plant identified and replaced
+with one that preserves the safe signal; §1126's method shown to produce a **false negative** under
+coexistence; the replacement probe shown to fail its own control against two known-positive routes; the
+verdict re-attributed to reading rather than to any probe. Plants restored, tree verified clean twice. Zero
+source changed.
 
