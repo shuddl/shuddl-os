@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 647 | §1199 | **§1200** | **THE SHARED-PROJECTION SHAPE SWEPT BEYOND THE LEDGER: THE TWO PUBLIC CAP SURFACES ARE SAFE, BY A FOURTH MECHANISM.** §1199's corrected discriminator — *one projection feeding both sides of a verification* — applies wherever a producer and a verifier exist. Outside the ledger that is the capability MACs gating the only unauthenticated endpoints: `/pub/status/:cap` (`{t,s}`) and `/pub/documents/:cap` (`{t,k}`). **The shape does not apply**: both are JWTs, so the MAC covers the ENTIRE payload and `verify` never rebuilds a projection — it checks the signature over the raw token. The live risk there is the different one this record has met (*parsed but unconsumed*), and both consumers bind every claim with **no request-supplied alternative to confuse**: status resolves the tenant DB from `claims.t` and binds `claims.s` into both queries; documents confines `claims.k` to `evidence/${claims.t}/` before the R2 read, so even a MAC-valid cap cannot leave its own tenant. **Mutation-proved**: removing that confinement REDs a test. Four mechanisms now measured across every verification-bearing projection in the build — shared+allowlist (the one gap), shared+denylist, inverse pair, and whole-payload MAC. |
 | 646 | §1198 | **§1199** | **THE PROJECTION SWEEP CLOSES: THREE PROJECTIONS, THREE DIFFERENT REASONS, ONE GAP — AND THE DISCRIMINATOR IS NOT ALLOWLIST-vs-DENYLIST.** `eventToRow` is an explicit ALLOWLIST, the same shape §1197 found unpinned — but blanking `payload` in it REDs **39** tests. So the allowlist/denylist axis §1198 named is not what decides safety. The real discriminator is whether **ONE projection feeds BOTH sides of a verification**: `clientView` is called by `signEvent` AND `verifyEventSig`, so blanking a field makes both sides agree and the check passes over nothing — invisible. `hashView` is likewise shared, and survives only because its denylist shape makes omission impossible. `eventToRow`/`rowToEvent` are INVERSE functions, not a shared one, so a blanked value produces an observable mismatch the round-trip catches. Taxonomy measured, not argued: **shared+allowlist = the gap (§1197, now pinned) · shared+denylist = safe by construction (§1198) · inverse pair = safe by observable mismatch (§1199)**. The ledger's verification-bearing projections are now all accounted for. |
 | 645 | §1197 | **§1198** | **THE SIBLING PROJECTION IS DEFENDED, AND THE REASON IS ARCHITECTURAL: DENYLIST vs ALLOWLIST.** §1197's shape — two sides sharing a projection, the field LIST pinned while value coverage is not — swept to its highest-stakes sibling: `hashView`, which is to the I1/I7 chain hash exactly what `clientView` is to the I4 signature (`hashEvent = sha256Hex(canonicalBytes(hashView(e)))`). **All five mutations RED**: `delete payload` 3 · `payload = {}` 3 · `delete prev_hash` 2 · `delete seq` 2 · `delete visibility` 2. The difference is structural, not diligence: `hashView` is a **spread-and-delete** (`{...e}`, drop `sig` and `hash`) — a DENYLIST, which covers every field by default and can only lose one by an explicit `delete`. `clientView` is an **explicit allowlist**, which loses a field by omission, silently. **Standing asymmetry recorded:** a new `LedgerEvent` field is automatically covered by the hash and automatically NOT covered by the signature. That is correct by design (a device signs only what it knows offline) and is exactly why no gate was built — the boundary is *device-known vs server-assigned*, which is English. Two probe errors: a grep that missed the summary when a `Snapshots` line appeared, and three empty results that were **workerd exhaustion on back-to-back pool runs**, not greens. |
 | 644 | §1196 | **§1197** | **A DEVICE SIGNATURE COVERING A CONSTANT INSTEAD OF THE FREIGHT IT ATTESTS LEFT 749 TESTS GREEN.** `recall "signEvent"` → **0 mentions in either governing record**: the co-signing primitive behind I4/REQ-016 had never been audited. It is 50 lines with two guards, and the suite pins two halves that do not join. `clientView is the frozen offline field set` pins the ten field NAMES — dropping any one REDs it, which is why all ten looked defended. The behavioural test *"any change to a signed field breaks verification"* varies exactly **one** field (`ts`). **Neither pins that the signature covers a field's VALUE**, and that is a separate property because sign AND verify both route through `clientView`: return a constant for a field and the two sides still agree, verification still passes, and the field is unprotected. **MEASURED: `payload: {}` inside clientView left 697 ledger + 52 workers/api tests GREEN** — a signature covering `{}` instead of the POD's actual payload, which is the exact forgery I4 exists to prevent. The uniform *"1 failed"* across all ten drops was §1194's invariance tell, and following it is what exposed the join. Pinned per field with type-appropriate tampering; three blanking mutations now RED, each naming the field that verified as authentic. |
@@ -71415,4 +71416,60 @@ fresh and the counter-example has not been looked for yet. Looking for it cost o
 
 **STOP.** Three projections, three mechanisms, one gap — and the rule stated one phase ago corrected by the
 measurement that was supposed to confirm it.
+
+## §1200 — PHASE GATE: the shape swept out of the ledger, and the fourth way to be safe
+
+**Why this phase.** §1199 replaced §1198's rule with a sharper one: **a verification cannot detect what a
+projection discards when BOTH of its inputs come from that projection.** That is a property of producer/verifier
+pairs generally, not of the ledger — so the question is where else such a pair exists.
+
+Outside `packages/ledger`, the answer is the **capability MACs**, and they are the highest-stakes possible
+instance: they gate the only two unauthenticated endpoints in the system.
+
+```
+/pub/status/:cap      mintStatusCap / verifyStatusCap        claims { t, s }
+/pub/documents/:cap   mintDocDownloadCap / verifyDocDownloadCap   claims { t, k }
+```
+
+### The shape does not apply, for a structural reason
+
+Both are **JWTs**. `sign({ typ, t, s, exp }, secret, "HS256")` MACs the *entire* payload, and `verify` does not
+rebuild anything — it checks the signature over the raw token and then parses what was inside. There is no
+shared projection to discard a field, because there is no projection at all: the producer writes an object
+literal and the verifier reads bytes.
+
+That is a **fourth** way to be safe, distinct from the three §1199 catalogued.
+
+### So the live risk is the other one, and it is clean
+
+Where a cap carries claims, the failure mode this record has met before is *parsed but unconsumed* — a claim
+verified and then ignored while the route takes the same value from the request. Measured on both:
+
+- **status**: `resolveTenantDb(c.env, claims.t)` and `.bind(claims.s)` on both queries. The tenant and the
+  shipment come from the **cap**, and the only request input is the cap itself — there is no alternative source
+  to confuse.
+- **documents**: `if (!claims.k.startsWith(\`evidence/${claims.t}/\`)) return deny();` before the R2 read, so
+  even a MAC-valid cap cannot address another tenant's evidence.
+
+**Mutation-proved** rather than read: deleting that confinement REDs a test (`1 failed | 40 passed`).
+
+### What is now closed
+
+Every verification-bearing projection in the build has a measured verdict, and they are safe for **four
+different reasons** — which is itself the result, because it means no single rule would have covered them:
+
+| mechanism | instance | why it holds |
+|---|---|---|
+| shared + allowlist | `clientView` | **it did not** — §1197's gap, now pinned per field |
+| shared + denylist | `hashView` | omission requires an explicit `delete` |
+| inverse pair | `eventToRow`/`rowToEvent` | a discarded value produces an observable mismatch |
+| whole-payload MAC | the two caps | there is no projection to discard through |
+
+> **Four mechanisms, one property.** A sweep that had stopped at the first explanation would have "confirmed"
+> the rule three times and found nothing — §1198 nearly did exactly that. What made the difference was
+> measuring each instance instead of classifying it.
+
+**STOP.** The producer/verifier shape swept across the whole build, the two public cap surfaces confirmed safe
+by structure and their claim-binding mutation-proved, and the taxonomy closed at four mechanisms with one real
+gap — found, pinned, and the only one that any of the four rules would have missed.
 
