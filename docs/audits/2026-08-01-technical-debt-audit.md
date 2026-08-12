@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 637 | §1189 | **§1190** | **THE FULL MERGE BOARD, RUN AND ATTRIBUTED: 21 PASS · 2 FAIL · 5 BLOCKED · 4,601 TESTS / 3 FAILING.** Seventeen commits this stretch landed on `delta` alone, which only sees test-suite regressions — CLAUDE.md says green means `verify:merge`, so it was run. **Both FAILs are ONE cause, verified not inherited:** the failing assertions are *exactly* the three delta-baseline entries (`coverage.test.ts` ×2 + `traceability.test.ts` ×1), all from the owner's uncommitted REQ-289 row — 288 rows at HEAD against approved terminal REQ-288, 289 in the tree. **All 5 BLOCKED are absent private inputs**: nine unvendored engagement fixtures and the `IDENTITY_DENYLIST` secret. Denominator measured rather than assumed: **22 vitest projects, 4,601 tests**, correcting an undated 4,152. **Traced one anomaly to ground:** `fatal: not a git repository` appeared **5×** — the signature of a gate scanning an empty corpus. Bisected to `invariants.test.ts`, where `findStraySql` deliberately falls back to a filesystem glob outside a git work tree, exercised by tests in a real temp dir and asserted there (*"a stray anywhere else is caught"*). **Correct by design, and fail-SAFE**: the fallback is MORE inclusive than git's ignore-aware listing. |
 | 636 | §1188 | **§1189** | **SWEPT EVERY GATE'S CORPUS; ONE MONEY CHECK EXCLUDED A TREE FOR NO STATED REASON — MEASURED, AND THE EXCLUSION IS RIGHT.** §1188's lesson is that a corpus is a choice nobody revisits. Swept all ~50 gate corpora: almost all are correctly scoped to their subject (a `wrangler.toml` gate scans `wrangler.toml`). One file uses **three different scopes across five checks** — `float-money-division` — and two are justified in their own text (§845 is explicitly *"the pure layer"*; §843 scans all three trees). The main float-division check excluded `apps/` **with no stated reason**. Measured by widening it and running the gate: **exactly one hit, a false positive** — `` `/v1/shipments/${id}/events?limit=200` ``, URL path separators — and **zero real findings**. The FP is STRUCTURAL: `codeSkeleton` deliberately does not blank template literals because they can carry real interpolated arithmetic (`${a / b}`), and front-end code is dense with relative API paths in exactly that position. So the exclusion is correct — money is DISPLAYED in `apps/`, computed server-side — and `apps/` is not unguarded anyway: §843 covers it at the identifier level. **Nothing changed but the record**: the choice is now written down with the number that justifies it, so the next reader revisits it with data instead of re-deriving it. |
 | 635 | §1187 | **§1188** | **THE SECTION-REFERENCE GATE SCANNED MARKDOWN ONLY, AND SOURCE CARRIES MORE REFERENCES THAN MARKDOWN DOES.** §1187's shape — a fact recorded where the gate does not look — swept across launch prerequisites: most `PREREQUISITE` hits in source are GATE semantics, the rate-limit one is filed (§1182), and `sequencer.ts`'s *"every bound tenant needs a `tenants` row"* resolves to a real row. But its pointer said **GO-LIVE §1** (*Purpose & upkeep*) when the row lives in **§2** — corrected. That prompted the real question: `check:section-refs` builds its corpus from `git ls-files "*.md"`. Measured: tracked `.ts`/`.tsx` carry **2,492** `§N` references — **more than the markdown corpus the gate was built for** — all unchecked. **Five dangle, every one at section 624, which was never allocated** (the audit runs §623 → §625; the phase those comments describe is §625, confirmed by content: *"a finding that was wrong"* ↔ *"the sweep's premise turned out to be WRONG"*). That number appears ZERO times in markdown, so the original corpus could never have seen it — **§508's own defect, recurring in the one place its gate does not look.** Five refs fixed, corpus extended (cost measured at 5 BEFORE the change), floor raised 10 → 200. |
 | 634 | §1186 | **§1187** | **TWO OF THE FIVE ACCEPTANCE-DEMO OPERATOR ROWS UNDERSTATE THEIR BLOCKERS, AND `demos.ts` PREDICTED IT.** §1186 emptied the repo-actionable ledger, so this audits what is NOT yet in it: CLAUDE.md's five demos — the build's own definition of *done enough to show*. The machinery is excellent (manifest parity both directions, all five declared, spine-file existence, a case-count floor, a may-not-be-gutted guard), so the unexamined half is each demo's stated **filmed delta**. **Demo #2:** the operator row's blocker read *"Bind the R4 flag/secret set, then the observed human run"* — binding the flags does **not** make it runnable. **THERE IS NO SIGNUP SURFACE**, re-verified at HEAD with a positive control: 0 references to `/pub/signup` in `apps/`, **0** `<form`, **0** `type="email"`, **0** `onSubmit` (control: 61 `onClick` in the same corpus). **Demo #3:** status read **PILOT**, implying the software is ready; REQ-069 (driver login) is `F0-SPEC'D` and *"a real driver cannot authenticate at all today"*, plus a HIGH-graded custody-parties block. `demos.ts` warns of exactly this — *"disclosed elsewhere ONLY as a browser-TEST gap … reads as a coverage limitation rather than the filming blocker it is"* and *"neither block is visible from this file otherwise"* — **and these rows were that elsewhere.** Demo #1 (photos) and #4 (staging smoke) are accurate; #5 needs no operator row. Both corrected. |
@@ -70729,4 +70730,77 @@ be blanked without losing interpolated arithmetic), the compensating coverage (�
 
 **STOP.** Every gate corpus swept; the single self-inconsistent file measured rather than assumed; the
 exclusion confirmed correct and converted from a default into a documented decision with its cost attached.
+
+## §1190 — PHASE GATE: the board, measured and attributed
+
+**Why this phase.** Seventeen commits landed this stretch verified only by `pnpm delta`, which answers one
+question — *did I break something that was not already broken?* CLAUDE.md is explicit that **"green" means
+`pnpm verify:merge`**, the 26-gate aggregate, *"the only complete verdict."* It had not been run once.
+
+### The board
+
+```
+21 PASS · 2 FAIL · 5 BLOCKED        aggregate: FAIL (exit 1)
+```
+
+**PASS (21)** — runtime, typecheck, lint, invariants, rater-purity, append-chokepoint, authority-coverage,
+traceability, seed, citations, table-shape, section-refs, bundle-ratchet, acceptance, design-audit, perf,
+visual, a11y, e2e, plus the two remaining command gates. Notably **section-refs passes at its new,
+fifteen-times-larger corpus** (§1188), and **design-audit** and **acceptance** are green.
+
+**FAIL (2) — one cause, verified rather than inherited.** `unit-tests` and `coverage` both exit 1. The failing
+assertions are *exactly* the three delta-baseline entries:
+
+```
+× coverage.test.ts     1) classifies every row of the real register → 100%, zero unaccounted
+× coverage.test.ts     3) disposition is pure + total: every (status,wp) → exactly one known bucket
+× traceability.test.ts keeps the authoritative register contiguous through its approved terminal ID
+```
+
+All three are the owner's **uncommitted REQ-289 row** — 288 rows at HEAD against an approved terminal id of
+REQ-288, 289 in the working tree (§1185 measured this). Nothing in seventeen commits contributed a failure.
+
+**BLOCKED (5) — all absent private inputs**, none repo-fixable: `identity-leak` (no `IDENTITY_DENYLIST`),
+`fixtures` (nine unvendored engagement fixtures), and the three parity gates that consume them
+(`rater-parity`, `invoice-parity`, `concierge-parse`).
+
+### The denominator, measured
+
+The `unit-tests` gate prints `1279 passed (1282)`, which is the **tools project alone** — `pnpm test` runs
+`test:tools` and then every workspace package with `--no-bail`, and each prints its own summary. Summing all
+22: **4,601 tests, 3 failing.** The record carried an undated **4,152**; it is now dated and larger.
+
+> A single summary line in a multi-project run is a **project's** denominator, never the suite's. Reading the
+> last one is how a 4,601-test suite gets reported as 1,282.
+
+### The anomaly, traced to ground
+
+`fatal: not a git repository` appeared **five times** in the run. That string is the signature of the class
+this audit has met before — *a gate whose scan reads an empty corpus and reports clean.*
+
+Bisected rather than guessed: not the config (0 errors on a no-test run), not `cwd-parity` (0 — it uses a repo
+*subdirectory*, which still finds `.git` by walking up), not `scan-corpus` or `coverage`. All five come from
+**`invariants.test.ts`**, which builds a real temp directory (`mkdtempSync(tmpdir(), "shuddl-stray-")`) and
+runs `findStraySql` there.
+
+That function is **correct, documented, and fail-safe**:
+
+```ts
+try   { candidates = git ls-files --cached --others --exclude-standard -- '*.sql' }
+catch { candidates = globSync("**/*.sql", …) }   // "Fall back to the filesystem glob outside a git repo."
+```
+
+The git path applies ignore rules so an ignored sibling project's SQL cannot trip a product invariant; outside
+a work tree it falls back to a glob that reads **more**, not less. And the fallback is not incidental — the
+temp-dir tests assert its behaviour directly (*"a stray anywhere else is caught"*, *"fixtures and node_modules
+are exempt"*).
+
+> **Noise on stderr is not evidence of a defect, and absence of noise is not evidence of correctness.** The
+> five lines were worth chasing because of what they *usually* mean; the answer was a fallback working exactly
+> as its comment says. Chasing it cost six bisect runs and produced a clean negative with a named cause —
+> which is the only kind worth recording.
+
+**STOP.** The complete 26-gate verdict measured for the first time this stretch: every FAIL attributed to a
+single uncommitted row that is the owner's to resolve, every BLOCK attributed to an absent private input, the
+suite's true denominator dated at 4,601, and the run's one anomaly traced to a documented fail-safe fallback.
 
