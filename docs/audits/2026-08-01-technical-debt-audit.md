@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 618 | §1170 | **§1171** | **THE ARC'S TWO TRANSFERABLE LESSONS WERE NOT IN MEMORY — NOW THEY ARE.** A session's most durable output is the rule it leaves behind, and two of this one's were unrecorded. **(1)** §1143/§1144's *a clean negative contains two claims* — extended `a-false-clean-invites-no-follow-up`, whose existing rule fired only on **zero** results while both failures here were **populated and unsurprising**: a 43-file sweep that read everything and still filtered the violation out as safe, and a probe that **agreed** with the row it checked. **(2)** §1170's *a rule applied only forwards is half a rule* — extended `self-review-with-the-reviewers-questions`, adding the rules variant plus the corollary that **building is the most expensive way to discover a thing exists**. Both indexed. |
 | 617 | §1169 | **§1170** | **STOPPING POINT XX — FOUR SELF-CORRECTIONS, EACH FOUND BY APPLYING A RULE BACKWARDS.** Board at `2f17d87`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs measured to `REQ-289`. §1166–§1169 corrected **my own** output, not the build: §1166 struck a false I7 observation (I searched `net zero`; the test says `net to exactly 0` — the trap that phase had just named) · §1167 **deleted a gate I built** that already existed, proved by watching the pre-existing one catch my plant · §1168 finished that sweep on all three gates (2 survive) · §1169 verified the deletion across four signals. **Net enforcement this session: 2 gates**, both mutation-proved, non-duplicate, cwd-independent. |
 | 616 | §1168 | **§1169** | **POST-DELETION HYGIENE: THE REMOVAL IS CLEAN, VERIFIED RATHER THAN ASSUMED.** §1167 deleted a file; a deletion leaves dangling references that not every gate catches, so it needed checking rather than trusting. The only surviving `tenant-source` string is a **comment** in `supply-chain.test.ts:22` about *"tenant-source allowlists"* (§571) — a different concept, not a reference. Both surviving gates are **collected** by `vitest.tools.config.ts` (so they run in the unit-tests merge gate); the deleted one is **not**. Tools assertions **1271 → 1265**, exactly the six removed. `check:citations` green, so no `path:line` pointed at it either. |
 | 615 | §1167 | **§1168** | **THE DUPLICATE SWEEP FINISHED UNIFORMLY: 2 OF 3 GATES SURVIVE.** §1167 removed §1147's gate but had checked only two of my three additions — and for §1148 I had verified the *convention*, not whether a **gate** already existed, which is the same gap one level down. Completed it: `constant-time-compare.test.ts` guards **how** a secret is compared (§802 — no `===` on a secret value), `wrangler-absence-claims.test.ts` guards **where** secrets are declared; **neither** asserts a credential is compared against `""`. §1148 stands, and is complementary rather than overlapping. §1149 confirmed distinct at §1167 (`wp-blocker-staleness` checks staleness, not presence). **Final: 3 built, 1 removed, 2 kept.** |
@@ -69345,4 +69346,44 @@ REQ-267 · three demo blockers · unbounded-reads keyset (needs a REQ row, **not
 **STOP.** Board 19/2/5 at `2f17d87` with both FAILs attributed; four self-corrections recorded in place rather
 than quietly fixed; the session's enforcement settled at two verified gates after one was removed as
 redundant; the backwards-application habit named as the mechanism that found all four.
+
+## §1171 — PHASE GATE: writing down the two rules this arc actually produced
+
+**Why this phase.** The durable output of a long audit is not the verdicts — those age — but the **rules**. Two
+of this arc's were still only in the audit record, where they apply to this repo and nothing else. Checked the
+memory index (66 entries) and neither was there.
+
+### 1. A clean negative contains two claims
+
+Extends `a-false-clean-invites-no-follow-up`, which fires on a **zero** result and says to plant a positive
+control. Both failures here were **neither zero nor surprising**:
+
+- §1135's sweep read **all 43** tenant-resolution sites — non-vacuous by any floor — and still filtered the
+  planted violation out **as safe**, because `grep -v "session.tenant"` is defeated by
+  `c.req.header("X-Tenant") ?? session.tenant`, which contains the safe token. **Positive-match the danger.**
+- §1143's probe returned `<none>` and **agreed** with the row it was checking. Agreement is the absence of the
+  only signal that reliably prompts a second look, so it needs a control exactly as a surprise does.
+
+The distinction added: **vacuity** (did it read anything?) is not **sensitivity** (would it fire on the real
+shape?), and only a plant that *preserves the safe signal* tests the second.
+
+### 2. A rule applied only forwards is half a rule
+
+Extends `self-review-with-the-reviewers-questions`, which turns a *reviewer's* questions on fresh work. The
+variant is turning **your own just-written rule** on work you already shipped — the mechanism that found all
+four corrections in §1166–§1169, including a gate that already existed and a duplicate-check that had run on
+two of three members.
+
+With the corollary: **building is the most expensive way to discover a thing exists.** A new gate is a claim
+that something was previously unenforced; if false, the artifact is pure cost and doubles the surface on which
+one rule can drift into two.
+
+> **A rule that lives only in the artifact it was learned from will be re-learned.** Both of these were
+> derived at real cost — one from a planted cross-tenant injection that a 43-file sweep called clean, the
+> other from deleting my own work — and both were one session away from being re-derived by the same
+> mistakes.
+
+**STOP.** The arc's two transferable rules extracted from the audit record into memory, each appended to the
+existing entry it strengthens rather than filed as a duplicate, with the index lines updated to carry the
+sharper form.
 
