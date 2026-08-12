@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 536 | §1088 | **§1089** | **STOPPING POINT VII OVERCLAIMED — MY ROW SCANNER REQUIRED 8 CELLS AND THE CHECKLIST HAS TWO SHAPES.** §1085 said *every repo-owned OPEN row read against HEAD*. True of the 55-row *Repository-owned failures & debt* table; the checklist ALSO carries **§3 Technical debt & known limitations — 92 severity-tagged items in 5-cell tables**, never touched, because every scan I wrote this session filtered `len(cells)==8`. Found by following a `recall "squint"` hit to **L185**, a row that could not exist under my own tally. The two **High** items are both EDI and both inert behind the unwired transport §1066 verified, so no verdict changes — but the CLAIM was wrong and is corrected at its source. Also: my resolution check returned **0 of 105** until I uppercased the severity token (13th shape error). |
 | 535 | §1087 | **§1088** | **ALL EIGHT SCHEMA INVARIANTS RE-VERIFIED BY LAYER — EVERY 'MISSING' LAYER IS THE WRONG LAYER FOR ITS RULE.** §1087's method applied to I1–I8. Four have a zero in some column, and **none is a gap**: **I2** (no invoice without pod.signed) has 0 migrations because a DB cannot express *no invoice unless a pod.signed exists on this stream* — it is enforced at the **chokepoint** (`invoice-gate.ts` at ledger level + `append-chokepoint` statically refusing any direct `events` write, *"bypassing the sequencer DO — and with it EVERY gate"*). **I5** has 0 source-gates because it is a **Zod parse-time refusal** (`rate_config_ids: z.array(z.string()).min(1)`), pinned by a test that plants the empty array. **I6** has 0 source-gates because genesis/10 itself designates the layer: *"tested adversarially"*. **I7** has 0 migrations because netting is an export-time property. Also: `$i[:/ ]` is ARRAY SUBSCRIPTING in zsh — my first table was all zeros. |
 | 534 | §1086 | **§1087** | **I NEARLY FILED THE APPEND-ONLY LAW AS UNENFORCED — THE PROBE TESTED ONE MECHANISM OF THREE.** §117 mutation-proved I1–I8; a proof covers only the text that existed when it ran, so I re-tested CLAUDE.md rule 2 (*no UPDATE/DELETE on `events`, ever*) in six forms. **Four came back GREEN**, including `UPDATE events SET` and `DELETE FROM events` — a spectacular-looking hole in the system's most important invariant. It is not one. UPDATE/DELETE are blocked at RUNTIME by `BEFORE` triggers that `RAISE(ABORT,'I3:…')` in a **forward-only, frozen** migration; the static scanner is REPLACE-focused **by design**, because `INSERT OR REPLACE` is precisely the form triggers CANNOT see — *"D1 runs PRAGMA recursive_triggers = 0 … SILENTLY erases the chained victim row (a history rewrite)"*. So REPLACE carries BOTH a WHEN-guarded `BEFORE INSERT` trigger and the static gate. **Three mechanisms, disjoint by construction; I tested one and read its correct scope as a gap.** |
 | 533 | §1085 | **§1086** | **THE RE-RUNNABLE-FIGURE SWEEP — 0 OUTSTANDING — AND THE CHARACTER-CLASS BUG A THIRD TIME, IN THE SWEEP ITSELF.** §1085 found 3 of 4 rows carrying stale figures, so: how many rows cite a **re-runnable** `command → number`? (That is the method that worked — §933's roster records that a PROSE discovery sweep produced *8 false positives and zero real ones*.) Answer: **15 rows, 5 of them LIVE, and all 5 re-verified today — zero outstanding.** But my first pass said **7 and 4**: the command matcher used `[a-z0-9:@/ -]+` and `pnpm -F @shuddl/driver test` has a **capital F**, so **8 of 15 were silently missed** — in a sweep whose subject is stale figures. §1064 documented this class, §1077 reproduced it, this is the third. **All three are in AD-HOC probes**; §1078 swept committed gate code and found 8 sites, 0 defects. The class is closed where something checks it. |
@@ -64516,7 +64517,7 @@ measured rather than asserted. `pnpm delta` clean · `check:tables` OK.
 
 **Why this is a stopping point.** *(VII — §999 was V and §1035 VI; the numeral was checked against the record rather than guessed, after the first draft collided with §999.)* §1047–§1084 worked outward from the record into the product and back. This
 phase closes the last four unexamined repo-owned rows, which makes a complete statement possible for the first
-time since §994: **every one of the 17 repo-owned OPEN rows has been read against HEAD in this session.**
+time since §994: **every one of the 17 repo-owned OPEN rows has been read against HEAD in this session.** **⚠️ §1089 CORRECTION — that claim is SCOPED, and the scope was not stated.** It covers the 55-row *Repository-owned failures & debt* table (8 cells: Status · Owner · Blocks · Expires). The checklist ALSO carries **§3 Technical debt & known limitations** — **92 severity-tagged items in 5-cell tables with NO status column** — which this sweep never touched, because the row scanner required `len(cells)==8`. Two are **High** (both EDI, both inert behind the unwired transport §1066 verified). See §1089.
 
 ### The four closed here
 
@@ -64788,4 +64789,68 @@ it asks whether the file it points into is one where being right silently expire
 **STOP.** All eight of genesis/10's invariants re-verified at HEAD by layer rather than inherited from §117;
 every empty column explained by what that layer can observe; the census's own zsh-subscript bug caught by the
 implausibility of uniform zeros. `pnpm delta` clean.
+
+## §1089 — PHASE GATE: the stopping point overclaimed, and the filter that hid a table
+
+**Why this phase.** §1088 ended by turning to source-of-truth #3, the design system. A `recall "squint"` hit
+returned a checklist row — **L185, *"REQ-076 names four shapes; the map draws two"*** — and that row **could not
+exist** under §1085's tally, which had accounted for every open row in the ledger. A row that cannot exist is
+either a bad memory or a bad scan.
+
+### It was a bad scan, and the same one every time
+
+Every row scanner I wrote this session filtered `len(cells) == 8`. The checklist has **two table shapes**:
+
+| shape | header | rows | what it is |
+|---|---|---|---|
+| 8-cell | `Item · Severity · Ownership · Proof · Owner · Status · Blocks grade · Evidence expires` | **55** | *Repository-owned failures & debt* — the ledger I swept |
+| 5-cell | `Item · Source file / REQ · Nature · Fix · Severity` | **~206** | **§3 Technical debt & known limitations** — never touched |
+
+§3's preamble states its own weight: *"Ordered severity-descending. **High** = weakens/blocks a gate or a
+go-live path; **Med** = correctness/privacy residual or env hazard."* It is a live inventory — **92 items carry
+a severity and no resolution marker**, because those tables have **no status column at all**. "Open" is not a
+field there, which is why nothing in my sweep noticed their absence.
+
+**So Stopping Point VII's claim was true of one table and stated as if it covered the record.** Corrected at its
+source rather than only here.
+
+### What the unswept 92 actually contain
+
+Two are **High**, and both are EDI:
+
+- **L187** — B2A purpose codes parsed then ignored, *including `01 = CANCELLATION`*. Its own severity cell says:
+  *"Both are inert until the CONFIRM-gated EDI transport is wired, so this gates the GO-LIVE, not the merge."*
+- **L188** — EDI transport + inbound-204 HMAC resolver unwired: *"`NotConfigured*` fail-closed: every live
+  204→401, no EDI transmitted."*
+
+Both are contained by the same fact §1066 measured independently: **every `EdiTransport` implementation in the
+repo is either the recording double or `NotConfiguredTransport`, which throws.** No verdict changes. The
+finding is the **scope of my claim**, not a new defect — which is exactly the kind of error that would have been
+invisible had the claim never been tested.
+
+### The instrument that hid it, and a thirteenth shape error
+
+The filter was not a bug in one probe. **It was in every probe**, because I wrote the first one against the
+8-cell ledger and reused its shape for eleven phases without re-asking what a row is.
+
+And checking resolution in the newly-found table returned **0 of 105 rows** on the first attempt: I compared
+severity tokens against `{"LOW","MED",…}` without uppercasing, and the cells read `Low` / `Med`. Thirteenth
+shape error this session, and the third distinct mechanism in three phases — a regex class (§1086), a zsh array
+subscript (§1088), and case (here).
+
+### What this phase says
+
+> **A tally is only as wide as its filter, and the filter is invisible in the number.** "17 open rows" and "17
+> open rows *of one shape*" print identically, and nothing in the output carries the predicate that produced
+> it. The scan was correct every time it ran; it was answering a narrower question than the sentence I wrote
+> around it.
+
+The corollary, and the reason this was catchable at all: **a fact that contradicts your own tally is worth more
+than a fact that confirms it.** L185 surfaced from a `recall` about something else entirely, and the only
+reason it registered was that my tally said it could not be there. Every other row in that table had been
+equally invisible for eleven phases and produced no signal, because nothing pointed at them.
+
+**STOP.** Stopping Point VII's scope is corrected at its source; the unswept §3 inventory is measured (92
+severity-tagged items, 2 High, both EDI-inert behind a transport verified unwired at §1066); the shared filter
+bug is named as one instrument reused, not eleven separate mistakes. `pnpm delta` clean · `check:tables` OK.
 
