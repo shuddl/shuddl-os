@@ -58,9 +58,16 @@ export function cellCount(line: string): number {
   // the exact defect it exists for (§1204: a 5-cell row against a 3-column header PASSED), and §1202's
   // identical mistake was caught only because NESTED backticks happened to defeat the stripper.
   //
-  // The 24 rows this was hiding were escaped first (§1206) — cells split on unescaped pipes, then a cell with
-  // ODD backtick parity absorbs the following delimiter, which is the cells-first order §1205 identified after
-  // a whole-line backtick toggle merged three rows wrongly.
+  // §1213 — WHAT THIS FUNCTION DOES, corrected. The two lines that stood here described a cells-first split in
+  // which "a cell with ODD backtick parity absorbs the following delimiter". **No such logic exists, here or in
+  // either caller (lines 83/87 pass the raw line).** That sentence described the §1205 approach that was tried
+  // and REVERTED — it merged three rows wrongly — not the one that shipped. Left standing, it promises a reader
+  // that a pipe inside a code span is protected, which is the exact premise §1206 removed.
+  //
+  // The shipped rule is the whole of it: `\|` is the ONLY escape. A pipe inside `code` IS a delimiter, matching
+  // GFM and GitHub's renderer. That is why the 24 rows this gate had been hiding were fixed by ESCAPING THE
+  // DOCUMENTS (§1206) rather than by teaching the gate about backticks — the gate is deliberately literal, and
+  // a future "but it's inside code" exemption would re-open §1204.
   const stripped = line.replace(/\\\|/g, "  ");
   return stripped.split("|").slice(1, -1).length;
 }
