@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 539 | §1091 | **§1092** | **I4's WAIVER: NO READER *AND* NO WRITER — WHICH CHANGES WHICH OPTION THE OWNER IS CHOOSING.** L186 says the `unwitnessed` waiver has no downstream reader. Verified exact: it appears in **one** non-test file (`contracts/src/events.ts` — twice as a schema field, twice in the I4 refines) and **zero** times in `workers/`, `apps/` or any other package. Then measured the direction the row did NOT: **nothing in production SETS it either.** Every `unwitnessed: true` in the tree is a test fixture satisfying I4 without a device signature — one says so in a comment. So the waiver is exercised only by tests, which makes the row's option (a) *accept it* currently **free**, and option (b) *give it a reader* a **precondition** for any surface that starts setting it. The API accepts it from any authenticated client today; the driver app never sends it. |
 | 538 | §1090 | **§1091** | **WHY SOME §3 FIGURES STAY TRUE AND MOST DECAY — TWO GATES, NINETY-FOUR CLAIMS.** Continuing §1090's sweep, L202 (*unbounded list reads — 9 sites*) turned out to be the **best-instrumented row in the tier**: `unbounded-reads-roster.test.ts` is green and its header says the assertion *compares the doc's number to `ROSTER.length`* — so that figure **cannot drift without failing a gate**, which is exactly why it is current while three other §3 figures re-measured at §1085 had gone stale. Measured the tier: **21 gates read the checklist**, **31 of 94 live items have a gate naming their source file** (a basename proxy, an upper bound), and only **2 gates compare a doc FIGURE to code**. So ~92 numeric claims in §3 are unpinned prose. |
 | 537 | §1089 | **§1090** | **THE UNSWEPT TIER, OPENED — 92 ITEMS TRIAGED, AND THE TWO SHARPEST Med ONES VERIFIED EXACT.** §1089 found §3's inventory unswept; this triages it: **2 High (both EDI, both inert), 11 live Med, 73 live Low, 13 already resolved.** Verified in full at HEAD: **L228** — `actor{party}` is client-supplied → the biller's resolveInterline call → `approval.ts:126@executor` `if (leg.executor === tenantParty)`. **A client-named party still chooses which leg's share the REQ-040 floor judges** — the $222,084 guard. Fix is the stated owner decision (the biller is a queue consumer with no session). **L210** — `sent214Key` is still `edi/${tenant}/214/${key}`, tenant- not partner-scoped, safe only because §1066 proved no live transport exists. The citation gates rejected my write-up **twice**: a wrong anchor line, then an unanchored citation into a ratcheted file. |
 | 536 | §1088 | **§1089** | **STOPPING POINT VII OVERCLAIMED — MY ROW SCANNER REQUIRED 8 CELLS AND THE CHECKLIST HAS TWO SHAPES.** §1085 said *every repo-owned OPEN row read against HEAD*. True of the 55-row *Repository-owned failures & debt* table; the checklist ALSO carries **§3 Technical debt & known limitations — 92 severity-tagged items in 5-cell tables**, never touched, because every scan I wrote this session filtered `len(cells)==8`. Found by following a `recall "squint"` hit to **L185**, a row that could not exist under my own tally. The two **High** items are both EDI and both inert behind the unwired transport §1066 verified, so no verdict changes — but the CLAIM was wrong and is corrected at its source. Also: my resolution check returned **0 of 105** until I uppercased the severity token (13th shape error). |
@@ -64975,4 +64976,55 @@ pretending otherwise would produce the noisy gate both those phases refused.
 **STOP.** L202 verified current and identified as the tier's best-instrumented row, with the mechanism that
 keeps it true made explicit; the tier's instrumentation measured (21 / 31-of-94 / **2**) with the proxy's
 weakness stated rather than hidden. `pnpm delta` clean · `check:citations` 0 · `check:tables` OK.
+
+## §1092 — PHASE GATE: the waiver with no reader and no writer
+
+**Why this phase.** §1088 verified I4's *layer* (custody events co-signed or flagged `unwitnessed`). L186 says
+the flag is **written and never read** — which, if true, means the ledger records a distinction that nothing
+downstream acts on. It touches demo #1 directly: an unwitnessed POD would produce the same invoice and the same
+evidence email as a witnessed one.
+
+### The claim is exact
+
+`unwitnessed` in non-test source:
+
+| location | role |
+|---|---|
+| `contracts/src/events.ts` (schema, ×2) | declares the optional `z.literal(true)` field |
+| `contracts/src/events.ts` (I4 refines, ×2) | *"custody event requires actor.device or payload.unwitnessed"* |
+| `workers/` · `apps/` · every other package | **nothing** |
+
+So the waiver is consumed by exactly the rule that grants it, and by nothing else. The Biller does not read it,
+no view reads it, no email template reads it. **L186 is precisely right.**
+
+### And the direction the row did not measure
+
+If nothing reads it, the next question is whether anything **writes** it. Nothing in production does. Every
+`unwitnessed: true` in the tree is a **test fixture**, using the waiver to satisfy I4 without a device
+signature — `interline-split.test.ts` states it outright: *"pod.signed rides unwitnessed:true so I4 is
+satisfied without a [device]"*.
+
+That reframes the owner's choice rather than answering it. The row offers **(a) accept it** — an unwitnessed
+POD is business-as-usual and the ledger record is sufficient audit — or **(b) give it a reader** — the Biller
+declines to auto-send, or the email words it differently.
+
+- **(a) is currently free.** No production path can produce an unwitnessed custody event, so there is no live
+  population for a reader to serve.
+- **(b) is a precondition, not an improvement.** The API accepts `unwitnessed: true` from any authenticated
+  client today; the driver app simply never sends it. The day a surface does — a paper-POD flow, a dead-phone
+  fallback — an unread waiver becomes a silent conflation in the client's inbox.
+
+The severity grading survives intact and for the stated reason: **no forgery is possible** (the sequencer
+verifies every device signature, fail-closed), and the waiver is always recorded on the event. The exposure was
+never authenticity; it is that a downstream reader treats two different things as one.
+
+### What this phase says
+
+> **A dead field has two ends, and the record measured one.** "No reader" sounds like a gap to fill; "no reader
+> **and** no writer" is a feature that has not been built yet, and the difference decides whether the fix is
+> owed now or owed later. Both ends cost one grep, and only one of them was in the row.
+
+**STOP.** L186 verified exact in the direction it claims, and extended with the writer count that determines
+which of its two options is urgent. Still an owner decision, now with the population attached: **zero today**.
+`pnpm delta` clean · `check:tables` OK · `check:citations` 0.
 
