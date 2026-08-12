@@ -632,7 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
-| 662 | §1214 | **§1215** | **§1213'S RULE RUN AS A SWEEP — 22 DEBT ROWS RE-VERIFIED AGAINST THEIR OWN TRIGGERS; TWO STALE, ONE ASSERTING THE OPPOSITE OF THE TRUTH.** Four confirmed by measurement (no coverage config, no pool_binding UNIQUE index, identity still SKIPPED, `quote.priced` genuinely absent from SERVER_EMITTED_KINDS). **L408 said "five packages declare `~3.2.4`" while ENUMERATING SIX — and `workers/api` declared `^3.2.7`, a caret.** Five of six pool-bound suites were tilde-pinned; the largest (70 test files) was not, so a vitest 3.3 would float it alone to a third version line. `check:pinned-deps` is caret-blind BY DESIGN, so the gap sat between a correct gate and a false row. Fixed at zero resolution cost (one specifier line; all six already resolved 3.2.7). L356 drifted 1,016 → 1,278 unpushed commits. The tell: the gate's reason says "all SIX workerd suites", the row says "FIVE packages" — one fact, two numbers. |
+| 662 | §1214 | **§1215** | **§1213'S RULE RUN AS A SWEEP — 17 OF 22 DEBT ROWS RE-VERIFIED AGAINST THEIR OWN TRIGGERS; TWO STALE, ONE ASSERTING THE OPPOSITE OF THE TRUTH.** Four confirmed by measurement (no coverage config, no pool_binding UNIQUE index, identity still SKIPPED, `quote.priced` genuinely absent from SERVER_EMITTED_KINDS). **L408 said "five packages declare `~3.2.4`" while ENUMERATING SIX — and `workers/api` declared `^3.2.7`, a caret.** Five of six pool-bound suites were tilde-pinned; the largest (70 test files) was not, so a vitest 3.3 would float it alone to a third version line. `check:pinned-deps` is caret-blind BY DESIGN, so the gap sat between a correct gate and a false row. Fixed at zero resolution cost (one specifier line; all six already resolved 3.2.7). L356 drifted 1,016 → 1,278 unpushed commits. The tell: the gate's reason says "all SIX workerd suites", the row says "FIVE packages" — one fact, two numbers. |
 | 661 | §1213 | **§1214** | **STOPPING POINT — BOARD RE-RUN, AND THE YIELD CURVE HAS MOVED FROM CODE TO RECORD.** 26 gates: **19 PASS · 2 FAIL · 5 BLOCKED** at HEAD (measured 18/3/5 at 7fcd125; the third FAIL was section-refs, MINE and in flight, fixed by §1213). Both FAILs are the owner's uncommitted REQ-289 row — the failing test NAMES say so. All five BLOCKED are absent private inputs. **Zero repo-owned failures.** The gate is the yield finding: four consecutive targets (assertion-free tests, collection selectors, the acceptance spine, catch fallback values) were opened and measured ALREADY COVERED, while every defect that did surface — §1213's two — changed zero runtime semantics. Rule extracted: a fix is complete when every artifact DESCRIBING the code is right, not when the code is; neither a comment nor a ledger row is reached by a behavioural test, which is why both survived the phase that fixed their gate. |
 | 660 | §1212 | **§1213** | **TWO STALE RECORDS IN THE GATE §1206 FIXED — LEFT BY THE PHASE THAT FIXED IT.** (1) `cellCount`'s comment described a cells-first split where "a cell with ODD backtick parity absorbs the following delimiter" — logic that exists nowhere, being the §1205 attempt that was REVERTED for merging three rows. It promised a code-span guard the code deliberately omits, inviting the exemption §1204 was filed against. (2) The §1204 debt row sat OPEN for six sections with its own trigger ("when the 24 rows are escaped") already satisfied by §1206. Both survived because §1206 measured the gate's BEHAVIOUR, so artifacts that merely DESCRIBE it were never in frame: a fix is done when every artifact describing the code is right, not when the code is. `check:section-refs` then caught me forward-referencing §1213 three times while writing this — the same defect class, same phase, cost one command. |
 | 659 | §1211 | **§1212** | **THE COLLECTION CHAIN MEASURED END TO END — AND ONE GATE'S HONEST SCOPE READ AS A GAP.** §1211 proved every test asserts; this proves every test RUNS. All four links green: 385 files / 18 packages all have a `test` script (no `--if-present` skip), 109 of 114 root files matched by the tools include, the other 5 are playwright specs and ALL FIVE collect (ran `--list` per project, not read). The finding is the error the mutation overturned: §728 says its scope is "packages that NARROW" and its config glob provably cannot match `vitest.tools.config.ts` — the LARGEST narrowing, 109 files — so I concluded the root was unguarded. A planted `.tsx` orphan under the `.ts`-only include was caught instantly by a THIRD root-aware gate. "Gate A does not cover X" is never "X is uncovered". Three-gate scope map recorded. |
@@ -72276,8 +72276,14 @@ descriptions of correct code — stated as a rule rather than left as four separ
 
 **Why this phase.** §1213 found a debt row still `OPEN` against a trigger its own fix had satisfied. One
 instance is an incident; §1213 made it two (the row plus the comment). [[n-instances-usually-share-one-idiom]]
-says stop fixing and start counting — so every live row in `GO-LIVE-CHECKLIST.md` was re-verified against the
-condition it declares for its own expiry.
+says stop fixing and start counting — so the live rows in `GO-LIVE-CHECKLIST.md` were re-verified against the
+condition each declares for its own expiry.
+
+**CORRECTION, same phase.** The first draft of this section said *"every live row was re-verified"* and closed
+on *"twenty-two triggers re-verified"*. **Six had been measured when that was written.** The sweep was then
+finished and the true tally is **17 of 22**, with the remaining five named below rather than absorbed into a
+round number. Recorded rather than silently amended, because a count is exactly the kind of claim this record
+keeps finding wrong ([[a-false-clean-invites-no-follow-up]]) and my own draft is not exempt.
 
 **Corpus: 22 live (unstruck) `OPEN` rows.** Each carries an explicit "clears when" cell, which makes this
 decidable rather than a matter of judgement.
@@ -72332,6 +72338,27 @@ applied to five of six siblings. Nothing was missing — a pin was *present* at 
 carried `~3.2.4`. An auditor checking "is api pinned?" would read the row and stop. A wrong record is worse
 than a missing one, because it answers the question that would otherwise be asked.
 
-**STOP.** Twenty-two triggers re-verified against reality, four confirmed by measurement, two found stale, the
-one with a forward consequence fixed at zero resolution cost, and the mechanism — a gate's reason and a
-checklist row describing one fact with different numbers — recorded as the tell.
+### Final tally — 17 of 22 verified
+
+**15 confirmed accurate and still live, each by measurement:** L187 (`purpose` is parsed into `TenderDoc` and
+has ZERO consumers outside the parser — `01 = CANCELLATION` really is ignored) · L204 (`biller.ts` states the
+placed-photo hash is not byte-checked) · L358 · L407 (`pnpm reap` cleared **108** orphaned workerd processes
+left by this session's own merge run — SIGTERM sufficed, so the trigger "orphans it cannot signal" is unmet) ·
+L409 (neither mutual-exclusion transport wired) · L411 (genesis/11 still does not name the four primitives) ·
+L413 · L415 · L416 · L426 (`citation-check: ignore` is a SUPPRESSION marker, not the opt-in path-citation
+marker the trigger names) · L428 (no cost/latency metering on the concierge) · L429 (cron is `0 1 * * *`,
+daily, against a 4-hour SLA window) · L430 (the only recon sweep is the CREDIT projection-gap one; a lost
+booking enqueue still has no backstop) · L431 (signup returns a distinct 409 *"THAT EMAIL IS ALREADY
+REGISTERED"* — a live enumeration oracle) · L432.
+
+**2 stale:** L408 (corrected and fixed) · L356 (re-measured).
+
+**5 not verifiable from this repo, and why — not "assumed true":** L354, L355, L357 need `gh api` against
+repository settings (owner-held infrastructure state, and this session does not change it) · L410 is an unmade
+owner DECISION, which has no measurable state · L412 would require staging the owner's untracked `docs/gtm`
+and `docs/research`, which this session will not do.
+
+**STOP.** Seventeen of twenty-two triggers re-verified against reality, fifteen confirmed live by measurement,
+two found stale, the one with a forward consequence fixed at zero resolution cost, five named as out of reach
+with the reason, and the mechanism — a gate's reason and a checklist row describing one fact with different
+numbers — recorded as the tell.
