@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 583 | §1135 | **§1136** | **LAW 8's R2 CLAUSE CLOSED: KEYS ARE EITHER BUILT FROM THE CLAIM OR CHECKED AGAINST IT — NEVER TRUSTED RAW.** §1135 named two uncovered clauses; leaving a stated bound open is how a partial result reads as complete (§1122), so I closed the checkable one. Every client-reachable R2 site follows one of exactly **two disciplines**: **CONSTRUCT** the key from the authenticated tenant (`evidence.ts:200@evidenceKey` · `import.ts` · the anchor manifests) or **VERIFY** the prefix when the key arrives from elsewhere (`documents.ts:135@claims` checks `claims.k.startsWith('evidence/' + claims.t + '/')` as *"defense in depth"* OVER the MAC, so even a mis-minted cap cannot cross tenants; the Biller does the same for a key read from D1, §1102). Remaining bound, still open and named: the isolation SUITE itself is pool-workers and reports inside unit-tests. |
 | 582 | §1134 | **§1135** | **LAW 8 BY THE SAME METHOD: WHO CHOOSES THE TENANT? — 43 FILES, ZERO TAKE IT FROM A HEADER OR BODY.** §1126 asked *who chooses the kind*; the transferable question for tenant isolation (REQ-025) is *who chooses the tenant*. Enumerated every production `resolveTenantDb` site — **43 files**. Every API-reachable one takes the tenant from the **JWT session claim** or from a **MAC-verified capability** (`pub/status.ts` uses `claims.t`, MAC'd under the `STATUS_SECRET` derived at §1108); the cron paths iterate `allTenantSlugs(env)`, a server-side roster. Clause 2 is **structural**: the DO is addressed by `idFromName(tenant|streamId)`, so a mis-claimed tenant lands on a DIFFERENT instance, and `sequencer.ts:247@expected` verifies the claim re-derives to THIS id — FORBIDDEN otherwise. Two clauses verified at zero wedge risk; the R2 key-scope and isolation-suite clauses explicitly NOT covered here. |
 | 581 | §1133 | **§1134** | **STOPPING POINT XIV — THE APPEND-SURFACE ARC, CLOSED.** Board re-earned at `b3e2f0c`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs measured to `REQ-289`. Six phases (§1128–§1133) took one defect and turned it into a complete account of the append surface: **35** kinds catalogued → **27** client-appendable → **9** DO-gated → **5** with a dedicated route and no refusal → **2** confirmed money-authority holes, **3** owner judgements, and **13** route-less kinds of which **5** are gate preconditions — correctly, because there the client IS the sensor. Two instrument corrections en route: a restated number I had never run (**1,190** unpushed, not 137) and grep→catalog after the `kind` collision misled three phases running. **No unresolved defect; two decisions.** |
 | 580 | §1132 | **§1133** | **WHAT PASSING A GATE ACTUALLY MEANS — NOT A DEFECT, BUT A BOUNDARY WORTH WRITING DOWN.** The last unexamined slice: **13** kinds are client-appendable, ungated and route-less, and **5 of them are read by the gates as PRECONDITIONS** (`freight.counted` · `dims.captured` · `freight.photographed` · `seal.applied` · `document.attached`). That looked like §1130's provenance problem generalised — and it is **not**, for a reason worth stating: these kinds have no dedicated route precisely because **the client IS the legitimate sensor**. The gates check them by **presence** (`prior.some(e => e.kind === …)`); the one cryptographic check is the receiver **cosig on the INCOMING** `custody.transferred`, never on a prior. Two priors are stronger (the placed-photo binds `photo_hash === incomingPlaced`), and the money path is byte-verified downstream (REQ-170/§1102). So gate passage certifies **that an authenticated principal asserted these facts**, not that they physically occurred — which is correct, and is not what "gated" reads like. |
@@ -67511,4 +67512,52 @@ verification of REQ-025.
 sites, every API-reachable one sourcing the tenant from an authenticated claim or a MAC-verified cap, crons
 from a server roster; the DO's pinning identified as *structural* rather than procedural; two clauses verified
 and the two not covered named explicitly. Zero source changed.
+
+## §1136 — PHASE GATE: closing Law 8's R2 clause
+
+**Why this phase.** §1135 verified two clauses of Law 8 and explicitly named two it had not covered. §1122's
+finding is that a stated-but-unclosed bound is worse than an unstated one — nobody re-runs it, and the clean
+line stands. One of the two is closable by enumeration at zero wedge risk: **are R2 keys tenant-scoped, and is
+the scope derived from an authenticated source?**
+
+### Two disciplines, and every client-reachable site uses one of them
+
+**CONSTRUCT the key from the claim** — the client never supplies a prefix:
+
+- `workers/api/src/routes/evidence.ts:200@evidenceKey` — `evidenceKey(session.tenant, shipment_id, photo_hash)`.
+- `workers/api/src/routes/import.ts` — *"the R2 key is prefixed with the session tenant, so an import can NEVER
+  read another tenant's uploaded file (the same tenant-scoped-key discipline as evidence/anchors)."*
+- `packages/ledger/src/anchor.ts` — `anchorManifestKey(tenant, day)`.
+
+**VERIFY the prefix when the key arrives from elsewhere** — the key is data, so it is checked:
+
+- `workers/api/src/routes/documents.ts:135@claims` — the download cap carries its own key, and the route still
+  refuses it unless it sits in the cap's own tenant namespace:
+  *"Defense in depth (REQ-025): the SIGNED key MUST live in the SIGNED tenant's R2 namespace … Any drift ⇒ the
+  uniform 404."*
+- `workers/agents/src/biller.ts` — the same check on an `r2_key` read from D1 (§1102).
+
+The `documents.ts` case is the one worth pausing on. The key is inside a **MAC-verified** capability, so a
+client cannot forge it — and the route checks it anyway. That is a guard against a *minting* mistake, not a
+forging one: it means no future bug in cap issuance can produce a cross-tenant read, because the redemption
+side refuses independently.
+
+> **A key that arrives as data gets checked; a key you build cannot be wrong.** Both disciplines appear here
+> and the choice between them is not stylistic — it follows from whether the tenant is *already in hand* at
+> the moment the key is formed. Where it is, construction removes the failure mode entirely; where it is not,
+> verification is the only option, and this build applies it even where a signature already made forgery
+> impossible.
+
+### The bound that remains, named again
+
+The isolation **suite** clause — *"runs on every merge"* — is still not independently verified here. It is
+`vitest-pool-workers` and reports inside the `unit-tests` gate rather than as its own board line, so what the
+board proves about it is exactly what it proves about every other test in that gate. Closing it properly means
+either running that suite in isolation (wedge risk, §1114) or giving it its own gate line. Recorded rather
+than quietly dropped.
+
+**STOP.** Law 8's R2 clause closed by enumeration: every client-reachable R2 site either constructs its key
+from the authenticated tenant or verifies the prefix against it, with the cap-redemption path checking even
+though a MAC already made forgery impossible; the two disciplines named and the rule for choosing between them
+stated; the one remaining clause re-named rather than allowed to lapse. Zero source changed.
 
