@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 594 | §1146 | **§1147** | **HARDENED: THE FIRST READ-CLASS VERDICT CONVERTED INTO A MUTATION-PROVED GATE.** §1146 graded the session's verdicts and named the gap — the READ class is right but **not re-runnable**. So I converted the one whose method had demonstrably failed: `tools/checks/tenant-source.test.ts` enforces REQ-025's *the tenant never comes from the request*. It **positive-matches the danger** instead of subtracting the safe (the defect §1144 planted), carries a **non-vacuity floor** (>25 call sites), a **boundary** test over the six legitimate forms, comment-immunity, and — the point — **its own sensitivity test**, plus an END-TO-END plant in real source that turned it **RED** naming the exact line. Collected by `vitest.tools.config.ts`, so it runs in the unit-tests merge gate: 1,261 tools tests, +6. |
 | 593 | §1145 | **§1146** | **STOPPING POINT XVI — THE SESSION'S VERDICTS, GRADED BY EVIDENCE CLASS.** Board re-earned at `efb8f9a`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs measured to `REQ-289`. §1142–§1145 established that a clean negative carries a hidden claim (*this probe would find a violation*) and that mine often could not: **§1135's filter would have missed a planted tenant injection**, **§1126's would have missed a coexisting client-kind path**, and a replacement probe **failed its own control**. So this stopping point grades every verdict by evidence class — **mutation-proved** (a RED is positive evidence) · **read** (files opened, unauditable but strong) · **probe-only** (weakest, and two have now failed). The purpose is that the owner can see which conclusions to lean on. |
 | 592 | §1144 | **§1145** | **CONTROLLED §1126 THE SAME WAY — AND BOTH OF MY MECHANICAL PROBES FAILED, IN DIFFERENT DIRECTIONS.** §1144 said presence-of-a-safe-pattern needs a sensitivity control, so I planted against §1126's *"17 of 19 append paths are server-fixed"*. Plant 1 was too weak — it REPLACED the literal, so the method re-classified correctly; the real hazard is **coexistence**. Plant 2 kept the literal and added a client-kind path: the literal count stayed 1 and **§1126's method still said SERVER-FIXED** — a false negative. My replacement probe (`kind:` from client data) then returned `<none>` across all 19 — and **failed its own control**, because the two KNOWN client-kind routes never assign `kind:` at all: they pass an opaque parsed body as `input` (`stub.append({ …, input })`). **The classification is not establishable by pattern**; §1126's verdict rests on reading, as §1122 said of §1121. |
 | 591 | §1143 | **§1144** | **CONTROLLED MY OWN CLEAN NEGATIVE — THE CONCLUSION HELD, THE METHOD FAILED.** §1143 warned that false confirmations go uninvestigated, so I planted a violation against §1135's *"43 sites, zero take the tenant from a header or body"*. The plant — `resolveTenantDb(c.env, c.req.header("X-Tenant") ?? session.tenant)`, i.e. a client override with the claim as FALLBACK, which is how such a bug actually looks — **was not flagged**, because §1135's filter was `grep -v "session.tenant"` and the malicious line CONTAINS that string. **A negative filter is defeated by any line carrying both tokens, and `??` is exactly that shape.** Replaced with a positive match on the DANGER, control-verified to catch the plant; re-derived across **11 distinct argument forms** — all safe (31 claim · 12 cron roster · 2 claim-by-other-spelling · 1 MAC'd cap · 1 queue trigger · 1 DO-pinned · 4 declarations). |
@@ -68118,4 +68119,53 @@ The two-kind rule (§1125/§1130/§1131, plus three product rulings) · `REQ-289
 **STOP.** Board 19/2/5 at `efb8f9a` with both FAILs attributed; the session's verdicts graded into
 mutation-proved, read, and probe-only, with the probe-only class emptied by re-derivation; the durability
 difference between a RED and a paragraph stated so the grading is usable rather than decorative.
+
+## §1147 — PHASE GATE: converting a read-class verdict into a gate
+
+**Why this phase.** §1146's grading was not decoration. It said the **read** class holds most of this audit's
+coverage, is probably right — three re-derivations agreed — and is **not re-runnable**: it rests on files
+having been opened, which no gate preserves. The obvious response is to convert one, and the obvious candidate
+is the verdict whose *method* had already failed a control: §1135's *"no tenant comes from client input"*.
+
+### What was built
+
+`tools/checks/tenant-source.test.ts` (REQ-025), following this repo's lint-as-test convention:
+
+- **Positive-matches the danger.** `c.req.header|query|param|json` · `req.body` · `searchParams.get` ·
+  `body.tenant` · `params.tenant` — never a subtraction of the safe token, which is the exact defect §1144
+  planted against (`?? session.tenant` makes the malicious line *contain* the safe string).
+- **Parses to the matching paren**, so a nested call in a fallback is captured whole rather than truncated.
+- **Non-vacuity floor** — fails if fewer than 25 call sites are found, and throws if any glob matches zero
+  files (§487's rule: a broken pattern reads as a clean scan).
+- **Boundary test** — the six legitimate forms measured at §1144 (`session.tenant`, `c.get("session").tenant`,
+  a cron `slug`, a MAC'd `claims.t`, a queue `trigger.tenant`, the DO's pinned `tenant`) must **not** fire, so
+  the rule cannot be over-applied.
+- **Comment-immune** via `stripComments` — a discussion of the violation is not the violation.
+- **Its own sensitivity test**, planting the §1135-defeating shape inline, so this gate can never become the
+  thing it replaced: a check that reads everything and cannot fire.
+
+### Proved end to end, not only in unit form
+
+Synthetic sensitivity tests prove the *detector*. They do not prove the **corpus reaches the file**, which is
+the failure mode that has bitten this record repeatedly. So the violation was planted in real source —
+`workers/api/src/routes/board.ts` — and the gate went **RED**, naming it:
+
+```
++ "workers/api/src/routes/board.ts: resolveTenantDb(c.env, c.req.header(\"X-Tenant\") ?? session.tenant)"
+```
+
+**One** assertion failed; the other five stayed green. Clean attribution, restored, tree verified clean.
+
+It is collected by `vitest.tools.config.ts`, so it runs under `pnpm test:tools` → `pnpm test` → the
+**unit-tests** merge gate: tools tests went 1,255 → **1,261**.
+
+> **A verdict moves class when someone else can re-run it.** §1135's conclusion was true before this gate and
+> is true after; what changed is that it now survives *me* — a future edit that introduces the exact
+> vulnerability fails the build instead of waiting for another audit to read forty-three files. That is the
+> whole difference between the mutation-proved and read classes, and it costs one file.
+
+**STOP.** The first read-class verdict converted to an enforced gate; the gate built to positive-match the
+danger after its predecessor was shown to filter the violation out as safe; non-vacuity, boundary,
+comment-immunity and sensitivity all pinned in-file; end-to-end mutation-proved against real source with clean
+attribution; wired into the merge path (+6 tools tests). `delta` clean · typecheck OK · lint OK.
 
