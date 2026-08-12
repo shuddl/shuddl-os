@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 643 | §1195 | **§1196** | **THE DRIVER DRAIN LOOP: EVERY CONTROL POINT MUTATED, ALL FIVE DEFENDED — AND §579's CLAIM RE-VERIFIED RATHER THAN INHERITED.** With `recall` fixed, the search §1195 interrupted actually worked: it named **§579** (*"a prior iteration's anti-stranding fix had ZERO tests; `continue`→`break` left 39+68 tests green… strands evidence in airplane mode"*) and iteration 4's drain-order defect. `recall`'s own message says a heading still needs re-verifying at HEAD, so it was: flipping that same `continue`→`break` today REDs **2** tests. §579 pinned ONE branch; the loop has five. Mutated each independently on the surface where data loss is least observable: backing-off `continue`→`break` **2 RED** · the 401 `break` removed **1 RED** · `moved` `continue`→`break` **6 RED** · the parked-item counter dropped **1 RED** · the 8-leg guard cut to 1 **6 RED**. **No control point in the offline drain is undefended.** A clean negative that is worth as much as a defect here, because the failure mode it rules out is invisible online and unrecoverable offline. |
 | 642 | §1194 | **§1195** | **THE INSTRUMENT §1181's DISCIPLINE RUNS THROUGH WAS ANSWERING PHRASE MISSES WITH A NOVELTY VERDICT.** Went to audit the driver offline sync; `pnpm recall` said *"appears in NO governing record. It is genuinely new — trace the code."* A direct grep found the work recorded at **six** places in the audit. Traced: `recall()` is a literal `includes` and the CLI **joins every argv into ONE phrase**, which is right for its advertised usage (`pnpm recall NotConfiguredMigrator`, a single symbol) and silently wrong for the way it is used — a question in words. `drain-order` alone returns **6** mentions and `stranded` **21**; the seven-word phrase returns zero. **FOUR of this session's own queries got that verdict**, and at least one was demonstrably covered: §1182's *"public quote rate limit abuse throttle guest"* reported new while the subject was filed in **seven** places, which a grep found moments later. Fixed: on a phrase miss with >1 term, retry PER TERM and report what each finds; novelty is claimed only when no term matches. Pinned by 4 tests keyed on facts about the live record. **Second `git checkout --` destroying an uncommitted fix this session** — the restore is exact only for committed files. |
 | 641 | §1193 | **§1194** | **THE FAN-IN SWEEP FOUND NO UNCOVERED PRODUCT MODULE — AND TWO OF MY OWN COUNTING PROBES WERE WRONG BEFORE IT COULD SAY SO.** §1193's shape (highest fan-in, zero assertions) applied to `packages/`. **Probe 1 was broken**: matching importers by BASENAME gave every `index.ts` an identical 106 and conflated three different `money.ts`. Rewritten to resolve specifiers relative to the importer (and `@shuddl/pkg/sub.js` subpaths), the ranking became sane — `contracts/src/index.ts` at **255**, the most depended-upon module in the product. **Probe 2 was also wrong**: `rater/src/money.ts` looked uncovered (no `money.test.ts` in either location) but `roundHalfUp` and `mulDivHalfUp` are asserted in **7 and 5** test files — a NAMING artifact, not a gap. Barrels carry no tests, and that is correct, now MEASURED rather than assumed: deleting one `export *` line from the contracts barrel REDs typecheck, so a lost re-export cannot be silent. The adjacent unpinned property — a barrel *widening* the public API — has exactly one known instance (§1184's `EventBase`), already filed as an owner decision, so no detector was built. **Third counting-probe failure in this stretch**, and they share one mechanism: conflated identity. |
 | 640 | §1192 | **§1193** | **98 FILES IMPORT IT; NOTHING ASSERTED IT. `repoRoot()` — THE MODULE THAT ENDS 'A GATE THAT CANNOT FAIL FOR LACK OF INPUT' — HAD NO TEST.** §1192's finding came from a FILE LISTING, not the record, so the probe was generalised: in every directory following a sibling-test convention, which files are the exceptions? Most hits are convention artifacts (`packages/contracts` keeps tests in `test/`, so its "18 missing" is my probe misreading the tree) — the real one is **`tools/checks/repo-root.ts`, the single exception among twelve**. Its header records the stakes: three gates once certified constitutional laws against an EMPTY SET (*"OK (0 markdown files)"*, *"OK — 0/22 tables … (0 migration files)"*, *"OK — 0 path:line citations resolve"*) because each resolved inputs against `process.cwd()`. **The regression it pins is not a deletion but a KINDNESS** — a `try/catch` returning `cwd`, which reads as defensive programming and would leave all 98 gates green while scanning whatever directory they were started from. Mutation-proved: adding exactly that fallback REDs two of four, the second naming the returned temp path. |
@@ -71164,4 +71165,59 @@ re-applied and re-verified. The durable form stands: **mutate committed files, o
 **STOP.** The instrument this record's search discipline depends on was converting "nobody wrote your sentence"
 into "nobody has thought about this", four times in one session; fixed, pinned against the live record, and the
 one repeated process error recorded rather than quietly corrected.
+
+## §1196 — PHASE GATE: every branch of the drain loop, one mutation at a time
+
+**Why this phase.** §1195 began as an audit of the driver offline sync and became an audit of the search tool
+that mis-answered it. With `recall` fixed, the original question is answerable — and it is the right question:
+the offline drain is where evidence is **signed on a device and not yet anywhere else**, so a control-flow
+defect there is invisible online and unrecoverable offline.
+
+### The record answered, and its claim was re-verified
+
+The fixed `recall` names **§579** immediately:
+
+> *"THE OFFLINE SYNC — a prior iteration's anti-stranding fix had ZERO tests; `continue`→`break` left 39+68
+> tests green. Invisible online, strands evidence in airplane mode. Two tests, M48 now RED."*
+
+That is an inherited claim, and `recall`'s own closing line says a heading is a pointer whose content still
+needs re-verifying at HEAD. Re-verified: flipping the same `continue` to `break` today REDs **2** tests. The
+pin is alive, not a historical note.
+
+### §579 pinned one branch; the loop has five
+
+`syncPass`'s drain is small and every line of it is a decision. Each was mutated **independently** — the
+*mutate the class, then each member* discipline, applied to control flow rather than to schemas:
+
+| # | mutation | result |
+|---|---|---|
+| 1 | backing-off item: `continue` → `break` (the §579 defect) | **2 RED** |
+| 2 | `if (authBlocked) break` removed — a 401 no longer stops the pass | **1 RED** |
+| 3 | `moved` leg: `continue` → `break` — an item stops advancing mid-chain | **6 RED** |
+| 4 | top-of-loop parked counter dropped | **1 RED** |
+| 5 | multi-leg guard `< 8` → `< 1` — one leg per pass | **6 RED** |
+
+**Every control point in the offline drain is defended.**
+
+### Why a clean negative is the right result here
+
+Three of these are not "would a test notice" but "would anyone ever notice":
+
+- **#1** strands every item queued behind the first backing-off one. Online, backoff windows are short and the
+  next pass clears it; in airplane mode the queue never drains and the evidence sits on the device.
+- **#2** would keep hammering a dead token for every remaining item — visible only as latency.
+- **#5** silently halves throughput per pass with no error anywhere; an item needing three legs takes three
+  passes, which looks exactly like a slow network.
+
+> **A control-flow branch on an offline path fails in a mode the online path cannot reproduce.** That is why
+> five mutations on one twenty-line loop is proportionate: the loop is the last place the evidence exists
+> before it exists anywhere else.
+
+The bounded-guard mutation (#5) is worth naming separately: it does not change any *verdict*, only how far an
+item advances per pass. Six tests still caught it, which means the suite pins the loop's **progress**, not just
+its outcomes — the property most easily lost in a refactor that "simplifies" the inner loop.
+
+**STOP.** The offline drain audited branch by branch: §579's claim re-verified at HEAD rather than inherited,
+the four control points it did not cover mutated and all defended, and the result recorded as a measured clean
+negative on the one surface where the failure mode is both invisible and unrecoverable.
 
