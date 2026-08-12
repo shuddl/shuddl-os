@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 623 | §1175 | **§1176** | **THE GATE I SHIPPED ONE PHASE AGO HAD A HOLE, AND THE HOLE WAS ITS ROSTER.** §1175's `RESTATEMENT_DOCS` enumerated three root documents. **`genesis/11-REPO-CLAUDE-MD.md` carries a `## Hard budgets (CI-enforced; …)` SECTION of its own** — it is the spec CLAUDE.md was written from — with **8 more restatements** nothing checked. The two are NOT copies (50 differing lines; CLAUDE.md:15 has `12 canonical views (11 used, one spare)` where genesis/11 has bare `12 canonical views`), which is precisely why the VALUES can drift apart unnoticed. All 8 agree today. Fixed by rostering it AND by closing the class: a discovery half requires **every tracked document carrying a `^#+ Hard budgets` heading** to be on the roster — heading, not mention, so declaring is separated from quoting (5 files contain the phrase; exactly 2 declare it). **MUTATION-PROVED twice:** `6 color tokens` in genesis/11 → RED naming the file; a budgets section appended to an unrostered `docs/wp/WP-16.md` → RED naming it. Each fires exactly one test. 15/15 clean. The lesson is the shape: an ENUMERATION acquires holes, and this one acquired its first before the commit that created it was an hour old. |
 | 622 | §1174 | **§1175** | **THE MECHANISM THAT CONCEALED §1173 IS NOW GATED: 22 BUDGET RESTATEMENTS, ONE OF WHICH WAS CHECKED.** §1173's drift was absorbed by CLAUDE.md:5's prose copy of the surfaces figure, so the obvious follow-on is *how many other copies are there*. Measured across the three root governing documents: **22 restatements of the six ceilings**, of which exactly one — the `(N used)` table figure — had a gate. A budget amendment had to be hand-propagated to sixteen places with fifteen unverified. All twenty-two AGREE today, so this LOCKS a clean state (§486's cheap half). Scans **whitespace-normalised whole text, not lines**, because BUILD-PROMPT.md wraps `12` at the end of :85 and `views` at the start of :86 — a restatement invisible to a line scan purely from where the paragraph broke. Distinguishes the CEILING (`≤N tables`) from the USED figure (a bare `21 tables`, which DOCS owns) — two properties sharing a noun. **MUTATION-PROVED at both sites that matter:** `**4 surfaces**` in CLAUDE.md:5 → RED *"restates surfaces as 4, enforced value is 3"*; `≤23 tables` in the wrapped BUILD-PROMPT paragraph → RED *"restates tables as 23, enforced value is 22"*. Only §1175 fires on either, which is the proof both were previously invisible. 13/13 clean; corpus floored at 15 with a per-budget silence check. |
 | 621 | §1173 | **§1174** | **SWEPT THE IDIOM; FOUND INSTANCE #2, AND THE LINE-COUNT PROBE HID IT.** §1173's shape — a first-match `exec` over a whole document — appears at 22 sites in `tools/checks`, but 19 extract a NAMED symbol (`export const X =`), unique by construction. Three read prose. Measured occurrences: design-ci mode 1, unbounded-reads claim 1, README 1, BUILD-PROMPT 1 — **and CLAUDE.md's `(N used` = 2**, because the budgets line carries `≤22 tables (21 used…)` AND `12 canonical views (11 used, one spare)`. `grep -c` reported **1** (it counts LINES) and `grep -o` reported **2**; both parentheticals sit on line 15, so the line-count probe would have closed this as a singleton. `/\((\d+)\s+used/` matches a SHAPE; it returns 21 only because tables are written first. Re-anchored to its subject (`/≤\d+ tables \((\d+) used/`, the form BUILD-PROMPT's entry already used), with a regression test on a REORDERED line where the two mechanisms disagree — shape reads 11, anchored reads 21. Severity honestly lower than §1173: reordering fails LOUD (11≠21), so it was a latent bet, not a false pass. 11/11 clean; a planted `(20 used)` reds **two** tests — §830 and the §743 floor, the latter because `EXEMPT` holds the literal `"21 used"`, so the exemption doubles as a pin on the figure. |
 | 620 | §1172 | **§1173** | **A REAL DEFECT IN THE GATE THAT GUARDS THE GOVERNING DOCUMENT: ONE OF THE SIX HARD BUDGETS WAS READ OUT OF PROSE.** `claude-md-budgets.test.ts` exec'd each `stated` regex against **all of CLAUDE.md**, and `exec` returns the FIRST match. Five patterns occur once — they hit the budgets line by luck of phrasing. `/(\d+) surfaces/` occurs **twice**, and CLAUDE.md:5's *"**3 surfaces** (Command, Driver PWA, Portal)"* precedes the budgets line at :15. **MUTATION-PROVED:** setting the budgets line to `4 surfaces` while `SURFACE_ROSTER` held three left the file **9/9 GREEN** — the governing document stating a budget its enforcer contradicts, which is the one thing this gate exists to catch. Fixed by reading the LAW where the law is (`budgetsLine()`); the planted drift now REDs naming *"surfaces: CLAUDE.md says 4 … enforces 3"*, clean is 10/10. Separately probed all six extractors against the **runtime** constants: 22/3/12/35/5/2, six-for-six agreement. |
@@ -69654,4 +69655,51 @@ zero disagreements a clean run also prints.
 **STOP.** The concealment mechanism §1173 exposed is now enforced: 22 restatements across three governing
 documents, all agreeing, all checked, two of them mutation-proved — including the prose line whose staleness
 was the thing that made §1173 possible.
+
+## §1176 — PHASE GATE: the roster I shipped one phase ago was already incomplete
+
+**Why this phase.** §1175 closed the budget-restatement class with a roster of three documents. *An
+enumeration acquires holes.* The immediate question is whether it had one already — and it did, before the
+commit creating it was an hour old.
+
+### genesis/11 declares the budgets too
+
+`genesis/11-REPO-CLAUDE-MD.md` carries its own `## Hard budgets (CI-enforced; exceeding = the PR is wrong)`
+section — it is the **spec CLAUDE.md was written from** — restating all six ceilings, plus `3 surfaces` in its
+opening line and `12 views` at :59. **Eight restatements, none checked.**
+
+The two documents are **not copies**: 50 differing lines, CLAUDE.md is 36 lines to genesis/11's 62, and their
+budgets lines already differ in text — CLAUDE.md carries `12 canonical views (11 used, one spare)` where
+genesis/11 has a bare `12 canonical views`. They have visibly evolved apart. **That is exactly the condition
+under which the VALUES drift without anyone noticing**, because a reader who diffs them already expects
+differences.
+
+All eight agree today, so this is another clean state locked rather than a defect repaired.
+
+### Closing the class, not the instance
+
+Rostering genesis/11 fixes one hole. The **discovery half** fixes the shape: every tracked markdown file
+carrying a `^#+ Hard budgets` **heading** must be on the roster.
+
+Heading, not mention, and the distinction is measured: **five** tracked files contain the phrase "Hard
+budgets" — CLAUDE.md, genesis/11, the audit, GO-LIVE-CHECKLIST, and a WP-11 plan — but exactly **two**
+*declare* it as a section. The other three quote it inside dated records, which §833 already established is
+not this defect. A selector that reads the heading separates *declaring* from *quoting* with zero false
+positives today, where a phrase match would have produced three.
+
+> **A roster is a snapshot of who was in the room; a selector is a rule about who belongs.** §1175's roster was
+> correct when written and wrong within the hour, and nothing about it could have said so.
+
+### Mutation-proved, both halves
+
+| plant | result |
+|---|---|
+| `6 color tokens` in genesis/11 | RED: `genesis/11-REPO-CLAUDE-MD.md: restates color tokens as 6, enforced value is 5` |
+| a `## Hard budgets` section appended to unrostered `docs/wp/WP-16.md` | RED: `docs/wp/WP-16.md` flagged as declaring-but-unrostered |
+
+Each fires exactly one test; 15/15 clean; both plants restored and the tree verified.
+
+**STOP.** The restatement gate now covers 30 figures across four documents and enforces its own membership
+rule. The finding worth carrying is not genesis/11 — it is that the enumeration written one phase earlier,
+deliberately and with a completeness floor, was already missing a member when it shipped.
 

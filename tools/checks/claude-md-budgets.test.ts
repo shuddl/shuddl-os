@@ -245,7 +245,45 @@ describe("REQ-118 §611: CLAUDE.md's hard budgets match what enforces them", () 
     ["color tokens", /(\d+)\s+(?:color\s+)?tokens/g],
     ["font families", /(\d+)\s+(?:font\s+families|fonts)/g],
   ];
-  const RESTATEMENT_DOCS = ["CLAUDE.md", "README.md", "BUILD-PROMPT.md"] as const;
+  // §1176 — genesis/11 is HERE because it carries a `## Hard budgets (CI-enforced; …)` SECTION of its own: it
+  // is the spec CLAUDE.md was written from, and it states the six ceilings as law rather than quoting them.
+  // The two documents are NOT copies (50 differing lines; CLAUDE.md has evolved past it), which is exactly why
+  // the values can drift apart silently. Measured at §1176: all 8 of its restatements agree.
+  const RESTATEMENT_DOCS = ["CLAUDE.md", "README.md", "BUILD-PROMPT.md", "genesis/11-REPO-CLAUDE-MD.md"] as const;
+
+  /** Documents that DECLARE the budgets — a `## Hard budgets` section — as opposed to quoting a figure in passing. */
+  function docsDeclaringBudgets(docs: readonly { file: string; text: string }[]): string[] {
+    return docs.filter((d) => /^#+ Hard budgets/m.test(d.text)).map((d) => d.file);
+  }
+
+  it("§1176 SENSITIVITY: a document declaring its own budgets section is discovered", () => {
+    const planted = [
+      { file: "rostered.md", text: "# X\n\n## Hard budgets (CI-enforced)\n≤22 tables\n" },
+      { file: "quotes-it.md", text: "the hard budgets are CI-enforced; see CLAUDE.md\n" },
+    ];
+    // A HEADING declares; a mention quotes. Only the first is a place a budget goes stale as law.
+    expect(docsDeclaringBudgets(planted)).toEqual(["rostered.md"]);
+  });
+
+  it("§1176: every document DECLARING a hard-budgets section is on the restatement roster", () => {
+    // The roster above is an enumeration, and §1175 shipped it missing genesis/11 — a genesis document with a
+    // full budgets section of its own. Enumerations acquire holes; this closes the class instead of the
+    // instance. One-directional by design: the roster may cover documents that merely restate figures inline
+    // (README.md, BUILD-PROMPT.md have no section), but a document that DECLARES the budgets must be on it.
+    const tracked = execSync("git ls-files '*.md'", { cwd: root, encoding: "utf8" }).split("\n").filter((f) => f !== "");
+    expect(tracked.length, "no tracked markdown found — the scan broke, not the corpus").toBeGreaterThan(20);
+    const declaring = docsDeclaringBudgets(tracked.map((f) => ({ file: f, text: readFileSync(`${root}/${f}`, "utf8") })));
+    expect(declaring.length, "no document declares a hard-budgets section — CLAUDE.md must").toBeGreaterThanOrEqual(1);
+
+    const unrostered = declaring.filter((f) => !(RESTATEMENT_DOCS as readonly string[]).includes(f));
+    expect(
+      unrostered,
+      "a document declares its own `## Hard budgets` section but nothing checks its figures against the " +
+        "enforcers. A budget stated as law in an unchecked document is the §1173 defect with a new host: it " +
+        "goes stale, it is read as current, and it absorbs drift. Add it to RESTATEMENT_DOCS:\n  " +
+        unrostered.join("\n  "),
+    ).toEqual([]);
+  });
 
   /** Every stated ceiling for every budget across the given documents, wrapped lines included. */
   function statedCeilings(docs: readonly { file: string; text: string }[]): { doc: string; label: string; stated: number }[] {
@@ -283,7 +321,7 @@ describe("REQ-118 §611: CLAUDE.md's hard budgets match what enforces them", () 
       .map((f) => `${f.doc}: restates ${f.label} as ${f.stated}, enforced value is ${enforced.get(f.label)}`);
     expect(
       wrong,
-      "a root governing document restates a hard budget that no longer matches its enforcer. These documents " +
+      "a governing document restates a hard budget that no longer matches its enforcer. These documents " +
         "are read as current law — CLAUDE.md's header says it overrides any default behaviour — and §1173 " +
         "proved a stale restatement does worse than mislead: it ABSORBS the drift and keeps the gate green. " +
         "A budget change is a register amendment; propagate it to every statement of the figure:\n  " +
