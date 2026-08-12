@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 593 | §1145 | **§1146** | **STOPPING POINT XVI — THE SESSION'S VERDICTS, GRADED BY EVIDENCE CLASS.** Board re-earned at `efb8f9a`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs measured to `REQ-289`. §1142–§1145 established that a clean negative carries a hidden claim (*this probe would find a violation*) and that mine often could not: **§1135's filter would have missed a planted tenant injection**, **§1126's would have missed a coexisting client-kind path**, and a replacement probe **failed its own control**. So this stopping point grades every verdict by evidence class — **mutation-proved** (a RED is positive evidence) · **read** (files opened, unauditable but strong) · **probe-only** (weakest, and two have now failed). The purpose is that the owner can see which conclusions to lean on. |
 | 592 | §1144 | **§1145** | **CONTROLLED §1126 THE SAME WAY — AND BOTH OF MY MECHANICAL PROBES FAILED, IN DIFFERENT DIRECTIONS.** §1144 said presence-of-a-safe-pattern needs a sensitivity control, so I planted against §1126's *"17 of 19 append paths are server-fixed"*. Plant 1 was too weak — it REPLACED the literal, so the method re-classified correctly; the real hazard is **coexistence**. Plant 2 kept the literal and added a client-kind path: the literal count stayed 1 and **§1126's method still said SERVER-FIXED** — a false negative. My replacement probe (`kind:` from client data) then returned `<none>` across all 19 — and **failed its own control**, because the two KNOWN client-kind routes never assign `kind:` at all: they pass an opaque parsed body as `input` (`stub.append({ …, input })`). **The classification is not establishable by pattern**; §1126's verdict rests on reading, as §1122 said of §1121. |
 | 591 | §1143 | **§1144** | **CONTROLLED MY OWN CLEAN NEGATIVE — THE CONCLUSION HELD, THE METHOD FAILED.** §1143 warned that false confirmations go uninvestigated, so I planted a violation against §1135's *"43 sites, zero take the tenant from a header or body"*. The plant — `resolveTenantDb(c.env, c.req.header("X-Tenant") ?? session.tenant)`, i.e. a client override with the claim as FALLBACK, which is how such a bug actually looks — **was not flagged**, because §1135's filter was `grep -v "session.tenant"` and the malicious line CONTAINS that string. **A negative filter is defeated by any line carrying both tokens, and `??` is exactly that shape.** Replaced with a positive match on the DANGER, control-verified to catch the plant; re-derived across **11 distinct argument forms** — all safe (31 claim · 12 cron roster · 2 claim-by-other-spelling · 1 MAC'd cap · 1 queue trigger · 1 DO-pinned · 4 declarations). |
 | 590 | §1142 | **§1143** | **SWEEPING THE ABSENCE CLAIMS — AND A FALSE CONFIRMATION, WHICH IS WORSE THAN A FALSE ALARM.** §1142's false row was an ABSENCE claim, the kind a pattern read gets wrong, so I swept for siblings: **25** live unstamped rows assert that something does not exist. Re-derived the one whose method I had already proved unsound — *"seven of the 35 kinds have no emitter"*, traced by *literal* emitter, the method §1131 showed misses `rate.ts` entirely. Checked against the **append-seam** corpus instead: the count **survives**, with one refinement — **`credit.checked` has no SERVER emitter but IS client-appendable** (§1125), so *"no emitter"* must not read as *"cannot appear in the ledger"*. **The phase's real content:** my first probe had broken shell quoting and returned `<none>` for all five — **agreeing with the row**. Caught only because §1125 had told me otherwise. |
@@ -68069,4 +68070,52 @@ with one that preserves the safe signal; §1126's method shown to produce a **fa
 coexistence; the replacement probe shown to fail its own control against two known-positive routes; the
 verdict re-attributed to reading rather than to any probe. Plants restored, tree verified clean twice. Zero
 source changed.
+
+## §1146 — PHASE GATE: STOPPING POINT XVI — the session's verdicts, graded by evidence
+
+**Board re-earned at `efb8f9a`** — **19 PASS · 2 FAIL · 5 BLOCKED**, unchanged across eight stopping points.
+Both FAILs measured to `REQ-289`. **Zero repo-owned reds.**
+
+### Why this stopping point is a grading
+
+§1142–§1145 did not find defects in the build. They found something about **this audit**: a clean negative
+contains two claims — *"there is no violation"* and, underwriting it, *"this probe would find one"* — and the
+second is almost never tested. When I tested it:
+
+- **§1135's method failed.** A planted `resolveTenantDb(c.env, c.req.header("X-Tenant") ?? session.tenant)`
+  was filtered out **as safe**, because a negative filter (`grep -v "session.tenant"`) is defeated by any line
+  carrying both tokens — and `??` is exactly that shape.
+- **§1126's method failed.** With the literal preserved and a client-kind path added beside it, the
+  classification still read **SERVER-FIXED**.
+- **My replacement probe failed its own control** — it returned `<none>` while missing the two routes already
+  known to be client-kind, because they pass the body through as an opaque `input` and never assign `kind:`.
+
+In all three the **conclusion survived** re-derivation. The methods did not.
+
+### The grading
+
+| class | what it means | verdicts in this class |
+|---|---|---|
+| **Mutation-proved** | a guard was disabled and something went **RED** — positive evidence, reproducible | Law 5's four clauses (§1109/§1111) · Law 4's five (§1112) · the anomaly detector's five (§1116) · Law 10 (§115) · Law 2's two triggers (§305) |
+| **Read** | files were opened and reasoned about; strong, but not re-runnable by anyone else | Law 3's 19 append paths (§1126, re-confirmed §1128) · the 7 secrets (§1108) · the 3 parity floors (§1119) · R2 key scoping (§1136) · the 11 uncalled exports (§1121, per §1122) · Law 9's 16 WPs (§1142) |
+| **Probe-only** | a pattern returned nothing and nothing tested whether it could return something | **none left standing** — §1135 and §1126's classification were the two, and both have been re-derived by reading with a control |
+
+**The strongest claims in this audit are the mutation-proved ones**, and they are also the smallest set. The
+read class is where most of the coverage lives, and its weakness is not that it is wrong — three separate
+re-derivations found it right — but that it is **not re-runnable**: it rests on nineteen files having been
+opened, which no gate preserves.
+
+> **An audit's conclusions are only as durable as the evidence class they sit in.** A mutation leaves a RED
+> anyone can reproduce. A reading leaves a paragraph. This record has been careful to say *which* — and the
+> honest summary of a long audit is not "everything is sound" but "here is what is sound, and here is how
+> firmly each part is held."
+
+### Unchanged, and owner-held
+
+The two-kind rule (§1125/§1130/§1131, plus three product rulings) · `REQ-289` · nine private fixtures +
+`IDENTITY_DENYLIST` · REQ-267 · three demo blockers · **1,190 unpushed commits**, `origin/main` at 2026-07-31.
+
+**STOP.** Board 19/2/5 at `efb8f9a` with both FAILs attributed; the session's verdicts graded into
+mutation-proved, read, and probe-only, with the probe-only class emptied by re-derivation; the durability
+difference between a RED and a paragraph stated so the grading is usable rather than decorative.
 
