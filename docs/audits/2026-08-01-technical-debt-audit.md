@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 644 | §1196 | **§1197** | **A DEVICE SIGNATURE COVERING A CONSTANT INSTEAD OF THE FREIGHT IT ATTESTS LEFT 749 TESTS GREEN.** `recall "signEvent"` → **0 mentions in either governing record**: the co-signing primitive behind I4/REQ-016 had never been audited. It is 50 lines with two guards, and the suite pins two halves that do not join. `clientView is the frozen offline field set` pins the ten field NAMES — dropping any one REDs it, which is why all ten looked defended. The behavioural test *"any change to a signed field breaks verification"* varies exactly **one** field (`ts`). **Neither pins that the signature covers a field's VALUE**, and that is a separate property because sign AND verify both route through `clientView`: return a constant for a field and the two sides still agree, verification still passes, and the field is unprotected. **MEASURED: `payload: {}` inside clientView left 697 ledger + 52 workers/api tests GREEN** — a signature covering `{}` instead of the POD's actual payload, which is the exact forgery I4 exists to prevent. The uniform *"1 failed"* across all ten drops was §1194's invariance tell, and following it is what exposed the join. Pinned per field with type-appropriate tampering; three blanking mutations now RED, each naming the field that verified as authentic. |
 | 643 | §1195 | **§1196** | **THE DRIVER DRAIN LOOP: EVERY CONTROL POINT MUTATED, ALL FIVE DEFENDED — AND §579's CLAIM RE-VERIFIED RATHER THAN INHERITED.** With `recall` fixed, the search §1195 interrupted actually worked: it named **§579** (*"a prior iteration's anti-stranding fix had ZERO tests; `continue`→`break` left 39+68 tests green… strands evidence in airplane mode"*) and iteration 4's drain-order defect. `recall`'s own message says a heading still needs re-verifying at HEAD, so it was: flipping that same `continue`→`break` today REDs **2** tests. §579 pinned ONE branch; the loop has five. Mutated each independently on the surface where data loss is least observable: backing-off `continue`→`break` **2 RED** · the 401 `break` removed **1 RED** · `moved` `continue`→`break` **6 RED** · the parked-item counter dropped **1 RED** · the 8-leg guard cut to 1 **6 RED**. **No control point in the offline drain is undefended.** A clean negative that is worth as much as a defect here, because the failure mode it rules out is invisible online and unrecoverable offline. |
 | 642 | §1194 | **§1195** | **THE INSTRUMENT §1181's DISCIPLINE RUNS THROUGH WAS ANSWERING PHRASE MISSES WITH A NOVELTY VERDICT.** Went to audit the driver offline sync; `pnpm recall` said *"appears in NO governing record. It is genuinely new — trace the code."* A direct grep found the work recorded at **six** places in the audit. Traced: `recall()` is a literal `includes` and the CLI **joins every argv into ONE phrase**, which is right for its advertised usage (`pnpm recall NotConfiguredMigrator`, a single symbol) and silently wrong for the way it is used — a question in words. `drain-order` alone returns **6** mentions and `stranded` **21**; the seven-word phrase returns zero. **FOUR of this session's own queries got that verdict**, and at least one was demonstrably covered: §1182's *"public quote rate limit abuse throttle guest"* reported new while the subject was filed in **seven** places, which a grep found moments later. Fixed: on a phrase miss with >1 term, retry PER TERM and report what each finds; novelty is claimed only when no term matches. Pinned by 4 tests keyed on facts about the live record. **Second `git checkout --` destroying an uncommitted fix this session** — the restore is exact only for committed files. |
 | 641 | §1193 | **§1194** | **THE FAN-IN SWEEP FOUND NO UNCOVERED PRODUCT MODULE — AND TWO OF MY OWN COUNTING PROBES WERE WRONG BEFORE IT COULD SAY SO.** §1193's shape (highest fan-in, zero assertions) applied to `packages/`. **Probe 1 was broken**: matching importers by BASENAME gave every `index.ts` an identical 106 and conflated three different `money.ts`. Rewritten to resolve specifiers relative to the importer (and `@shuddl/pkg/sub.js` subpaths), the ranking became sane — `contracts/src/index.ts` at **255**, the most depended-upon module in the product. **Probe 2 was also wrong**: `rater/src/money.ts` looked uncovered (no `money.test.ts` in either location) but `roundHalfUp` and `mulDivHalfUp` are asserted in **7 and 5** test files — a NAMING artifact, not a gap. Barrels carry no tests, and that is correct, now MEASURED rather than assumed: deleting one `export *` line from the contracts barrel REDs typecheck, so a lost re-export cannot be silent. The adjacent unpinned property — a barrel *widening* the public API — has exactly one known instance (§1184's `EventBase`), already filed as an owner decision, so no detector was built. **Third counting-probe failure in this stretch**, and they share one mechanism: conflated identity. |
@@ -71220,4 +71221,69 @@ its outcomes — the property most easily lost in a refactor that "simplifies" t
 **STOP.** The offline drain audited branch by branch: §579's claim re-verified at HEAD rather than inherited,
 the four control points it did not cover mutated and all defended, and the result recorded as a measured clean
 negative on the one surface where the failure mode is both invisible and unrecoverable.
+
+## §1197 — PHASE GATE: the signature that would have covered nothing
+
+**Why this phase.** §1196 audited the drain loop; its upstream neighbour is where the evidence is **created and
+signed**. `recall` — now able to answer — reported the primitive itself:
+
+```
+recall "signEvent"  →  appears in NO governing record.
+grep signEvent docs/audits/…  →  0
+grep signEvent docs/ops/GO-LIVE-CHECKLIST.md  →  0
+```
+
+A single-term query, so §1195's phrase fix does not apply: **the co-signing primitive behind I4/REQ-016 had
+genuinely never been audited.** It is tested — `sign.test.ts` plus three workers/api suites — which is exactly
+the situation where "tested" and "pinned" need separating.
+
+### Two halves that do not join
+
+`packages/ledger/src/sign.ts` is 50 lines. `clientView` returns the ten fields a device knows offline; both
+`signEvent` and `verifyEventSig` route through it. The suite pins:
+
+- **the field LIST** — *"clientView is the frozen offline field set"*. Dropping any one of the ten REDs it.
+- **tamper detection for ONE field** — *"any change to a signed field breaks verification"*, which varies `ts`.
+
+Neither pins that the signature covers a field's **value**. And that is a genuinely separate property,
+because **sign and verify both go through `clientView`**: make it return a constant for a field and the two
+sides still agree — verification passes, and the field is no longer protected by anything.
+
+### Measured
+
+```
+clientView → payload: {}      ledger 697 passed · workers/api (airplane-soak, gates, sequencer) 52 passed
+clientView → evidence: []     ledger sign suite 9 passed
+```
+
+**749 tests green** while the device signature covers `{}` instead of the POD's actual payload. A capture
+altered after signing would verify as authentic and pass the sequencer's signature gate — the exact forgery I4
+exists to prevent. The code is correct today; what was missing is anything that would notice if it stopped
+being.
+
+### The tell that led here was invariance
+
+Dropping each of the ten fields produced *"1 failed"* — the same number, ten times. §1194 named that: **a
+uniform result across supposedly independent probes means one assertion is answering all of them.** It was the
+list pin. Following the tell instead of accepting ten green-looking mutations is the whole distance between
+"all ten fields are defended" and the finding above.
+
+> **A list pin and a behaviour pin look interchangeable and are not.** One says *these ten names are signed*;
+> the other says *this value cannot be altered*. The gap between them is a signature that covers the right
+> field names and the wrong bytes — and it is invisible to both.
+
+### The fix
+
+Per-field tampering with type-appropriate changes: a different uuid, a suffixed shipment id, a different kind,
+an added payload key, an appended evidence ref, a substituted actor party, `ts+1`, a different device, `+1` on
+device_seq and captured_ts. Each must verify **false**; the assertion collects the fields that verified TRUE so
+the failure names them rather than reporting a boolean.
+
+Mutation-proved three ways — `payload: {}`, `evidence: []`, `device_id: undefined` — each now RED with the
+field named. The premise (that the untampered event verifies) is asserted first, so a broken fixture cannot
+make the tamper assertions pass vacuously.
+
+**STOP.** The co-signing primitive audited for the first time: two pins that looked complete, a value-coverage
+property neither reached, a mutation that left 749 tests green, and a per-field pin that names the field whose
+protection was lost.
 

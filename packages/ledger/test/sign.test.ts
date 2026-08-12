@@ -18,6 +18,55 @@ describe("REQ-016 / I4: P-256 device signatures over the offline clientView", ()
     expect(await verifyEventSig({ ...e, sig }, jwk)).toBe(true);
   });
 
+  // §1197 — EVERY signed field, not just one. REQ-016/I4.
+  //
+  // The suite pinned two halves and left the join between them open. `clientView is the frozen offline field
+  // set` pins the ten field NAMES; the test below pins tamper-detection for exactly ONE of them (`ts`). Neither
+  // pins that the signature covers each field's VALUE — and that is a different property, because sign and
+  // verify BOTH go through `clientView`. If it returned a constant for a field, the two sides would still
+  // agree, verification would still pass, and the real field would be unprotected.
+  //
+  // MEASURED at §1197: replacing `payload` with `{}` (or `evidence` with `[]`) inside clientView left
+  // **749 tests green** — the whole ledger package plus every workers/api suite that uses signEvent. A device
+  // signature that covers a constant instead of the freight it attests is exactly the forgery I4 exists to
+  // prevent, and nothing in the tree objected.
+  //
+  // The list pin cannot see this (the key is still there) and the single-field tamper test cannot either
+  // (it varies `ts`). So: tamper EACH field, with a type-appropriate change, and require a false verdict.
+  const TAMPERS: ReadonlyArray<readonly [string, (e: Record<string, unknown>) => Record<string, unknown>]> = [
+    ["id", (e) => ({ ...e, id: "00000000-0000-4000-8000-0000000000ff" })],
+    ["shipment_id", (e) => ({ ...e, shipment_id: `${String(e["shipment_id"])}-x` })],
+    ["kind", (e) => ({ ...e, kind: "delivery.evidenced" })],
+    ["payload", (e) => ({ ...e, payload: { ...(e["payload"] as Record<string, unknown>), tampered: true } })],
+    ["evidence", (e) => ({ ...e, evidence: [...(e["evidence"] as unknown[]), { kind: "doc", id: "forged" }] })],
+    ["actor", (e) => ({ ...e, actor: { ...(e["actor"] as Record<string, unknown>), party: "party-attacker" } })],
+    ["ts", (e) => ({ ...e, ts: (e["ts"] as number) + 1 })],
+    ["device_id", (e) => ({ ...e, device_id: "dev-attacker" })],
+    ["device_seq", (e) => ({ ...e, device_seq: ((e["device_seq"] as number | undefined) ?? 0) + 1 })],
+    ["captured_ts", (e) => ({ ...e, captured_ts: ((e["captured_ts"] as number | undefined) ?? 0) + 1 })],
+  ];
+
+  it("§1197: tampering with ANY signed field breaks verification — every field, not just ts", async () => {
+    const pair = await p256();
+    const jwk = await pubJwkOf(pair);
+    // A device-namespaced fixture, so device_id/device_seq/captured_ts carry real values to tamper with.
+    const base = { ...eventFixture("pod.signed"), device_id: "dev-1", device_seq: 7, captured_ts: 1_720_000_000_123 };
+    const sig = await signEvent(base, pair.privateKey);
+    expect(await verifyEventSig({ ...base, sig }, jwk), "premise: the untampered event verifies").toBe(true);
+
+    const accepted: string[] = [];
+    for (const [field, tamper] of TAMPERS) {
+      const forged = { ...(tamper(base as unknown as Record<string, unknown>) as unknown as typeof base), sig };
+      if (await verifyEventSig(forged, jwk)) accepted.push(field);
+    }
+    expect(
+      accepted,
+      "a tampered field verified as authentic. The signature does not cover it — which means clientView is " +
+        "signing something other than this field's real value, and a forged event carrying it would pass the " +
+        "sequencer's signature gate (REQ-016/I4):",
+    ).toEqual([]);
+  });
+
   it("any change to a signed field breaks verification", async () => {
     const pair = await p256();
     const jwk = await pubJwkOf(pair);
