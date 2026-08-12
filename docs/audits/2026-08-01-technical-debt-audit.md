@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 661 | §1213 | **§1214** | **STOPPING POINT — BOARD RE-RUN, AND THE YIELD CURVE HAS MOVED FROM CODE TO RECORD.** 26 gates: **19 PASS · 2 FAIL · 5 BLOCKED** at HEAD (measured 18/3/5 at 7fcd125; the third FAIL was section-refs, MINE and in flight, fixed by §1213). Both FAILs are the owner's uncommitted REQ-289 row — the failing test NAMES say so. All five BLOCKED are absent private inputs. **Zero repo-owned failures.** The gate is the yield finding: four consecutive targets (assertion-free tests, collection selectors, the acceptance spine, catch fallback values) were opened and measured ALREADY COVERED, while every defect that did surface — §1213's two — changed zero runtime semantics. Rule extracted: a fix is complete when every artifact DESCRIBING the code is right, not when the code is; neither a comment nor a ledger row is reached by a behavioural test, which is why both survived the phase that fixed their gate. |
 | 660 | §1212 | **§1213** | **TWO STALE RECORDS IN THE GATE §1206 FIXED — LEFT BY THE PHASE THAT FIXED IT.** (1) `cellCount`'s comment described a cells-first split where "a cell with ODD backtick parity absorbs the following delimiter" — logic that exists nowhere, being the §1205 attempt that was REVERTED for merging three rows. It promised a code-span guard the code deliberately omits, inviting the exemption §1204 was filed against. (2) The §1204 debt row sat OPEN for six sections with its own trigger ("when the 24 rows are escaped") already satisfied by §1206. Both survived because §1206 measured the gate's BEHAVIOUR, so artifacts that merely DESCRIBE it were never in frame: a fix is done when every artifact describing the code is right, not when the code is. `check:section-refs` then caught me forward-referencing §1213 three times while writing this — the same defect class, same phase, cost one command. |
 | 659 | §1211 | **§1212** | **THE COLLECTION CHAIN MEASURED END TO END — AND ONE GATE'S HONEST SCOPE READ AS A GAP.** §1211 proved every test asserts; this proves every test RUNS. All four links green: 385 files / 18 packages all have a `test` script (no `--if-present` skip), 109 of 114 root files matched by the tools include, the other 5 are playwright specs and ALL FIVE collect (ran `--list` per project, not read). The finding is the error the mutation overturned: §728 says its scope is "packages that NARROW" and its config glob provably cannot match `vitest.tools.config.ts` — the LARGEST narrowing, 109 files — so I concluded the root was unguarded. A planted `.tsx` orphan under the `.ts`-only include was caught instantly by a THIRD root-aware gate. "Gate A does not cover X" is never "X is uncovered". Three-gate scope map recorded. |
 | 658 | §1210 | **§1211** | **SWEPT FOR TESTS THAT ASSERT NOTHING: ZERO IN 4,190 — AND THE PROBE WAS WRONG BY 94.** The decidable cousin of §1210. Clean negative: every tracked test asserts, so the 4,616 denominator is honest. The finding is the distance from the first measurement to the truth — 94 → 14 → 4 → 0, every reduction a PARSING artifact (a `{}` in a test NAME, concise arrow bodies, throwing testing-library queries, and a brace inside a string/regex literal), none a real defect. 100% false-positive rate at first pass. Artifact 4 is unfixable by refinement: the files that pin the most adversarial syntax EMBED it, so a text probe cannot read exactly the gates that matter most. Zero believed only after a positive control flagged a planted assertion-free test and neither asserting form. |
@@ -72210,3 +72211,62 @@ stale descriptions.
 
 **STOP.** The gate's comment now states the rule that shipped rather than the one that was reverted, the debt
 row closed against its own trigger, and the dangling references that closure created resolved by writing this.
+
+## §1214 — PHASE GATE: stopping point — the board re-measured, and the yield curve has moved from code to record
+
+**The board, run not restated.** `pnpm verify:merge` at `7fcd125`, all 26 gates independently, aggregating
+rather than short-circuiting:
+
+```
+26 gates   18 PASS · 3 FAIL · 5 BLOCKED      (at 7fcd125, artifact gate-merge-2026-08-12T19-17-49-650Z.json)
+                     ↓ section-refs was MINE, in flight — fixed by §1213 and re-run green
+26 gates   19 PASS · 2 FAIL · 5 BLOCKED      (at HEAD 7f02529)
+```
+
+**Both FAILs are the owner's uncommitted `genesis/09` REQ-289 row**, and the failing test names say so rather
+than being inferred: *"classifies every row of the real register"*, *"disposition is pure + total"*, *"keeps the
+authoritative register contiguous through its approved terminal ID"*. Nothing repo-owned fails. **The five
+BLOCKED are all absent private inputs** — `IDENTITY_DENYLIST` plus the four engagement-fixture gates
+(`fixtures`, `rater-parity`, `invoice-parity`, `concierge-parse`) — unchanged, and unreachable from this repo
+by construction ([[measure-the-blocker-dont-restate-it]] applied: each was checked for whether any part is mine
+— none is).
+
+**A counting note against my own first read.** I read "20 PASS / 3 FAIL" off the summary visually before
+counting mechanically; the true split is 18/3/5, and a `grep -cE '^\s+FAIL '` said **6** because vitest's
+per-test `FAIL` lines share the gate lines' shape. Two wrong counts of one board in five minutes, both caught
+by isolating the summary block ([[when-a-gate-looks-wrong-suspect-the-measurement]]).
+
+### Why this is a stopping point: the yield curve moved
+
+Four consecutive targets this stretch were opened and found **already covered** — not by assumption, by
+measurement:
+
+| Target | Verdict | Already closed by |
+|---|---|---|
+| Tests that assert nothing | 0 of 4,190 (§1211) | — clean, with a positive control |
+| Test-file collection / selectors | all four links green (§1212) | three gates: §727, §728, `test-collection` |
+| Acceptance demo spine | existence + manifest parity + assertion floor | §607, §889, §1003 |
+| `catch` fallback VALUES | 194 sites classified, all fail closed | §565, re-run by behaviour at §704 and §738 |
+
+**And the defects that DID surface were all in descriptions, not behaviour.** §1213 changed zero runtime
+semantics: a comment asserting a mechanism that had been reverted, and a debt row still OPEN against a trigger
+already satisfied. That matches the pattern this record has now hit repeatedly — *the defect is in what an
+artifact CLAIMS, not in what the code does* — and it is the signal that the code-defect seam here is worked
+out, while the record seam is not.
+
+**The standing rule this produces.** §1206 fixed a gate, proved it by behaviour, and left two artifacts
+describing the old behaviour. So: **a fix is complete when every artifact that describes the code is also
+right** — the comment above it, and the ledger row that filed it. Neither is reached by a behavioural test,
+which is exactly why both survived a phase that was otherwise rigorous.
+
+### What would move this board
+
+| Verdict | Held by | Clears when |
+|---|---|---|
+| 2 FAIL | owner | the REQ-289 row in `genesis/09` is committed with a classifying status |
+| 5 BLOCKED | owner | the nine private fixtures + `IDENTITY_DENYLIST` arrive from the engagement workspace |
+| 19 PASS | repo | — no repo-owned gate is failing |
+
+**STOP.** Board measured at 26 gates and 19 PASS with zero repo-owned failures, every remaining verdict
+owner-held and named, four audit seams confirmed closed by measurement, and the one live seam — stale
+descriptions of correct code — stated as a rule rather than left as four separate findings.
