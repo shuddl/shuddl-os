@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 666 | §1218 | **§1219** | **§1218 SAID "EVERY CAPABILITY FLAG" AND HAD ENUMERATED BY MECHANISM — TWO MONEY SEAMS WERE OUTSIDE THE GREP.** Re-enumerated BY BEHAVIOUR (what moves money, sends mail, bills an external API) the corpus is **six, not four**. Missed: **Anthropic LLM egress** (3 ports; selects on binding presence, never compares to `"true"`) and the **Stripe webhook** (gate reads `secret !== undefined && secret !== ""`). Both CLEAN — and the Stripe boundary is the strongest gate in the build: raw scheme, no SDK, HMAC-SHA256 over `${t}.${rawBody}`, constant-time against EVERY v1 candidate, 300s replay tolerance, idempotency behind it. The idiom recurring across independently-written seams is evidence it is a discipline, not a reused helper. **The defect is the corpus claim — second in three phases** (§1215's "22 verified" from six): the scope sentence written from the shape of the SEARCH, not the SUBJECT. This phase's own fetch probe was also wrong (excluded `.fetch(`, returned only inbound handlers); the hostname scan disagreeing with it is the only reason the seams surfaced. |
 | 665 | §1217 | **§1218** | **EVERY CAPABILITY FLAG SWEPT — FOUR SEAMS, ONE IDIOM, ZERO FAIL-OPENS.** §1217's question (*is this flag the ONLY thing between a stranger and the capability?*) applied to every `Env` flag gating a real side effect: `PROVISIONING_ENABLED`, `PLATFORM_INTERNAL_SECRET`, `ALLOW_TEST_SEND`, `RESEND_API_KEY`+`EVIDENCE_FROM`. All fail closed. Three break-points of this class named because each is handled correctly here: the **empty-string arm** (`secret === undefined \|\| secret === ""` ⇒ 503 — the one implementations omit), **the flag alone never opens the send route** (armed but tokenless ⇒ 500 misconfigured, not an open outbound-email endpoint), and **a disabled sender REFUSES rather than skipping** (biller.ts: a silent skip would be *"a NotConfiguredSender-shaped lie"*). The idiom: EXACT comparison + absence as a DISTINCT LOUD state + a SECOND independent gate. Limit: "absent from wrangler.toml" proves this REPO ships nothing on; a dashboard-set var is invisible to any in-repo scan. |
 | 664 | §1216 | **§1217** | **THE SIGNUP ORACLE'S CONTAINMENT RE-VERIFIED — AND THE QUESTION ITS ROW NEVER ASKED.** L431's email-existence oracle is a founder UX call, so not this session's to change; its CONTAINMENT is. All four parts hold (409 mapping at `:93`, route 404s behind the flag, EXACT `=== "true"` so no truthy value opens it, flag absent from wrangler.toml), pinned across exactly 5 test files, and the row's snippet-keyed citation correctly predicted the drift from `:94`. The row never asks whether that flag guards EVERY path — so: `provisionTenant` has **exactly one caller**, the flag is checked **twice** on it (route AND function), and there is **exactly one production INSERT INTO users**, inside it. Unreachable by CONSTRUCTION, not merely by configuration. Limit stated: a dashboard/secret-set var is outside repo evidence — part four proves this repo ships nothing on, not that no deployment has it on. |
 | 663 | §1215 | **§1216** | **I CORRECTED THAT ROW LAST PHASE AND STOPPED ONE LINE SHORT OF ITS TITLE.** §1215 rewrote L408's body — count, enumeration, `workers/api` specifier — and left the headline asserting *the older vitest major carries MOST of the tests*. Measured: **1,854 of 4,205 static sites, 44.1% — a MINORITY** (160 files v3 vs 225 v4). True at §1054 (2,018/2,421 = 83%), made false by GROWTH on the v4 side, not by an edit. Held against three checks: §1054's runtime ratio independently gives 43.7% (0.4 points apart), `.each` density is 1.0% v3 vs 2.3% v4 so expansion WIDENS the gap, and every unmodelled effect pushes the same way. The general rule: §1215's subject was pins, so the specifier got measured and the sentence directly above it did not. The gate's prose carries the SAME number honestly — *"2,018 of the 2,421 measured at §1054"* — and the entire difference is the attribution clause: **a measurement stated without a date claims the present tense.** |
@@ -72471,7 +72472,11 @@ thing standing between a stranger and the capability?* That question generalises
 knobs while catching its exception correctly. So: enumerate the capability flags and put each through the same
 test.
 
-**The corpus is four seams** — every `Env` flag or optional secret that gates a real-world side effect
+**The corpus is four seams** ~~— every `Env` flag or optional secret that gates a real-world side effect~~
+**— CORRECTED by §1219: there are SIX. This phase enumerated by MECHANISM (`Env` declarations plus
+`=== "true"` comparisons) and therefore could not see the Anthropic LLM egress or the Stripe webhook, whose
+gates are shaped differently. Both are clean and follow the same idiom, so the CONCLUSION below stands; the
+word "every" did not.** The four measured here gate a real-world side effect
 (provisioning a tenant, appending platform money, sending mail):
 
 | Seam | Dark state | Second, independent gate | Verdict |
@@ -72514,3 +72519,48 @@ only lines beginning with `|` are rows. A gate that catches the person who fixed
 
 **STOP.** All four capability seams measured against the §1217 question, no fail-open found, the three
 break-points of the class named, and the shared idiom written down as the test a future flag must pass.
+
+## §1219 — PHASE GATE: §1218 said "every capability flag" and had enumerated by mechanism — two money seams were outside the grep
+
+**§1218 claimed a complete corpus it had not measured.** It swept the flags reachable by two greps — `Env`
+interface declarations and `=== "true"` comparisons — and wrote *"every capability flag in the build"* and
+*"the corpus is four seams"*. Re-enumerated **by behaviour** (what produces a real-world side effect: money
+moving, mail leaving, an external API billed), the corpus is **six**. The two it missed are the two that cost
+money:
+
+| Seam | Why the mechanism-grep missed it | Verdict |
+|---|---|---|
+| **Anthropic LLM egress** — `api.anthropic.com` from 3 ports (copilot, concierge parse, migrator guess) | selects on *binding presence*, never compares to `"true"` | port chosen at the composition root; unconfigured ⇒ `NotConfigured*` that rejects loudly + retriably |
+| **Stripe webhook** — `POST /webhooks/stripe`, the credit-purchase money boundary | gate reads `secret !== undefined && secret !== ""` — no `=== "true"` anywhere | `billingFor` ⇒ `NotConfiguredBilling`, 503, throws rather than returning a verified event |
+
+**Both are clean, and the Stripe boundary is the strongest gate in the build.** It implements the raw Stripe
+scheme with no SDK: HMAC-SHA256 over `${t}.${rawBody}` keyed by the full endpoint secret, compared
+**constant-time against every `v1` candidate** (not just the first), behind a **300-second timestamp tolerance**
+that closes the replay window, with `credits.ts` idempotency as a second layer. `constantTimeEqual` is
+length-checked XOR with no early return — the same implementation as the api worker's, independently written.
+
+So §1218's *conclusion* is reinforced: six seams, two of them built by different hands for different hazards,
+all landing on the same idiom — **exact/explicit check, absence as a loud distinct state, a second independent
+gate**. That the idiom recurs without a shared base class is evidence it is a real discipline rather than one
+helper being reused.
+
+### The defect is the corpus claim, and it is the second one in three phases
+
+§1215 wrote *"twenty-two triggers re-verified"* having measured six. §1218 wrote *"every capability flag"*
+having grepped two patterns. Same failure both times: **the scope sentence was written from the shape of the
+search, not from the shape of the subject.** [[floor-the-input-not-the-output]] states the rule for scanners —
+bound the CORPUS you read, not the hits you found — and these are that rule applied to prose.
+
+**The mechanical tell was available and I nearly missed it.** This phase's own first probe for outbound calls
+excluded `.fetch(`, which filtered out every real caller and returned only inbound worker handlers. It reported
+a clean, empty-looking result. The hostname scan run beside it disagreed — `api.anthropic.com`, `api.mapbox.com`
+— and that disagreement is the only reason the two seams surfaced. **Two probes for one fact, and the cheap one
+was wrong** ([[keep-a-fixed-point-before-scaling-a-probe]]).
+
+**Remaining egress, named for completeness:** `api.mapbox.com` and `tiles.openfreemap.org` are client-side tile
+sources, not server capabilities — no secret gates them and none moves money, so they are outside this class
+but inside the CSP/asset story.
+
+**STOP.** The capability corpus re-derived by behaviour and closed at six, the two money seams measured and
+found clean, §1218's overclaim struck at its source rather than only here, and the recurring cause — a scope
+sentence written from the search instead of the subject — named on its second instance.
