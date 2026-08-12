@@ -1,4 +1,4 @@
-import { z, AnswerResult, type EventRef, type EventKind } from "@shuddl/contracts";
+import { z, AnswerResult, EXCEPTION_KINDS, type EventRef, type EventKind } from "@shuddl/contracts";
 import type { CopilotReadPort, ReadEvent } from "./port.js";
 
 // WP-10 Task 7 (REQ-038/024) — the COPILOT core: a read-only question-answerer over the ledger. It is config-
@@ -65,8 +65,8 @@ function groundOrAbstain(text: string, citeIds: readonly string[], retrieved: re
 // keyword/anchored (no LLM), so the SAME question always classifies identically. The Claude adapter reuses it
 // only to SCOPE its retrieval; the model still composes the prose (then everything is grounded).
 
-const EXCEPTION_KINDS = ["exception.raised", "osd.captured"] as const satisfies readonly EventKind[];
-
+// §1227 — imported from @shuddl/contracts, which owns this subset beside the 35-catalog. It was
+// declared here AND in workers/api/src/routes/exceptions.ts with nothing comparing them.
 const STREAM_LIMIT = 500; // a single shipment's stream (readEvents caps at 1000)
 const LIST_LIMIT = 1000; // the exception feed
 const RECENT_LIMIT = 200; // an unknown question's recent window (Claude retrieval only)

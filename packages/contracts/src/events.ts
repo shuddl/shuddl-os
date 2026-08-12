@@ -37,6 +37,22 @@ export const EVENT_KINDS = [
 ] as const;
 export type EventKind = (typeof EVENT_KINDS)[number];
 
+/**
+ * §1227 — WHAT COUNTS AS AN "EXCEPTION", declared ONCE.
+ *
+ * This list was previously written out twice, independently: `workers/api/src/routes/exceptions.ts` (the
+ * authenticated route behind the Command board's exception queue) and `packages/agents/src/copilot/answer.ts`
+ * (the copilot's `open_exceptions` answer). Neither imported the other and no test compared them — so the two
+ * surfaces' shared definition of an exception was held together by nothing but the fact that one person wrote
+ * both. Adding a third kind to one would have left the board and the copilot disagreeing about the SAME
+ * question, which is the exception-pulse acceptance demo (doc 00 §5).
+ *
+ * `satisfies readonly EventKind[]` is load-bearing rather than decorative: a member that is not in the frozen
+ * 35-catalog fails to COMPILE, so this subset cannot drift away from its superset either. Both consumers keep
+ * their literal-tuple typing because the `as const` is preserved here.
+ */
+export const EXCEPTION_KINDS = ["exception.raised", "osd.captured"] as const satisfies readonly EventKind[];
+
 export const Hash64 = z.string().regex(/^[0-9a-f]{64}$/);
 
 // actor{party,user,device}: split into three DB columns (actor_party_id/_user_id/_device_id).

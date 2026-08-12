@@ -1,6 +1,6 @@
 import { TERMINAL_STATES } from "@shuddl/ledger/queries/metrics";
 import type { Hono } from "hono";
-import type { EventKind } from "@shuddl/contracts";
+import { EXCEPTION_KINDS, type EventKind } from "@shuddl/contracts";
 import { lensFor, readEvents } from "@shuddl/ledger/lens";
 import { ApiError } from "../middleware/error.js";
 import { requireRole } from "../middleware/auth.js";
@@ -27,7 +27,8 @@ import type { Env, Vars } from "../index.js";
 // claim-adjudication flow (and any exception.resolved kind it needs) is DEFERRED to WP-11. Documented as the
 // WP-10 assumption; the flag name is `open`, and the heuristic is stated in the response's own contract.
 
-const EXCEPTION_KINDS: readonly EventKind[] = ["exception.raised", "osd.captured"];
+// §1227 — imported, not re-declared: this list and the copilot's were independent copies of one
+// domain claim with nothing comparing them. @shuddl/contracts owns it beside the 35-catalog.
 
 // Terminal shipment states = the resolve signal. Only 'delivered' is produced today (pod.signed, status-cache
 // .ts:133-134); 'settled' is listed forward-safe (a future settlement projection) so the heuristic need not
