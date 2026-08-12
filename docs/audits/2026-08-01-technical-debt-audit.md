@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 633 | §1185 | **§1186** | **TRIAGED ALL 15 LIVE REPO-OWNED ROWS: THE REPO-ACTIONABLE SET IS EMPTY, AND ONE ROW IS ALREADY FIXED.** §1185 produced the count; this reads every row and asks what actually blocks it. **Row 436 is FIXED** — verified in the code, not inherited: `tenant-scope.test.ts` carries `}, 30_000);` on the §702 assertion, the exact remedy §1052 recorded. It is unstruck only because it holds a watch trigger, so the live figure is **14 open + 1 fixed-with-watch**. Every one of the 14 is blocked by construction: *"not a defect to fix"* (407, 408, 415), *"needs a REQ row first"* (428, 429, 430), *"needs a decision"* / *"needs a definition"* (409, 410, 411), owner-held (412, 413 — *"the fix is one line … but the FIX is an owner decision"*), a private input (416), accepted-for-now (431), and R4-with-a-reverted-fix (432 — written, REVERTED, and §1056 measured the wall as a **dependency** property, `isolatedStorage: false`). **CLAUDE.md forbids building what has no REQ row, so the correct action on all 14 is to leave them.** Also: a keyword scan for resolution markers FALSE-POSITIVED on 416 — its "CLOSED" is *"this gate fails CLOSED in CI"*, a mechanism, not a status. |
 | 632 | §1184 | **§1185** | **THE LEDGER'S DESCRIPTION OF ITSELF UNDERSTATED OPEN DEBT BY NINE ROWS.** §1184's rule — a filed decision inherits the measurement it was filed with — applied to the ledger as a whole. Most rows are well disciplined: they carry `measured <date>, audit §N`, which is the practice. The exception is the row that exists *"so a reader need not count"*: **3 tables to 32 rows — 19 struck, 13 live**. **RE-MEASURED: 3 tables · 49 rows · 27 struck · 22 live.** Corrected and, more usefully, **decomposed** — the section also holds a gate-status table and a COMMAND table, neither of which is debt, so the number a reader actually wants is **table 1: 42 rows, 27 struck, 15 LIVE repository-owned debt items**. My own three attempts prove the decomposition is the point: whole-file **323**, whole-section **49**, table-1 **42** — and the second was only caught because a control printed each row's first cell and revealed `pnpm -s test:e2e …` counted as a debt row. A self-describing count is the one measurement guaranteed to rot, because every edit to the thing changes it. |
 | 631 | §1183 | **§1184** | **FIVE CLEAN NEGATIVES, THEN A STALE MEASUREMENT INSIDE AN OWNER DECISION.** Finished §1183's sweep: `migration-fixture-parity`'s selector has no real blind spot (the only `applyMigrations` callers outside its filter are the migrator itself and the seed loader); `superrefine-parity` is deliberately scoped to one file and states its limits; `booking.ts`'s duplicated window refine is defended on BOTH copies (each mutation reds exactly one test); and the THIRD copy of the device-dedupe rule (`EventBase`) is already filed at §913 as no-consumer public API — verified still true at HEAD and correctly anchored in GO-LIVE:272. The finding is the row beside it: GO-LIVE:273 asks the owner to choose between adding a narrow anchor rule and leaving the substring match, and frames option (a) as *"would flag 0 after this phase's fixes"* with the two known instances *"both now resolved"*. **RE-MEASURED: it flags 2** — `events.ts:290@EventBase` (the SAME citation the filing said was resolved; span 288–292 all comment, declaration at :295) and `migrator.ts:415@idx` (a third instance the filing never knew about; declared at :422). Both verified by reading. The decision is untouched; its cost is now measured instead of assumed. Also: my `.refine(` duplicate probe returned ZERO against a known duplicate — the message was in the `{ message }` object form, which is exactly why the third copy is easy to miss. |
 | 630 | §1182 | **§1183** | **SECOND INSTANCE OF §1182's IDIOM, AND THIS ONE BOUND TO THE WRONG FUNCTION RATHER THAN SKIPPING.** Swept `tools/` for selectors that discard a SUBJECT; most hits are benign (comment-skipping, markdown-table parsing, extension filters). `list-endpoint-pagination` — the unbounded-read guard — selected handlers by scanning for the next `=>` **anywhere after the registration**. For a NAMED handler (`app.get("/pub/status/:cap", publicStatusHandler)`, an idiom this repo already uses) there is no arrow at all, so it bound to a LATER, UNRELATED function's body: not a skip, **a verdict computed from someone else's code**. **CONTROLLED to one variable** — same route, same `SELECT * FROM events`, same file: inline ⇒ RED, named ⇒ **5/5 PASS**. Fixed by resolving named handlers, locally and **across imports**. Two of my own fixes failed their controls first and both were caught: the naive body-finder returned the PARAMETER's type annotation (`{ env: { DB: D1Database } }`) — failing exactly like the bug it replaced — and a premise assertion rejected `status_cache` as a proof marker because public.ts names it in prose. Resolver now unit-tested (4 cases incl. real cross-file resolution); 9/9; the original defect REDs. Also measured: `/pub/status/:cap` is genuinely bounded (`WHERE id = ?`, `LIMIT 1`), so nothing was hiding. |
@@ -70445,4 +70446,56 @@ struck). The original claim is struck rather than deleted, per this file's conve
 **STOP.** The ledger's self-description re-measured, corrected, and decomposed so the next reader gets the
 figure they actually need — and the mis-measurement that nearly replaced an under-count with an over-count
 recorded alongside it.
+
+## §1186 — PHASE GATE: what is actually left, and why none of it is mine to build
+
+**Why this phase.** §1185 corrected the count to **15 live** repository-owned rows. A count is not a plan. The
+loop's instruction is to resolve debt, so the next honest step is to read all fifteen and ask, per row, *what
+specifically blocks this* — the *measure-the-blocker-don't-restate-it* rule applied to the whole ledger.
+
+### One row is already fixed
+
+**Row 436** (`§702 GUARDED_FNS` intermittent under full-suite load) carries **FIXED 2026-08-11 (audit §1052)**
+in its status. Verified in the code rather than inherited: `tools/checks/tenant-scope.test.ts` ends that
+assertion with `}, 30_000);` — an explicit per-assertion timeout, which is exactly the remedy §1052 recorded
+(*"not a raised global default, which would trade a real hang-detector for a flake fix"*).
+
+It is unstruck because it still carries a **watch trigger** — *"on the next observed failure, capture the full
+run's output and the file ORDER."* That is legitimate, and it means the ledger's live count mixes two states:
+
+> **"Open debt" and "closed but watched" are different things, and a strike-through cannot express the
+> second.** A reader counting live rows over-states the work remaining by exactly the number of watches.
+
+### The other fourteen, by what blocks them
+
+| blocker | rows |
+|---|---|
+| explicitly **not a defect** / observation | 407 (mitigated), 408 (both majors green), 415 (*"OPEN — observation, not a defect"*, owner tooling call) |
+| **needs a REQ row first** | 428 (LLM cost metering), 429 (SLA cadence), 430 (booking-trigger backstop) |
+| needs a **decision** or a **definition** | 409 (cron double-fire, *"proposed, unregistered REQ"*), 410 (*"needs a decision before a fix"*), 411 (*"needs a definition, not a fix"*) |
+| **owner-held** | 412 (the owner's untracked corpus), 413 (*"the fix is one line … but the FIX is an owner decision"* — it 403s a public API surface) |
+| **private input** | 416 (REQ-167 needs `IDENTITY_DENYLIST`) |
+| accepted-for-now | 431 (signup enumeration oracle; the pre-GA pen-test row inherits it knowingly) |
+| **R4, fix written and REVERTED** | 432 (pool-binding exclusivity — the COUNT-based refusal failed six real api tests; §882: the named UNIQUE index is *"NECESSARY, NOT SUFFICIENT"*; §1056 measured the wall as a **dependency** property, `isolatedStorage: false`) |
+
+**CLAUDE.md settles the correct action on all fourteen:** *"If it isn't a REQ row, it doesn't get built; if you
+discover scope, ADD A ROW first"* — and the register is the owner's file, carrying their uncommitted edit. Six
+rows say so in their own text. Building any of them would be straying, and three of them (413, 429, 431)
+change the behaviour of a public or customer-facing surface.
+
+> **A debt ledger whose remaining items are all owner-blocked is not a stalled ledger — it is a finished one,
+> pending decisions.** The useful output is not a smaller number; it is knowing that the number cannot get
+> smaller from this side.
+
+### A false positive worth recording
+
+Scanning the live rows for resolution markers (`FIXED|CLOSED|RESOLVED|HARDENED|DONE`) flagged **two**: 436, and
+**416 — wrongly**. Row 416's match is *"this gate fails **CLOSED** in CI"*: a description of fail-closed
+behaviour, not a status. A keyword scan over prose cannot separate a *status word* from the same word used
+mechanically, which is the standing false-positive floor this record has met before. Caught by reading the
+cell, which is the only thing that separates them.
+
+**STOP.** All fifteen live repository-owned rows triaged against their own text: one already fixed and verified
+in code, fourteen blocked by construction — six of them saying so explicitly — and none buildable without a
+register amendment that is the owner's to make. The repo-actionable open-debt set is **empty**.
 
