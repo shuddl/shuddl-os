@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 590 | §1142 | **§1143** | **SWEEPING THE ABSENCE CLAIMS — AND A FALSE CONFIRMATION, WHICH IS WORSE THAN A FALSE ALARM.** §1142's false row was an ABSENCE claim, the kind a pattern read gets wrong, so I swept for siblings: **25** live unstamped rows assert that something does not exist. Re-derived the one whose method I had already proved unsound — *"seven of the 35 kinds have no emitter"*, traced by *literal* emitter, the method §1131 showed misses `rate.ts` entirely. Checked against the **append-seam** corpus instead: the count **survives**, with one refinement — **`credit.checked` has no SERVER emitter but IS client-appendable** (§1125), so *"no emitter"* must not read as *"cannot appear in the ledger"*. **The phase's real content:** my first probe had broken shell quoting and returned `<none>` for all five — **agreeing with the row**. Caught only because §1125 had told me otherwise. |
 | 589 | §1141 | **§1142** | **LAW 9 IS 16/16 — AND I GOT THREE DIFFERENT ANSWERS BEFORE THE RIGHT ONE.** CLAUDE.md rule 9 demands an adversarial swarm at EVERY WP exit; a note of mine said *"WP-04…WP-16 have no exit-audit section at all."* **False at HEAD: all sixteen have one.** Getting there took three passes, and the direction of the error ALTERNATED — counting *mentions* said all 16 (too generous: a mention is not a section); matching `## REQ-119 exit audit` said 4 of 16 (too harsh: a heading-format artifact); matching **both** conventions said 16. The corpus uses **three** heading forms (`## WP-exit audit swarm (REQ-119)` for WP-01–11, `## REQ-119 exit audit — CLEAR-TO-CLOSE` for 12–15, `launch audit` for 16) because it was written over months by an evolving convention. **No single pattern matches a corpus whose convention drifted.** |
 | 588 | §1140 | **§1141** | **STOPPING POINT XV — LAW 8 CLOSED 4/4, AND THE RETURN CURVE IS NOW MEASURABLE.** Board re-earned at `b764d5e`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs measured to `REQ-289`. Six phases: **Law 8 verified 4/4** (tenant source across 43 sites · structural DO pinning · R2 keys built-or-checked · the suite executes) and the short-circuit shape swept through scripts AND CI. **Yield across the six: one stale note of my own, corrected; zero new defects.** §1139 withdrew a false alarm, §1140 found the work already done. Recording the curve because it is decision-relevant: §1111 (a real hole) → §1125/§1130 (a real pair) → six phases of confirmation. The build is answering the same way from every new angle. |
 | 587 | §1139 | **§1140** | **THE HAZARD I WAS SWEEPING FOR ALREADY HAPPENED — AND IS NOW GATED IN BOTH DIRECTIONS.** `tools/checks/workflow-step-guards.test.ts` records the incident: on **2026-07-31 the `perf` step failed and the NEXT step — the 26-gate merge evidence surface — was SKIPPED**, on three consecutive CI runs, *"the last being the commit production still serves."* §978 then measured 14 steps: 4 guarded, 10 sequential, **all four browser gates unguarded** — only the accident that `perf` ran last prevented a `visual` failure from erasing a11y, e2e and perf as well. It is now pinned by **4 assertions** including a non-vacuity floor AND the reverse direction (*genuine prerequisites stay unguarded*), plus 26 more in `ci-contract.test.ts`. §1138–§1139's sweep terminates: scripts and CI both enforced. Cost: I ran the sweep without `pnpm recall` first — the record held §962/§978/§979 the whole time. |
@@ -67893,4 +67894,52 @@ Fifth pattern-read miss this session, and the first where successive refinements
 **STOP.** Law 9 verified **16/16** by matching the corpus's three actual heading conventions; a false and
 specific claim in my own notes corrected against HEAD; the three-pass sequence recorded with the direction of
 each error, and the preventive read named as *derive the vocabulary before matching it*. Zero source changed.
+
+## §1143 — PHASE GATE: the absence-claim sweep, and a false confirmation
+
+**Why this phase.** §1142's false row was an **absence claim** — *"WP-04…WP-16 have no exit-audit section"* —
+and absence is exactly what a pattern read gets wrong. So the sibling question: how many other live rows
+assert that something does not exist? **25**, unstamped.
+
+Most are genuinely owner-held and unarguable (no branch protection, no on-call rota, no SLO, the tenant-0
+config pack). One stood out because **I had already proved its method unsound**: *"Seven of the 35 frozen
+kinds have no emitter,"* whose stated method is *"tracing every declared kind to a **literal** emitter"* —
+and §1131 established that `rate.ts` emits `quote.priced` through `append("quote.priced", …)`, a function
+**argument**, carrying no `kind:` literal at all.
+
+### Re-derived against the append-seam corpus
+
+Not by literal `kind:`, and not by "does the string appear anywhere" (which over-corrects — a kind in a
+switch, a redaction map or a type guard is not an emission). By §1125's sound corpus: the **19 append-seam
+callers**, since the chokepoint makes them the complete set of emitters.
+
+| kind | verdict |
+|---|---|
+| `call.transcribed` · `pickup.scheduled` · `quote.sent` | in **no** append-seam file — **confirmed** |
+| `dispatch.assigned` | only in `sequencer.ts`, which is its **gate**, not an emitter — **confirmed** |
+| `credit.checked` | **refinement** — no *server* emitter, but **client-appendable** through `POST /v1/shipments/:id/events`, role-gated to finance/admin (§1125) |
+
+**The count survives.** The row is defensible: it uses "emitter" to mean server-side code that emits, and by
+that reading all seven hold. The refinement matters anyway, because *"no emitter"* invites the reading *"this
+kind cannot appear in the ledger"*, and for `credit.checked` that is false — it is precisely a client-supplied
+privileged decision.
+
+### The part worth recording: a false confirmation
+
+My first probe shell-quoted the search term wrong and returned `<none>` for **all five** kinds — **agreeing
+with the row**. I caught it only because §1125 had independently told me `credit.checked` appears in
+`events.ts`; nothing in the probe's own output was suspicious. A control (`is events.ts among the 19?`) then
+settled it.
+
+> **A false confirmation is more dangerous than a false alarm, and this session has produced far more alarms.**
+> An alarm gets investigated — that is what §1107, §1112, §1139 and §1142 all show, each caught within
+> minutes because a surprising result invites a second look. A confirmation invites nothing. It agrees with
+> the record, closes the question, and the broken probe is never examined. **The reflex "a result that
+> contradicts something known is the measurement" needs its converse: a result that AGREES needs a control,
+> because agreement is not evidence of correctness — it is the absence of the only signal I reliably act on.**
+
+**STOP.** 25 live absence claims enumerated as a class; the one with a demonstrably unsound method re-derived
+against the chokepoint corpus, its count confirmed and one reading corrected in place; a false confirmation
+from broken quoting caught by prior knowledge rather than by the probe, and the asymmetry between false
+alarms and false confirmations recorded with the control that closes it. Zero source changed.
 
