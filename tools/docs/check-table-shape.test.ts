@@ -61,11 +61,16 @@ describe("REQ-118: the parser flags exactly what markdown drops", () => {
     expect(findOverWideRows("d.md", TBL("| 1 |\n"))).toEqual([]);
   });
 
-  it("a pipe inside `code` or escaped as \\| is not a delimiter", () => {
-    // The false-positive shape that would make the gate unusable: prose and code legitimately contain pipes.
-    expect(findOverWideRows("d.md", TBL("| `a|b` | 2 |\n"))).toEqual([]);
+  // §1206 — CORRECTED. This asserted that a pipe inside `code` is not a delimiter; GFM says it is, unless
+  // escaped. The old assertion is why the gate's own suite could never catch §1204's miss: the test encoded
+  // the same wrong model as the implementation, so the pair was self-consistent and wrong together.
+  it("only `\\|` escapes a pipe — a code span does NOT (GFM)", () => {
+    expect(findOverWideRows("d.md", TBL("| `a|b` | 2 |\n")), "a code span does not protect a pipe").not.toEqual([]);
+    expect(cellCount("| `x|y|z` | b |"), "4 cells, not 2").toBe(4);
+    // The escape works, and is the remedy applied to the 24 rows — including inside a code span.
     expect(findOverWideRows("d.md", TBL("| a \\| b | 2 |\n"))).toEqual([]);
-    expect(cellCount("| `x|y|z` | b |")).toBe(2);
+    expect(cellCount("| a \\| b | 2 |")).toBe(2);
+    expect(cellCount("| `a \\| b` | 2 |")).toBe(2);
   });
 
   it("a table only starts where a divider follows the header", () => {

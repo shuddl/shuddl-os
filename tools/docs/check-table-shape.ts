@@ -52,8 +52,16 @@ export function listMarkdownFiles(cwd: string = process.cwd()): string[] {
 
 /** Cell count of a markdown table row: split on unescaped pipes, drop the leading/trailing empties. */
 export function cellCount(line: string): number {
-  // A pipe inside `code` or escaped as \| is not a delimiter.
-  const stripped = line.replace(/`[^`]*`/g, (m) => " ".repeat(m.length)).replace(/\\\|/g, "  ");
+  // §1206 — ONLY `\|` ESCAPES. This blanked code spans first, on the premise that "a pipe inside `code` is
+  // not a delimiter". GFM says the opposite: a pipe must be escaped **including inside other inline spans**,
+  // so a code span does NOT protect it and GitHub splits the cell anyway. That premise made this gate miss
+  // the exact defect it exists for (§1204: a 5-cell row against a 3-column header PASSED), and §1202's
+  // identical mistake was caught only because NESTED backticks happened to defeat the stripper.
+  //
+  // The 24 rows this was hiding were escaped first (§1206) — cells split on unescaped pipes, then a cell with
+  // ODD backtick parity absorbs the following delimiter, which is the cells-first order §1205 identified after
+  // a whole-line backtick toggle merged three rows wrongly.
+  const stripped = line.replace(/\\\|/g, "  ");
   return stripped.split("|").slice(1, -1).length;
 }
 
