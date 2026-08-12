@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 566 | §1118 | **§1119** | **THE VACUITY FLOOR IS ON ALL THREE PARITY GATES, AND STRONGER THAN I WOULD HAVE SPECIFIED.** §1118 found `rater-parity` pins *"an EMPTY case list is not a pass in disguise"* — an idiom, and idioms are rarely uniform. Checked the siblings: **3/3 floored**, each with an EXACT-count check (*"pins exactly 48/504"* · *"exactly 500"* · *"the WP-07 DoD pins exactly 50 — a short/over/empty set is a real discrepancy, not a pass. No merge."*) **plus** a smoke-COMPOSITION floor that count alone would miss: invoice-parity hard-fails if its in-repo set lacks an `issue`, a below-floor hold, or an interline split. Its comment cites the prior false green this fixed (§558: *"0/0 … harness live at exit 0"*) and says *"counting is not enough."* My hypothesis was wrong in the safe direction. Cost: probe error #22 — `^function main` misses `async function main`. |
 | 565 | §1117 | **§1118** | **THE FIVE BLOCKED GATES ARE BLOCKED ON INPUTS, NOT ON UNPROVEN LOGIC — 5/5.** Every board since §1036 has reported **5 BLOCKED**, and nobody had asked the question that matters: their pass/fail path has NEVER executed in CI, so when the private fixtures land, will the verdict be TRUE? Traced each by IMPORT (not by directory). All five have their detection proved: `runParity` (penny-exact divergence · each floor compared individually · a hollow PRICED · **an EMPTY case list is not a pass in disguise**) · `runInvoiceParity` (an in-repo SMOKE set that runs **against the real engine today**, plus one-cent perturbation and thrown-comparison-as-mismatch) · the concierge harness (accessorials as a SET, queued-reason divergence) · `check:fixtures` (hash mismatch · missing file · **mode-aware** pending+merge → BLOCKED) · `check:identity` (masking, and the **fail-open fix**: CI + no denylist → code 1, *was* exit 0). |
 | 564 | §1116 | **§1117** | **STOPPING POINT XI — SIX PHASES OF CLAUSE-DECOMPOSITION; ONE REAL DEFECT, FOUR SELF-CORRECTIONS.** Board re-earned at `e867417`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs attributed by measurement to the owner's `REQ-289` row. §1111 **found and closed a real hole** (Law 5's clause 4 — a 150% executing share defended by nothing) · §1112 Law 4 5/5 · §1114 Law 2 ~13 shapes (summary UNDERstated) · §1115 Law 1 both directions · §1116 the anomaly detector 5/5. **The method's yield: 1 defect in ~40 guards.** Its cost: **four** harness errors, every one failing toward 'undefended'. Both numbers belong in the record. |
 | 563 | §1115 | **§1116** | **THE $222K DETECTOR ITSELF: 5/5 GUARDS DEFENDED.** Applied §1111's per-guard method to `packages/rater/src/anomaly.ts` — the module that names the permanent regression — using §1112's corrected TOTAL mutation form. Five guards, five REDs: cap-positive-integer (1) · sell-integer (2) · weight-positive-integer (1) · negative-sell (1) · **over-threshold (9)**. The core detection carries nine pins; the input validators carry one or two each, which is sufficient — a single pin is all that stops a silent deletion. Clean negative, zero source changed. With §1112 (Law 4, 5/5) and §1109/§1111 (Law 5, 4 clauses, 1 gap closed), the rater's constitutional surface is now proved guard-by-guard. |
@@ -66533,4 +66534,52 @@ today. The private fixture supplies *scale and provenance*, not first execution.
 **STOP.** The five standing BLOCKED gates traced by import and verified to have proved divergence detection,
 mode-awareness, and (for the parity gates) empty-corpus vacuity guards; the launch-blocking posture confirmed
 to rest on **absent private inputs alone**, with no unproven logic behind it. Zero source changed.
+
+## §1119 — PHASE GATE: the vacuity floor, checked on all three parity gates
+
+**Why this phase.** §1118 noted that `rater-parity` pins *"an EMPTY case list is not a pass in disguise."*
+That is an **idiom**, and this record's repeated finding is that idioms are applied unevenly
+([[n-instances-usually-share-one-idiom]]). If `invoice-parity` or `concierge-parse` lacked the same floor,
+then on the day their fixtures land partially loaded they would green over an empty corpus — the precise
+hazard §1118 said was closed.
+
+### 3/3, and each on two independent axes
+
+**Count floor** — every gate pins its DoD's exact cardinality and refuses anything else:
+
+- `rater-parity`: per-directory, *"REQ-027 pins exactly 48 / 504"*, plus a separate `cases.length === 0`
+  hard-fail — *"reproducing over zero comparisons is the exact false green the header forbids."*
+- `invoice-parity`: refuses when the run's `total` differs from the set it defines.
+- `concierge-parse`: *"yielded N cases; the WP-07 DoD pins exactly 50. **A short/over/empty set is a real
+  discrepancy, not a pass. No merge.**"*
+
+**Composition floor** — the part I would not have specified, and the stronger one. `invoice-parity` hard-fails
+`SMOKE HOLLOW` unless its in-repo set contains **at least 5 cases AND at least one `issue` outcome AND at
+least one below-floor hold AND at least one interline split**. `concierge-parse` does the same over its
+decision statuses. A count floor proves *something* ran; a composition floor proves the **interesting paths**
+ran.
+
+That distinction is not theoretical here — the code says where it came from:
+
+> *"…printed `0/0 in-repo synthetic cases … harness live` at exit 0 (audit §558). **Counting is not
+> enough.**"*
+
+A prior false green produced the composition floor. The gate now refuses to call itself live over a corpus
+that technically loaded but exercised nothing.
+
+### The hypothesis was wrong in the safe direction
+
+I went looking for a missing floor on two of three gates and found floors on all three, each stricter than the
+one I would have written. That is the §1114 shape again — **a protection can be stronger than the record that
+describes it**, and only checking distinguishes "undocumented" from "absent".
+
+**Cost, recorded:** probe-shape error #22 — `sed -n '/^function main/,/^}/p'` returns nothing for
+`async function main()`, so `concierge-parse` initially read as having **no floor at all**. Fifth instance
+this session of *my pattern, not the code*, and again failing toward the alarming reading. §1115's rule
+applies to my own greps as much as to a gate's pathspec: **when a probe reports absence, the first suspect is
+the probe.**
+
+**STOP.** All three parity gates verified to floor both the cardinality and the composition of their corpora,
+with the historical false green that motivated the stronger floor identified in-code; §1118's claim that the
+five BLOCKED gates hide no unproven logic is now checked one level deeper. Zero source changed.
 
