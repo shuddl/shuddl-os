@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 561 | §1113 | **§1114** | **LAW 2's SUMMARY UNDERSTATED IT — 2 MUTATIONS NAMED, ~13 SHAPES DEFENDED. THE MIRROR OF §1111.** Decomposed REQ-002/I3/I7 the §1111 way: **11 append-only triggers** across events/positions/money_lines, whose `WHEN` clauses enumerate distinct REPLACE surfaces. §305 recorded *two* mutations (`events_guard_upd`, `events_guard_del`) — but the suite carries a purpose-built test for **every** shape, three of them titled *"colliding ONLY on X"* (hash · ux_events_device · ux_ml_corrects), plus two I had not enumerated: `INSERT OR IGNORE` of a duplicate and `ON CONFLICT DO UPDATE`. So §1111's error runs BOTH ways: Law 5's summary **overstated** (4 clauses, 1 blind), Law 2's **understated** (2 named, ~13 defended). Done at ZERO wedge risk — `packages/ledger` is pool-workers, so I READ instead of running 11 mutations. Residual stated: presence of purpose-built tests, not mutation proof, for 11 of 13. |
 | 560 | §1112 | **§1113** | **I COMMITTED OVER AN UNIDENTIFIED DELTA AGAIN — WITH THE TOOL I BUILT TO PREVENT IT, IN THE SAME COMMAND.** §1112's commit block ran `pnpm delta` and `git commit` in ONE call. Delta printed **2 NEW failures**; the commit executed anyway, because output is not a precondition. This is §942's lesson verbatim (*"a gate run only gates if the commit cannot execute when it fails"*) and the 4th unidentified-delta commit this session. Three subsequent runs are CLEAN and `pnpm reap` finds no orphans, so the committed content is sound — but the two are **unidentified**, which is exactly the state §1080 was written about. Fix is structural, not resolve: **`pnpm delta && git commit`**, or delta in its own call, read before committing. |
 | 559 | §1111 | **§1112** | **LAW 4 IS 5/5 DEFENDED — AND MY MUTATION HARNESS REPORTED TWO FALSE 'UNDEFENDED' FROM OPERATOR PRECEDENCE.** Carried §1111's clause-counting to REQ-004 (*no price on air*): 5 clauses (weight · dims-null · dims-measure · no_zone · no_rate_group). First run said C1 and C3 were **silent** — two untested guards on a constitutional law. False. `if (false && A || B || C)` parses as **`(false && A) || B || C`**: `&&` binds tighter, so the guard never stopped firing. Re-run with `if (false) {`: **C1 → 12 RED, C3 → 4 RED**. Worse, C2 was PARTIALLY disabled and returned a plausible RED 1 (true answer: 3) — so one broken harness produced valid, invalid AND half-valid cells at once. §1111's *"assert the mutation applied"* is necessary and **NOT sufficient**: the text changed and the guard still ran. **5/5 defended, 23 REDs.** |
 | 558 | §1110 | **§1111** | **DEFECT — LAW 5's SOLE DEFENCE AGAINST A 150% EXECUTING SHARE HAD NO TEST.** A law is not one proposition: REQ-040 has **four** falsifiable clauses, and §305 proved one (the arithmetic, RED 13) while §1109 proved another (the partial-signal refusal, RED 3). Mutating the remaining two: the 10000-total check REDs 2 — but the **per-leg range check went GREEN, 166/166**. One probe separated redundant-from-untested: with it removed, `[+15000, -5000]` (summing to exactly 10000, so the total-check is blind) yields **`shareCents: 150000` on a 100000 gross — a 150% share**, which clears any floor. That is the $222,084 DIRECTION. Test added and mutation-proved. And the second test I wrote asserted a mechanism that was **false** — the fractional shape is caught downstream by `mulDivHalfUp`'s BigInt, not by the guard — caught by mutating my own comment before commit. |
@@ -66264,4 +66265,66 @@ because it forces the result into the transcript where it must be read rather th
 **STOP.** The lapse recorded rather than quietly fixed, the committed state re-verified clean three times from
 a no-orphan baseline, and the commit ritual changed to make the sequencing failure impossible rather than
 unlikely.
+
+## §1114 — PHASE GATE: Law 2's summary understated it, which is §1111's error running backwards
+
+**Why this phase.** §1111 found Law 5's proof summary **over**stated — four clauses, three proved, one blind
+and dangerous. The method generalises, so it should be run on the other laws. **Law 2** (events are
+append-only, I3/I7 — CLAUDE.md rule 2: *"no UPDATE/DELETE paths on `events`, ever, including migrations"*) is
+the highest-stakes remaining, and my working notes flag its subtle clause: **D1 runs
+`PRAGMA recursive_triggers = 0`, so `INSERT OR REPLACE`'s implicit row-DELETE never fires a `BEFORE DELETE`
+guard.** REPLACE is the way to rewrite history past a guard that only watches UPDATE and DELETE.
+
+### The decomposition: 11 triggers, ~13 violation shapes
+
+| table | UPDATE | DELETE | BEFORE INSERT (`WHEN` terms) |
+|---|---|---|---|
+| `events` | ✓ | ✓ | `(stream_id, seq)` · `id` · `hash` · `(stream_id, device_id, device_seq)` |
+| `positions` | ✓ | ✓ | `(shipment_id, device_id, ts)` with a differing hash |
+| `money_lines` | ✓ | ✓ | `id` · `(event_id, line_no)` · `(corrects_event_id, line_no)` |
+
+The migration says why in its own words: *"an `INSERT OR REPLACE` that collides on a UNIQUE key the BEFORE
+INSERT guard's WHEN-clause does NOT enumerate slips PAST the guard (its WHEN is false)"* — so each term of
+each `WHEN` is an independent way through, exactly the structure §1111 was about.
+
+### What the suite actually covers
+
+§305 recorded **two** mutations — `events_guard_upd` → RED, `events_guard_del` → RED — and wrote Law 2 proved.
+The suite is far broader. Every shape above has a purpose-built test, and three are titled with the per-term
+discipline explicitly:
+
+- *"INSERT OR REPLACE colliding **ONLY** on the `events.hash` UNIQUE is aborted; the victim is byte-for-byte intact"*
+- *"INSERT OR REPLACE colliding **ONLY** on `ux_events_device` (stream_id, device_id, device_seq) …"*
+- *"INSERT OR REPLACE colliding **ONLY** on `ux_ml_corrects` (corrects_event_id, line_no) …"*
+
+Plus two attack shapes I had not enumerated at all: **`INSERT OR IGNORE` of a duplicate** (*"NOT a silent drop
+— the guard raises loudly, CLAUDE.md rule 10"*) and **`ON CONFLICT DO UPDATE`** upsert. Someone had already
+done this decomposition here, and done it better than the summary that cites it.
+
+> **A law's proof summary can err in EITHER direction, and the summary looks identical both ways.** Law 5's
+> said "proved" over a blind clause; Law 2's said "two triggers" over thirteen defended shapes. The
+> overstatement costs a hole; the understatement costs *redundant work* — I was one decision away from
+> spending eleven mutation runs re-proving what is already pinned. Count the clauses **and** count the tests;
+> the gap in either direction is the finding.
+
+### The residual, stated rather than glossed
+
+This phase establishes **purpose-built tests naming each term** — that is presence, and
+[[presence-tests-cannot-reach-value-constraints]] is the standing warning that presence is not enforcement.
+Of the ~13 shapes, **2 are mutation-proved** (§305) and 11 rest on reading. That bound is deliberate, and so
+is the reason:
+
+`packages/ledger` runs on `vitest-pool-workers`, and this record's hardest-won operational lesson is that such
+a suite can wedge **uninterruptibly** — `kill -9`-proof, cleared only by a reboot. Eleven back-to-back
+mutation runs there is the single riskiest thing available in this repo. Static enumeration plus reading the
+migrations and test titles bought ~90% of the answer for 0% of that risk.
+
+> **When the harness is hazardous, read.** A mutation is the strongest evidence, not the only evidence, and
+> the choice between them is a risk decision that should be made explicitly and written down — not defaulted
+> into by habit.
+
+**STOP.** Law 2 decomposed into 11 triggers / ~13 violation shapes; every shape carries a purpose-built test,
+three of them per-term by title; two attack shapes found that I had not enumerated; the 2-of-13
+mutation-proved bound stated explicitly along with the wedge-risk reason for not extending it. Zero source
+changed.
 
