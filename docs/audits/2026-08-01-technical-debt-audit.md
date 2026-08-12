@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 597 | §1149 | **§1150** | **STOPPING POINT XVII — THE READ CLASS WORKED DOWN TO WHAT CANNOT BE MECHANISED.** Board re-earned at `277cc5b` **with the three new gates in it**: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs measured to `REQ-289`; tools tests **1,255 → 1,271**. §1146 graded the session's verdicts and found the READ class right but not re-runnable; §1147–§1149 converted **three** of them into mutation-proved gates — tenant-never-from-client-input · no-blank-credential · every-WP-records-its-exit-audit. The remainder is ruled OUT on evidence, not skipped: Law 3's `input`-passing routes, R2 key derivation and the uncalled-exports classification each failed a control (§1122/§1145). **Three gates, three files, +16 tests.** |
 | 596 | §1148 | **§1149** | **THIRD READ-CLASS VERDICT HARDENED — AND THIS ONE GATES THE CLAIM THAT WAS FALSE FOR WEEKS.** §1148's test for hardenability (danger positively matchable, legitimate forms enumerable) rules R2 key-scoping OUT — the key is a variable — and Law 9's WP exit-audits **IN**. Built `tools/checks/wp-exit-audit.test.ts` (REQ-119): every `docs/wp/WP-*.md` must carry an exit-audit heading. Its **boundary test pins all THREE drifted conventions**, because matching only one produced §1142's *"4 of 16"* artifact — the shape of the false claim that stood in the checklist for weeks framed as an owner decision. A separate test rejects a passing prose MENTION, which was §1142's *first* wrong answer. Mutation-proved: renaming WP-13's heading turns it **RED**. |
 | 595 | §1147 | **§1148** | **SECOND READ-CLASS VERDICT HARDENED: A BLANK CREDENTIAL CANNOT READ AS A CONFIGURED ONE.** §1108 verified by READING that all seven credentials test `!== undefined` **and** `!== ""` — the second half being the one that matters, since an empty `wrangler secret put` satisfies a presence check and yields a LIVE client holding a blank credential. Now gated: `tools/checks/credential-blank-guard.test.ts` requires an empty-string comparison on every local bound from a `*_SECRET`/`*_KEY`/`*_TOKEN` binding. **Polarity is deliberately not prescribed** — this build uses both (`secret !== undefined && secret !== ""` and `if (token === undefined \|\| token === "")`), and a gate demanding one would red the other. Mutation-proved end to end: stripping the `!== ""` half from the real `STRIPE_WEBHOOK_SECRET` selector turned it **RED**, naming the binding. |
 | 594 | §1146 | **§1147** | **HARDENED: THE FIRST READ-CLASS VERDICT CONVERTED INTO A MUTATION-PROVED GATE.** §1146 graded the session's verdicts and named the gap — the READ class is right but **not re-runnable**. So I converted the one whose method had demonstrably failed: `tools/checks/tenant-source.test.ts` enforces REQ-025's *the tenant never comes from the request*. It **positive-matches the danger** instead of subtracting the safe (the defect §1144 planted), carries a **non-vacuity floor** (>25 call sites), a **boundary** test over the six legitimate forms, comment-immunity, and — the point — **its own sensitivity test**, plus an END-TO-END plant in real source that turned it **RED** naming the exact line. Collected by `vitest.tools.config.ts`, so it runs in the unit-tests merge gate: 1,261 tools tests, +6. |
@@ -68277,4 +68278,55 @@ sensitivity test**.
 R2 key-scoping explicitly ruled out rather than attempted; all three drifted heading conventions pinned so the
 §1142 artifact cannot recur; the mention-vs-section distinction pinned separately; mutation-proved end to end
 with clean attribution. `delta` clean · typecheck OK · lint OK.
+
+## §1150 — PHASE GATE: STOPPING POINT XVII — the read class, worked down
+
+**Board re-earned at `277cc5b`**, now including the three gates built since the last stopping point:
+
+**19 PASS · 2 FAIL · 5 BLOCKED** — both FAILs measured to `REQ-289`; tools tests **1,255 → 1,271**.
+
+### What these three phases did
+
+§1146 graded this session's verdicts into **mutation-proved**, **read**, and **probe-only**, and named the
+read class's defect: it is probably right — three re-derivations agreed — and it is **not re-runnable**,
+because it rests on files having been opened, which no gate preserves.
+
+§1147–§1149 converted three of them:
+
+| verdict | gate | proved by |
+|---|---|---|
+| no tenant comes from client input (REQ-025) | `tenant-source.test.ts` | a planted `?? session.tenant` override → **RED** |
+| a blank credential is not a configured one (REQ-154) | `credential-blank-guard.test.ts` | stripping `&& secret !== ""` from the live Stripe selector → **RED** |
+| every WP records its exit audit (REQ-119) | `wp-exit-audit.test.ts` | renaming WP-13's heading → **RED** |
+
+Each carries the same five properties, and they are the point rather than boilerplate: a **non-vacuity floor**
+(a broken glob throws rather than reading as clean), a **boundary test** so the rule cannot be over-applied
+onto correct code, **comment-immunity**, its **own sensitivity test**, and an **end-to-end plant in real
+source** — because synthetic tests prove the detector while only a plant proves the corpus reaches the file.
+
+### What was ruled out, and why that matters
+
+The read class is not empty; it is **worked down to what cannot be mechanised honestly**:
+
+- **Law 3's client-kind routes** — §1145: two independent probes, one blind to coexistence, one blind to the
+  actual mechanism (`stub.append({ …, input })` never assigns `kind:`). Both failed their controls.
+- **R2 key derivation** — §1149: the danger is "a key not derived from the tenant" and the key is a variable.
+- **The uncalled-exports classification** — §1122: name-frequency cannot resolve module scope, demonstrated
+  with a false negative *and* a false positive.
+
+> **Declining to build the fourth gate is part of the result.** §1148's test — *the danger must be positively
+> matchable and the legitimate forms enumerable* — is a rule for **when to stop**, and three of six candidates
+> failed it. A gate that cannot fire is worse than a paragraph, because the paragraph does not claim to be
+> enforcement.
+
+### The board's two FAILs, eleven stopping points running
+
+Both are `REQ-289`. It is worth stating what committing it does beyond clearing them: §1137 established that
+the same red once short-circuited `pnpm test`'s `&&`, silently skipping **105 of 112 tenant-isolation cases**
+while the gate reported green. That `&&` is now a `;`, so the skip cannot recur — but the row remains the only
+thing standing between this board and 21 PASS.
+
+**STOP.** Board 19/2/5 at `277cc5b` with the three new gates included and both FAILs attributed; the read
+class reduced by three verdicts, each now mutation-proved and re-runnable by anyone; the three that cannot be
+mechanised ruled out on evidence with the failing control named for each; tools coverage +16.
 
