@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 545 | §1097 | **§1098** | **§1097's RULE TESTED — 4 OF 4 REQUIREMENTS LIVE AT THE CONSUMING LINE, AND NO MATCHER CAN PROVE IT.** Checked the four remaining unverified Med rows for an in-code marker. **All four have one**, each in different words: `perf.spec.ts` — *"§963 — THE FLOOR MUST NOT BE A HARDWARE BUDGET IN DISGUISE"*; `fence.ts` — *"detention/dwell math … DEFERRED to a later WP (no detention engine exists yet)"*; `session.ts` — *"a full login screen + lockout policy is still a follow-up"*; `biller.ts` — the photos comment. **Two heuristics found two different subsets and neither found all four**: a vocabulary matcher (`deferred`/`TODO`/`not wired`) hit L207+L209, a `§N` matcher hit L197+L204. First reported *3 of 4 have NO MARKER* — wrong, and the 16th probe-shape error. The property is real and unmechanizable. |
 | 544 | §1096 | **§1097** | **A THIRD CONSUMER WITH NO PRODUCER — AND THE REPO PUTS THE REQUIREMENT WHERE THE BUILDER WILL STAND.** L159 verified exact: `credits.ts` still resolves a credit's tenant from the Checkout Session's `metadata.tenant` (Zod-required non-empty, Stripe-signed — neither establishes it names the RIGHT tenant), and **no code anywhere creates a Checkout Session** — the only `CheckoutSession` references in the tree are that schema and its `.parse()`. Its conditional severity (*Low today, Med the day it ships*) is therefore correct as written. Third instance this session of the same shape: §1092's I4 waiver (consumer, no producer), §1094's doc-cap resolver (producer, unreachable consumer), and this. In each case the requirement is recorded **at the consuming line**, which is the one place the future builder is guaranteed to read. |
 | 543 | §1095 | **§1096** | **BOARD RE-EARNED AT `bb16006` — 19 PASS · 2 FAIL · 5 BLOCKED, IDENTICAL AFTER 31 PHASES AND SIX NEW GATES.** §1064's own rule (*a board is perishable evidence; the interval is the risk*) applied to itself. Since that run I added `no-audio-capture`, `req024-closure`, `pinned-deps-explained`, `skill-reference-lints`, the sweep-count figure, `recall` and `delta` — **none introduced a red**. Both FAILs still resolve to the single uncommitted `REQ-289` row (the run names it). All 5 BLOCKED unchanged and still absent private inputs. Every browser gate green (`perf`, `visual` 5, `a11y` 4, `e2e` 6) alongside `invariants`, `append-chokepoint`, `rater-purity`, `design-audit`, `acceptance` — all **non-skippable**. Zero repo-owned reds across ~50 phases of edits. |
 | 542 | §1094 | **§1095** | **§1094's BINDING TABLE MEASURED THE WRONG ARTIFACT, AND ITS SHARPEST CONCLUSION WAS UNFOUNDED.** I reported which of seven secrets are *bound today* from wrangler.toml membership. `workers/api/wrangler.toml:1-2` states the law: **"NO SECRETS EVER IN THIS FILE (REQ-154, REQ-134) … Secrets live in `wrangler secret` + OIDC."** A secret's absence from a `.toml` is REQUIRED, not evidence — so 6 of 7 rows measured nothing. Measured properly: **6 have zero `[vars]` assignments** and are unknowable from the repo; only `EVIDENCE_FROM` is a var (1 assignment, agents staging). The struck conclusion — *JWT_SECRET is already bound in api, so demo #1's blocker is smaller* — rested on a `grep -l` hit that is a **COMMENT**. Binding state is an ACCOUNT fact, which is precisely what **L43** records and what preflight's `--state` file supplies. |
@@ -65315,4 +65316,55 @@ what their output will be parsed into.
 **STOP.** L159 verified exact in both directions — consumer present, producer absent — with its conditional
 severity confirmed correct and the requirement's placement identified as the mechanism that makes the class
 safe. `pnpm delta` clean · `check:citations` 0 · `check:tables` OK.
+
+## §1098 — PHASE GATE: the rule holds four times, and cannot be checked by machine
+
+**Why this phase.** §1097 claimed that what makes a *consumer with no producer* safe is **where the requirement
+is written** — at the consuming line, where the future builder must read it. That was observed on three rows.
+Four unverified Med rows remained, so the claim was testable rather than merely plausible.
+
+### All four carry the requirement in code
+
+| row | the marker, in its own words |
+|---|---|
+| **L197** perf gate enforces one of three budgets | `perf.spec.ts` — *"§963 — THE FLOOR MUST NOT BE A HARDWARE BUDGET IN DISGUISE. This file gates both of its hardware-sensitive budgets…"* |
+| **L204** PLACED-PHOTO hash not byte-verified | `biller.ts` — the same close-out comment that carries the photos gap |
+| **L207** driver auth + lockout deferred | `session.ts` — *"this file is the DEVICE session… A full login screen (magic-link / PIN) + lockout policy is still a follow-up."* |
+| **L209** continuous GPS emitter + dwell math | `fence.ts` — *"detention/dwell math that discloses its own ± bounds — is a money/dwell calc DEFERRED to a later WP (no detention engine exists yet)."* |
+
+**Four of four.** The rule §1097 inferred from three instances holds on four more, and in each case the comment
+does the thing the ledger cannot: it sits where the person doing the work will be standing.
+
+### And no single matcher can establish that
+
+I ran two:
+
+| heuristic | found | missed |
+|---|---|---|
+| vocabulary — `deferred` \| `TODO` \| `not wired` \| `unbuilt` | L207, L209 | L197, L204 |
+| section refs — `§\d+` | L197, L204 | L207, L209 |
+
+**Neither found all four, and their intersection is empty.** My first pass reported *"3 of 4 have NO MARKER"*
+— a clean, wrong, alarming number, and the **sixteenth** probe-shape error of this session. The cause is the
+same one §1084 measured when it refused to gate cross-field consistency: the property is **semantic**, and the
+markers are written in whatever words the author needed at that line. `§963` and *"still a follow-up"* and
+*"DEFERRED to a later WP"* are the same act; nothing short of reading distinguishes them from ordinary prose.
+
+That is not a defect in the comments. It is what makes them useful — a marker phrased for the reader who will
+hit it beats a marker phrased for a scanner, and the two are different documents.
+
+### What this phase says
+
+> **The practice worth having is often the one you cannot gate.** §1091 measured that only 2 of ~94 numeric
+> claims are machine-checked, and concluded that is the correct trade. This is the same trade one level up:
+> requirement-at-the-consuming-line is the single most reliable thing in this record — 7 for 7 across §1092,
+> §1094, §1097 and this phase — and it survives entirely on authorship, with no gate and no possibility of one.
+
+The corollary, earned by the wrong number: **when two reasonable detectors disagree completely, the property is
+semantic and the count is fiction.** An empty intersection is not a signal to merge the patterns; it is the
+measurement telling you the axis does not exist.
+
+**STOP.** §1097's rule tested on four further rows and holding 4 of 4, with each marker quoted in the words its
+author chose; the detection attempt recorded as unmechanizable with the two heuristics' disjoint results as the
+evidence. `pnpm delta` clean · `check:citations` 0 · `check:tables` OK.
 
