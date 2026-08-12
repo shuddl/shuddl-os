@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 657 | §1209 | **§1210** | **SWEPT FOR MIRROR-SHAPED TESTS: 94 CANDIDATES, 92 BENIGN, ONE TAUTOLOGY WEARING THE FILE'S STRONGEST CLAIM.** A test whose expectation is imported from the module under test proves only self-consistency. Swept every assertion whose EXPECTED side is such an import: **94 across 32 files**. Almost all are benign — `expect(code).toBe(EVIDENCE_EXIT.OK)` uses a shared vocabulary, not a mirror — and the roster cases mostly compare a roster against an INDEPENDENT artifact (`preflight` parses the real `wrangler.toml` and checks it against `REQUIRED_BINDINGS`, which is genuine parity). One is a true tautology: `restore-verify`'s *"checks every declared dimension, so a clean result is not a thin one"* asserts `report.checked === RESTORE_CHECKS` while the implementation literally assigns that constant. **The property is nonetheless held** — measured by deleting five real comparisons one at a time (money-lines sum, events head hash, invoice totals, chain head, anchor root): each REDs 1–2 of the per-dimension cases. So the claim is TRUE and this assertion is not what makes it true. Renamed to what it proves, and given a non-tautological half — a walk-less run must report FEWER checks — **mutation-proved: 5 RED**. |
 | 656 | §1208 | **§1209** | **SESSION STOPPING POINT — THE BOARD RE-MEASURED AFTER ~20 COMMITS, AND IT IS UNMOVED.** §1190 measured 21 PASS · 2 FAIL · 5 BLOCKED. Twenty commits later — a gate rewritten (`check-table-shape`), 24 record rows re-shaped, four test suites extended — the board reads **identically**, and the two FAILs are still *exactly* the three delta-baseline assertions from the owner's uncommitted REQ-289 row. Suite grew **4,601 → 4,616** (+15: the per-field signature tamper sweep, the parity same-stream pin, `staging-smoke`'s blocked-path contract, `repoRoot`'s fail-closed contract, `recall`'s phrase-miss behaviour). **Everything this session added is green; nothing it touched moved a verdict.** Two real defects were found and closed — a device signature that could cover a constant while 749 tests passed (§1197), and a parity dedup key that could merge the two sides it exists to separate (§1201) — plus a gate false negative closed (§1206) that turned out to be **suppressing another gate's finding**. |
 | 655 | §1207 | **§1208** | **THE KEY-CONSTRAINT SWEEP CLOSES: THE DANGEROUS SHAPE HAS EXACTLY ONE INSTANCE, AND IT IS THE CONSTRAINED ONE.** §1207 showed a `z.record` KEY doing load-bearing work. Swept all **22** `z.record` uses by extracting each key schema with a paren-matcher rather than a truncating grep: **4 constrained** (`DayOfWeekKey`, `TransitZoneKey` ×2, and the zip regex) and 18 `z.string()`. But an unconstrained key is only hazardous where the consumer matches **fuzzily** — an exact `obj[key]` lookup cannot be fooled by an empty key. Swept the consumers: exactly **three** prefix-matching sites exist. `engine.ts` is the zip map (constrained, §1207); `dunning.ts` matches a **literal constant** (`collector-dunning/`); `mcp/rest.ts` derives its prefix from a hardcoded route template (`/shipments/:id` → `/shipments/`), never from a validated record. **Zero instances of unconstrained-key-plus-fuzzy-match.** The eighteen free-form keys are JSON payloads, EDI raw maps and CSV rows — read by exact lookup, where the constraint would buy nothing. |
 | 654 | §1206 | **§1207** | **§1206's LESSON APPLIED TO DATA: A TRUNCATED EDI SEGMENT CANNOT REACH A PRICE, AND THE GUARD IS A KEY REGEX.** *A malformed structure feeds a smaller input downstream* is not only about markdown — X12 is positional, so a short segment silently yields `undefined` for every later element. Traced the whole path: `parse-204` reads `elements[N]?.trim()` (no crash), `EdiAddress` declares street/city/state/zip **all optional** (so a truncated N4 parses clean), and the shipment reaches the rater with no destination. **It fails closed there**: `matchZone` finds no prefix and the engine returns `UNKNOWN / no_zone` — law 4 holds for the ADDRESS, not just for the weight and dims §820 hardened. The one way to defeat it would be a tariff carrying an **empty** zip prefix, since `"".startsWith("")` is true — and that is **unrepresentable**: `zip_to_zone` keys are `z.record(z.string().regex(/^\d{3,5}$/), …)`. **Mutation-proved**: relaxing the key law REDs a contracts test. The rater suite stays silent and correctly so — the constraint is §1203's *unrepresentable* class, so the schema is the guard and the engine rightly trusts it. |
@@ -72022,4 +72023,65 @@ session (the table-gate remedy, now specified as *cells-first*) are the only add
 **STOP.** Board re-measured and identical after twenty commits, every FAIL and BLOCK attributed to an input
 this repository does not own, fifteen new assertions all green, and the session's two real defects closed with
 mutation proofs rather than claims.
+
+## §1210 — PHASE GATE: the assertion that could not fail, under the name that promised the most
+
+**Why this phase.** This session's most productive shape is *two things derived from one source*. One axis was
+unswept, and this record names it: a **mirror-shaped test** — one whose expectation is imported from the module
+it tests — proves only self-consistency. §1172 noted `lens-adversarial` deliberately avoids it (*"independent
+I6 guards that do NOT import the map under test"*), which means the hazard is understood; the population was
+never enumerated.
+
+### The sweep, and why most of it is noise
+
+Every assertion whose **expected** side is a symbol imported from the module under test: **94 across 32
+files.** Almost none is a defect, and the reason is worth stating so the number is not mistaken for a backlog:
+
+- `expect(exitCode).toBe(EVIDENCE_EXIT.OK)` — a **shared vocabulary**, not a mirror. The test names an outcome;
+  the constant is how outcomes are spelled.
+- `expect(prod.d1.map(b => b.binding)).toEqual(REQUIRED_BINDINGS.api.d1)` — genuine **parity**: the left side is
+  parsed from the real `workers/api/wrangler.toml`, an artifact the roster does not control. Two independent
+  things compared, which is the opposite of a mirror.
+
+**The discriminator is not "is the expectation imported" but "are both sides derived from the same thing."**
+That is §1199's rule again, reached from a different direction — and it is why 94 candidates reduce to one.
+
+### The one that is a tautology
+
+```ts
+it("checks every declared dimension, so a clean result is not a thin one", () => {
+  expect(report.checked).toBe(RESTORE_CHECKS);
+});
+```
+
+The implementation assigns exactly that: `checked: chainWalked ? RESTORE_CHECKS : RESTORE_CHECKS_NO_CHAIN`.
+Delete a real comparison and `checked` still reports the constant — **the assertion cannot fail for the reason
+its name gives**, and that name claims the strongest property in the file.
+
+### The property is held anyway — measured, not assumed
+
+Five real comparisons deleted one at a time:
+
+| dimension removed | result |
+|---|---|
+| money-lines sum | **1 RED** |
+| events head hash | **1 RED** |
+| invoice totals | **1 RED** |
+| chain head | **2 RED** |
+| anchor root | **1 RED** |
+
+Each is caught by a **per-dimension** case. So the claim is true and this assertion is not what makes it true —
+which is the whole finding: **a true claim attached to the wrong evidence still misleads**, because the next
+reader deleting a dimension will look at the test whose name promises completeness and see it pass.
+
+### The fix
+
+Renamed to what it proves, with the per-dimension cases named as where completeness actually lives, and given
+a half that **can** fail: a walk-less reconciliation must report **fewer** checks than a full one — the
+difference between *"we checked nine of eleven"* and *"we could not check"*, which is exactly the honesty this
+tool's header claims for itself. **Mutation-proved**: making a metadata-only run report the full count REDs 5.
+
+**STOP.** The mirror-shaped class enumerated at 94 and reduced to one by the same-source discriminator; the one
+real instance found to be a tautology under an overclaiming name, its property verified by five deletions, and
+the test rewritten to assert something that can fail.
 

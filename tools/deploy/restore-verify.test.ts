@@ -51,10 +51,26 @@ describe("an identical restore", () => {
     expect(report.ok).toBe(true);
   });
 
-  it("checks every declared dimension, so a clean result is not a thin one", () => {
+  // §1210 — THIS ASSERTION CANNOT FAIL, AND ITS OLD NAME CLAIMED THE FILE'S STRONGEST PROPERTY.
+  //
+  // It read "checks every declared dimension, so a clean result is not a thin one". What it actually asserts
+  // is `report.checked === RESTORE_CHECKS`, and the implementation LITERALLY assigns that constant
+  // (`checked: chainWalked ? RESTORE_CHECKS : RESTORE_CHECKS_NO_CHAIN`). A tautology: delete a real
+  // comparison and `checked` still reports the constant, so this test still passes.
+  //
+  // The completeness property IS held — by the per-dimension cases below, not by this one. MEASURED at §1210
+  // by deleting five comparisons one at a time: money-lines sum, events head hash, invoice totals, the chain
+  // head, and an anchor root. Each REDs 1–2 tests. So the claim is true and this assertion is not what makes
+  // it true; the name now says what the assertion does, and points at what does the work.
+  it("reports the DECLARED check count on a full walk (the count itself; completeness is the per-dimension cases below)", () => {
     const report = reconcileRestore(snapshot(), snapshot(), CHAIN_OK);
     expect(report.checked).toBe(RESTORE_CHECKS);
     expect(RESTORE_CHECKS).toBeGreaterThanOrEqual(8);
+    // The one non-tautological half: a walk-less reconciliation must report FEWER checks, never the same
+    // number — that is the difference between "we checked nine of eleven" and "we could not check".
+    const noWalk = reconcileRestore(snapshot(), snapshot(), null);
+    expect(noWalk.checked).toBeLessThan(report.checked);
+    expect(noWalk.chainWalked).toBe(false);
   });
 });
 
