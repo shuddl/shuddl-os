@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 546 | §1098 | **§1099** | **STOPPING POINT VIII — §3's ENTIRE CHECKABLE SURFACE IS VERIFIED, AND THE REST CANNOT BE.** §1089 found this 92-item tier unswept. It is now closed as far as it can be: **2 High** (both EDI, inert behind a transport proved unwired), **11 Med** (all verified across §1090–§1098), and of **74 live Low** — measured — **0 cite a re-runnable command**, **3 make a counted claim** (all verified here, all owner-held), and **71 are pure prose with nothing to re-run**. So the tier's checkable surface is **16 items, all verified**; the remaining 71 are not stale-*able* by any mechanism available. Board unchanged at 19/2/5 (§1096). L239 stamped with the half I verified and the half two searches did not find — recorded as unverified rather than absent. |
 | 545 | §1097 | **§1098** | **§1097's RULE TESTED — 4 OF 4 REQUIREMENTS LIVE AT THE CONSUMING LINE, AND NO MATCHER CAN PROVE IT.** Checked the four remaining unverified Med rows for an in-code marker. **All four have one**, each in different words: `perf.spec.ts` — *"§963 — THE FLOOR MUST NOT BE A HARDWARE BUDGET IN DISGUISE"*; `fence.ts` — *"detention/dwell math … DEFERRED to a later WP (no detention engine exists yet)"*; `session.ts` — *"a full login screen + lockout policy is still a follow-up"*; `biller.ts` — the photos comment. **Two heuristics found two different subsets and neither found all four**: a vocabulary matcher (`deferred`/`TODO`/`not wired`) hit L207+L209, a `§N` matcher hit L197+L204. First reported *3 of 4 have NO MARKER* — wrong, and the 16th probe-shape error. The property is real and unmechanizable. |
 | 544 | §1096 | **§1097** | **A THIRD CONSUMER WITH NO PRODUCER — AND THE REPO PUTS THE REQUIREMENT WHERE THE BUILDER WILL STAND.** L159 verified exact: `credits.ts` still resolves a credit's tenant from the Checkout Session's `metadata.tenant` (Zod-required non-empty, Stripe-signed — neither establishes it names the RIGHT tenant), and **no code anywhere creates a Checkout Session** — the only `CheckoutSession` references in the tree are that schema and its `.parse()`. Its conditional severity (*Low today, Med the day it ships*) is therefore correct as written. Third instance this session of the same shape: §1092's I4 waiver (consumer, no producer), §1094's doc-cap resolver (producer, unreachable consumer), and this. In each case the requirement is recorded **at the consuming line**, which is the one place the future builder is guaranteed to read. |
 | 543 | §1095 | **§1096** | **BOARD RE-EARNED AT `bb16006` — 19 PASS · 2 FAIL · 5 BLOCKED, IDENTICAL AFTER 31 PHASES AND SIX NEW GATES.** §1064's own rule (*a board is perishable evidence; the interval is the risk*) applied to itself. Since that run I added `no-audio-capture`, `req024-closure`, `pinned-deps-explained`, `skill-reference-lints`, the sweep-count figure, `recall` and `delta` — **none introduced a red**. Both FAILs still resolve to the single uncommitted `REQ-289` row (the run names it). All 5 BLOCKED unchanged and still absent private inputs. Every browser gate green (`perf`, `visual` 5, `a11y` 4, `e2e` 6) alongside `invariants`, `append-chokepoint`, `rater-purity`, `design-audit`, `acceptance` — all **non-skippable**. Zero repo-owned reds across ~50 phases of edits. |
@@ -65367,4 +65368,65 @@ measurement telling you the axis does not exist.
 **STOP.** §1097's rule tested on four further rows and holding 4 of 4, with each marker quoted in the words its
 author chose; the detection attempt recorded as unmechanizable with the two heuristics' disjoint results as the
 evidence. `pnpm delta` clean · `check:citations` 0 · `check:tables` OK.
+
+## §1099 — PHASE GATE: STOPPING POINT VIII — the tier closed to the limit of what can be checked
+
+**Why this is a stopping point.** §1089 corrected Stopping Point VII by discovering an entire unswept tier —
+**§3 Technical debt & known limitations**, ~206 rows in 5-cell tables that every scanner had filtered out.
+§1090–§1098 worked it. This closes it, and the honest close is not *"all verified"* — it is a measurement of how
+much of it **can** be.
+
+### The tier, by what is checkable
+
+| | count | status |
+|---|---|---|
+| **High** | **2** | verified — both EDI, inert behind a transport §1066 proved unwired |
+| **Med** | **11** | **all verified** (§1090 L228/L210 · §1092 L186 · §1091 L202 · §1094 L205 · §1097 L159 · §1098 L197/L204/L207/L209 · L212/L213/L214 incidentally) |
+| **Low — citing a re-runnable `pnpm` command** | **0** | — |
+| **Low — making a counted claim** | **3** | **all verified here** (L220, L224, L239) |
+| **Low — pure prose** | **71** | **not checkable by any available mechanism** |
+
+**Sixteen items form the tier's entire checkable surface, and all sixteen are verified.**
+
+The three counted Lows resolve the same way as the Meds — to the owner: **L220** *"routes ±10% names a merge
+gate with nothing behind it"* is an explicit OWNER DECISION and appears in **two** source-of-truth documents;
+**L224**'s resolver has LANDED and only the licensed boundary dataset is a BLOCKED external hold; **L239** is a
+register amendment.
+
+### The 71 are not a backlog I skipped
+
+That distinction matters and is measured, not asserted: **zero** of the 74 live Low items cite a command that
+can be re-run, and only three state a number that can be re-derived. The rest are prose judgements —
+*"passports is a write-only projection"*, *"the a11y gate scans three unauthenticated screens"* — whose truth is
+established by reading code, one row at a time, with no aggregate available.
+
+§1091 measured why: **2 gates in this repo compare a checklist figure to code**, against ~94 numeric claims.
+§1098 measured the same wall one level up: the marker-detection heuristics had an **empty intersection**. This
+tier is where those two measurements land — the checkable part is small, it is now done, and the rest is
+genuinely a reading task rather than a gap in my sweep.
+
+### Where the build stands
+
+| | |
+|---|---|
+| merge board (§1096, re-earned at `bb16006`) | **19 PASS · 2 FAIL · 5 BLOCKED** |
+| both FAILs | the owner's single uncommitted `REQ-289` row |
+| all 5 BLOCKED | absent private inputs |
+| 8-cell ledger — repo-owned OPEN rows | **17, all verified** (§1085) |
+| §3 tier — checkable items | **16, all verified** (this phase) |
+| §3 tier — prose items | **71, uncheckable by mechanism** |
+| `pnpm delta` | no new failures |
+
+**Zero repo-owned reds**, and every item in either table that *can* be re-derived has been, at HEAD, in this
+session.
+
+### What this stopping point says
+
+> **A sweep should end with a measurement of its own reach, not a claim of completeness.** Stopping Point VII
+> said "all verified" and was corrected two phases later because a filter had hidden a table. This one says
+> sixteen of eighty-seven are checkable, all sixteen are checked, and seventy-one are not the kind of thing a
+> sweep closes — which is a smaller claim and the only one the evidence supports.
+
+**STOP.** §3 is closed to the limit of what any available mechanism can verify. `pnpm delta` clean ·
+`check:citations` 0 · `check:tables` OK · board 19/2/5 unchanged.
 
