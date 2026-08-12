@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 642 | §1194 | **§1195** | **THE INSTRUMENT §1181's DISCIPLINE RUNS THROUGH WAS ANSWERING PHRASE MISSES WITH A NOVELTY VERDICT.** Went to audit the driver offline sync; `pnpm recall` said *"appears in NO governing record. It is genuinely new — trace the code."* A direct grep found the work recorded at **six** places in the audit. Traced: `recall()` is a literal `includes` and the CLI **joins every argv into ONE phrase**, which is right for its advertised usage (`pnpm recall NotConfiguredMigrator`, a single symbol) and silently wrong for the way it is used — a question in words. `drain-order` alone returns **6** mentions and `stranded` **21**; the seven-word phrase returns zero. **FOUR of this session's own queries got that verdict**, and at least one was demonstrably covered: §1182's *"public quote rate limit abuse throttle guest"* reported new while the subject was filed in **seven** places, which a grep found moments later. Fixed: on a phrase miss with >1 term, retry PER TERM and report what each finds; novelty is claimed only when no term matches. Pinned by 4 tests keyed on facts about the live record. **Second `git checkout --` destroying an uncommitted fix this session** — the restore is exact only for committed files. |
 | 641 | §1193 | **§1194** | **THE FAN-IN SWEEP FOUND NO UNCOVERED PRODUCT MODULE — AND TWO OF MY OWN COUNTING PROBES WERE WRONG BEFORE IT COULD SAY SO.** §1193's shape (highest fan-in, zero assertions) applied to `packages/`. **Probe 1 was broken**: matching importers by BASENAME gave every `index.ts` an identical 106 and conflated three different `money.ts`. Rewritten to resolve specifiers relative to the importer (and `@shuddl/pkg/sub.js` subpaths), the ranking became sane — `contracts/src/index.ts` at **255**, the most depended-upon module in the product. **Probe 2 was also wrong**: `rater/src/money.ts` looked uncovered (no `money.test.ts` in either location) but `roundHalfUp` and `mulDivHalfUp` are asserted in **7 and 5** test files — a NAMING artifact, not a gap. Barrels carry no tests, and that is correct, now MEASURED rather than assumed: deleting one `export *` line from the contracts barrel REDs typecheck, so a lost re-export cannot be silent. The adjacent unpinned property — a barrel *widening* the public API — has exactly one known instance (§1184's `EventBase`), already filed as an owner decision, so no detector was built. **Third counting-probe failure in this stretch**, and they share one mechanism: conflated identity. |
 | 640 | §1192 | **§1193** | **98 FILES IMPORT IT; NOTHING ASSERTED IT. `repoRoot()` — THE MODULE THAT ENDS 'A GATE THAT CANNOT FAIL FOR LACK OF INPUT' — HAD NO TEST.** §1192's finding came from a FILE LISTING, not the record, so the probe was generalised: in every directory following a sibling-test convention, which files are the exceptions? Most hits are convention artifacts (`packages/contracts` keeps tests in `test/`, so its "18 missing" is my probe misreading the tree) — the real one is **`tools/checks/repo-root.ts`, the single exception among twelve**. Its header records the stakes: three gates once certified constitutional laws against an EMPTY SET (*"OK (0 markdown files)"*, *"OK — 0/22 tables … (0 migration files)"*, *"OK — 0 path:line citations resolve"*) because each resolved inputs against `process.cwd()`. **The regression it pins is not a deletion but a KINDNESS** — a `try/catch` returning `cwd`, which reads as defensive programming and would leave all 98 gates green while scanning whatever directory they were started from. Mutation-proved: adding exactly that fallback REDs two of four, the second naming the returned temp path. |
 | 639 | §1191 | **§1192** | **THE ONE RELEASE GATE WITH NO TESTS, AND THE ONLY PATH IT CAN TAKE WAS THE UNTESTED ONE.** Asked which board gates the record never pairs with a mutation: 7 of 31. Three are BLOCKED on private inputs (and `identity-leak` WAS proved at §1002 — my pattern missed the wording, a false positive worth naming). `backup-manifest` is `kind:"external"` (OIDC), correctly unrunnable. Of the three runnable release gates, `preflight` executes fully here (**85 assertions**, 8 unsatisfied prerequisites) and `restore-verify`'s decision surface carries **47 `it()` blocks** — so my *never-proved* hypothesis was about the RECORD's wording, not coverage. **The real finding was in the file listing:** every tool in `tools/deploy/` has a sibling test except **`staging-smoke.ts`**. And `SMOKE_API_BASE` appears in **no workflow**, `smoke:staging` in **no CI job** — so the ONLY path that gate can take anywhere today is prerequisite-absent, which was its entire observable behaviour and was untested. Pinned with 5 assertions; **mutation-proved**: flipping `PREREQ_BLOCKED` → `OK` turns a release blocker into a green light and now REDs on *"a release gate with no environment must not exit 0"*. |
@@ -71071,4 +71072,96 @@ mechanism:
 **STOP.** No uncovered high-fan-in product module exists; both candidates dissolved under correct measurement,
 the barrel assumption was converted to a typecheck proof, the one unpinned property has a single instance
 already owner-filed, and the recurring counting-probe failure mode is now named with three measured instances.
+
+## §1195 — PHASE GATE: the search that told me everything was new
+
+**Why this phase.** Heading for the driver offline sync — demo #3's spine and the surface where data loss is
+least observable — the first step is §1181's discipline: **search the record before claiming absence.** The
+instrument for that is `pnpm recall`, and it said:
+
+> *"driver sync drain order stranded captures offline" appears in NO governing record. It is genuinely new —
+> trace the code.*
+
+A direct grep found the work at **six** places in the audit.
+
+### The mechanism
+
+`recall()` is a literal `includes`, and `main` does `process.argv.slice(2).join(" ")` — every argument becomes
+**one phrase**. That is correct for the usage its own help line advertises (`pnpm recall NotConfiguredMigrator`
+— a single symbol) and silently wrong for the way it actually gets used: a question in words.
+
+```
+recall "drain-order"           →  6 mentions across 6 verdicts
+recall "stranded"              → 21 mentions across 18 verdicts
+recall "drain" + "order" + "stranding" as ONE phrase →  NO governing record. It is genuinely new.
+```
+
+**Four of this session's own queries got the novelty verdict**, every one a multi-word phrase that could never
+appear verbatim — §1173's budgets question, §1182's rate-limit question, §1187's demo question, §1191's perf
+question. And one is demonstrably wrong: §1182 asked about `/pub/*` rate limiting, was told it was new, and a
+grep found it filed in **seven** places minutes later.
+
+> **The miss was fine; the verdict was not.** *"It is genuinely new — trace the code"* is an instruction, and
+> this record's entire discipline is the opposite of it. An instrument that answers *"has anyone thought about
+> this?"* with a confident **no** — on the evidence that nobody wrote your exact sentence — inverts the very
+> habit it exists to serve.
+
+That is why nothing downstream caught it: a novelty verdict produces *more* work, not less, so it never looks
+like a shortcut. Every one of my four was followed by a grep that found the truth, which is the only reason no
+false claim reached the record.
+
+### The fix
+
+On a phrase miss with more than one term: **retry per term**, and report what each finds and who owns it.
+Novelty is claimed only when **no term matches anything** — which is the claim the message was always making
+and could not previously support. Single-symbol usage is untouched.
+
+```
+recall: the exact phrase "driver sync drain order stranded captures offline" is absent, but ITS TERMS ARE NOT.
+  "drain"    — 37 mention(s) across 19 verdict(s)
+  "stranded" — 21 mention(s) across 18 verdict(s)
+```
+
+Four tests pin it, keyed on **facts about the live record** rather than fixtures: the phrase is absent (asserted
+as a premise, not assumed), its terms are not, the single-symbol path still answers directly, and `splitTerms`
+drops sub-3-character noise and dedupes.
+
+### The mistake I repeated
+
+### The fourth instance of one collision, and this time a test caught it
+
+Staging §1195 turned my own new test RED — *"the exact multi-word PHRASE is absent from the live record"* —
+because **writing this section put the phrase into the record.** `recall()` reads the audit, so a document
+describing an absent string makes it present.
+
+That is now the **fourth** time in this stretch that a record about an absence created the thing it described:
+
+| phase | the record wrote | the rule it broke |
+|---|---|---|
+| §1178 | a rotted `path:line` citation, as an example | every citation must resolve |
+| §1187 | a backticked symbol, as evidence it appears **zero** times | a backticked symbol must exist |
+| §1188 | a never-allocated section number in `§N` form | every `§N` must resolve |
+| **§1195** | **the phrase it was proving absent** | **the premise that it is absent** |
+
+The first three were caught by gates. This one was caught by **a premise assertion written into the test
+minutes earlier** — *"if this ever becomes non-empty the test below proves nothing, so it is asserted, not
+assumed."* It fired for exactly the reason it was written, on its author, within the hour.
+
+The fix follows the standing rule — **change the notation, never widen the check.** The audit no longer
+contains the phrase (its example is written with separators), and the test **assembles** it from its terms so
+no file anywhere holds the literal. Both halves were needed: assembling it in the test alone did not help,
+because the string that broke the premise was in the *record*, not the test.
+
+*(And locating the insertion point took two attempts: `### The mistake I repeated` occurs **twice** in this
+audit, which a `tail -6` listing of headings hid — §1194's counting lesson, arriving one phase later on its
+author. The assert caught it and wrote nothing.)*
+
+**The mistake I repeated.** Restoring the demonstration mutation with `git checkout -- tools/audit/recall.ts` **deleted the fix**, which
+was uncommitted. That is §1177's lesson exactly, written into memory, and repeated anyway — the restore is
+exact only for a **committed** file. Caught immediately because the very next command printed the old message;
+re-applied and re-verified. The durable form stands: **mutate committed files, or restore from a copy.**
+
+**STOP.** The instrument this record's search discipline depends on was converting "nobody wrote your sentence"
+into "nobody has thought about this", four times in one session; fixed, pinned against the live record, and the
+one repeated process error recorded rather than quietly corrected.
 

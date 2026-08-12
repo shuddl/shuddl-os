@@ -70,6 +70,29 @@ export function owners(hits: readonly Hit[]): string[] {
   return [...seen];
 }
 
+// §1195 — A PHRASE MISS IS NOT NOVELTY, AND THIS TOOL USED TO SAY IT WAS.
+//
+// `recall()` is a literal `includes`, and `main` joins every argv into ONE string. That is right for the usage
+// its own line advertises (`pnpm recall NotConfiguredMigrator` — a single symbol) and silently wrong for the
+// way it actually gets used: a multi-word question. "drain order stranding" appears nowhere verbatim, so the
+// tool answered *"appears in NO governing record. It is genuinely new — trace the code"* — while `drain-order`
+// alone returns 6 mentions and `stranded` returns 21.
+//
+// MEASURED at §1195 across this session's own usage: FOUR multi-word queries got the novelty verdict, and at
+// least one was demonstrably covered — "public quote rate limit abuse throttle guest" reported new while the
+// subject was filed in SEVEN places (§1182 found it by grep moments later).
+//
+// The verdict is the problem, not the miss. "Genuinely new — trace the code" is an instruction, and this
+// record's whole discipline is *search the record before claiming absence* (§1181). An instrument that
+// answers a phrase question with a novelty claim inverts exactly that.
+//
+// So: when the literal phrase misses and the query has more than one term, RETRY PER TERM and report what each
+// finds. Novelty is claimed only when NO term matches anything — which is the claim the message was always
+// making and could not previously support.
+export function splitTerms(query: string): string[] {
+  return [...new Set(query.split(/\s+/).map((t) => t.trim()).filter((t) => t.length >= 3))];
+}
+
 function main(): void {
   const term = process.argv.slice(2).join(" ").trim();
   if (term === "") {
@@ -78,7 +101,20 @@ function main(): void {
   }
   const hits = recall(term);
   if (hits.length === 0) {
-    console.log(`recall: "${term}" appears in NO governing record. It is genuinely new — trace the code.`);
+    const terms = splitTerms(term);
+    const perTerm = terms.length > 1 ? terms.map((t) => ({ t, hits: recall(t) })).filter((r) => r.hits.length > 0) : [];
+    if (perTerm.length > 0) {
+      console.log(`recall: the exact phrase "${term}" is absent, but ITS TERMS ARE NOT. This is not novelty:\n`);
+      for (const { t, hits: h } of perTerm) {
+        console.log(`  "${t}" — ${h.length} mention(s) across ${owners(h).length} verdict(s); first: ${owners(h)[0] ?? "?"}`);
+      }
+      console.log(
+        "\nRe-run `pnpm recall <term>` on whichever of these names your subject, and read the owning section " +
+          "BEFORE tracing the code. A phrase miss says only that nobody wrote your sentence.",
+      );
+      return;
+    }
+    console.log(`recall: "${term}" appears in NO governing record${terms.length > 1 ? " — and no term of it does either" : ""}. It is genuinely new — trace the code.`);
     return;
   }
   console.log(`recall: "${term}" — ${hits.length} mention(s) across ${owners(hits).length} prior verdict(s):\n`);
