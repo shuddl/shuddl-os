@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 632 | §1184 | **§1185** | **THE LEDGER'S DESCRIPTION OF ITSELF UNDERSTATED OPEN DEBT BY NINE ROWS.** §1184's rule — a filed decision inherits the measurement it was filed with — applied to the ledger as a whole. Most rows are well disciplined: they carry `measured <date>, audit §N`, which is the practice. The exception is the row that exists *"so a reader need not count"*: **3 tables to 32 rows — 19 struck, 13 live**. **RE-MEASURED: 3 tables · 49 rows · 27 struck · 22 live.** Corrected and, more usefully, **decomposed** — the section also holds a gate-status table and a COMMAND table, neither of which is debt, so the number a reader actually wants is **table 1: 42 rows, 27 struck, 15 LIVE repository-owned debt items**. My own three attempts prove the decomposition is the point: whole-file **323**, whole-section **49**, table-1 **42** — and the second was only caught because a control printed each row's first cell and revealed `pnpm -s test:e2e …` counted as a debt row. A self-describing count is the one measurement guaranteed to rot, because every edit to the thing changes it. |
 | 631 | §1183 | **§1184** | **FIVE CLEAN NEGATIVES, THEN A STALE MEASUREMENT INSIDE AN OWNER DECISION.** Finished §1183's sweep: `migration-fixture-parity`'s selector has no real blind spot (the only `applyMigrations` callers outside its filter are the migrator itself and the seed loader); `superrefine-parity` is deliberately scoped to one file and states its limits; `booking.ts`'s duplicated window refine is defended on BOTH copies (each mutation reds exactly one test); and the THIRD copy of the device-dedupe rule (`EventBase`) is already filed at §913 as no-consumer public API — verified still true at HEAD and correctly anchored in GO-LIVE:272. The finding is the row beside it: GO-LIVE:273 asks the owner to choose between adding a narrow anchor rule and leaving the substring match, and frames option (a) as *"would flag 0 after this phase's fixes"* with the two known instances *"both now resolved"*. **RE-MEASURED: it flags 2** — `events.ts:290@EventBase` (the SAME citation the filing said was resolved; span 288–292 all comment, declaration at :295) and `migrator.ts:415@idx` (a third instance the filing never knew about; declared at :422). Both verified by reading. The decision is untouched; its cost is now measured instead of assumed. Also: my `.refine(` duplicate probe returned ZERO against a known duplicate — the message was in the `{ message }` object form, which is exactly why the third copy is easy to miss. |
 | 630 | §1182 | **§1183** | **SECOND INSTANCE OF §1182's IDIOM, AND THIS ONE BOUND TO THE WRONG FUNCTION RATHER THAN SKIPPING.** Swept `tools/` for selectors that discard a SUBJECT; most hits are benign (comment-skipping, markdown-table parsing, extension filters). `list-endpoint-pagination` — the unbounded-read guard — selected handlers by scanning for the next `=>` **anywhere after the registration**. For a NAMED handler (`app.get("/pub/status/:cap", publicStatusHandler)`, an idiom this repo already uses) there is no arrow at all, so it bound to a LATER, UNRELATED function's body: not a skip, **a verdict computed from someone else's code**. **CONTROLLED to one variable** — same route, same `SELECT * FROM events`, same file: inline ⇒ RED, named ⇒ **5/5 PASS**. Fixed by resolving named handlers, locally and **across imports**. Two of my own fixes failed their controls first and both were caught: the naive body-finder returned the PARAMETER's type annotation (`{ env: { DB: D1Database } }`) — failing exactly like the bug it replaced — and a premise assertion rejected `status_cache` as a proof marker because public.ts names it in prose. Resolver now unit-tested (4 cases incl. real cross-file resolution); 9/9; the original defect REDs. Also measured: `/pub/status/:cap` is genuinely bounded (`WHERE id = ?`, `LIMIT 1`), so nothing was hiding. |
 | 629 | §1181 | **§1182** | **THE AUTHZ GATE'S OWN CORPUS SELECTOR HAD TWO SILENT HOLES — AN INVISIBLE ROUTE IS AN UNGATED ROUTE WITH A CLEAN REPORT.** Followed §1181's discipline (record first): the `/pub/*` edge rate-limit + Turnstile prerequisite is properly filed — GO-LIVE:53 and :158, PROJECT-STATE:379, register REQ-193/REQ-125, pen-test-basics, WP-09/WP-14, R4 — a clean negative that cost one command. The unauthenticated surface IS gated by `route-authz-coverage`, **mutation-proved** by planting an unregistered `/pub` route. But `routes()` sees a registration only if the receiver is literally `app` AND the path starts with `/v1`, `/pub` or `/internal` — anything else hits an explicit `return` and is DISCARDED. **Both planted into a real route file passed 5/5:** `app.get("/admin-backdoor")` and `sub.get("/pub/sneaky")`. Neither is exotic — a Hono SUB-ROUTER is the framework's own grouping idiom and produces the second exactly. Every test in the file iterates `routes()`'s output, so an invisible route faces **no authorization requirement at all**. Closed with a floor on the scanner's INPUT; both plants now RED with the reason named. Also measured: 38 `/v1` · 4 `/pub` · 2 `/internal` · **0 elsewhere**, one `new Hono()`, no `.route()` mounting — and a two-probe disagreement (1 vs 0 "OTHER") resolved by READING it: `lastIndexOf("/")`, not a route. |
@@ -70385,4 +70386,63 @@ same shape as §1183's `.all<` selector: *a scan keyed on one idiom is blind to 
 
 **STOP.** Sweep finished with four clean negatives (one mutation-proved), and one stale measurement corrected
 inside an open owner decision — the number, not the verdict.
+
+## §1185 — PHASE GATE: the count that rots on every edit
+
+**Why this phase.** §1184 found a filed decision resting on a stale number and named the general rule: *the
+verdict stays true while the measurement underneath it rots.* The obvious application is the ledger itself.
+
+### The ledger is mostly well disciplined, and that is the finding's context
+
+Sweeping GO-LIVE for measured figures returns a large corpus, and the overwhelming majority carry exactly what
+§1184 asked for: **a date and an audit reference** — *"measured 2026-08-11, audit §957"*, *"MEASURED 2026-08-05
+(audit §240)"*, *"re-measured 2026-08-05 at `2a8a107`"*. The practice is already in place. That is worth saying
+plainly, because it changes what a sweep should look for: not "which rows lack a number" but **"which number
+is structurally guaranteed to change without anyone touching the row."**
+
+### The one that rots by construction
+
+Exactly one figure describes **the ledger itself**:
+
+> *"The repo-owned ledger has since grown across **3 tables to 32 rows — 19 struck through as closed, 13
+> live**. … this note exists so a reader need not count."*
+
+Every row added or closed anywhere in that section invalidates it, and nothing in the workflow points back
+here. Re-measured:
+
+| | claimed (2026-08-03) | measured (2026-08-12) |
+|---|---|---|
+| tables | 3 | **3** ✓ |
+| rows | 32 | **49** |
+| struck (closed) | 19 | **27** |
+| **live (open)** | **13** | **22** |
+
+A reader trusting the line believes there are 13 open repository-owned items. There are more — and the note's
+stated purpose is to spare them the count.
+
+### Decomposed, because my own measurement was wrong twice
+
+The corrected note gives a breakdown rather than a total, and the reason is that I produced **three different
+answers** before one was right:
+
+| attempt | corpus | result |
+|---|---|---|
+| 1 | every table in the file | **323 rows** — not the claim's scope at all |
+| 2 | the whole "Repository-owned" section | **49 rows** — right scope, wrong unit |
+| 3 | per table | **42 / 3 / 4** — table 1 is the debt ledger; the others are a gate-status table and a **COMMAND** table |
+
+Attempt 2 was caught only by a **control that printed each row's first cell**, which showed
+`pnpm -s test:e2e -- --mode merge` being counted as a debt row. Without that, "22 live" would have gone into
+the record as the open-debt figure — an over-count replacing an under-count, in a correction.
+
+> **A self-describing count is the one measurement guaranteed to rot**, because every edit to the thing being
+> counted changes it and none of those edits pass through the sentence. Prefer a decomposed figure to a total:
+> a total invites exactly the scope confusion that produced three answers here.
+
+**The number a reader wants is now stated as such: 15 open repository-owned debt items** (table 1, 42 rows, 27
+struck). The original claim is struck rather than deleted, per this file's convention.
+
+**STOP.** The ledger's self-description re-measured, corrected, and decomposed so the next reader gets the
+figure they actually need — and the mis-measurement that nearly replaced an under-count with an over-count
+recorded alongside it.
 
