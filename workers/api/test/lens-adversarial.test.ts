@@ -645,8 +645,15 @@ describe("firehose GET /v1/events", () => {
     const ops = await opsTok();
     const seen = new Set<string>();
     let cursor: string | null = null;
+    // §1233 — PAGE SIZE 10, NOT 100. At 100 this loop fetched the whole corpus (measured: 51 rows) in ONE page
+    // and broke on a null cursor, so the cursor clause and the ORDER BY it depends on were never exercised.
+    // Measured: swapping the default order from (stream_id, seq) to (seq, stream_id) — which the lens comment
+    // calls byte-unchanged BECAUSE the keyset cursor depends on it — left this file 45/45 GREEN. A page size
+    // below the corpus is what makes this test a pagination test.
+    let pages = 0;
     for (let i = 0; i < 200; i++) {
-      const q: string = cursor ? `?limit=100&cursor=${encodeURIComponent(cursor)}` : "?limit=100";
+      const q: string = cursor ? `?limit=10&cursor=${encodeURIComponent(cursor)}` : "?limit=10";
+      pages += 1;
       const page: ListResult = await listFirehose(ops, q);
       expect(page.status).toBe(200);
       for (const e of page.events) {
@@ -657,6 +664,11 @@ describe("firehose GET /v1/events", () => {
       if (!page.next_cursor) break;
       cursor = page.next_cursor;
     }
+    // PREMISE, asserted rather than assumed: this test only means anything if it actually PAGINATED. A page
+    // size at or above the corpus makes every assertion below hold on a single page, which is exactly how the
+    // ordering guarantee went unexercised. If the corpus ever shrinks under the page size, fail here loudly
+    // rather than quietly becoming a one-page fetch again.
+    expect(pages, "the walk completed in ONE page — it is not exercising the cursor; lower the page size").toBeGreaterThan(1);
     // our six firehose rows are all present exactly once
     for (const shp of [FIRE_1, FIRE_2]) for (let s = 0; s < 3; s++) expect(seen.has(`s:${shp}:${s}`)).toBe(true);
   }, 30_000);

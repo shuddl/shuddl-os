@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 680 | §1232 | **§1233** | **A PAGINATION TEST THAT FETCHED ONE PAGE — AND A THIRD PREDICTOR FALSIFIED.** Visibility filtering (I6) is thoroughly defended: deleting `visibility <> 'internal'` reds **8+ tests**, including *still hides internal WHEN PAGINATING*. That suggested *assertable iff removal yields an identifiable ITEM, not a COUNT* — **and ordering falsified it**: swapping the keyset order to `(seq, stream_id)`, which `lens.ts` calls byte-unchanged BECAUSE the cursor depends on it, left 39/39 and 45/45 GREEN. Cause was mundane: the test named *paginates across the whole tenant*, with a **30-second timeout** justified by that walk, used **page size 100 against a 51-row corpus** — the loop ran ONCE and the cursor was never used. Fixed to page size 10 plus a premise assertion (`pages > 1`); the mutation now REDs. **Three predictors, three falsifications** — each a taxonomy of guards, when the cause was ONE parameter. A test can exist, be correctly named, and not execute the property. |
 | 679 | §1231 | **§1232** | **SIX FOR SIX — SIZE BOUNDS ARE A BLIND SPOT AS A CLASS, AND MY SECOND PREDICTOR WAS WRONG TOO.** Worked §1231's queue: `DETAIL_SHIPMENT_CAP`, `ISA_SCAN_LIMIT`, `MAX_INPUT`, `MAX_PAYLOAD_CHARS` all mutated so they can never bind — **all four SURVIVED**, including the two CHEAP ones (200 chars, 2 000 chars), falsifying §1231's cost-based prediction. Tally: **size/truncation bounds 0 of 6 asserted; branches with a named outcome 4 of 4**. The reason is structural, not economic — a truncation produces *a shorter list and nothing else*, so there is no outcome a test would assert while testing the feature; a 403, a flag or a throw gets its guard covered as a side effect. Fixed the per-event half of §1231's bound (`MAX_PAYLOAD_CHARS` on the PAID path — capping the count alone leaves 100 unbounded bodies), asserting the clip AND its visibility; both mutations RED. **Two predictors now falsified by their own tests** — measuring beats predicting here. 4 bounds named still-unasserted. |
 | 678 | §1230 | **§1231** | **THE PREDICTOR IS 2-FOR-2 — THE LLM PROMPT CAP WAS UNASSERTED TOO.** Sharpened §1230's rule into a mechanical signature: a bound on a **collection** needs N items to observe (expensive); a bound on a **scalar** needs one long string (cheap). 11 collection bounds exist; `PROMPT_EVENT_CAP` is the highest-stakes because it bounds a **PAID** LLM call — the only thing between a busy shipment and an arbitrarily large prompt. **Deleting the slice left the package 227/227 GREEN.** Stakes compound with L428 (*the one agent with variable cost and no metering*): an unbounded prompt is expensive AND invisible. Fixed with the seams that already existed (`stubFetch` + `FakeReadPort`), asserting the count **EXACTLY** so it catches removal AND silent tightening — §1230's lesson applied first-try. Both mutations RED. Record: 2 of 2 collection bounds unasserted; every scalar bound checked so far was defended. 9 bounds named unexamined. |
 | 677 | §1229 | **§1230** | **§1229'S PREDICTOR USED AS A SEARCH — THE PAGE-SIZE CAP WAS THE SOLE BOUND AND ASSERTED BY NOTHING.** *Coverage fails where the assertion is EXPENSIVE* names its own first target: `LIMIT_CAP` can only be OBSERVED with more rows than any corpus holds. Measured — raising it 1000 → 100_000 left the lens suite **34/34 green**, and the only test mentions of the name were two comments I wrote at §1228. **It is not defence-in-depth: it is the ONLY bound** — `routes/events.ts` validates only `Number.isInteger(n) && n >= 1` and `routes/export.ts`'s Zod has no `.max()`, so `?limit=100000000` is stopped by that `Math.min` alone. Fixed by EXTRACTING `effectiveLimit()` (the expression was written 3× after §1228 shared the constants), making the bound assertable without seeding 1,000 rows. **Then my own first draft failed its mutation:** every case compared against `LIMIT_CAP`, so RAISING the cap stayed green — §1197/§1210's shape in a test written to close a different gap. Value now pinned separately. lens 34 → 39. |
@@ -67024,7 +67025,7 @@ consult that §1124's roster exists to guarantee.
 Adding `"quote.priced"` to the set closes it, and **breaks nothing in this repository**: every legitimate
 producer (`/v1/rate`, `pub/quote.ts`, the Concierge, the EDI 204 inbound) calls `SHIPMENT_SEQ.append`
 **directly** and never traverses this route, and no test or app flow posts the kind here. The existing
-refusal is already well tested — including its ordering — at `lens-adversarial.test.ts:810@SERVER-EMITTED`,
+refusal is already well tested — including its ordering — at `lens-adversarial.test.ts:822@SERVER-EMITTED`,
 so mirroring the forged-invoice case for a forged quote is a small, obvious addition.
 
 It is still an **owner decision**, and that is the honest scope boundary: this route is a **public API
@@ -73321,3 +73322,55 @@ its 1 MB body makes the mutation run slow, so it is named as unexamined rather t
 **STOP.** §1231's queue worked to four more results, a second predictor falsified by its own test, the class-level
 pattern stated with its structural reason, the highest-stakes member fixed and mutation-proved in both directions,
 and the four that remain listed by name with why they were not closed.
+
+## §1233 — PHASE GATE: a pagination test that fetched one page — and a third predictor falsified
+
+**Continuing §1232's class** — *guards whose removal produces no named outcome.* Two members probed:
+
+**Visibility filtering (I6) is thoroughly defended.** Deleting `visibility <> 'internal'` from the party lens
+reds **8+ tests** across two packages: the SQL golden, "party lens sees only non-internal events", "still hides
+internal WHEN PAGINATING (the cursor clause cannot escape the AND chain)", "kind filter NEVER widens", plus the
+portal's zero-internal-kinds case and the table-driven I6 sweep. Not in the class.
+
+That suggested a sharper formulation — *a guard is assertable iff removing it produces an identifiable ITEM
+rather than a different COUNT.* Visibility removed surfaces a **specific forbidden kind**; truncation removed
+just makes a list longer.
+
+**Then ordering falsified that too.** Swapping the default keyset order from `(stream_id, seq)` to
+`(seq, stream_id)` — which `lens.ts` itself calls byte-unchanged *"BECAUSE the keyset cursor depends on it"* —
+left **39/39 and 45/45 green**. A wrong order under a keyset cursor skips or repeats rows across pages: an
+identifiable item, and still unasserted.
+
+### The cause was mundane and specific, not a property of the guard
+
+`lens-adversarial.test.ts` has a test named *"paginates with a keyset cursor across the whole tenant with no
+dropped or duplicated rows"*, carrying an explicit **30-second timeout** justified as *"this walks a keyset
+cursor across the WHOLE tenant corpus, so it scales with the fixture set rather than with a fixed page."*
+
+**Measured: the corpus is 51 rows and the page size was 100.** The loop body ran **once**, `next_cursor` came
+back null, and it broke. The cursor was never used. The ordering guarantee it appears to protect was never
+exercised — by a test that is present, correctly named, carefully commented, and expensively timed out.
+
+**Fixed:** page size **10** (six pages over 51 rows), plus a **premise assertion** — `pages > 1` with the message
+*"the walk completed in ONE page — it is not exercising the cursor; lower the page size"* — so it cannot silently
+degenerate again if the corpus shrinks. The ordering mutation now **REDs** it.
+
+### Three predictors, three falsifications — and what that is evidence for
+
+| Phase | Predicted the gap would be | Falsified by |
+|---|---|---|
+| §1229 | the **quiet** outcome | `detectAnomaly` — quietest, best covered |
+| §1231 | the **expensive** assertion | `ISA_SCAN_LIMIT`, `MAX_PAYLOAD_CHARS` — cheap, uncovered |
+| §1233 | the **countable-not-identifiable** outcome | ordering — identifiable, uncovered |
+
+Each time I was building a taxonomy of *guards*, and the actual cause here was **one parameter**: `limit=100`
+against a 51-row corpus. **A test can exist, be named for the property, and not execute it** — a different
+failure from "no test exists", and invisible to any reasoning about what kind of guard it protects.
+
+**The transferable rule is the premise assertion, not the taxonomy:** *a test whose meaning depends on a
+relationship between a parameter and a corpus must assert that relationship.* §1228, §1231 and §1232 each needed
+one; this one needed it most, and its absence is why a 30-second pagination test paginated zero times.
+
+**STOP.** Visibility confirmed genuinely defended, ordering confirmed unexercised, the cause traced to a page
+size above the corpus rather than to any property of the guard, the walk repaired and mutation-proved, and the
+third failed predictor recorded alongside the rule that actually generalises.
