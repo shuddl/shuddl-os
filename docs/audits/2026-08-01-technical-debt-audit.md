@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 570 | §1122 | **§1123** | **STOPPING POINT XII — THE PRODUCTION-READY VERDICT, STATED PLAINLY.** Board re-earned at `89ced98`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs measured to the owner's `REQ-289` row. Five phases: §1118 the five BLOCKED gates hide **no unproven logic** (5/5) · §1119 all three parity gates floor **count AND composition** · §1120 the five acceptance demos re-derived — **still 3 of 5 blocked**, demo 3 narrowed to *a token store with no producer* · §1121 489 exports → 11 uncalled → **0 defects** · §1122 that sweep's bound proved **unclosable by grep**, with a witness in each direction. **The verdict: every gate the repo owns is green; everything blocking launch is an absent private input or an owner decision.** Zero source changed across all five. |
 | 569 | §1121 | **§1122** | **TRIED TO CLOSE §1121's STATED BOUND; PROVED THE INSTRUMENT CANNOT.** §1121 left the sweep bounded to `export function` and said so. Extending it to interface methods failed in **both** directions, each with a concrete witness: **false NEGATIVE** — `setToken` (§1120's own confirmed finding) is not flagged, because three separate modules (`command`, `driver`, `portal`) declare a method of that name and a token counter cannot tell them apart; **false POSITIVE** — `checkAndReserve` is flagged yet is genuinely called at `spark-caps.ts:112@stub` and `caps.ts:213@stub`, because both call sites sit INSIDE files that also declare the interface. A name-frequency sweep cannot resolve module-scoped symbols. The bound is not closed and **cannot be** by grep — it needs an import/type graph. Corrective to §1121: its clean result rests on the manual triage of 11, not on the sweep. |
 | 568 | §1120 | **§1121** | **489 EXPORTED FUNCTIONS → 11 WITH NO PRODUCTION CALLER → 0 DEFECTS. AND THE SWEEP'S FIRST RUN FLAGGED 100%.** §1120's *setter with no caller* is a CLASS, so I swept it. Four candidates were security-shaped and each had an innocent explanation that only reading the protocol's DIRECTION could supply: `verifyWebhook`/`verifyInclusion` are **recipient-side** counterparts (SHUDDL signs and builds; the receiver verifies) · `assertHazmatEnabled` is a thin wrapper over `hazmatEnabled`, which IS called at `sequencer.ts:883@hazmatEnabled` and was mutation-measured at §740 · the proof-to-cash pair gates a `[HYPOTHESIS]` SKU not provisioned until M-H/R1. Reporting *"an unverified webhook"* was one unchecked step away. The first run flagged **489/489** — `\b` is not a word boundary in `git grep -E`, a KNOWN error repeated. **A sweep that flags its whole population is measuring nothing.** Honest bound: the population is `export function` only, so it would NOT have found §1120's own `setToken`. |
 | 567 | §1119 | **§1120** | **THE FIVE ACCEPTANCE DEMOS RE-DERIVED AT HEAD: STILL 3 OF 5 BLOCKED — AND DEMO 3'S MECHANISM IS NOW SHARPER.** §237 swept the demos a week ago; CLAUDE.md calls them *"done enough to show"*, so an inherited verdict on them is the one most worth re-deriving. **1 (photos)** — blocked, re-verified §1094. **2 (stranger signs up)** — blocked; 0 `<form>`, 0 `type="email"`, 0 `onSubmit` across `apps/`, on a **positive-controlled** pathspec. **3 (real driver)** — blocked, but NARROWED: the bearer plumbing has shipped since §237, and the gap is now precise — **`setToken` has ZERO production callers** while `getToken` is consumed in four modules, so the token store is read everywhere and written nowhere; the capture party is still the constant `p:carrier`. **4 · 5 clean.** Cost: two probe errors (a `--` placement; a `register`/`registry` collision), both caught by the control. |
@@ -66746,4 +66747,61 @@ That is the standing rule this record already keeps for static checks, arriving 
 demonstrated with named witnesses from this repo; the correct instrument identified (import/type graph, not
 grep); §1121's clean result re-attributed to its manual triage. No new candidate list published, because an
 unsound one is worse than none. Zero source changed.
+
+## §1123 — PHASE GATE: STOPPING POINT XII — what "production ready" now means, precisely
+
+**Board re-earned at `89ced98`** — full 26-gate `verify:merge`:
+
+**19 PASS · 2 FAIL · 5 BLOCKED**
+
+Unchanged across §1096, §1103, §1110, §1117 and now. Both FAILs measured, not assumed: `check:coverage` names
+`REQ-289` (*"wp GTM-0 names no active WP"*), `delta` accounts for unit-tests (3 failing, all BASELINE).
+**Zero repo-owned reds.**
+
+### The five phases
+
+| § | subject | outcome |
+|---|---|---|
+| §1118 | the 5 standing BLOCKED gates | **5/5** — blocked on inputs, no unproven logic behind them |
+| §1119 | the parity gates' vacuity floors | **3/3**, on *count* **and** *composition* |
+| §1120 | the five acceptance demos | **3 of 5 still blocked**; demo 3 narrowed |
+| §1121 | 489 exports with no caller | 11 candidates, **0 defects** |
+| §1122 | §1121's stated bound | **unclosable by grep** — witness in each direction |
+
+### The production-ready verdict, stated plainly
+
+Eleven stopping points have reported the same board without saying what it *means*. It means this:
+
+**Everything the repository owns is green.** 19 gates pass, including the design audit, the append chokepoint,
+tenant isolation, traceability, and the browser/perf/a11y/e2e suites. The two FAILs are one uncommitted
+register row. The five BLOCKED are absent private fixtures and an unset denylist — and §1118 established that
+the logic behind those five is proved, so they are waiting on *data*, not on work.
+
+**What is not ready is not a defect.** Three of the five acceptance demos cannot be filmed:
+
+| demo | what is missing | kind |
+|---|---|---|
+| 1 — POD → invoice + photos | the agents worker binds neither `JWT_SECRET` nor an API service | **owner decision** (widening a worker's minting scope; a new route; a TTL) |
+| 2 — a stranger signs up | no signup surface exists in any of the three apps | **absent surface** (needs a REQ row) |
+| 3 — a real driver | `setToken` has no producer; the capture party is the constant `p:carrier` | **absent surface** (REQ-069, `F0-SPEC'D`) |
+
+None is a bug. Each is a decision or a piece of unbuilt scope, and each is recorded with its exact blocker
+rather than a summary.
+
+> **A build can be simultaneously green and unshippable, and the two facts live in different documents.** The
+> board measures what the code does; the demos measure what a person can be shown. Eleven boards in a row
+> reported 19/2/5 while three of five demos stayed unfilmable, and nothing in the board could have said so.
+> When a project asks *"are we production ready?"*, the gates answer a narrower question than the one being
+> asked — so the honest report is **both** numbers, every time.
+
+### What this stretch cost and returned
+
+Five phases, **zero source changed**, and the two most useful results were negative: the BLOCKED gates hide no
+unproven logic (§1118), and a sweep I wrote cannot be trusted in either direction (§1122). Two phases audited
+my own instruments rather than the build — which is where the errors were.
+
+**STOP.** Board 19/2/5 at `89ced98` with both FAILs measured; the five BLOCKED gates verified sound behind
+their block; the acceptance-demo verdict re-derived at HEAD; one sweep's soundness limit established and
+published rather than its output; the launch posture stated in full — green everywhere the repo has authority,
+blocked only on private inputs and owner decisions.
 
