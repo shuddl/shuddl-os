@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 555 | §1107 | **§1108** | **EVERY SECRET, AND WHAT IT DOES WHEN UNBOUND — 7/7 FAIL CLOSED, ON TWO LAYERS.** Swept the KIND not yet audited this stretch. Enumerated the Env surface (**20** uppercase string bindings, **7** genuine credentials) and asked the only question that matters per [[fail-closed-is-about-the-fallback-value]]: what is the FALLBACK VALUE when it is absent? Every credential is read at a **composition root** that returns a NotConfigured port — and each selector rejects **`""` as well as `undefined`**, which is the non-obvious half (an empty `wrangler secret` would otherwise mint a live client with a blank credential). The second layer is the deploy preflight: `REQUIRED_BINDINGS.<worker>.secrets` BLOCKS a deploy missing one, and also blocks the test affordance **present-and-forbidden** in prod. Neither layer alone suffices — runtime-only runs prod silently dark; deploy-only misses dev. Both exist. Clean negative. |
 | 554 | §1106 | **§1107** | **A FALSE ALARM WHOSE ENTIRE CONTENT WAS MY REGEX — AND THE GATE HAD ALREADY WRITTEN THE RIGHT ONE.** §1106's gate gaurds `workers/api`; the invariant it protects (mutations enforce auth + idempotency) is not obviously api-only, so I measured the scope delta. First probe: **12 ungated mutating handlers across 3 workers.** Alarming, and false — `.put(`/`.delete(` are STORAGE methods (`kv.put`, `r2.put`, `storage.put`, `grants.delete`), not HTTP verbs. The gate's own failure message names the correct idiom — `.post("…")`, with the quote, because a route path is a string literal — and I had read that message minutes earlier. Corrected: **api 24, every other worker 0**, and 24 is exactly the count the gate recorded independently. **No delta: `workers/api` is the only HTTP mutation surface.** When auditing a gate's SCOPE, reuse the gate's MATCHER — else the delta you measure is your regex. |
 | 553 | §1105 | **§1106** | **AN ALLOWLIST THAT ARGUES ONE RULE WHILE EXEMPTING TWO — CLEAN, AND HARDENED ANYWAY.** Verified the `/rate` row's mitigation (the key IS required: global mount, POST in `MUTATING`, no exemption), which made the `idemKey === undefined` fallback dead code at **5 routes** — all fail-OPEN by value (`randomUUID`), all defended by a well-shaped gate (non-vacuity floor + mount + Hono ORDER + every-mutation-under-/v1). Then the real probe: `app.use("/v1/*")` mounts **auth AND idempotency**, so the 5 sanctioned non-/v1 mutations lose both — and every stated reason argued only AUTH. Two are money doors. Measured all five: **5/5 idempotent, by five DIFFERENT mechanisms** (deterministic id + sequencer dedupe · no-op once paid · unique-slug 409 · appends nothing · not an app route). Zero behavioural gap, real justification gap — so the mechanisms are now RECORDED in the allowlist with an explicit instruction for a sixth entry. |
 | 552 | §1104 | **§1105** | **A GATE CANNOT SEE AN UNTRACKED FILE, AND I LEARNED IT BY BREAKING IT.** A too-broad `git add -A docs/` staged the owner's untracked GTM/research corpus; `pnpm delta` immediately reported **5 NEW failures**. Unstaged it, then re-measured the same way deliberately (stage → capture → unstage) because the accident had answered a real question: **the corpus reds `absolute-paths` (a `/Users/<name>` path), `citation-links`, `citation-ratchet`, `no-sync-duplicates` and the CONFIRM-GATED citation review.** All of it invisible until the instant of `git add`, because `git grep` reads TRACKED files. Removed **40** iCloud sync duplicates after verifying each byte-identical with `cmp`; 20 authored docs intact. Filed the rest as owner-held. The lesson is the staging boundary: **`delta` is a claim about the INDEX, so it must be read after `git add`, and the staged set must be read before `git commit`** — I skipped the second check, which is how the first one happened. |
@@ -65899,4 +65900,71 @@ invariant's scope. §1106's reliance on it was sound.
 **STOP.** Hypothesised gap measured and **withdrawn** on evidence, with the count fixed at both ends;
 zero source changed; the reasoning recorded so the next scope audit starts from the gate's matcher rather
 than a fresh regex.
+
+## §1108 — PHASE GATE: every secret, and what it does when unbound
+
+**Why this phase.** Recent phases bound their sweeps by KIND — outputs, clocks, claims, gates, exemptions.
+**Secrets** had not been swept this stretch, and CLAUDE.md makes them constitutional (REQ-154/134: *no secrets
+ever in wrangler.toml*). §1106 had just shown one exemplary case — `PLATFORM_INTERNAL_SECRET`, 503 when
+unbound, 403 on mismatch, no oracle between them — which is exactly the kind of single good example that
+invites the wrong generalisation. So: enumerate the population and check each.
+
+### The population
+
+**20** uppercase `string` bindings across the Env types; **7** are genuine credentials (`JWT_SECRET`,
+`PLATFORM_INTERNAL_SECRET`, `STRIPE_WEBHOOK_SECRET`, `RESEND_API_KEY`, `ANTHROPIC_API_KEY`,
+`EDI_TRANSPORT_TOKEN`, `TEST_SEND_TOKEN`). The rest are configuration — model names, from-names, an
+environment label, a referral base.
+
+The question is never "is it read?" but the one [[fail-closed-is-about-the-fallback-value]] was written for:
+**what is the fallback VALUE when it is absent?**
+
+### Layer 1 — a composition root per credential
+
+Every one is selected at a root that returns a **NotConfigured** port when the secret is missing, and the
+secret is read *there*, never inside the client:
+
+| credential | unbound behaviour |
+|---|---|
+| `STRIPE_WEBHOOK_SECRET` | `NotConfiguredBilling` — *"nothing charges/emits until an operator binds it"* |
+| `RESEND_API_KEY` (+ `EVIDENCE_FROM`) | `NotConfigured` sender — *"an unconfigured environment can never silently swallow evidence sends"* |
+| `PLATFORM_INTERNAL_SECRET` | 503 unbound · 403 mismatch · no oracle between them |
+| `EDI_TRANSPORT_TOKEN` | throws, naming the CONFIRM-gated creds it requires |
+| `ANTHROPIC_API_KEY` | the not-configured parser form (a known, deliberate hold) |
+| `JWT_SECRET` | `verify()` throws → caught → **401** |
+
+The non-obvious half is in the selectors: each tests `!== undefined` **and** `!== ""`. An empty
+`wrangler secret put`, or a var set to the empty string, would otherwise satisfy a presence check and mint a
+**live client with a blank credential** — a fail-open that looks configured. Checking the value rather than
+the key is the whole lesson of that memory, applied uniformly here.
+
+### Layer 2 — the deploy preflight, and why layer 1 is not enough
+
+`JWT_SECRET` is the interesting one, because its *mint* paths (session signup, MCP principal, status caps,
+doc caps) have no unbound guard at all — and `STATUS_SECRET`/`DOC_SECRET` are **derived** from it
+(`hex(HMAC-SHA256(JWT_SECRET, DOMAIN))`). An unbound `JWT_SECRET` would therefore make every derived cap
+secret a *known constant*, and tokens minted under it would verify under it.
+
+That hole is closed one layer up: `REQUIRED_BINDINGS.{api,mcp}.secrets` contains `JWT_SECRET`, so a deploy
+missing it **blocks**. The same table requires `RESEND_API_KEY` for agents and both billing secrets — and,
+per a prior fix recorded in its own test, it now also blocks a test affordance that is **present and
+forbidden** in prod, not merely required-and-missing.
+
+Neither layer is sufficient alone, which is the point:
+
+- **runtime only** → a prod deploy missing a secret runs *silently dark*: safe, and broken, with no evidence
+  emails and nobody told.
+- **deploy only** → says nothing about dev, test, or a secret unbound after deploy.
+
+Both exist, for all seven. **Clean negative, 7/7.**
+
+> **A "secret is configured" check has three failure modes, not one:** absent, present-but-empty, and
+> present-but-forbidden-here. The first is the one everybody writes. The second turns a fail-closed port into
+> a live client holding a blank credential. The third only exists once you accept that some environments must
+> *refuse* a binding others require — and it is invisible to any check shaped as "is it set?".
+
+**STOP.** 20 bindings enumerated, 7 credentials, each verified fail-closed at a composition root **and**
+gated at deploy where it must be present; the `JWT_SECRET`-derived cap secrets confirmed to rest on a
+deploy-required value; both wrangler.toml mentions confirmed to be comments *asserting* the secret is absent
+(the §1095 trap, checked rather than assumed). Zero source changed.
 
