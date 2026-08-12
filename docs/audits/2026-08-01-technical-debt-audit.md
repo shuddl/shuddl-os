@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 572 | §1124 | **§1125** | **DEFECT — A HAND-CRAFTED `quote.priced` IS APPENDABLE THROUGH THE PUBLIC EVENTS ROUTE.** Closing §1124's stated bound with the CHOKEPOINT (one `INSERT INTO events`, so append-seam callers ARE the emitter set) surfaced 19 callers, and the generic `POST /v1/shipments/:id/events` among them. Its `SERVER_EMITTED_KINDS` refuses `invoice.issued` · `invoice.corrected` · `split.computed` · `payment.received` · `settlement.executed` — **but not `quote.priced`**, while the constant's own comment says these are appended *"ONLY through server-internal seams … and the Rater."* Read the whole guard chain: `quote.priced` passes all eight checks for `ops`/`admin` (and a `driver` on an assigned shipment). A forged quote bypasses the rater, REQ-040's floors and the anomaly detector — which the comment itself places in `composeInvoice`, **not** the DO gate — and §1102 established the Biller bills the RECORDED basis. Fix is one line and breaks nothing in-repo; **not applied** — it 403s a public API surface, so the owner rules. |
 | 571 | §1123 | **§1124** | **RAN §313's OWN REOPEN TRIGGER: ONE MONEY EMITTER SITS OUTSIDE THE AUTHORITY ROSTER, CORRECTLY — AND ADDING IT WOULD BREAK PLATFORM REVENUE.** The authority-coverage gate states its own limitation: *"registration is MANUAL … a NEW emitter in a NEW file passes for free."* §313 filed the matching trigger; §1101 says triggers go unread, so I ran it. `workers/billing/src/credits.ts` constructs `invoice.issued` and is **not** registered. Correct — it writes the reserved `_platform` tenant, and `resolveAuthority` FAIL-CLOSES to **'legacy'**, i.e. *the incumbent is authoritative*. `_platform` has no incumbent, so a consult would gate SHUDDL's own revenue against a system that does not exist. **The harm is two plausible steps**: rostering it fails the gate; the natural fix is to add the consult. Reason now recorded in the roster. Also: my emitter probe MISSED rostered `rate.ts` — literal-kind grep is incomplete, stated. |
 | 570 | §1122 | **§1123** | **STOPPING POINT XII — THE PRODUCTION-READY VERDICT, STATED PLAINLY.** Board re-earned at `89ced98`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs measured to the owner's `REQ-289` row. Five phases: §1118 the five BLOCKED gates hide **no unproven logic** (5/5) · §1119 all three parity gates floor **count AND composition** · §1120 the five acceptance demos re-derived — **still 3 of 5 blocked**, demo 3 narrowed to *a token store with no producer* · §1121 489 exports → 11 uncalled → **0 defects** · §1122 that sweep's bound proved **unclosable by grep**, with a witness in each direction. **The verdict: every gate the repo owns is green; everything blocking launch is an absent private input or an owner decision.** Zero source changed across all five. |
 | 569 | §1121 | **§1122** | **TRIED TO CLOSE §1121's STATED BOUND; PROVED THE INSTRUMENT CANNOT.** §1121 left the sweep bounded to `export function` and said so. Extending it to interface methods failed in **both** directions, each with a concrete witness: **false NEGATIVE** — `setToken` (§1120's own confirmed finding) is not flagged, because three separate modules (`command`, `driver`, `portal`) declare a method of that name and a token counter cannot tell them apart; **false POSITIVE** — `checkAndReserve` is flagged yet is genuinely called at `spark-caps.ts:112@stub` and `caps.ts:213@stub`, because both call sites sit INSIDE files that also declare the interface. A name-frequency sweep cannot resolve module-scoped symbols. The bound is not closed and **cannot be** by grep — it needs an import/type graph. Corrective to §1121: its clean result rests on the manual triage of 11, not on the sweep. |
@@ -66863,4 +66864,75 @@ lesson arriving in a third form. Recording the bound so the trigger is not marke
 **STOP.** §313's trigger executed rather than inherited; the one unrostered money emitter found, verified
 correct, and its correctness documented in the roster with the two-step failure it prevents; the gate re-run
 green (9 consults, 5 modules); the probe's lower-bound nature stated so the trigger stays live.
+
+## §1125 — PHASE GATE: a hand-crafted `quote.priced` is appendable through the public events route
+
+**Why this phase.** §1124 closed §313's trigger but stated a bound: enumerating emitters by the literal
+`kind: "<k>"` is a *lower* bound — it missed `rate.ts`, a **rostered** emitter. The sound instrument is the
+**append chokepoint**, which `check:chokepoint` enforces as law: exactly one `INSERT INTO events` exists, in
+the sequencer DO. Therefore **every caller of the append seam is an emitter**, and that set is enumerable
+rather than guessed. It has **19** members (controls: `biller.ts` and `rate.ts` both present).
+
+Among them is the generic **`POST /v1/shipments/:id/events`**.
+
+### The gap
+
+`workers/api/src/routes/events.ts@SERVER_EMITTED_KINDS` refuses five kinds:
+
+`invoice.issued` · `invoice.corrected` · `split.computed` · `payment.received` · `settlement.executed`
+
+**`quote.priced` is not among them** — while the constant's own comment says:
+
+> *"These kinds are composed and appended ONLY through server-internal seams: the Biller's SeqStub
+> (invoice.issued/…) **and the Rater**."*
+
+The Rater's emission **is** `quote.priced`. The comment enumerates the property; the set does not enforce it.
+
+### Read the whole chain, because a single missing entry proves nothing on its own
+
+`POST /v1/shipments/:id/events` applies, in order: `requireRole(admin, ops, driver, finance)` → the
+server-emitted refusal → `approval.decided` → `authority.flipped` → `credit.checked` role gate → finance
+restricted to privileged decisions → override elevation (`by` stamped to `session.sub`) → driver
+write-scope (assigned shipments only) → `stub.append`.
+
+**`quote.priced` passes every one** for an `ops` or `admin` principal, and for a `driver` on an assigned
+shipment. `finance` is already excluded by its own clause.
+
+### Why it matters, in this build's own terms
+
+The same comment states where the protections live:
+
+> *"The anomaly / penny-parity / executing-share-floor gates that make them safe live in `composeInvoice` —
+> **NOT** in the DO append gate (which only runs I2/assertPodSigned) — so a client POST of a hand-crafted one
+> would BYPASS every one of them (the $222,084 fail-open)."*
+
+That reasoning applies **unchanged** to a forged quote. §1102 established the Biller projects the **recorded**
+quote (the booking's accepted one, or latest-pre-POD on an un-booked stream) and reads *its* basis for the
+anomaly and below-floor holds. A forged quote carrying a clean-looking basis is therefore billed, and the
+REQ-040 executing-share comparison never sees the real numbers. It also bypasses the `rating` authority
+consult that §1124's roster exists to guarantee.
+
+### The fix is one line — and is deliberately not applied
+
+Adding `"quote.priced"` to the set closes it, and **breaks nothing in this repository**: every legitimate
+producer (`/v1/rate`, `pub/quote.ts`, the Concierge, the EDI 204 inbound) calls `SHIPMENT_SEQ.append`
+**directly** and never traverses this route, and no test or app flow posts the kind here. The existing
+refusal is already well tested — including its ordering — at `lens-adversarial.test.ts:792@SERVER-EMITTED`,
+so mirroring the forged-invoice case for a forged quote is a small, obvious addition.
+
+It is still an **owner decision**, and that is the honest scope boundary: this route is a **public API
+surface**. An integrator's ops principal may be posting `quote.priced` through it today, and adding the kind
+would begin 403ing them with no deprecation. Closing a bypass and breaking a live integration are the same
+diff; only the owner knows which is happening.
+
+> **A denylist that a comment describes and an enumeration implements will drift, and the comment is the half
+> that reads as authoritative.** Five kinds were listed; the prose named six sources of protection. Nothing
+> failed, no test went red, and the missing entry is invisible from every direction except reading the two
+> against each other — which is what §1124's bound forced.
+
+**STOP.** §1124's bound closed with the chokepoint-grounded enumeration (19 append-seam callers, controls
+passing); one genuine bypass found on the money path, its full guard chain read rather than assumed, its
+severity bounded by role (`ops`/`admin`/assigned `driver`, never `finance` or an unauthenticated caller); the
+one-line fix identified, verified non-breaking in-repo, and **left to the owner** because it changes a public
+API contract. Filed as a Med row with its own reopen trigger.
 
