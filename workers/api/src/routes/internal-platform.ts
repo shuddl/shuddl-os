@@ -55,6 +55,9 @@ function internalGate(c: Ctx): ApiError | null {
 // the real validator, and its refusal is translated by translateAppendError exactly as a /v1 append is.
 const AppendBody = z.object({ streamId: z.string().min(1).max(256), input: z.record(z.string(), z.unknown()) }).strict();
 
+/** §1177 — the ONLY event kinds this credit seam may append. Widening it is a REQ amendment, not a convenience. */
+export const PLATFORM_CREDIT_KINDS: ReadonlySet<string> = new Set(["invoice.issued", "payment.received"]);
+
 // The settle catch-up body — the re-runnable AR flip (finding A) the emitter runs after appending a
 // payment.received, so an out-of-order (settlement-before-sale) webhook still flips the credit invoice to 'paid'.
 const SettleBody = z
@@ -73,6 +76,27 @@ export function mountInternalPlatformRoutes(app: Hono<{ Bindings: Env; Variables
     const parsed = AppendBody.safeParse(await c.req.json().catch(() => null));
     if (!parsed.success) throw new ApiError("VALIDATION_FAILED", 400, "INVALID CREDIT APPEND BODY");
     const { streamId, input } = parsed.data;
+
+    // §1177 (REQ-123/025/003) — BOUND THE KIND, exactly as Task 4b bounds `source` immediately below.
+    //
+    // This endpoint is documented as appending ONE CREDIT MONEY EVENT, and its sole caller (billing/credits.ts)
+    // sends exactly two kinds through it: `invoice.issued` (the credit-pack sale) and `payment.received` (its
+    // settlement). But the body is a loose `z.record`, so the KIND was unbounded — any of the 35 could land on
+    // the reserved `_platform` revenue tenant.
+    //
+    // The reasoning is Task 4b's, verbatim, applied one field over: NOT reachable today (secret-gated,
+    // server-to-server, and the sole caller hardcodes both kinds), but a latent hole at an append seam must not
+    // be left open. It matters MORE for `kind` than it did for `source`, for one reason: EVENTS ARE APPEND-ONLY
+    // (I3/I7). A wrong `source` produced a shadow event; a wrong KIND produces a permanent, uncorrectable entry
+    // in SHUDDL's OWN books — a forged `settlement.executed` on `_platform` cannot be deleted, only annotated by
+    // a further event.
+    //
+    // REJECT rather than coerce: coercion needs one correct answer and there are two candidates. The top-level
+    // `kind` is the EVENT kind (EventInput is a discriminated union on it) — NOT the money-line
+    // `kind: 'credit_purchase'` nested inside the payload, a different field that happens to share the name.
+    if (typeof input["kind"] !== "string" || !PLATFORM_CREDIT_KINDS.has(input["kind"])) {
+      throw new ApiError("VALIDATION_FAILED", 400, "INVALID CREDIT APPEND KIND");
+    }
 
     // WP-15 Task 4b (REQ-021/030) — FORCE source:'native' here too. This is the SECOND append seam that can pass
     // `platform:true` (the reserved `_platform` tenant), and its body is a loose z.record — so an input carrying

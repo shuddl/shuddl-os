@@ -68,6 +68,12 @@ export interface AuthorityModuleFiles {
 // credits.ts to the roster makes this gate FAIL (the file has no consult), and the natural fix for that
 // failure is to ADD the consult — which fail-closes platform revenue recording. If a future platform path
 // ever needs gating, it needs its OWN seam, not this one.
+//
+// §1177 — THE PLATFORM PATH IS TWO FILES, not one, and the reason above covers both. `credits.ts` CONSTRUCTS
+// the credit events; `workers/api/src/routes/internal-platform.ts` APPENDS them (it is the only route that may
+// pass `platform: true`). A reader running §313's trigger lands on the append port, not the constructor, so
+// naming only credits.ts here left the file they would actually open with no recorded reason. Both are
+// adjudicated EXCLUDE in authority-population.test.ts's EXCLUDED_WITH_REASON, on this identical argument.
 export const AUTHORITATIVE_FILES: readonly AuthorityModuleFiles[] = [
   { module: "rating", files: ["workers/api/src/routes/rate.ts", "workers/api/src/pub/quote.ts", "workers/agents/src/concierge.ts", "workers/translator/src/inbound.ts"] },
   { module: "invoicing", files: ["workers/agents/src/biller.ts"] },

@@ -29,14 +29,29 @@ function kindReferencingFiles(): string[] {
   return out.split("\n").filter(Boolean).filter((f) => !f.includes(".test.")).sort();
 }
 
-// The adjudication as of audit §313, re-verified at §326. Eight are REGISTERED in AUTHORITATIVE_FILES; four
-// are deliberately excluded, each for a stated reason that required reading the file.
-const EXPECTED = 12;
+// The adjudication as of audit §313, re-verified at §326, extended at §1177. Eight are REGISTERED in
+// AUTHORITATIVE_FILES; five are deliberately excluded, each for a stated reason that required reading the file.
+const EXPECTED = 13;
 const EXCLUDED_WITH_REASON: ReadonlyArray<readonly [string, string]> = [
   ["workers/api/src/routes/kpis.ts", "reader — names kinds to filter on (§272: a mention is not a use)"],
   ["workers/mcp/src/webhooks.ts", "reader — matches kind strings to shape an outbound webhook payload; it appends nothing"],
   ["workers/api/src/routes/events.ts", "the GENERIC append route; the gated-kind consult lives in the sequencer DO, which IS registered under `dispatch`"],
   ["workers/billing/src/credits.ts", "emits on the reserved `_platform` revenue tenant (Stripe credit-pack sale) — platform SaaS revenue, not tenant freight authority"],
+  // §1177 — this file entered the population by being made MORE restrictive, which is this tripwire working
+  // exactly as designed: the two kinds appear here only inside PLATFORM_CREDIT_KINDS, the allowlist that BOUNDS
+  // what the seam may append (previously the body's loose z.record left the kind unbounded).
+  //
+  // ADJUDICATED EXCLUDE, same category as credits.ts above and for the same reason. It does append an
+  // authoritative kind — but against `_platform`, never a tenant freight database. The tenant is the fixed
+  // PLATFORM_TENANT_ID sentinel and #resolveDb asserts it, so this seam CANNOT reach a customer D1. Registering
+  // it would be actively harmful: `resolveAuthority` fail-closes to 'legacy' ("the incumbent's system is
+  // authoritative"), and `_platform` has no incumbent and no migration — the consult would gate SHUDDL's own
+  // revenue against a system that does not exist. See the same argument at authority-coverage.ts's deliberate
+  // absence; credits.ts CONSTRUCTS these events and this route APPENDS them, two files on one platform path.
+  [
+    "workers/api/src/routes/internal-platform.ts",
+    "the `_platform` credit APPEND PORT — names the two kinds only in §1177's allowlist bounding what it may append; platform SaaS revenue, never a tenant freight database",
+  ],
 ];
 
 describe("REQ-030: the authority registry's completeness has a tripwire", () => {

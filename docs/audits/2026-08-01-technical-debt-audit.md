@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 624 | §1176 | **§1177** | **A REAL HARDENING ON THE MONEY PATH: THE PLATFORM CREDIT SEAM BOUNDED ITS TENANT, ITS VISIBILITY AND ITS `source` — BUT NOT ITS `kind`.** Followed the roster-vs-selector rule to the highest-stakes roster, `AUTHORITATIVE_FILES`, whose own comment admits *"a NEW emitter in a NEW file passes for free."* Its only completeness guard is a SHRINK check, which catches removal and never omission. Enumerated the ledger emitters via the DO addressing seam (10 callers); five are unrostered and four are benign (`approval.decided`, `authority.flipped` — which does consult authority, `message.received`/`quote.accepted` from the portal). The fifth, `internal-platform.ts`, named **no kind at all** — a `z.record` body, so the kind is caller-supplied. **Nothing bounded it: any of the 35 kinds could land on the reserved `_platform` revenue tenant.** The decisive detail is that the SAME seam already received this exact hardening for a different field — WP-15 Task 4b forces `input.source = "native"` two lines below, reasoning *"NOT reachable today … but forbids leaving the latent hole."* **The discipline stopped one field short.** Bounded to the two kinds its sole caller sends (measured: `credits.ts:213` invoice.issued, `:147` payment.received), REJECT not coerce. Mutation-proved (guard → `if (false)` ⇒ 1 failed/16); 17/17 green. Worse than the `source` hole for one reason: events are APPEND-ONLY, so a forged `settlement.executed` on SHUDDL's own books is permanent. |
 | 623 | §1175 | **§1176** | **THE GATE I SHIPPED ONE PHASE AGO HAD A HOLE, AND THE HOLE WAS ITS ROSTER.** §1175's `RESTATEMENT_DOCS` enumerated three root documents. **`genesis/11-REPO-CLAUDE-MD.md` carries a `## Hard budgets (CI-enforced; …)` SECTION of its own** — it is the spec CLAUDE.md was written from — with **8 more restatements** nothing checked. The two are NOT copies (50 differing lines; CLAUDE.md:15 has `12 canonical views (11 used, one spare)` where genesis/11 has bare `12 canonical views`), which is precisely why the VALUES can drift apart unnoticed. All 8 agree today. Fixed by rostering it AND by closing the class: a discovery half requires **every tracked document carrying a `^#+ Hard budgets` heading** to be on the roster — heading, not mention, so declaring is separated from quoting (5 files contain the phrase; exactly 2 declare it). **MUTATION-PROVED twice:** `6 color tokens` in genesis/11 → RED naming the file; a budgets section appended to an unrostered `docs/wp/WP-16.md` → RED naming it. Each fires exactly one test. 15/15 clean. The lesson is the shape: an ENUMERATION acquires holes, and this one acquired its first before the commit that created it was an hour old. |
 | 622 | §1174 | **§1175** | **THE MECHANISM THAT CONCEALED §1173 IS NOW GATED: 22 BUDGET RESTATEMENTS, ONE OF WHICH WAS CHECKED.** §1173's drift was absorbed by CLAUDE.md:5's prose copy of the surfaces figure, so the obvious follow-on is *how many other copies are there*. Measured across the three root governing documents: **22 restatements of the six ceilings**, of which exactly one — the `(N used)` table figure — had a gate. A budget amendment had to be hand-propagated to sixteen places with fifteen unverified. All twenty-two AGREE today, so this LOCKS a clean state (§486's cheap half). Scans **whitespace-normalised whole text, not lines**, because BUILD-PROMPT.md wraps `12` at the end of :85 and `views` at the start of :86 — a restatement invisible to a line scan purely from where the paragraph broke. Distinguishes the CEILING (`≤N tables`) from the USED figure (a bare `21 tables`, which DOCS owns) — two properties sharing a noun. **MUTATION-PROVED at both sites that matter:** `**4 surfaces**` in CLAUDE.md:5 → RED *"restates surfaces as 4, enforced value is 3"*; `≤23 tables` in the wrapped BUILD-PROMPT paragraph → RED *"restates tables as 23, enforced value is 22"*. Only §1175 fires on either, which is the proof both were previously invisible. 13/13 clean; corpus floored at 15 with a per-budget silence check. |
 | 621 | §1173 | **§1174** | **SWEPT THE IDIOM; FOUND INSTANCE #2, AND THE LINE-COUNT PROBE HID IT.** §1173's shape — a first-match `exec` over a whole document — appears at 22 sites in `tools/checks`, but 19 extract a NAMED symbol (`export const X =`), unique by construction. Three read prose. Measured occurrences: design-ci mode 1, unbounded-reads claim 1, README 1, BUILD-PROMPT 1 — **and CLAUDE.md's `(N used` = 2**, because the budgets line carries `≤22 tables (21 used…)` AND `12 canonical views (11 used, one spare)`. `grep -c` reported **1** (it counts LINES) and `grep -o` reported **2**; both parentheticals sit on line 15, so the line-count probe would have closed this as a singleton. `/\((\d+)\s+used/` matches a SHAPE; it returns 21 only because tables are written first. Re-anchored to its subject (`/≤\d+ tables \((\d+) used/`, the form BUILD-PROMPT's entry already used), with a regression test on a REORDERED line where the two mechanisms disagree — shape reads 11, anchored reads 21. Severity honestly lower than §1173: reordering fails LOUD (11≠21), so it was a latent bet, not a false pass. 11/11 clean; a planted `(20 used)` reds **two** tests — §830 and the §743 floor, the latter because `EXEMPT` holds the literal `"21 used"`, so the exemption doubles as a pin on the figure. |
@@ -69702,4 +69703,112 @@ Each fires exactly one test; 15/15 clean; both plants restored and the tree veri
 **STOP.** The restatement gate now covers 30 figures across four documents and enforces its own membership
 rule. The finding worth carrying is not genesis/11 — it is that the enumeration written one phase earlier,
 deliberately and with a completeness floor, was already missing a member when it shipped.
+
+## §1177 — PHASE GATE: the platform credit seam bounded everything except what it appends
+
+**Why this phase.** §1176's rule — *a roster is a snapshot of who was in the room; a selector is a rule about
+who belongs* — points at the repo's highest-stakes roster: `AUTHORITATIVE_FILES` in
+`tools/checks/authority-coverage.ts`, the REQ-030/L8 anti-silent-bypass lint. Its own header admits the hole:
+
+> *"Registration is MANUAL: a NEW authoritative function added to an already-registered file, or a NEW emitter
+> in a NEW file, passes for free until a human adds it to AUTHORITATIVE_FILES below."*
+
+Its only completeness guard is a **shrink** check (*"registers all 5 overlay modules / 9 (module,file)
+consults / 8 distinct files — a shrink is a red flag"*). A shrink check catches **removal** from the roster.
+It cannot catch **omission**, which is the failure §1176 just proved happens.
+
+### Enumerating the emitters by behaviour, not by name
+
+Grepping the authoritative kind literals returns 8–16 files each — and almost all are **consumers**
+(projections, `visibility.ts`, `redact.ts`, `parity.ts`, `lens.ts`, the contracts union). *Naming a kind is
+not emitting one.* The behavioural seam is the sequencer DO's addressing: **10 `SHIPMENT_SEQ` callers**.
+
+Five are unrostered, and four are benign on inspection:
+
+| caller | kinds | verdict |
+|---|---|---|
+| `routes/approvals.ts` | `approval.decided` | not an authoritative output |
+| `routes/authority.ts` | `authority.flipped` | **does** call `resolveAuthority` (reads the level it flips) |
+| `routes/portal-actions.ts` | `message.received`, `quote.accepted` | already-filed product rulings; neither is a rating/comms authoritative output |
+| `routes/events.ts` | generic | the already-filed two-kind rule (owner-held) |
+| **`routes/internal-platform.ts`** | **none named** | ← the finding |
+
+`internal-platform.ts` named **no kind literal at all**, which is the *find-the-dispatch-not-the-string*
+signature: its body is `z.record(z.string(), z.unknown())`, so the kind is **caller-supplied**.
+
+### The defect, and why it is not a false alarm
+
+The seam is genuinely well built: the tenant is the fixed `PLATFORM_TENANT_ID` sentinel (never read from the
+request), `#resolveDb` asserts `isPlatformTenant`, the visibility clamp forces `internal`, the I2 exemption is
+narrowed to all-`credit_purchase` money lines, and the secret is constant-time compared with a DARK 503.
+**Every dimension is bounded except the one thing the endpoint actually writes.** Any of the 35 kinds could
+land on the reserved `_platform` revenue tenant.
+
+The decisive detail is that **this exact hardening was already applied at this exact seam, one field over**:
+
+> *"WP-15 Task 4b (REQ-021/030) — FORCE source:'native' here too. … its body is a loose z.record — so an input
+> carrying `source:'legacy'` would land a gate-exempt, projection-skipped SHADOW credit event … **NOT reachable
+> today** (secret-gated, server-to-server; the sole caller billing/credits.ts hardcodes native), **but the
+> invariant forbids leaving the latent hole.**"*
+
+That is the entire argument for closing `kind`, already written down by the author who closed `source` and
+stopped one line short. *The highest-yield search is adjacency, not absence.*
+
+**And `kind` is the worse of the two, for a reason specific to this system: events are APPEND-ONLY (I3/I7).**
+A wrong `source` produced a shadow event; a wrong `kind` produces a permanent, uncorrectable entry in SHUDDL's
+**own** books — a forged `settlement.executed` on `_platform` cannot be deleted, only annotated by a further
+event.
+
+### The fix
+
+Bounded to the two kinds the sole caller sends — measured, not assumed: `credits.ts:213` sends
+`invoice.issued`, `:147` sends `payment.received`, both through the one `CREDIT_APPEND_PATH`. **REJECT rather
+than coerce**, because coercion needs one correct answer and there are two candidates. The check reads the
+**top-level** `kind` (`EventInput` is a discriminated union on it), not the money-line `kind:'credit_purchase'`
+nested in the payload — a different field sharing the name, which is the collision this build has produced
+three times.
+
+Two tests: a `settlement.executed` refused at the seam (asserting the **message**, not just the 400 — the DO's
+own `EventInput.parse` also refuses with 400, so status alone would pass whether or not the route checks
+anything), and a boundary case proving both credit kinds still pass. **Mutation-proved:** guard replaced with
+`if (false)` ⇒ `1 failed | 16 passed`. Clean: **17/17**.
+
+### A process error worth recording
+
+Restoring the mutation with `git checkout -- <file>` **also discarded the uncommitted fix**, because
+`checkout` restores to HEAD and the fix had not been committed. Every earlier mutation this session targeted a
+*committed* file, where that restore is exact. **A git-based restore is only safe when the file is committed;
+mutating uncommitted work needs a file copy.** Caught immediately by the editor's own change notice, and the
+proof itself was unaffected — but the next occurrence could silently drop a fix and leave a green suite.
+
+### The fix tripped a completeness tripwire, which is the tripwire working
+
+Staging it produced `delta: 1 NEW failure` —
+`authority-population.test.ts` → *"exactly 12 files reference an authoritative kind — a change means
+RE-ADJUDICATE"*. The allowlist made `internal-platform.ts` the **13th** file naming an authoritative kind.
+
+That gate is the answer to the roster problem this phase started from, and it is a better answer than the
+discovery gate §313 rejected. It **classifies nothing** — *"authoritative" is semantic, and a rule keyed on
+kind-mentions misclassifies 4 of 4 candidates* — it pins the POPULATION and fails when it moves, putting the
+adjudication in front of the person who caused it. Its failure message asks the deciding question outright:
+*does it APPEND an authoritative kind against a TENANT database?*
+
+**Adjudicated EXCLUDE**, same category as `credits.ts` and on the identical argument: it appends against
+`_platform`, never a tenant freight database, and `resolveAuthority` fail-closes to `'legacy'` — *"the
+incumbent's system is authoritative"* — where `_platform` has no incumbent, so a consult would gate SHUDDL's
+own revenue against a system that does not exist.
+
+Two details worth keeping:
+
+- **The file entered the population by being made MORE restrictive.** The kinds appear there only inside the
+  allowlist that bounds what may be appended. A tripwire that fires on a tightening is not noise: the
+  population is *what the reviewer must look at*, and a new mention is a new thing to look at whichever
+  direction it moved.
+- **§1124's recorded reason named the wrong file.** It documented *"THE ONE DELIBERATE ABSENCE"* —
+  `credits.ts`, which CONSTRUCTS the credit events — while the append port is a second file on the same path.
+  A reader running §313's trigger (*"any new file that appends invoice.issued…"*) lands on the **port**, and
+  would have found no recorded reason there. Both now carry it.
+
+**STOP.** One real hardening on the money path, mutation-proved, behaviour-preserving for the only caller
+that exists, and derived from a rule the codebase had already written for itself one field earlier.
 

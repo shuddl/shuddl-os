@@ -239,6 +239,33 @@ describe("the INTERNAL platform route — DARK without the secret, authorized wi
     expect(cnt!.n).toBe(0);
   });
 
+  // §1177 (REQ-123/025/003) — THE KIND IS BOUNDED, not merely the tenant.
+  //
+  // The seam's body is a loose `z.record`, so before this the endpoint accepted ANY of the 35 kinds onto the
+  // reserved `_platform` revenue tenant. Task 4b had already closed the same latent hole one field over
+  // (`source:'legacy'`); `kind` was left open. It matters more here because EVENTS ARE APPEND-ONLY (I3/I7): a
+  // forged `settlement.executed` on SHUDDL's own books cannot be deleted, only annotated by a further event.
+  //
+  // Asserts the MESSAGE, not just the 400 — the DO's own EventInput.parse also refuses with a 400, so status
+  // alone would pass whether or not this route checks anything ([[attribute-the-red-before-crediting-it]]).
+  it("§1177: a NON-credit kind is refused at the seam ⇒ 400 INVALID CREDIT APPEND KIND, nothing appended", async () => {
+    const { invoiceId, shipmentId, streamId } = creditIds();
+    const foreign = { ...creditInvoiceInput({ invoiceId, shipmentId, party: "tenant-a", cents: 500_00 }), kind: "settlement.executed" };
+    const res = await app.fetch(appendReq(streamId, foreign, PLATFORM_INTERNAL_SECRET), secretEnv);
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { message: string }).message).toContain("KIND");
+    const cnt = await platform().prepare("SELECT COUNT(*) AS n FROM events WHERE stream_id = ?").bind(streamId).first<{ n: number }>();
+    expect(cnt!.n, "a refused kind must leave the platform ledger untouched").toBe(0);
+  });
+
+  it("§1177 BOUNDARY: both credit kinds still pass the new check (it bounds, it does not break the seam)", async () => {
+    const { invoiceId, shipmentId, streamId } = creditIds();
+    const inv = await app.fetch(appendReq(streamId, creditInvoiceInput({ invoiceId, shipmentId, party: "tenant-a", cents: 500_00 }), PLATFORM_INTERNAL_SECRET), secretEnv);
+    expect(inv.status).toBe(200);
+    const pay = await app.fetch(appendReq(streamId, creditPaymentInput({ invoiceId, shipmentId, party: "tenant-a", cents: 500_00 }), PLATFORM_INTERNAL_SECRET), secretEnv);
+    expect(pay.status).toBe(200);
+  });
+
   it("with the secret + correct header ⇒ 200 {id}, and the credit event lands on the platform D1", async () => {
     const { invoiceId, shipmentId, streamId } = creditIds();
     const res = await app.fetch(appendReq(streamId, creditInvoiceInput({ invoiceId, shipmentId, party: "tenant-a", cents: 500_00 }), PLATFORM_INTERNAL_SECRET), secretEnv);
