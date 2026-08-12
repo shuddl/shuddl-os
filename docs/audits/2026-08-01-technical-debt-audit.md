@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 562 | §1114 | **§1115** | **LAW 1 HOLDS IN BOTH DIRECTIONS — AND IT TOOK FOUR PROBES, THREE OF THEM WRONG THE SAME WAY.** Planted a real violation per direction. **Built-but-unspec'd:** a `REQ-999` annotation in live source → gate prints `FAIL built-but-unspec'd`. ✓ end-to-end. **Spec'd-but-unbuilt:** three probes returned GREEN and every one was MY error — REQ-029's only hit is the coverage manifest the scanner **excludes**; REQ-001's singleton was an artifact of scoping to `packages/workers/apps/db` when the scanner also reads `tools`, `docs/wp`, `docs/ops`; and I had assumed `F0-SPEC'D` was deferred when only **vNEXT / CONFIRM-GATED** are. Reading the gate's own pathspec: **zero** active non-deferred REQs are singletons, so no single-file edit can orphan one — the direction is pinned at the FUNCTION level (`specdButUnbuilt` ⊇ REQ-025). §1107's rule, violated three more times in one phase. |
 | 561 | §1113 | **§1114** | **LAW 2's SUMMARY UNDERSTATED IT — 2 MUTATIONS NAMED, ~13 SHAPES DEFENDED. THE MIRROR OF §1111.** Decomposed REQ-002/I3/I7 the §1111 way: **11 append-only triggers** across events/positions/money_lines, whose `WHEN` clauses enumerate distinct REPLACE surfaces. §305 recorded *two* mutations (`events_guard_upd`, `events_guard_del`) — but the suite carries a purpose-built test for **every** shape, three of them titled *"colliding ONLY on X"* (hash · ux_events_device · ux_ml_corrects), plus two I had not enumerated: `INSERT OR IGNORE` of a duplicate and `ON CONFLICT DO UPDATE`. So §1111's error runs BOTH ways: Law 5's summary **overstated** (4 clauses, 1 blind), Law 2's **understated** (2 named, ~13 defended). Done at ZERO wedge risk — `packages/ledger` is pool-workers, so I READ instead of running 11 mutations. Residual stated: presence of purpose-built tests, not mutation proof, for 11 of 13. |
 | 560 | §1112 | **§1113** | **I COMMITTED OVER AN UNIDENTIFIED DELTA AGAIN — WITH THE TOOL I BUILT TO PREVENT IT, IN THE SAME COMMAND.** §1112's commit block ran `pnpm delta` and `git commit` in ONE call. Delta printed **2 NEW failures**; the commit executed anyway, because output is not a precondition. This is §942's lesson verbatim (*"a gate run only gates if the commit cannot execute when it fails"*) and the 4th unidentified-delta commit this session. Three subsequent runs are CLEAN and `pnpm reap` finds no orphans, so the committed content is sound — but the two are **unidentified**, which is exactly the state §1080 was written about. Fix is structural, not resolve: **`pnpm delta && git commit`**, or delta in its own call, read before committing. |
 | 559 | §1111 | **§1112** | **LAW 4 IS 5/5 DEFENDED — AND MY MUTATION HARNESS REPORTED TWO FALSE 'UNDEFENDED' FROM OPERATOR PRECEDENCE.** Carried §1111's clause-counting to REQ-004 (*no price on air*): 5 clauses (weight · dims-null · dims-measure · no_zone · no_rate_group). First run said C1 and C3 were **silent** — two untested guards on a constitutional law. False. `if (false && A || B || C)` parses as **`(false && A) || B || C`**: `&&` binds tighter, so the guard never stopped firing. Re-run with `if (false) {`: **C1 → 12 RED, C3 → 4 RED**. Worse, C2 was PARTIALLY disabled and returned a plausible RED 1 (true answer: 3) — so one broken harness produced valid, invalid AND half-valid cells at once. §1111's *"assert the mutation applied"* is necessary and **NOT sufficient**: the text changed and the guard still ran. **5/5 defended, 23 REDs.** |
@@ -66327,4 +66328,59 @@ migrations and test titles bought ~90% of the answer for 0% of that risk.
 three of them per-term by title; two attack shapes found that I had not enumerated; the 2-of-13
 mutation-proved bound stated explicitly along with the wedge-risk reason for not extending it. Zero source
 changed.
+
+## §1115 — PHASE GATE: Law 1 holds both ways, and three of my four probes were wrong identically
+
+**Why this phase.** CLAUDE.md rule 1 is a **two-clause law by its own wording**: *"traceability CI blocks
+orphans (**both directions**)."* §1111 established that clauses get proved separately, and §1104 had already
+shown one blind spot in this area (prose claiming REQ tracking is invisible to a gate that matches IDs). So:
+plant a real violation in each direction.
+
+### Direction 1 — built-but-unspec'd: proved end-to-end
+
+Prepended `// REQ-999` to a live source file. The gate:
+
+> `FAIL built-but-unspec'd (annotations citing no register row): REQ-999`
+
+Clean catch, on the real corpus, restored immediately. ✓
+
+### Direction 2 — three GREENs, all of them mine
+
+| probe | why it returned GREEN |
+|---|---|
+| removed `REQ-029` | its only hit is `coverage-manifest.json`, which the scanner **explicitly excludes** — I edited a file the gate does not read |
+| removed `REQ-001` from `contracts/events.ts` | my "singleton" search scanned `packages/workers/apps/db`; the scanner **also** reads `tools`, `docs/wp`, `docs/security`, `docs/ops` — my corpus was narrower than the gate's |
+| assumed `F0-SPEC'D` was deferred | `isDeferredStatus` excludes exactly **`vNEXT`** and **`CONFIRM-GATED`** — nothing else |
+
+Every one produced the **"undefended"** reading. Three times, in one phase, on a constitutional law.
+
+Then I read the gate's own pathspec — 12 `:(exclude)` entries — and used **it**:
+
+- **7** singleton annotations exist in the gate's corpus.
+- **Zero** of them is an active, non-deferred row.
+
+So every active REQ carries **≥2** annotations, and no single-file edit can orphan one. That is why direction 2
+resists an end-to-end plant, and it is a fact about the repo rather than a gap in the gate. The direction is
+pinned at the function level instead: `traceability.test.ts` drives `findOrphans` with an annotation set
+missing `REQ-025` and asserts `specdButUnbuilt` contains it.
+
+**Verdict: both clauses hold** — direction 1 end-to-end, direction 2 at the unit boundary, with the reason for
+the asymmetry measured rather than assumed.
+
+### The finding is the repetition
+
+§1107 already stated this rule after manufacturing a constitutional gap out of a regex: *"when you audit a
+gate's SCOPE, reuse the gate's MATCHER."* It is written down, in this record, and I violated it **three more
+times in a single phase** — because hand-reconstructing a corpus is easy, feels equivalent, and is wrong in a
+direction that looks like a discovery.
+
+> **A gate's corpus is a definition, not a description.** Any hand-rolled approximation of it — a narrower
+> path list, an assumed status set, a file the gate excludes — yields a GREEN that reads as *"undefended"*.
+> Four times this session a harness error has failed toward an alarming result (§1107, §1112, and twice here).
+> The operational rule is now blunt: **before probing a gate, open it and copy its pathspec, its matcher and
+> its exclusion list verbatim.** Reading the gate first cost two minutes; guessing at it cost three probes.
+
+**STOP.** Law 1 verified in both directions with the asymmetry explained; the gate's real corpus recorded (12
+exclusions, 7 singletons, zero active); three self-inflicted false GREENs attributed to one repeated cause;
+tree clean, `check:traceability` green. Zero source changed.
 
