@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 596 | §1148 | **§1149** | **THIRD READ-CLASS VERDICT HARDENED — AND THIS ONE GATES THE CLAIM THAT WAS FALSE FOR WEEKS.** §1148's test for hardenability (danger positively matchable, legitimate forms enumerable) rules R2 key-scoping OUT — the key is a variable — and Law 9's WP exit-audits **IN**. Built `tools/checks/wp-exit-audit.test.ts` (REQ-119): every `docs/wp/WP-*.md` must carry an exit-audit heading. Its **boundary test pins all THREE drifted conventions**, because matching only one produced §1142's *"4 of 16"* artifact — the shape of the false claim that stood in the checklist for weeks framed as an owner decision. A separate test rejects a passing prose MENTION, which was §1142's *first* wrong answer. Mutation-proved: renaming WP-13's heading turns it **RED**. |
 | 595 | §1147 | **§1148** | **SECOND READ-CLASS VERDICT HARDENED: A BLANK CREDENTIAL CANNOT READ AS A CONFIGURED ONE.** §1108 verified by READING that all seven credentials test `!== undefined` **and** `!== ""` — the second half being the one that matters, since an empty `wrangler secret put` satisfies a presence check and yields a LIVE client holding a blank credential. Now gated: `tools/checks/credential-blank-guard.test.ts` requires an empty-string comparison on every local bound from a `*_SECRET`/`*_KEY`/`*_TOKEN` binding. **Polarity is deliberately not prescribed** — this build uses both (`secret !== undefined && secret !== ""` and `if (token === undefined \|\| token === "")`), and a gate demanding one would red the other. Mutation-proved end to end: stripping the `!== ""` half from the real `STRIPE_WEBHOOK_SECRET` selector turned it **RED**, naming the binding. |
 | 594 | §1146 | **§1147** | **HARDENED: THE FIRST READ-CLASS VERDICT CONVERTED INTO A MUTATION-PROVED GATE.** §1146 graded the session's verdicts and named the gap — the READ class is right but **not re-runnable**. So I converted the one whose method had demonstrably failed: `tools/checks/tenant-source.test.ts` enforces REQ-025's *the tenant never comes from the request*. It **positive-matches the danger** instead of subtracting the safe (the defect §1144 planted), carries a **non-vacuity floor** (>25 call sites), a **boundary** test over the six legitimate forms, comment-immunity, and — the point — **its own sensitivity test**, plus an END-TO-END plant in real source that turned it **RED** naming the exact line. Collected by `vitest.tools.config.ts`, so it runs in the unit-tests merge gate: 1,261 tools tests, +6. |
 | 593 | §1145 | **§1146** | **STOPPING POINT XVI — THE SESSION'S VERDICTS, GRADED BY EVIDENCE CLASS.** Board re-earned at `efb8f9a`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs measured to `REQ-289`. §1142–§1145 established that a clean negative carries a hidden claim (*this probe would find a violation*) and that mine often could not: **§1135's filter would have missed a planted tenant injection**, **§1126's would have missed a coexisting client-kind path**, and a replacement probe **failed its own control**. So this stopping point grades every verdict by evidence class — **mutation-proved** (a RED is positive evidence) · **read** (files opened, unauditable but strong) · **probe-only** (weakest, and two have now failed). The purpose is that the owner can see which conclusions to lean on. |
@@ -68225,4 +68226,55 @@ corpus and would need extending if one appeared.
 than by guess; non-vacuity, boundary, comment-immunity and sensitivity pinned in-file; mutation-proved end to
 end against a real credential selector with clean attribution; the helper-indirection limit stated. `delta`
 clean · typecheck OK · lint OK.
+
+## §1149 — PHASE GATE: gating the claim that was false for weeks
+
+**Why this phase.** §1148 left a test for whether a read-class verdict *can* be hardened: **the danger must be
+positively matchable and the legitimate forms enumerable.** Applying it to what remains:
+
+- **R2 key scoping (§1136)** — **out.** The danger is "a key not derived from the tenant", and the key is a
+  variable. Matching it is the data-flow problem §1145 ruled not pattern-decidable.
+- **Law 9's WP exit-audits (§1142)** — **in.** The danger is the *absence* of a heading, which is matchable,
+  and §1142 already enumerated the legitimate forms.
+
+The second is also the verdict with the best reason to be gated: it is the one that was **false in the record
+for weeks**, framed as an owner decision, because nobody re-derived it.
+
+### The gate
+
+`tools/checks/wp-exit-audit.test.ts` (REQ-119): every `docs/wp/WP-*.md` carries an exit-audit heading. Two of
+its tests exist specifically because of how §1142 got it wrong twice:
+
+- **The boundary test pins all three conventions.** `## WP-exit audit swarm (REQ-119)` (WP-01–11) ·
+  `## REQ-119 exit audit — CLEAR-TO-CLOSE` (WP-12–15) · `## REQ-119 launch audit` (WP-16). Matching only the
+  second yields *"4 of 16"* — a serious-looking constitutional finding that is pure artifact. Pinning all
+  three means a future narrowing of this pattern **reds here**, rather than producing another false alarm in
+  a document someone then acts on.
+- **A passing prose MENTION does not satisfy it.** §1142's *first* wrong answer counted mentions and got "all
+  16 present" for the wrong reason. The rule wants a section; the test asserts a doc that merely discusses an
+  exit audit is flagged.
+
+Plus the standing pattern: a **non-vacuity floor** (≥16 docs, throws on a zero-match glob) and its **own
+sensitivity test**.
+
+**Mutation-proved end to end:** renaming WP-13's heading to `## closing notes` turns the gate **RED**, naming
+`docs/wp/WP-13.md` — one assertion failed, four green. Restored, tree clean.
+
+### What is now enforced rather than read
+
+| verdict | was | now |
+|---|---|---|
+| no tenant from client input (§1135) | read | **gated** (§1147), mutation-proved |
+| no blank credential reads as configured (§1108) | read | **gated** (§1148), mutation-proved |
+| every WP records its exit audit (§1142) | read | **gated** (§1149), mutation-proved |
+
+> **The best candidate for a gate is the verdict that was already wrong once.** A claim that survived weeks of
+> being false did so because re-deriving it was expensive and nobody paid; that is precisely the cost a gate
+> removes. Two of this gate's five tests encode the *specific* ways the question was previously answered
+> wrongly — which is what makes it a gate against the failure rather than merely a check of the fact.
+
+**STOP.** Third read-class verdict converted to an enforced gate, chosen by §1148's hardenability test with
+R2 key-scoping explicitly ruled out rather than attempted; all three drifted heading conventions pinned so the
+§1142 artifact cannot recur; the mention-vs-section distinction pinned separately; mutation-proved end to end
+with clean attribution. `delta` clean · typecheck OK · lint OK.
 
