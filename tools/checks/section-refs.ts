@@ -63,8 +63,24 @@ export function findDanglingSectionRefs(
 /** The audit record that owns the canonical `§N` namespace. */
 export const CANONICAL_DOC = "docs/audits/2026-08-01-technical-debt-audit.md";
 
+// §1188 — THE CORPUS INCLUDES SOURCE, because that is where most of these references actually live.
+//
+// This gate shipped scanning `*.md` only. Measured at §1188: tracked `.ts`/`.tsx` carry **2,492** `§N`
+// references — MORE than the markdown corpus this file was built for — and every one of them was unchecked.
+// Five dangled, all at section **624** — spelled without the § marker here because this gate requires that
+// notation to resolve, and the whole point is that this one does not (the same collision §1187 met) (written without the marker below, deliberately), a number that was never allocated (the audit runs §623 → §625, and the phase
+// those comments describe is §625). That number appears ZERO times in markdown, so the original corpus could never
+// have seen it — the defect survived precisely by living outside the scan.
+//
+// That is §508's own finding recurring in the one place this gate does not look: §508 fixed §38 and §58 after
+// they were referenced eleven times each as sections that were never written, and built this file so it could
+// not happen again. It happened again, in source.
+//
+// Extending the corpus cost exactly those five references (measured BEFORE the change, per §1184's rule that
+// an option's cost is asserted until someone runs it). Source files define no `§N` headings, so they resolve
+// against the canonical audit namespace, which is the correct owner for every reference they carry.
 export function loadDocs(root: string = repoRoot()): { path: string; text: string }[] {
-  const files = execSync('git ls-files "*.md"', { cwd: root, encoding: "utf8" }).trim().split("\n").filter(Boolean);
+  const files = execSync('git ls-files "*.md" "*.ts" "*.tsx"', { cwd: root, encoding: "utf8" }).trim().split("\n").filter(Boolean);
   return files.map((path) => ({ path, text: readFileSync(`${root}/${path}`, "utf8") }));
 }
 
@@ -74,8 +90,8 @@ function main(): void {
 
   // NON-VACUITY (§487/§490): a scan that reads nothing reports clean. This corpus is thousands of
   // references across dozens of files; a floor here catches a broken `git ls-files` or a wrong root.
-  if (docs.length < 10) {
-    console.error(`FAIL section-refs — scanned ${docs.length} markdown file(s) under ${root}. A scan that reads nothing reports clean.`);
+  if (docs.length < 200) {
+    console.error(`FAIL section-refs — scanned ${docs.length} file(s) under ${root}. A scan that reads nothing reports clean.`);
     process.exit(1);
   }
   const canonical = definedSections(docs.find((d) => d.path === CANONICAL_DOC)?.text ?? "");
@@ -96,7 +112,11 @@ function main(): void {
     process.exit(1);
   }
   const refs = docs.reduce((n, d) => n + [...d.text.matchAll(REF_RE)].filter((m) => !m[1]!.startsWith("0")).length, 0);
-  console.log(`section-refs OK — ${refs} §N reference(s) across ${docs.length} markdown files all resolve (${canonical.size} sections defined)`);
+  const md = docs.filter((d) => d.path.endsWith(".md")).length;
+  console.log(
+    `section-refs OK — ${refs} §N reference(s) across ${docs.length} files all resolve ` +
+      `(${md} markdown + ${docs.length - md} source; ${canonical.size} sections defined)`,
+  );
 }
 
 if (process.argv[1]?.endsWith("section-refs.ts")) main();

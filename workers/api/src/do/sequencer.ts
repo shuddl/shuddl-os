@@ -1181,7 +1181,7 @@ export class ShipmentSequencer extends DurableObject<Env> {
       // (#entitlementRow yields plan:"" so hazmat/SKU grant nothing) and was fail-OPEN for gates and
       // visibility. One row, one policy: a tenant the control plane does not know is not a tenant that may
       // append. OPERATIONAL PREREQUISITE this makes load-bearing: every bound tenant needs a `tenants` row
-      // before it can append — GO-LIVE-CHECKLIST §1, "Every bound tenant needs a `tenants` control row"
+      // before it can append — GO-LIVE-CHECKLIST §2 (Operator / deploy requirements → Per-tenant / per-partner activation), "Every bound tenant needs a `tenants` control row"
       // (written 2026-08-02 §28: this comment cited that row for ten days before the row existed).
       // ONE carve-out, and only one: the reserved PLATFORM revenue tenant. It is resolved SERVER-SIDE with
       // no slug input, its ledger lives in its own D1 that no customer path can reach (REQ-025), and it has

@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 635 | §1187 | **§1188** | **THE SECTION-REFERENCE GATE SCANNED MARKDOWN ONLY, AND SOURCE CARRIES MORE REFERENCES THAN MARKDOWN DOES.** §1187's shape — a fact recorded where the gate does not look — swept across launch prerequisites: most `PREREQUISITE` hits in source are GATE semantics, the rate-limit one is filed (§1182), and `sequencer.ts`'s *"every bound tenant needs a `tenants` row"* resolves to a real row. But its pointer said **GO-LIVE §1** (*Purpose & upkeep*) when the row lives in **§2** — corrected. That prompted the real question: `check:section-refs` builds its corpus from `git ls-files "*.md"`. Measured: tracked `.ts`/`.tsx` carry **2,492** `§N` references — **more than the markdown corpus the gate was built for** — all unchecked. **Five dangle, every one at section 624, which was never allocated** (the audit runs §623 → §625; the phase those comments describe is §625, confirmed by content: *"a finding that was wrong"* ↔ *"the sweep's premise turned out to be WRONG"*). That number appears ZERO times in markdown, so the original corpus could never have seen it — **§508's own defect, recurring in the one place its gate does not look.** Five refs fixed, corpus extended (cost measured at 5 BEFORE the change), floor raised 10 → 200. |
 | 634 | §1186 | **§1187** | **TWO OF THE FIVE ACCEPTANCE-DEMO OPERATOR ROWS UNDERSTATE THEIR BLOCKERS, AND `demos.ts` PREDICTED IT.** §1186 emptied the repo-actionable ledger, so this audits what is NOT yet in it: CLAUDE.md's five demos — the build's own definition of *done enough to show*. The machinery is excellent (manifest parity both directions, all five declared, spine-file existence, a case-count floor, a may-not-be-gutted guard), so the unexamined half is each demo's stated **filmed delta**. **Demo #2:** the operator row's blocker read *"Bind the R4 flag/secret set, then the observed human run"* — binding the flags does **not** make it runnable. **THERE IS NO SIGNUP SURFACE**, re-verified at HEAD with a positive control: 0 references to `/pub/signup` in `apps/`, **0** `<form`, **0** `type="email"`, **0** `onSubmit` (control: 61 `onClick` in the same corpus). **Demo #3:** status read **PILOT**, implying the software is ready; REQ-069 (driver login) is `F0-SPEC'D` and *"a real driver cannot authenticate at all today"*, plus a HIGH-graded custody-parties block. `demos.ts` warns of exactly this — *"disclosed elsewhere ONLY as a browser-TEST gap … reads as a coverage limitation rather than the filming blocker it is"* and *"neither block is visible from this file otherwise"* — **and these rows were that elsewhere.** Demo #1 (photos) and #4 (staging smoke) are accurate; #5 needs no operator row. Both corrected. |
 | 633 | §1185 | **§1186** | **TRIAGED ALL 15 LIVE REPO-OWNED ROWS: THE REPO-ACTIONABLE SET IS EMPTY, AND ONE ROW IS ALREADY FIXED.** §1185 produced the count; this reads every row and asks what actually blocks it. **Row 436 is FIXED** — verified in the code, not inherited: `tenant-scope.test.ts` carries `}, 30_000);` on the §702 assertion, the exact remedy §1052 recorded. It is unstruck only because it holds a watch trigger, so the live figure is **14 open + 1 fixed-with-watch**. Every one of the 14 is blocked by construction: *"not a defect to fix"* (407, 408, 415), *"needs a REQ row first"* (428, 429, 430), *"needs a decision"* / *"needs a definition"* (409, 410, 411), owner-held (412, 413 — *"the fix is one line … but the FIX is an owner decision"*), a private input (416), accepted-for-now (431), and R4-with-a-reverted-fix (432 — written, REVERTED, and §1056 measured the wall as a **dependency** property, `isolatedStorage: false`). **CLAUDE.md forbids building what has no REQ row, so the correct action on all 14 is to leave them.** Also: a keyword scan for resolution markers FALSE-POSITIVED on 416 — its "CLOSED" is *"this gate fails CLOSED in CI"*, a mechanism, not a status. |
 | 632 | §1184 | **§1185** | **THE LEDGER'S DESCRIPTION OF ITSELF UNDERSTATED OPEN DEBT BY NINE ROWS.** §1184's rule — a filed decision inherits the measurement it was filed with — applied to the ledger as a whole. Most rows are well disciplined: they carry `measured <date>, audit §N`, which is the practice. The exception is the row that exists *"so a reader need not count"*: **3 tables to 32 rows — 19 struck, 13 live**. **RE-MEASURED: 3 tables · 49 rows · 27 struck · 22 live.** Corrected and, more usefully, **decomposed** — the section also holds a gate-status table and a COMMAND table, neither of which is debt, so the number a reader actually wants is **table 1: 42 rows, 27 struck, 15 LIVE repository-owned debt items**. My own three attempts prove the decomposition is the point: whole-file **323**, whole-section **49**, table-1 **42** — and the second was only caught because a control printed each row's first cell and revealed `pnpm -s test:e2e …` counted as a debt row. A self-describing count is the one measurement guaranteed to rot, because every edit to the thing changes it. |
@@ -70593,4 +70594,76 @@ assert-before-write earns its keep on the author's own control flow at least as 
 **STOP.** All five acceptance demos audited against their own stated deltas: two operator rows understated
 their blockers in ways that would mislead someone preparing to film, both corrected against re-verified
 evidence, and the remaining three confirmed accurate.
+
+## §1188 — PHASE GATE: the gate that could not see where its references live
+
+**Why this phase.** §1187's finding was a fact recorded where the deciding reader never looks. That is a
+shape, so it got swept: **which launch-critical prerequisites live only in source comments?**
+
+### The sweep, mostly clean
+
+Most `PREREQUISITE` hits in production source are **gate semantics** — *"a physical prerequisite"*, *"a
+PREREQUISITE gate like the physical ones"* — not deployment. Of the genuine operational ones: the `/pub/*`
+edge rate limit is filed in seven places (§1182 verified it), the two demo blockers were §1187's finding, and
+`sequencer.ts`'s *"OPERATIONAL PREREQUISITE … every bound tenant needs a `tenants` row"* resolves to a real
+row — **GO-LIVE:87**, which exists.
+
+That comment is exemplary in one respect and wrong in another. Exemplary: it records that *"this comment cited
+that row for ten days before the row existed"* — the author caught their own dangling cross-reference and left
+the history in. Wrong: it cites **§1**, and §1 is *"Purpose & upkeep"*. The row is in **§2, Operator / deploy
+requirements → Per-tenant / per-partner activation.** Corrected.
+
+### The finding: the gate's corpus excludes where most references live
+
+`check:section-refs` exists because of §508, which found **§38 and §58 referenced eleven times each as
+sections with content, neither ever written** — *"a reader following any of those twenty-two pointers landed
+on nothing, silently."* The gate was built so it could not recur.
+
+Its corpus is `git ls-files "*.md"`.
+
+| corpus | `§N` references |
+|---|---|
+| tracked markdown (scanned) | ~5,197 at §509 |
+| **tracked `.ts` / `.tsx` (never scanned)** | **2,492** |
+
+**Five dangle**, all at the same number: **624**, which was never allocated — the audit runs §623 → §625, and
+the phase those five comments describe is §625, confirmed by content rather than adjacency (*"a finding that
+was wrong, and the measurement that said so"* ↔ the comments' own *"the sweep's premise turned out to be
+WRONG, and the measurement is what said so"*).
+
+It appears **zero times in markdown**. The original corpus could never have caught it.
+
+> **§508's exact defect, recurring in the one place §508's gate does not look.** A gate built to end a class
+> ends it inside its corpus, and the corpus is a choice nobody revisits — so the class survives by moving one
+> file extension over.
+
+### The fix, and its cost measured before it was chosen
+
+Corpus extended to `*.ts` / `*.tsx`; the non-vacuity floor raised **10 → 200** (a markdown-sized floor cannot
+detect a broken glob once the corpus is fifteen times larger); the success line now decomposes markdown from
+source, because §1185's lesson is that an undecomposed total invites the scope confusion. **The cost was
+measured at exactly five references BEFORE the change** — §1184's rule that an option's cost is asserted until
+someone runs it — and all five were fixed first, so the extension lands green.
+
+### Third instance of one collision, and it is now a pattern worth naming
+
+Extending the gate immediately flagged **my own new comment**, which spelled the missing number in `§NNN` form
+while explaining that it resolves to nothing. Rewritten as prose. That is the third time in three phases:
+
+| phase | the record said | the gate required |
+|---|---|---|
+| §1178 | quoted a rotted `path:line` citation as an example | every citation must resolve |
+| §1187 | backticked `onSubmit` as evidence it appears **zero** times | a backticked symbol must exist |
+| §1188 | wrote the never-allocated section number in `§N` form | every `§N` must resolve |
+
+> **A gate that reads prose will eventually collide with prose *about* the thing it gates, and the collision
+> is not a false positive — it is the gate working.** The fix is always to change the notation, never to widen
+> the rule. Three for three.
+
+It then flagged this section's own number before the section existed — the gate now enforces write-the-section-
+first on source comments exactly as it already did on markdown.
+
+**STOP.** Launch prerequisites swept, one wrong cross-document pointer corrected, and the section-reference
+gate's corpus extended to the tree where most of its subject matter actually lives — closing five live dangling
+references that the original scan was structurally unable to see.
 

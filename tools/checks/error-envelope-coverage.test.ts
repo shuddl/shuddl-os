@@ -32,7 +32,7 @@ interface RawResponse {
 }
 
 function apiSourceFiles(root: string): string[] {
-  // §624 — ONE glob (the `**` sibling was redundant: git's `*` crosses `/`). scanCorpus fails on an
+  // §625 — ONE glob (the `**` sibling was redundant: git's `*` crosses `/`). scanCorpus fails on an
   // empty match, so the corpus cannot silently collapse.
   return scanCorpus(["workers/api/src/*.ts"], root, { excludeTests: true });
 }

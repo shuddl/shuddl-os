@@ -1,6 +1,6 @@
 import { execSync } from "node:child_process";
 
-// REQ-118 §624 — ASK FOR A CORPUS, GET NON-VACUITY FREE.
+// REQ-118 §625 — ASK FOR A CORPUS, GET NON-VACUITY FREE.
 //
 // `append-chokepoint.ts` established at audit §466 that a multi-glob corpus needs a floor PER GLOB:
 //
@@ -8,7 +8,7 @@ import { execSync } from "node:child_process";
 //    six product ones still left tools/**/*.ts matching 72 files, over a floor of 50, and the gate stayed
 //    green with the entire product tree unscanned. A total says nothing about which member contributed it."
 //
-// §624 swept for that shape and found three gates using two globs behind one aggregate floor. **The sweep's
+// §625 swept for that shape and found three gates using two globs behind one aggregate floor. **The sweep's
 // premise turned out to be WRONG, and the measurement is what said so.** In git pathspec `*` CROSSES `/`, so
 // `workers/api/src/*.ts` already matches `workers/api/src/routes/rate.ts`. Measured: the flat glob returns 49
 // files, the nested `**` glob returns 38, and their union is 49 — the nested glob adds ZERO. It was decorative
@@ -36,7 +36,7 @@ export class EmptyGlobError extends Error {
     super(
       `scan glob matched ZERO files: ${glob}\n` +
         "A violation scan that scans nothing reports clean, and an AGGREGATE floor cannot see this — a " +
-        "sibling glob's matches carry the total over the line while this subtree goes unread (audit §466/§624). " +
+        "sibling glob's matches carry the total over the line while this subtree goes unread (audit §466/§625). " +
         "Fix the pattern, or pass it in `mayBeEmpty` with a reason.",
     );
   }

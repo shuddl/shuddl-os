@@ -31,7 +31,7 @@ interface Handler {
 }
 
 function apiSources(root: string): string[] {
-  // §624 — ONE glob: git pathspec `*` crosses `/`, so this already reaches routes/, middleware/, do/ and
+  // §625 — ONE glob: git pathspec `*` crosses `/`, so this already reaches routes/, middleware/, do/ and
   // pub/. The `**` variant that used to sit beside it added zero files (measured). scanCorpus fails if it
   // matches nothing, which is the non-vacuity floor the separate count used to approximate.
   return scanCorpus(["workers/api/src/*.ts"], root, { excludeTests: true });
