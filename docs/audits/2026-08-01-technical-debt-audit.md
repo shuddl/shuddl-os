@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 665 | §1217 | **§1218** | **EVERY CAPABILITY FLAG SWEPT — FOUR SEAMS, ONE IDIOM, ZERO FAIL-OPENS.** §1217's question (*is this flag the ONLY thing between a stranger and the capability?*) applied to every `Env` flag gating a real side effect: `PROVISIONING_ENABLED`, `PLATFORM_INTERNAL_SECRET`, `ALLOW_TEST_SEND`, `RESEND_API_KEY`+`EVIDENCE_FROM`. All fail closed. Three break-points of this class named because each is handled correctly here: the **empty-string arm** (`secret === undefined \|\| secret === ""` ⇒ 503 — the one implementations omit), **the flag alone never opens the send route** (armed but tokenless ⇒ 500 misconfigured, not an open outbound-email endpoint), and **a disabled sender REFUSES rather than skipping** (biller.ts: a silent skip would be *"a NotConfiguredSender-shaped lie"*). The idiom: EXACT comparison + absence as a DISTINCT LOUD state + a SECOND independent gate. Limit: "absent from wrangler.toml" proves this REPO ships nothing on; a dashboard-set var is invisible to any in-repo scan. |
 | 664 | §1216 | **§1217** | **THE SIGNUP ORACLE'S CONTAINMENT RE-VERIFIED — AND THE QUESTION ITS ROW NEVER ASKED.** L431's email-existence oracle is a founder UX call, so not this session's to change; its CONTAINMENT is. All four parts hold (409 mapping at `:93`, route 404s behind the flag, EXACT `=== "true"` so no truthy value opens it, flag absent from wrangler.toml), pinned across exactly 5 test files, and the row's snippet-keyed citation correctly predicted the drift from `:94`. The row never asks whether that flag guards EVERY path — so: `provisionTenant` has **exactly one caller**, the flag is checked **twice** on it (route AND function), and there is **exactly one production INSERT INTO users**, inside it. Unreachable by CONSTRUCTION, not merely by configuration. Limit stated: a dashboard/secret-set var is outside repo evidence — part four proves this repo ships nothing on, not that no deployment has it on. |
 | 663 | §1215 | **§1216** | **I CORRECTED THAT ROW LAST PHASE AND STOPPED ONE LINE SHORT OF ITS TITLE.** §1215 rewrote L408's body — count, enumeration, `workers/api` specifier — and left the headline asserting *the older vitest major carries MOST of the tests*. Measured: **1,854 of 4,205 static sites, 44.1% — a MINORITY** (160 files v3 vs 225 v4). True at §1054 (2,018/2,421 = 83%), made false by GROWTH on the v4 side, not by an edit. Held against three checks: §1054's runtime ratio independently gives 43.7% (0.4 points apart), `.each` density is 1.0% v3 vs 2.3% v4 so expansion WIDENS the gap, and every unmodelled effect pushes the same way. The general rule: §1215's subject was pins, so the specifier got measured and the sentence directly above it did not. The gate's prose carries the SAME number honestly — *"2,018 of the 2,421 measured at §1054"* — and the entire difference is the attribution clause: **a measurement stated without a date claims the present tense.** |
 | 662 | §1214 | **§1215** | **§1213'S RULE RUN AS A SWEEP — 17 OF 22 DEBT ROWS RE-VERIFIED AGAINST THEIR OWN TRIGGERS; TWO STALE, ONE ASSERTING THE OPPOSITE OF THE TRUTH.** Four confirmed by measurement (no coverage config, no pool_binding UNIQUE index, identity still SKIPPED, `quote.priced` genuinely absent from SERVER_EMITTED_KINDS). **L408 said "five packages declare `~3.2.4`" while ENUMERATING SIX — and `workers/api` declared `^3.2.7`, a caret.** Five of six pool-bound suites were tilde-pinned; the largest (70 test files) was not, so a vitest 3.3 would float it alone to a third version line. `check:pinned-deps` is caret-blind BY DESIGN, so the gap sat between a correct gate and a false row. Fixed at zero resolution cost (one specifier line; all six already resolved 3.2.7). L356 drifted 1,016 → 1,278 unpushed commits. The tell: the gate's reason says "all SIX workerd suites", the row says "FIVE packages" — one fact, two numbers. |
@@ -72461,3 +72462,55 @@ proves *this repo* ships nothing on, not that no deployment has it on.
 **STOP.** A security containment re-measured rather than inherited, extended with the single-caller /
 double-check / single-write property its row never claimed, and the one part of it that repo evidence cannot
 reach named explicitly.
+
+## §1218 — PHASE GATE: every capability flag in the build swept — four seams, one idiom, zero fail-opens
+
+**Why this phase.** §1217 verified ONE dark flag by asking a question its row never did: *is this flag the only
+thing standing between a stranger and the capability?* That question generalises to every flag in the build, and
+[[fail-closed-is-about-the-fallback-value]] records that a policy default here once opened three of four gate
+knobs while catching its exception correctly. So: enumerate the capability flags and put each through the same
+test.
+
+**The corpus is four seams** — every `Env` flag or optional secret that gates a real-world side effect
+(provisioning a tenant, appending platform money, sending mail):
+
+| Seam | Dark state | Second, independent gate | Verdict |
+|---|---|---|---|
+| `PROVISIONING_ENABLED` | route 404s; `=== "true"` exact | re-checked inside `provisionTenant` | §1217 — one caller, one `INSERT INTO users` |
+| `PLATFORM_INTERNAL_SECRET` | **503** on unbound **or empty string** | constant-time bearer compare | both routes gated; length-checked XOR, no early return |
+| `ALLOW_TEST_SEND` | route 404s; `!== "1"` exact; **commented out** in `wrangler.toml` | `TEST_SEND_TOKEN` absent ⇒ **500, not open** | recipient operator-only; a body-supplied `to` is refused 400 |
+| `RESEND_API_KEY` + `EVIDENCE_FROM` | `NotConfiguredSender` | requires BOTH bindings | rejects **loudly** and retriably; never touches the network |
+
+**Zero fail-opens.** Three details are worth naming because each is a place this class usually breaks:
+
+1. **`secret === undefined || secret === ""`.** The empty-string arm is the one implementations omit. A bound-
+   but-blank secret is the classic way a "configured" check passes while the compare degenerates.
+2. **The flag alone never opens the send route.** `ALLOW_TEST_SEND=1` with no `TEST_SEND_TOKEN` returns **500
+   misconfigured**, not an open unauthenticated outbound-email endpoint — absence of the second gate is an
+   error, not a default-allow.
+3. **A disabled sender REFUSES rather than skipping.** `biller.ts` names this directly — a silent skip would be
+   *"a NotConfiguredSender-shaped lie"*. The email either sends or fails loudly; it never appears to have sent.
+
+### The idiom, stated so the next flag can be checked against it
+
+Every safe seam here does the same three things: **the comparison is EXACT** (`=== "true"`, `!== "1"` — no
+truthiness, so no value other than the literal arms it); **absence is a DISTINCT, LOUD state** (404/503/500 or a
+retriable throw — never "allowed", never "silently skipped"); and **the flag is paired with a SECOND independent
+gate** (a re-check deeper in the call, a constant-time token, a second required binding). A flag that satisfies
+only the first two is one forgotten route away from being the whole fence.
+
+**The limit, same as §1217 and stated rather than glossed.** Every "absent from `wrangler.toml`" measurement
+proves *this repo ships nothing on*. A dashboard-set or `wrangler secret` variable is invisible to any in-repo
+scan, so the deployment-side half of each verdict is not repo-verifiable and belongs to the pre-GA operator
+checklist, not here.
+
+**Footnote — §1206's gate earned itself back while this section was being written.** This phase's index row
+quoted `secret === undefined \|\| secret === ""` inside a code span, and `check:tables` rejected it: *"row has
+6 cells, header has 4"*. The `||` really is a delimiter — GFM does not let a code span protect a pipe — so
+the row would have rendered with two cells silently dropped. This is the exact class §1204 filed and §1206
+closed by making `cellCount` literal, and it fired on its author within the hour. It also confirms the gate's
+SCOPING: the same string sits in this section's prose a few lines above and was correctly ignored, because
+only lines beginning with `|` are rows. A gate that catches the person who fixed it is working.
+
+**STOP.** All four capability seams measured against the §1217 question, no fail-open found, the three
+break-points of the class named, and the shared idiom written down as the test a future flag must pass.
