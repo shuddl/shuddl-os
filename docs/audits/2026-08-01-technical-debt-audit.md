@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 668 | §1220 | **§1221** | **A CONSTITUTIONAL RULE WAS DECLARED ON FOUR FILES NO GATE READ — MEASURED, THEN CLOSED.** CLAUDE.md's *NO SECRETS EVER IN wrangler.toml* (REQ-154/134) was enforced by nothing for **4 of 9** configs. Planting a live-shaped `RESEND_API_KEY` + `STRIPE_WEBHOOK_SECRET` in `apps/portal/wrangler.toml` left the tools suite **byte-identical** (3 failed / 1292 passed, both runs) — not one of 1,295 assertions saw a committed API key. Cause: three gates read wrangler configs and **all three are correct for their own subject**, but the union of their corpora missed `apps/*` and `packages/ledger`. **The tell was in the files** — all four carry the *NO SECRETS EVER IN THIS FILE* banner, so the rule was DECLARED where nothing read it. Generalisation: *look for rules declared on files outside every gate's corpus* — a scope gap between correct gates is invisible to every one of them. Closed by `wrangler-no-secrets.test.ts` (whole corpus, no entropy rule because `database_id` is a UUID, comments exempt because 100% of today's mentions are comments), mutation-proved RED, auto-wired, re-narrowing pinned by name. |
 | 667 | §1219 | **§1220** | **THIS SESSION'S OWN CLAIMS AUDITED — THE ERROR MODE IS SCOPE PROSE, NEVER A MEASUREMENT.** 57 quantified claims extracted from §1211–§1219; the three load-bearing ones re-derived by a DIFFERENT method than produced them. All hold: `provisionTenant`'s single caller survives a re-export/barrel/dispatch check; the single `INSERT INTO users` survives a behavioural *any-verb* query (nuance recorded — two `UPDATE users SET device_keys` exist in devices.ts, so "one INSERT" is right but "written in one place" would not be); and the **4,616 denominator, previously INHERITED, is now MEASURED** at 4,613 passed + 3 failed across 22 project runs, so §1216's 43.7% cross-check stands on a measured base. **Diagnosis: both prior overclaims were scope SENTENCES about a search, never wrong numbers** — which rules out "measure more carefully" as the fix. Rule: a scope sentence must name the SEARCH, not the SUBJECT, unless the subject was enumerated. |
 | 666 | §1218 | **§1219** | **§1218 SAID "EVERY CAPABILITY FLAG" AND HAD ENUMERATED BY MECHANISM — TWO MONEY SEAMS WERE OUTSIDE THE GREP.** Re-enumerated BY BEHAVIOUR (what moves money, sends mail, bills an external API) the corpus is **six, not four**. Missed: **Anthropic LLM egress** (3 ports; selects on binding presence, never compares to `"true"`) and the **Stripe webhook** (gate reads `secret !== undefined && secret !== ""`). Both CLEAN — and the Stripe boundary is the strongest gate in the build: raw scheme, no SDK, HMAC-SHA256 over `${t}.${rawBody}`, constant-time against EVERY v1 candidate, 300s replay tolerance, idempotency behind it. The idiom recurring across independently-written seams is evidence it is a discipline, not a reused helper. **The defect is the corpus claim — second in three phases** (§1215's "22 verified" from six): the scope sentence written from the shape of the SEARCH, not the SUBJECT. This phase's own fetch probe was also wrong (excluded `.fetch(`, returned only inbound handlers); the hostname scan disagreeing with it is the only reason the seams surfaced. |
 | 665 | §1217 | **§1218** | **EVERY CAPABILITY FLAG SWEPT — FOUR SEAMS, ONE IDIOM, ZERO FAIL-OPENS.** §1217's question (*is this flag the ONLY thing between a stranger and the capability?*) applied to every `Env` flag gating a real side effect: `PROVISIONING_ENABLED`, `PLATFORM_INTERNAL_SECRET`, `ALLOW_TEST_SEND`, `RESEND_API_KEY`+`EVIDENCE_FROM`. All fail closed. Three break-points of this class named because each is handled correctly here: the **empty-string arm** (`secret === undefined \|\| secret === ""` ⇒ 503 — the one implementations omit), **the flag alone never opens the send route** (armed but tokenless ⇒ 500 misconfigured, not an open outbound-email endpoint), and **a disabled sender REFUSES rather than skipping** (biller.ts: a silent skip would be *"a NotConfiguredSender-shaped lie"*). The idiom: EXACT comparison + absence as a DISTINCT LOUD state + a SECOND independent gate. Limit: "absent from wrangler.toml" proves this REPO ships nothing on; a dashboard-set var is invisible to any in-repo scan. |
@@ -72614,3 +72615,77 @@ read, in the sentence, where the next reader will rely on it.
 **STOP.** Fifty-seven claims extracted, the three load-bearing ones re-derived by independent methods and all
 holding, the inherited denominator replaced with a measured one, one sentence given the nuance that stops it
 being over-read, and the recurring error diagnosed precisely enough to name the rule that prevents it.
+
+## §1221 — PHASE GATE: a CONSTITUTIONAL rule was declared on four files that no gate read — measured, then closed
+
+**The finding.** CLAUDE.md lists **"NO SECRETS EVER IN wrangler.toml — secrets live in `wrangler secret` + OIDC
+(REQ-154/134)"** among its non-negotiables. For **four of the nine** tracked wrangler configs it was enforced by
+nothing.
+
+**Mutation-proved before it was believed.** A live-shaped `RESEND_API_KEY = "re_live_…"` and
+`STRIPE_WEBHOOK_SECRET = "whsec_…"` were planted in `apps/portal/wrangler.toml` and the full tools suite run:
+
+```
+baseline          Test Files  2 failed | 107 passed (109)   Tests  3 failed | 1292 passed (1295)
+with secrets      Test Files  2 failed | 107 passed (109)   Tests  3 failed | 1292 passed (1295)
+```
+
+**Byte-identical.** Not one of 1,295 assertions saw a live API key committed to a deployed config.
+
+### Why it was invisible: a scope gap between gates that are each individually correct
+
+Three gates read wrangler configs, and **all three are right for their own subject**:
+
+| Gate | Corpus | Its subject |
+|---|---|---|
+| `wrangler-absence-claims` | `globSync("workers/*/wrangler.toml")` | are a worker's "DELIBERATELY ABSENT" claims true |
+| `wrangler-scope-parity` | `readdirSync("workers")` | worker account/zone scoping |
+| `binding-parity` | `git ls-files "workers/*/wrangler.toml"` | do two workers' shared bindings match |
+
+Binding parity really is about workers. Absence claims really are about workers. **The union of their corpora is
+not the union of the rule's subjects, and no gate owned the difference:**
+`apps/{command,driver,portal}/wrangler.toml` and `packages/ledger/wrangler.test.toml`.
+
+**The tell was sitting in the files themselves.** All four carry the banner *"NO SECRETS EVER IN THIS FILE
+(REQ-154, REQ-134)"*. The rule was **declared on files that nothing read** — which is the cheapest possible
+signal for this class and generalises past this instance:
+
+> **Look for rules declared on files outside every gate's corpus.** A scope gap between individually-correct
+> gates is invisible to every one of them — each returns a true verdict about its own corpus, and no failure is
+> available to notice with. But a file that *states* a rule is a claim, and a claim can be checked against the
+> set of files any gate actually reads.
+
+### The fix: `tools/checks/wrangler-no-secrets.test.ts`, owning the whole corpus
+
+Green on the clean tree (4/4); **RED on the replanted secrets**, naming both by file and line. Auto-wired — the
+tools config globs `tools/**/*.test.ts` and `unit-tests` is a merge gate, so the suite went 109 → 110 files and
+1,295 → 1,299 tests with the failure count unchanged at the 3 known register-row failures.
+
+Two design decisions, both made from the measured corpus rather than by taste:
+
+- **No entropy rule.** A generic "long high-entropy string" detector fires on every `database_id` (they are
+  UUIDs) and would need allowlisting into uselessness. It matches keys NAMED like a secret and values carrying a
+  KNOWN VENDOR PREFIX — precise, and needing no exemption today. *An exemption added later is the thing to
+  review* ([[an-allowlist-exempts-one-rule-not-every-rule]]).
+- **Comments are not violations, and this is load-bearing.** All nine configs discuss their secrets in prose
+  ("the Stripe webhook secret is operator-injected"). Measured: **every** secret-name mention in the corpus
+  today is inside a comment, so a rule that read comments would be 100% false positives and deleted within a
+  week ([[semantic-false-positives-need-a-marker]]). A fourth test pins the benign shapes for exactly that
+  reason — a false positive is how this gate dies.
+
+The corpus test also fails if the glob is ever re-narrowed to `workers/*`, because it asserts the corpus contains
+at least one config outside `workers/` — the regression is the original bug, so it is pinned by name.
+
+**How this phase was reached.** §1220's rule — *a scope sentence must name the SEARCH, not the SUBJECT* — applied
+to gates rather than prose: **60** gates make a universal claim; the ones reading `globSync`/`readdirSync` rather
+than `git ls-files` are where a corpus can silently shrink; three were compared against ground truth; two were
+clean (`wp-exit-audit`'s 16 WPs, `test-collection`'s glob matching `git ls-files` exactly at 379) and the third
+opened this.
+
+**No checklist row is filed** — the debt was found and closed inside one phase, so a row would be born struck.
+This section and index row 668 are its record.
+
+**STOP.** A constitutional rule measured to be unenforced on four files, the gap explained as a union-of-corpora
+hole between three correct gates, closed by a gate that owns the whole corpus and is mutation-proved in both
+directions, with the re-narrowing regression pinned by name and the generalisation — rules declared on unread
+files — written down.
