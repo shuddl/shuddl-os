@@ -234,6 +234,14 @@ When triaging a record, in order:
    prerequisite.
 5. **Any `PASS` with `assertions: 1` and `detail: "command exited 0"`** — synthesized from an exit
    code. It means the command succeeded, not that a specific number of assertions held.
+6. **`assertions` on a PLAYWRIGHT gate (`perf`, `visual`, `a11y`, `e2e`) is a count of TEST RUNS, not of
+   checks** — `playwright-guard.ts` sets it to `stats.expected + stats.flaky`, because Playwright's JSON
+   reporter does not expose an `expect()` count. It is an EXECUTION PROOF (rule at `evidence.ts`: a skip
+   cannot wear a green coat), never a coverage measure, and rule 5's `detail` tell does **not** apply here —
+   a real run reports `detail: "1 passed"`. Measured 2026-08-12 (audit §1191): `perf` reports
+   **`assertions: 1`** while its single test makes **five** budget checks (long-task, frame p50/p95,
+   interaction p95, and the frame-count floor). Comparing this number across gates ranks the specs by how
+   they are *split into tests*, not by how much they verify.
 
 A `BLOCKED` verdict is information, not an obstacle to route around. The five gates BLOCKED today
 (`check:identity`, `check:fixtures`, and the three parity gates) are blocked on named private inputs

@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 638 | §1190 | **§1191** | **THE RELEASE EVIDENCE'S `assertions` FIELD IS A TEST-RUN COUNT ON EVERY BROWSER GATE, AND I MISREAD IT ONE PHASE AGO.** §1190's board carries per-gate counts, which makes the *hollow gate* shape measurable: `perf` reports **1**, `a11y` 4, `visual` 5, `e2e` 6. Traced to `playwright-guard.ts:141` — `assertions: stats.expected + stats.flaky`, i.e. **test RUNS**, because Playwright's JSON reporter exposes no `expect()` count. Measured against the specs: `perf` is **1 test carrying 5 budget checks** (long-task, frame p50/p95, interaction p95, frame-count floor); `visual` is 1 test × 5 blessed screens; `e2e` is 11 tests / 45 expects. **The contract already warns about this — but only for the SYNTHESIZED case** (*"`assertions: 1` and `detail: "command exited 0"` … means the command succeeded, not that a specific number of assertions held"*), and a real Playwright run reports `detail: "1 passed"`, so rule 5's tell does not fire. Nothing covered the real-run case, which is exactly why §1190 read `perf — 1 passed` as a candidate hollow gate. The perf spec is in fact strong: software-rasterizer detection, cold boot reported-not-budgeted, and a frame-count floor added because a prior CI failure came from that line rather than any budget. Rule 6 added to the misreading list. |
 | 637 | §1189 | **§1190** | **THE FULL MERGE BOARD, RUN AND ATTRIBUTED: 21 PASS · 2 FAIL · 5 BLOCKED · 4,601 TESTS / 3 FAILING.** Seventeen commits this stretch landed on `delta` alone, which only sees test-suite regressions — CLAUDE.md says green means `verify:merge`, so it was run. **Both FAILs are ONE cause, verified not inherited:** the failing assertions are *exactly* the three delta-baseline entries (`coverage.test.ts` ×2 + `traceability.test.ts` ×1), all from the owner's uncommitted REQ-289 row — 288 rows at HEAD against approved terminal REQ-288, 289 in the tree. **All 5 BLOCKED are absent private inputs**: nine unvendored engagement fixtures and the `IDENTITY_DENYLIST` secret. Denominator measured rather than assumed: **22 vitest projects, 4,601 tests**, correcting an undated 4,152. **Traced one anomaly to ground:** `fatal: not a git repository` appeared **5×** — the signature of a gate scanning an empty corpus. Bisected to `invariants.test.ts`, where `findStraySql` deliberately falls back to a filesystem glob outside a git work tree, exercised by tests in a real temp dir and asserted there (*"a stray anywhere else is caught"*). **Correct by design, and fail-SAFE**: the fallback is MORE inclusive than git's ignore-aware listing. |
 | 636 | §1188 | **§1189** | **SWEPT EVERY GATE'S CORPUS; ONE MONEY CHECK EXCLUDED A TREE FOR NO STATED REASON — MEASURED, AND THE EXCLUSION IS RIGHT.** §1188's lesson is that a corpus is a choice nobody revisits. Swept all ~50 gate corpora: almost all are correctly scoped to their subject (a `wrangler.toml` gate scans `wrangler.toml`). One file uses **three different scopes across five checks** — `float-money-division` — and two are justified in their own text (§845 is explicitly *"the pure layer"*; §843 scans all three trees). The main float-division check excluded `apps/` **with no stated reason**. Measured by widening it and running the gate: **exactly one hit, a false positive** — `` `/v1/shipments/${id}/events?limit=200` ``, URL path separators — and **zero real findings**. The FP is STRUCTURAL: `codeSkeleton` deliberately does not blank template literals because they can carry real interpolated arithmetic (`${a / b}`), and front-end code is dense with relative API paths in exactly that position. So the exclusion is correct — money is DISPLAYED in `apps/`, computed server-side — and `apps/` is not unguarded anyway: §843 covers it at the identifier level. **Nothing changed but the record**: the choice is now written down with the number that justifies it, so the next reader revisits it with data instead of re-deriving it. |
 | 635 | §1187 | **§1188** | **THE SECTION-REFERENCE GATE SCANNED MARKDOWN ONLY, AND SOURCE CARRIES MORE REFERENCES THAN MARKDOWN DOES.** §1187's shape — a fact recorded where the gate does not look — swept across launch prerequisites: most `PREREQUISITE` hits in source are GATE semantics, the rate-limit one is filed (§1182), and `sequencer.ts`'s *"every bound tenant needs a `tenants` row"* resolves to a real row. But its pointer said **GO-LIVE §1** (*Purpose & upkeep*) when the row lives in **§2** — corrected. That prompted the real question: `check:section-refs` builds its corpus from `git ls-files "*.md"`. Measured: tracked `.ts`/`.tsx` carry **2,492** `§N` references — **more than the markdown corpus the gate was built for** — all unchecked. **Five dangle, every one at section 624, which was never allocated** (the audit runs §623 → §625; the phase those comments describe is §625, confirmed by content: *"a finding that was wrong"* ↔ *"the sweep's premise turned out to be WRONG"*). That number appears ZERO times in markdown, so the original corpus could never have seen it — **§508's own defect, recurring in the one place its gate does not look.** Five refs fixed, corpus extended (cost measured at 5 BEFORE the change), floor raised 10 → 200. |
@@ -70803,4 +70804,73 @@ are exempt"*).
 **STOP.** The complete 26-gate verdict measured for the first time this stretch: every FAIL attributed to a
 single uncommitted row that is the owner's to resolve, every BLOCK attributed to an absent private input, the
 suite's true denominator dated at 4,601, and the run's one anomaly traced to a documented fail-safe fallback.
+
+## §1191 — PHASE GATE: the number I misread, one phase after writing it down
+
+**Why this phase.** §1190's board emits a per-gate `assertions` count, which makes the **hollow gate** shape
+measurable directly rather than by suspicion. Sorted, the evidence-emitting gates read:
+
+```
+perf 1 · a11y 4 · visual 5 · e2e 6      (the five BLOCKED gates correctly report 0, executed: false)
+```
+
+`perf` at **1** is the outlier — a single check guarding the performance of a product whose core is a live
+map. That is worth chasing.
+
+### What the number actually is
+
+`tools/harness/playwright-guard.ts:141`:
+
+```ts
+assertions: stats.expected + stats.flaky,
+```
+
+Playwright's JSON reporter exposes **test** counts, not `expect()` counts. So the field is a count of test
+RUNS. Measured against the specs themselves:
+
+| gate | reported | spec reality |
+|---|---|---|
+| `perf` | 1 | **1 test making 5 budget checks** |
+| `visual` | 5 | 1 test × 5 blessed screens |
+| `a11y` | 4 | 2 tests / 4 expects |
+| `e2e` | 6 | 11 tests across 4 specs / 45 expects |
+
+**Comparing this number across gates ranks the specs by how they are split into tests, not by how much they
+verify.**
+
+### The contract was already honest, and still did not cover this
+
+`RELEASE-EVIDENCE.md` states the field's purpose exactly — *"`executed: true` and `assertions > 0`, so a skip
+cannot wear a green coat"* — an **execution proof**, never a coverage measure. Its misreading list even carries
+the closest case:
+
+> *"Any `PASS` with `assertions: 1` **and `detail: "command exited 0"`** — synthesized from an exit code. It
+> means the command succeeded, not that a specific number of assertions held."*
+
+That rule keys on the `detail` tell, and a **real** Playwright run reports `detail: "1 passed"`. So the rule
+does not fire on the one gate whose number is most misleading.
+
+> **A caveat written for one shape does not cover the neighbouring shape, and the gap is invisible because the
+> caveat is *there*.** Seeing rule 5 makes a reader feel the field has been explained. Mine had been — and I
+> misread it anyway, one phase after running the board that produced it.
+
+### The perf gate is not hollow
+
+Worth saying plainly, since the investigation began by suspecting it: the spec detects a **software
+rasterizer** and scopes the hardware-sensitive budgets accordingly, **reports cold boot without budgeting it**
+(first-paint compositor cost is the harness, not the code), and carries a **frame-count floor** added because
+a real CI failure came from *that* line rather than from any budget — *"the one assertion that is not a budget
+was the one that failed."* One test, five checks, each documented.
+
+### The fix
+
+Rule **6** added to the misreading list, naming the field's source (`stats.expected + stats.flaky`), the reason
+(no `expect()` count is exposed), the tell that rule 5's `detail` check does **not** apply to a real run, and
+the measured example (`perf`: 1 reported, 5 budgets). Nothing in the harness changed — the count is the best
+signal Playwright offers, and the defect was that its meaning stopped one shape short in the document a release
+reviewer reads.
+
+**STOP.** The board's own evidence used as an audit instrument, its one outlier traced to a reporter artifact
+rather than a thin gate, the perf spec confirmed strong, and the contract's misreading list extended to cover
+the case that had just caught me.
 
