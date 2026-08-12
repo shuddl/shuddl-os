@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 659 | §1211 | **§1212** | **THE COLLECTION CHAIN MEASURED END TO END — AND ONE GATE'S HONEST SCOPE READ AS A GAP.** §1211 proved every test asserts; this proves every test RUNS. All four links green: 385 files / 18 packages all have a `test` script (no `--if-present` skip), 109 of 114 root files matched by the tools include, the other 5 are playwright specs and ALL FIVE collect (ran `--list` per project, not read). The finding is the error the mutation overturned: §728 says its scope is "packages that NARROW" and its config glob provably cannot match `vitest.tools.config.ts` — the LARGEST narrowing, 109 files — so I concluded the root was unguarded. A planted `.tsx` orphan under the `.ts`-only include was caught instantly by a THIRD root-aware gate. "Gate A does not cover X" is never "X is uncovered". Three-gate scope map recorded. |
 | 658 | §1210 | **§1211** | **SWEPT FOR TESTS THAT ASSERT NOTHING: ZERO IN 4,190 — AND THE PROBE WAS WRONG BY 94.** The decidable cousin of §1210. Clean negative: every tracked test asserts, so the 4,616 denominator is honest. The finding is the distance from the first measurement to the truth — 94 → 14 → 4 → 0, every reduction a PARSING artifact (a `{}` in a test NAME, concise arrow bodies, throwing testing-library queries, and a brace inside a string/regex literal), none a real defect. 100% false-positive rate at first pass. Artifact 4 is unfixable by refinement: the files that pin the most adversarial syntax EMBED it, so a text probe cannot read exactly the gates that matter most. Zero believed only after a positive control flagged a planted assertion-free test and neither asserting form. |
 | 657 | §1209 | **§1210** | **SWEPT FOR MIRROR-SHAPED TESTS: 94 CANDIDATES, 92 BENIGN, ONE TAUTOLOGY WEARING THE FILE'S STRONGEST CLAIM.** A test whose expectation is imported from the module under test proves only self-consistency. Swept every assertion whose EXPECTED side is such an import: **94 across 32 files**. Almost all are benign — `expect(code).toBe(EVIDENCE_EXIT.OK)` uses a shared vocabulary, not a mirror — and the roster cases mostly compare a roster against an INDEPENDENT artifact (`preflight` parses the real `wrangler.toml` and checks it against `REQUIRED_BINDINGS`, which is genuine parity). One is a true tautology: `restore-verify`'s *"checks every declared dimension, so a clean result is not a thin one"* asserts `report.checked === RESTORE_CHECKS` while the implementation literally assigns that constant. **The property is nonetheless held** — measured by deleting five real comparisons one at a time (money-lines sum, events head hash, invoice totals, chain head, anchor root): each REDs 1–2 of the per-dimension cases. So the claim is TRUE and this assertion is not what makes it true. Renamed to what it proves, and given a non-tautological half — a walk-less run must report FEWER checks — **mutation-proved: 5 RED**. |
 | 656 | §1208 | **§1209** | **SESSION STOPPING POINT — THE BOARD RE-MEASURED AFTER ~20 COMMITS, AND IT IS UNMOVED.** §1190 measured 21 PASS · 2 FAIL · 5 BLOCKED. Twenty commits later — a gate rewritten (`check-table-shape`), 24 record rows re-shaped, four test suites extended — the board reads **identically**, and the two FAILs are still *exactly* the three delta-baseline assertions from the owner's uncommitted REQ-289 row. Suite grew **4,601 → 4,616** (+15: the per-field signature tamper sweep, the parity same-stream pin, `staging-smoke`'s blocked-path contract, `repoRoot`'s fail-closed contract, `recall`'s phrase-miss behaviour). **Everything this session added is green; nothing it touched moved a verdict.** Two real defects were found and closed — a device signature that could cover a constant while 749 tests passed (§1197), and a parity dedup key that could merge the two sides it exists to separate (§1201) — plus a gate false negative closed (§1206) that turned out to be **suppressing another gate's finding**. |
@@ -72127,3 +72128,48 @@ refinement sequence itself must be recorded, because the naive number is the one
 
 **STOP.** The mechanical cousin swept to a clean negative, the zero backed by a valid positive control, and the
 four ways a text probe lies about brace-language structure written down so the 94 is never re-reported as news.
+
+## §1212 — PHASE GATE: the collection chain, measured end to end — and one gate's honest scope read as a gap
+
+**Subject.** §1211 proved every test *asserts*. The complement: a test can assert and still never RUN, if no
+selector collects its file. A `testMatch`/`include` sitting between the files and the runner is the standing
+hazard ([[a-selector-between-artifacts-and-run]]), so the chain was measured rather than read.
+
+**The chain, all four links green:**
+
+| Link | Measured | Result |
+|---|---|---|
+| Package → runner | 385 tracked test files across 18 owning packages | every one has a `test` script — no `--if-present` silent skip |
+| Root → vitest | 114 root-owned files vs `include: ["tools/**/*.test.ts"]` | 109 matched; the other 5 are playwright specs |
+| Spec → playwright | ran `--list` per project, not read from config | all 5 collected: visual 1, a11y 1, e2e 2, prod 1 (5 tests) |
+| Orphan → caught | planted `tools/checks/zz-orphan-probe.test.tsx` | **FAILED the suite** — the gap is closed |
+
+**The finding is the reasoning error the mutation overturned.** §728's header states its scope plainly: *"SCOPE
+IS EXACTLY THE PACKAGES THAT NARROW. Six of eleven configs declare no `include`."* Its `configFiles()` globs
+`*vitest.config.ts`, which genuinely cannot match `vitest.tools.config.ts` — verified, 11 results, none of them
+the root. So the single **largest** narrowing in the repo (109 files, 28% of the corpus) is outside that gate,
+and I concluded the root config was unguarded. It is not. The planted orphan — a `.tsx` under a `.ts`-only
+include, the exact shape the gap would have allowed — was caught within seconds by a **third** gate whose
+ownership model is root-aware: `test-collection.test.ts`, *"owned by `<root>`, matched by none of its include
+patterns."*
+
+Three gates, non-obvious and non-overlapping scopes, which is why tracing one led to the wrong answer:
+
+| Gate | Scope | Owns |
+|---|---|---|
+| `test-collection.test.ts` | every test file → the runner that OWNS it | the root config + inherited defaults |
+| `test-file-collection.test.ts` (§728) | only packages that NARROW `include` | the narrowing package configs |
+| `spec-collection.test.ts` (§727) | every `*.spec.ts` → a playwright project | 5 browser specs across 3 configs |
+
+**Lesson.** A gate's header states ITS OWN scope honestly and says nothing about what a sibling covers, so
+*"gate A does not cover X"* is never *"X is uncovered"* — the same error as reading absence out of an empty
+grep ([[grep-proves-presence-never-absence]]), one level up: absence out of a *scope statement*. The cost of
+being wrong is asymmetric and favours the probe — planting the orphan took one command and settled it, while
+the reasoning had already produced a confident false gap.
+
+Worth noting for whoever adds a browser spec: `e2e`'s `testMatch` is an enumerated filename allowlist,
+`/(driver-offline-sync|portal-isolation)\.spec\.ts$/`. A new spec matches no project — and §727's *"every spec
+file would actually RUN under some config"* is the assertion that will say so.
+
+**STOP.** The collection chain measured link by link, the one apparent gap disproved by the mutation that
+would have exploited it, and the three-gate scope map written down so the next trace starts from the right one.
