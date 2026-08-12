@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 683 | §1235 | **§1236** | **THE BOARD MEASURED AT 19·2·5 — AND THE CONSTRAINT I BROKE WAS DOCUMENTED IN THE CONFIG ALL ALONG.** §1235 closed on an INFERENCE (*component-verified rather than a re-run*), which its own rule forbids; this replaces it with all 26 gates: **19 PASS · 2 FAIL · 5 BLOCKED**, `lint` restored to PASS, `workers/api` **831/831**, and the ONLY three failing tests in the whole run are the owner's REQ-289 register row. **Zero repo-owned failures.** Alongside: swept exact-count assertions over the shared D1 — first regex found 2, broadening to `toHaveLength(N)` found **20** (the §1234 under-matching error again, caught BEFORE concluding this time). All 20 sound — stream-scoped, or in `packages/ledger` where `isolatedStorage` defaults ON. **The finding that matters: `workers/api/vitest.config.ts` already said *isolatedStorage is OFF, so N files share ONE D1* — the exact cause of §1235's failures, in the config of the suite I was calibrating against, unread.** Its own counts were stale (66→70 files, 730→831 tests); re-dated. |
 | 682 | §1234 | **§1235** | **STOPPING POINT — THE BOARD RE-MEASURED AFTER 23 COMMITS, AND IT CAUGHT TWO REGRESSIONS I HAD INTRODUCED.** 26 gates: **18 PASS · 3 FAIL · 5 BLOCKED** (§1214 was 19·2·5). (1) **`lint` FAILED for eight commits** — §1227 removed the only consumers of an `EventKind` type import in two files; unused imports are not TYPE errors, so the `typecheck` I ran passed. Verified with the adjacent tool, not the one owning the rule. (2) **Three of my own tests failed in the suite and passed alone** — the shared tenant D1 holds 51 rows in isolation (the number I published at §1233) and **over 500** under `pnpm test`, so a `limit=500` short page came back FULL and a page size of 10 timed out at 30s. **The premise assertions did their job**, failing ON the premise with the cause in the message. Fixed by removing the corpus dependency, not re-tuning: scope to one stream · bound the walk to its subject · walk to termination. The export fix escaped its own mutation first (dropping the length check costs ONE empty round trip, not a loop) — the invariant with teeth is per-page. **A test verified in isolation is not verified.** api now 70 files / 831 tests / 0 failures. |
 | 681 | §1233 | **§1234** | **§1233'S RULE RUN AS A SEARCH — ABSENCE ASSERTED OVER A PAGE CAPPED AT EXACTLY `LIMIT_CAP`.** Scanned for tests whose meaning depends on a parameter-vs-corpus relationship. **First scan found 8; corrected scan found 15** — my pattern required `?limit=` and missed every `&limit=` form, including one I had read on screen minutes earlier. Seven sites request `limit=1000`, which IS the cap, then assert over the page. Harmless for PRESENCE; for **ABSENCE** it is only sound if the page is the whole set — and two of those are **REQ-025 constitutional cross-tenant checks** (*tenant-b's marker is never reached*). Risk today is low and stated as such (narrow kind filters ⇒ ~1 row); what was missing is the assertion that it stays low, so a corpus crossing the cap would weaken a constitutional check SILENTLY. Premises added to both and proved non-vacuous (tightened to `< 1`, fires). Five presence-only sites named safe. |
 | 680 | §1232 | **§1233** | **A PAGINATION TEST THAT FETCHED ONE PAGE — AND A THIRD PREDICTOR FALSIFIED.** Visibility filtering (I6) is thoroughly defended: deleting `visibility <> 'internal'` reds **8+ tests**, including *still hides internal WHEN PAGINATING*. That suggested *assertable iff removal yields an identifiable ITEM, not a COUNT* — **and ordering falsified it**: swapping the keyset order to `(seq, stream_id)`, which `lens.ts` calls byte-unchanged BECAUSE the cursor depends on it, left 39/39 and 45/45 GREEN. Cause was mundane: the test named *paginates across the whole tenant*, with a **30-second timeout** justified by that walk, used **page size 100 against a 51-row corpus** — the loop ran ONCE and the cursor was never used. Fixed to page size 10 plus a premise assertion (`pages > 1`); the mutation now REDs. **Three predictors, three falsifications** — each a taxonomy of guards, when the cause was ONE parameter. A test can exist, be correctly named, and not execute the property. |
@@ -73505,3 +73506,53 @@ re-run of all 26 gates.
 closed, three self-inflicted suite-scale failures diagnosed to the shared-corpus dependency they were written
 about, fixed by removing the dependency instead of re-tuning the number, and every repaired test mutation-proved
 against the defect it exists for.
+
+## §1236 — PHASE GATE: the board MEASURED at 19·2·5 — and the constraint I broke was documented in the config all along
+
+**§1235 closed on an inference.** It reported the board would "return to 19 PASS · 2 FAIL · 5 BLOCKED" as a
+*component-verified inference rather than a re-run*. By that same section's rule — a thing verified indirectly is
+not verified — the hedge was the one piece of debt it created. This closes it by running all 26 gates:
+
+```
+26 gates   19 PASS · 2 FAIL · 5 BLOCKED     at 72b69a6   (artifact gate-merge-2026-08-12T23-40-31-694Z.json)
+```
+
+`lint` is **PASS** again. `workers/api` is **831/831**. The **only** failing tests in the entire run are three,
+all in `tools/traceability`, all the owner's uncommitted REQ-289 register row — named by their own titles
+(*"classifies every row of the real register"*, *"disposition is pure + total"*, *"keeps the authoritative
+register contiguous"*). **Zero repo-owned failures.**
+
+### The sweep that ran alongside it, and my own under-matching again
+
+§1235's cause was a test depending on a shared corpus, so the generalisation is: **which other tests assert an
+exact count over that D1?** First regex found **2**. Broadened to include `toHaveLength(N)` — which the first
+pattern could not match — it found **20**. Ten times more, from the same class of error that made §1234's scan
+report 8 instead of 15. This time it was caught before concluding rather than after.
+
+**All 20 are sound**, and the reason is structural: the large ones are either scoped to a single stream
+(`sequencer.test.ts` counts `eventsFor(streamId)`) or live in `packages/ledger`, where `isolatedStorage` is left
+at its default (**on**), so each file gets fresh storage. `seed-load.test.ts` can therefore assert
+`COUNT(*) FROM shipments === 20` tenant-wide and be correct by construction.
+
+### The finding that matters most: it was already written down
+
+`workers/api/vitest.config.ts` carries this, above the code:
+
+> *"This project matters most: isolatedStorage is OFF below, so 66 files share ONE D1 with no per-test rollback
+> and file order is literally part of the fixture."*
+
+**That is the exact cause of §1235's three failures, documented in the config of the very suite I was
+calibrating against — and I did not read it.** §1235's lesson was *a test verified in isolation is not
+verified*; the sharper form is that **whether isolation even exists is a CONFIG fact**, knowable in one file
+read, and I inferred it from a single-file run instead.
+
+Its own numbers had drifted — *66 files* (now **70**) and *730/730* (now **831/831**), both stated without a
+date, which §1216 identified as claiming the present tense. Re-dated, and the constraint spelled out for the
+next person who calibrates a test against this corpus:
+
+> *THE SHARED D1 IS ALSO A TEST-DESIGN CONSTRAINT: a test that measures the corpus sees every sibling's seeds.*
+
+**STOP.** §1235's inference replaced with a measurement, the board at 19·2·5 with zero repo-owned failures and
+all three remaining failures traced to one owner-held register row, the exact-count sweep corrected from 2 to 20
+and cleared on structural grounds, and the config comment that predicted my own defect re-dated and extended so
+the next reader gets the warning I skipped.

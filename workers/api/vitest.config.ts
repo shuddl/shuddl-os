@@ -4,11 +4,14 @@ import { DETERMINISTIC_SEQUENCE } from "../../tools/testing/path-sequencer.js";
 export default defineWorkersConfig({
   test: {
     // DETERMINISTIC FILE ORDER (2026-08-02 §20/§21/§22 — the rule lives in tools/testing/path-sequencer.ts).
-    // This project matters most: isolatedStorage is OFF below, so 66 files share ONE D1 with no per-test
+    // This project matters most: isolatedStorage is OFF below, so 70 files (2026-08-12) share ONE D1 with no per-test
     // rollback and file order is literally part of the fixture. §20 pinned it, found it made
     // lens-adversarial fail REPRODUCIBLY, and reverted rather than trade an intermittent red for a
     // permanent one; §21 fixed the cause (a fixture seeding schema-invalid `events` rows the firehose
-    // 500'd on) and landed the pin. Verified at 730/730 over three runs with byte-identical order.
+    // 500'd on) and landed the pin. Verified at 730/730 over three runs with byte-identical order
+// (that figure is as-of §22; the suite is 70 files / 831 tests at 2026-08-12 — §1236). THE SHARED D1
+// IS ALSO A TEST-DESIGN CONSTRAINT: a test that measures the corpus sees every sibling's seeds, so
+// §1235's three suite-scale failures came from constants calibrated against a single-file run.
     sequence: DETERMINISTIC_SEQUENCE,
     poolOptions: {
       workers: {
