@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 630 | §1182 | **§1183** | **SECOND INSTANCE OF §1182's IDIOM, AND THIS ONE BOUND TO THE WRONG FUNCTION RATHER THAN SKIPPING.** Swept `tools/` for selectors that discard a SUBJECT; most hits are benign (comment-skipping, markdown-table parsing, extension filters). `list-endpoint-pagination` — the unbounded-read guard — selected handlers by scanning for the next `=>` **anywhere after the registration**. For a NAMED handler (`app.get("/pub/status/:cap", publicStatusHandler)`, an idiom this repo already uses) there is no arrow at all, so it bound to a LATER, UNRELATED function's body: not a skip, **a verdict computed from someone else's code**. **CONTROLLED to one variable** — same route, same `SELECT * FROM events`, same file: inline ⇒ RED, named ⇒ **5/5 PASS**. Fixed by resolving named handlers, locally and **across imports**. Two of my own fixes failed their controls first and both were caught: the naive body-finder returned the PARAMETER's type annotation (`{ env: { DB: D1Database } }`) — failing exactly like the bug it replaced — and a premise assertion rejected `status_cache` as a proof marker because public.ts names it in prose. Resolver now unit-tested (4 cases incl. real cross-file resolution); 9/9; the original defect REDs. Also measured: `/pub/status/:cap` is genuinely bounded (`WHERE id = ?`, `LIMIT 1`), so nothing was hiding. |
 | 629 | §1181 | **§1182** | **THE AUTHZ GATE'S OWN CORPUS SELECTOR HAD TWO SILENT HOLES — AN INVISIBLE ROUTE IS AN UNGATED ROUTE WITH A CLEAN REPORT.** Followed §1181's discipline (record first): the `/pub/*` edge rate-limit + Turnstile prerequisite is properly filed — GO-LIVE:53 and :158, PROJECT-STATE:379, register REQ-193/REQ-125, pen-test-basics, WP-09/WP-14, R4 — a clean negative that cost one command. The unauthenticated surface IS gated by `route-authz-coverage`, **mutation-proved** by planting an unregistered `/pub` route. But `routes()` sees a registration only if the receiver is literally `app` AND the path starts with `/v1`, `/pub` or `/internal` — anything else hits an explicit `return` and is DISCARDED. **Both planted into a real route file passed 5/5:** `app.get("/admin-backdoor")` and `sub.get("/pub/sneaky")`. Neither is exotic — a Hono SUB-ROUTER is the framework's own grouping idiom and produces the second exactly. Every test in the file iterates `routes()`'s output, so an invisible route faces **no authorization requirement at all**. Closed with a floor on the scanner's INPUT; both plants now RED with the reason named. Also measured: 38 `/v1` · 4 `/pub` · 2 `/internal` · **0 elsewhere**, one `new Hono()`, no `.route()` mounting — and a two-probe disagreement (1 vs 0 "OTHER") resolved by READING it: `lastIndexOf("/")`, not a route. |
 | 628 | §1180 | **§1181** | **A SECOND SELF-CORRECTION IN THREE PHASES, AND THE SAME ROOT CAUSE BOTH TIMES: I CLAIMED ABSENCE FROM MY OWN SEARCH.** §1178 wrote *"THE SERVER HALF WAS ENFORCED BY NOTHING."* False for routes: `append-chokepoint.test.ts` **§567** has required every appending file in `workers/api/src/routes` to pin `source:"native"` since it was written — **7 files, all compliant**, with its scope stated in its own comment. §1178's gate is the **complement** (a negative rule reaching agents, translator, billing, mcp and packages, which §567 does not touch), so nothing built was redundant — but the claim of total absence was mine and unmeasured. **AND THE REJECTED RULE WAS NOT WRONG — ITS SCOPE WAS.** I measured *"every append caller pins source"* at 7 exceptions in 15 files and inverted it; §567 runs the SAME rule over routes alone, where it has **zero**. My exception count came from choosing the corpus **by mechanism** (everything touching `SHIPMENT_SEQ`) rather than **by role** (files constructing client-facing appends). A rule needing exemptions for half its corpus is pointed at the wrong side **or measured over the wrong corpus** — different fixes, and this build had already done the second. Corrected in three places. Also confirmed clean: the delta BASELINE's three entries all attribute to the owner's uncommitted REQ-289 row (verified read-only: 288 rows at HEAD, 289 in the tree), and no repo gate uses `\b`/`\s` under POSIX ERE. |
 | 627 | §1179 | **§1180** | **THE TWO-EDGES RULE SWEPT ACROSS EVERY ENUM — FOUR GUARDS CONFIRMED, ONE GAP CLOSED, AND MY HYPOTHESIS WAS WRONG FIRST.** §1179's rule says an exemption keyed on one enum value leaves every other value free to move. Swept all 25 contract enums. The scariest candidate looked like `lensFor`, whose default branch returns `{scope:"tenant"}` — **the widest scope** — for anything that is not `portal` or `driver`; adding a 7th role **compiles clean**. But it is NOT undefended: `lens.test.ts:430` pins `Role.options` against a classification and says the hazard outright — *"Doing nothing is not neutral — an unclassified role falls through lensFor's default and inherits the most permissive lens there is."* Mutation-proved: the 7th role REDs it. `Visibility` likewise (planted 4th value → RED). `AuthorityModule` ×2 and `MessageChannel` also guarded. `AuthorityLevel` was the **one money-gating enum with no classification guard** — every consumer is a `=== "native"` ternary, so a third level silently executes as the incumbent's (fail-closed, but silently wrong); guard added in the `Role` idiom, mutation-proved. **Controls in both directions in one sweep**: the same method found silence at §1179 and REDs here. Fourth `\b`-in-POSIX-ERE error, this time returning ZERO for a pattern I had just read with my own eyes; and a `git checkout` run from a subdirectory FAILED, leaving a mutation in the tree — caught by `git status`, not by the checkout. |
@@ -70251,4 +70252,73 @@ matching any quoted string that looks like a path.
 **STOP.** Two production-readiness questions answered clean against the record, one gate mutation-proved, and
 one real hole closed in the corpus selector of the gate that guards the API's authorization surface — the hole
 that made an ungated route indistinguishable from a clean report.
+
+## §1183 — PHASE GATE: the scanner that read the wrong function
+
+**Why this phase.** §1182 found a gate whose corpus selector silently discarded. *N instances share one
+idiom* — so sweep `tools/` for selectors that drop a **subject** rather than syntax.
+
+Most hits are benign and worth saying so: comment-skipping (`startsWith("//")`), markdown-table row parsing
+(`startsWith("| ")`), extension filters (`.json`, `.test.`). Those discard *syntax*, not candidates. Three
+select by **mechanism** — `list-endpoint-pagination` (`.all<` / `.all()`), `migration-fixture-parity`
+(`includes("applyMigrations")`), `superrefine-parity` (`.superRefine(`). The first guards unbounded reads, so
+it went first.
+
+### The defect is worse than a skip
+
+`handlerBody` searched for the next `=>` **anywhere after the registration**:
+
+```ts
+const arrow = src.indexOf("=>", from);     // unbounded search
+```
+
+For an inline handler that is the right arrow. For a **named** one — `app.get("/pub/status/:cap",
+publicStatusHandler)`, which this repo already writes — there is no arrow in the registration at all, so the
+search ran on and bound to a later, unrelated function. The route was then judged on **someone else's body**.
+
+> **A skip yields no verdict; a mis-bound scan yields a CONFIDENT one.** If the unrelated function happens to
+> contain a `LIMIT`, the endpoint is reported bounded — a pass whose stated evidence belongs to different code.
+
+**Controlled to a single variable** — same route, same SQL, same file, only the handler form differing:
+
+| registration | result |
+|---|---|
+| `app.get("/v1/leak", async (c) => { … .all<…>() … })` | **RED** — flagged unbounded |
+| `app.get("/v1/leak", leakHandler)` with the identical body | **5/5 PASS** — invisible |
+
+`SELECT * FROM events`, no `LIMIT`, silent, purely because of how the handler was written.
+
+### The fix, and two of my own controls failing first
+
+Named handlers are legitimate and in use, so they are **resolved**, not flagged — locally, and by following
+the import when the declaration lives in another module (`public.ts` imports both its handlers).
+
+Two attempts failed their controls before this worked, and both failures are worth keeping:
+
+1. **The naive body-finder returned the parameter's type annotation.** `leakHandler(c: { env: { DB: D1Database
+   } })` — the first `{` after the declaration is the *parameter*, so the "body" was `{ env: … }`, which
+   contains no row-set read and reads exactly like a clean handler. **It failed in precisely the way the bug it
+   was replacing failed.** Caught only because the plant used a typed object parameter; a simpler signature
+   would have shipped it. Fixed by paren-matching the parameter list first.
+2. **A premise assertion rejected my proof marker.** The cross-file test asserted the marker is *not* findable
+   locally, and `status_cache` failed that check — `public.ts` names it in prose describing the endpoint. Had
+   the assertion not been there, the test would have "passed" on a marker proving nothing about which file was
+   read. Replaced with `accuracy_m` (6 occurrences in `status.ts`, **0** in `public.ts`).
+
+### Why the resolver needed unit tests rather than an end-to-end control
+
+My first control planted an unbounded read inside the imported handler and expected the gate to red. It did
+not — and the code was fine. `/pub/status/:cap` carries `c.req.param(`, so the gate judges it **bounded by
+route-param scope** regardless of its body. **That makes it a useless control: the verdict is identical whether
+the body is read correctly, read from the wrong function, or not read at all.** Attributed before condemning,
+and replaced with four direct unit tests on the resolver — inline, local-named-past-the-type-annotation,
+real cross-file import, and unresolvable-returns-undefined-rather-than-a-wrong-body.
+
+**Also measured, so the record is not left implying otherwise:** `/pub/status/:cap` is genuinely bounded —
+`WHERE id = ?` and `ORDER BY ts DESC LIMIT 1`, both single-row. Nothing was hiding behind the blind spot; the
+blind spot was the finding.
+
+**STOP.** Second instance of the corpus-selector idiom closed, this one a mis-bind rather than a skip, proved
+by a one-variable control, fixed with cross-file resolution, and pinned by four unit tests — two of which exist
+because my own fix and my own proof each failed a control first.
 

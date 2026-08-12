@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { repoRoot } from "./repo-root.js";
 
 // §824 — A TENTH UNPAGINATED LIST ENDPOINT MUST NOT BE FOUND BY HAND.
@@ -31,10 +32,97 @@ interface Endpoint {
 
 const STRING_LITERAL = /`[^`]*`|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g;
 
-/** The brace-matched body of the handler registered at `app.get("…", …)`. */
-function handlerBody(src: string, from: number): string | undefined {
+// §1183 — A NAMED HANDLER BOUND THIS SCANNER TO THE WRONG FUNCTION.
+//
+// The original `handlerBody` searched for the next `=>` ANYWHERE after the registration. For an inline
+// handler that is the right arrow. For a NAMED one — `app.get("/pub/status/:cap", publicStatusHandler)`, an
+// idiom this repo already uses — there is no arrow in the registration at all, so the search ran on and bound
+// to a LATER, UNRELATED function's body. Not a skip: a verdict computed from someone else's code and reported
+// against this route.
+//
+// MEASURED at §1183, same route, same SQL, same file, one variable:
+//   app.get("/v1/leak", async (c) => { … .all<…>() … })   → RED   (flagged unbounded)
+//   app.get("/v1/leak", leakHandler)  + the identical body → 5/5 PASS  (invisible)
+// `SELECT * FROM events` with no LIMIT, silent, because of how the handler was written.
+//
+// Resolved rather than merely flagged, because named handlers are legitimate and in use. An identifier is
+// looked up in the same file; a handler that cannot be resolved there (an imported one) is reported by the
+// input floor at the bottom of this file rather than silently analysed as something else.
+
+/**
+ * The brace-matched body of a function declared as `function NAME(` or `const NAME = …` in `src`.
+ *
+ * Skips the PARAMETER LIST before looking for the body brace. Written naively (first `{` after the
+ * declaration) this returns the parameter's inline type annotation instead — `leakHandler(c: { env: … })`
+ * yields `{ env: … }` — which reads as a handler body containing no row-set read, i.e. it fails EXACTLY the
+ * way the bug being fixed failed. Caught because the §1183 plant used a typed object parameter.
+ */
+export function namedFunctionBody(src: string, name: string): string | undefined {
+  const decl = new RegExp(String.raw`(?:async\s+)?function\s+${name}\s*\(|const\s+${name}\s*(?::[^=]+)?=`).exec(src);
+  if (decl === null) return undefined;
+  const paramOpen = src.indexOf("(", decl.index);
+  if (paramOpen < 0) return undefined;
+  let depth = 0;
+  for (let j = paramOpen; j < src.length; j++) {
+    if (src[j] === "(") depth += 1;
+    else if (src[j] === ")") {
+      depth -= 1;
+      if (depth === 0) return braceMatched(src, j);
+    }
+  }
+  return undefined;
+}
+
+/** The `{…}` block starting at or after `from`, brace-matched. */
+function braceMatched(src: string, from: number): string | undefined {
+  const open = src.indexOf("{", from);
+  if (open < 0) return undefined;
+  let depth = 0;
+  for (let j = open; j < src.length; j++) {
+    if (src[j] === "{") depth += 1;
+    else if (src[j] === "}") {
+      depth -= 1;
+      if (depth === 0) return src.slice(open, j);
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Resolve a named handler that is IMPORTED rather than declared locally, by following its import specifier.
+ *
+ * `public.ts` does exactly this — `import { publicStatusHandler } from "../pub/status.js"` — so without this
+ * the two `/pub` routes stay invisible to the scanner, which is the same blind spot one indirection further
+ * out. (Measured at §1183: both of that handler's reads are single-row — `WHERE id = ?` and `LIMIT 1` — so
+ * nothing was hiding there today; the point is that nothing WOULD HAVE BEEN SEEN if there were.)
+ */
+function importedHandlerBody(root: string, file: string, src: string, name: string): string | undefined {
+  const imp = new RegExp(String.raw`import\s*\{[^}]*\b${name}\b[^}]*\}\s*from\s*"([^"]+)"`).exec(src);
+  if (imp === null) return undefined;
+  const spec = (imp[1] as string).replace(/\.js$/, ".ts");
+  if (!spec.startsWith(".")) return undefined; // a package import is not this repo's handler
+  const resolved = join(dirname(file), spec);
+  try {
+    return namedFunctionBody(readFileSync(`${root}/${resolved}`, "utf8"), name);
+  } catch {
+    return undefined; // unresolvable on disk — reported by the input floor, never silently analysed
+  }
+}
+
+/** The body of the handler registered at `app.get("…", …)` — inline arrow, or a named function, local or imported. */
+export function handlerBody(src: string, from: number, root?: string, file?: string): string | undefined {
+  // Classify from the registration's OWN argument list, not from the rest of the file. A bare identifier
+  // followed by the closing paren is a named handler; anything else is treated as inline.
+  const named = /^\s*,\s*([A-Za-z_$][\w$]*)\s*\)/.exec(src.slice(from, from + 200));
+  if (named !== null) {
+    const local = namedFunctionBody(src, named[1] as string);
+    if (local !== undefined) return local;
+    return root !== undefined && file !== undefined ? importedHandlerBody(root, file, src, named[1] as string) : undefined;
+  }
+
   const arrow = src.indexOf("=>", from);
-  if (arrow < 0) return undefined;
+  // BOUNDED: the arrow must belong to THIS registration. Unbounded, it reaches the next function in the file.
+  if (arrow < 0 || arrow > from + 200) return undefined;
   const open = src.indexOf("{", arrow);
   if (open < 0) return undefined;
   let depth = 0;
@@ -57,7 +145,7 @@ function listEndpoints(root: string): Endpoint[] {
   for (const f of files) {
     const src = readFileSync(`${root}/${f}`, "utf8");
     for (const m of src.matchAll(/app\.get\(\s*"([^"]+)"/g)) {
-      const body = handlerBody(src, m.index + m[0].length);
+      const body = handlerBody(src, m.index + m[0].length, root, f);
       if (body === undefined) continue;
       if (!body.includes(".all<") && !body.includes(".all()")) continue; // not a row-set read
 
@@ -174,5 +262,52 @@ describe("§824: no NEW unpaginated list endpoint", () => {
         "silently and this repo forbids that), or — if it is bounded by something this scanner cannot see, " +
         "such as a session-derived principal — add it to KNOWN_UNPAGINATED with that reason:",
     ).toEqual([]);
+  });
+});
+
+// §1183 — THE RESOLVER'S OWN UNIT TESTS. The gate's end-to-end behaviour cannot prove these: `/pub/status/:cap`
+// carries a `c.req.param(` and a `LIMIT 1`, so it is judged BOUNDED however its body is resolved. That makes it
+// a useless control for the resolution itself — the verdict is the same whether the body is read correctly, read
+// from the wrong function, or not read at all. Test the resolver directly instead.
+describe("§1183: the handler resolver reads the RIGHT body", () => {
+  const root = repoRoot();
+
+  it("resolves an INLINE arrow handler", () => {
+    const src = 'app.get("/v1/x", async (c) => { const r = await db.prepare("SELECT 1").all<{ a: 1 }>(); });';
+    expect(handlerBody(src, src.indexOf('"/v1/x"') + 7)).toContain(".all<");
+  });
+
+  it("resolves a LOCAL named handler past its parameter type annotation", () => {
+    // The bug this catches: taking the first `{` after the declaration yields `{ env: { DB: D1Database } }` —
+    // the PARAMETER's type — which contains no row-set read and reads exactly like a clean handler.
+    const src = [
+      'app.get("/v1/x", leak);',
+      "async function leak(c: { env: { DB: D1Database } }): Promise<Response> {",
+      '  const rows = await c.env.DB.prepare("SELECT * FROM events").all<{ id: string }>();',
+      "}",
+    ].join("\n");
+    const body = handlerBody(src, src.indexOf('"/v1/x"') + 7);
+    expect(body, "resolved the parameter type instead of the body").toContain(".all<");
+    expect(body).not.toContain("D1Database }");
+  });
+
+  it("follows an IMPORT to another file — proved against real repo source", () => {
+    // public.ts registers `publicStatusHandler`, which lives in ../pub/status.ts. `accuracy_m` appears in that
+    // module and NOWHERE in public.ts, so finding it proves the import was followed to the right file.
+    //
+    // The first draft used `status_cache` and the premise assertion below FAILED — public.ts names it in prose
+    // describing the endpoint. That is the assertion doing its job: without it the test would have "passed" on
+    // a marker that proves nothing about which file was read.
+    const file = "workers/api/src/routes/public.ts";
+    const src = readFileSync(`${root}/${file}`, "utf8");
+    expect(src, "premise: the marker must not be resolvable locally").not.toContain("accuracy_m");
+    const body = handlerBody(src, src.indexOf('"/pub/status/:cap"') + 18, root, file);
+    expect(body, "the imported handler body was not resolved").toBeDefined();
+    expect(body).toContain("accuracy_m");
+  });
+
+  it("returns undefined for a handler it cannot resolve, rather than a WRONG body", () => {
+    const src = 'app.get("/v1/x", handlerFromSomewhereElse);\nfunction other() { return "SELECT 1"; }';
+    expect(handlerBody(src, src.indexOf('"/v1/x"') + 7, root, "workers/api/src/routes/public.ts")).toBeUndefined();
   });
 });
