@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 679 | §1231 | **§1232** | **SIX FOR SIX — SIZE BOUNDS ARE A BLIND SPOT AS A CLASS, AND MY SECOND PREDICTOR WAS WRONG TOO.** Worked §1231's queue: `DETAIL_SHIPMENT_CAP`, `ISA_SCAN_LIMIT`, `MAX_INPUT`, `MAX_PAYLOAD_CHARS` all mutated so they can never bind — **all four SURVIVED**, including the two CHEAP ones (200 chars, 2 000 chars), falsifying §1231's cost-based prediction. Tally: **size/truncation bounds 0 of 6 asserted; branches with a named outcome 4 of 4**. The reason is structural, not economic — a truncation produces *a shorter list and nothing else*, so there is no outcome a test would assert while testing the feature; a 403, a flag or a throw gets its guard covered as a side effect. Fixed the per-event half of §1231's bound (`MAX_PAYLOAD_CHARS` on the PAID path — capping the count alone leaves 100 unbounded bodies), asserting the clip AND its visibility; both mutations RED. **Two predictors now falsified by their own tests** — measuring beats predicting here. 4 bounds named still-unasserted. |
 | 678 | §1230 | **§1231** | **THE PREDICTOR IS 2-FOR-2 — THE LLM PROMPT CAP WAS UNASSERTED TOO.** Sharpened §1230's rule into a mechanical signature: a bound on a **collection** needs N items to observe (expensive); a bound on a **scalar** needs one long string (cheap). 11 collection bounds exist; `PROMPT_EVENT_CAP` is the highest-stakes because it bounds a **PAID** LLM call — the only thing between a busy shipment and an arbitrarily large prompt. **Deleting the slice left the package 227/227 GREEN.** Stakes compound with L428 (*the one agent with variable cost and no metering*): an unbounded prompt is expensive AND invisible. Fixed with the seams that already existed (`stubFetch` + `FakeReadPort`), asserting the count **EXACTLY** so it catches removal AND silent tightening — §1230's lesson applied first-try. Both mutations RED. Record: 2 of 2 collection bounds unasserted; every scalar bound checked so far was defended. 9 bounds named unexamined. |
 | 677 | §1229 | **§1230** | **§1229'S PREDICTOR USED AS A SEARCH — THE PAGE-SIZE CAP WAS THE SOLE BOUND AND ASSERTED BY NOTHING.** *Coverage fails where the assertion is EXPENSIVE* names its own first target: `LIMIT_CAP` can only be OBSERVED with more rows than any corpus holds. Measured — raising it 1000 → 100_000 left the lens suite **34/34 green**, and the only test mentions of the name were two comments I wrote at §1228. **It is not defence-in-depth: it is the ONLY bound** — `routes/events.ts` validates only `Number.isInteger(n) && n >= 1` and `routes/export.ts`'s Zod has no `.max()`, so `?limit=100000000` is stopped by that `Math.min` alone. Fixed by EXTRACTING `effectiveLimit()` (the expression was written 3× after §1228 shared the constants), making the bound assertable without seeding 1,000 rows. **Then my own first draft failed its mutation:** every case compared against `LIMIT_CAP`, so RAISING the cap stayed green — §1197/§1210's shape in a test written to close a different gap. Value now pinned separately. lens 34 → 39. |
 | 676 | §1228 | **§1229** | **THE NULLABLE-RETURN SWEEP — AND MY PREDICTOR FOR WHERE COVERAGE FAILS WAS WRONG.** 41 functions return `T \| null`; five (six sites) were **mutated to never return null** and their owning suites run. Only `nextCursor` survived — the §1228 gap. `conciergeTriggerFor`, `internalGate`, `deriveDeviceId`, `detectAnomaly` all RED, the last with explicit *does NOT flag* cases. **Mid-sweep I predicted the untested direction would be the QUIET one** (reject = loud = tested; nothing-to-do = silent = skipped). `detectAnomaly` falsifies it: its null is the quietest outcome and the MOST two-sided function in the sample. What actually separates `nextCursor` is **SETUP COST** — asserting *cursor is null at the end* needs a page exhausted against a shared corpus, while every other null is one crafted input away. **Coverage fails where the assertion is EXPENSIVE, not where the behaviour is unimportant** — the same shape §1211 found inverted. Scope stated: 5 of 41, chosen by stakes; the other 36 unexamined. |
@@ -73267,3 +73268,56 @@ caps) are named here and unexamined.
 **STOP.** The predictor re-applied and confirmed on a paid code path, the cap pinned with one assertion covering
 both its mechanism and its value, both mutations proved RED, and the nine bounds not yet probed listed by name
 rather than left implied.
+
+## §1232 — PHASE GATE: six for six — size bounds are a blind spot as a CLASS, and my second predictor was wrong too
+
+**§1231 left a named queue. This works it.** Four more size bounds were mutated so they can never bind, and each
+owning suite run:
+
+| Bound | Cost to exercise | Result |
+|---|---|---|
+| `DETAIL_SHIPMENT_CAP` (50 shipments) | expensive — 51 shipments | **SURVIVED** — agents 228/228 |
+| `ISA_SCAN_LIMIT` (200 chars) | **cheap** — a 200-char string | **SURVIVED** — edi 38/38 |
+| `MAX_INPUT` (5 MB) | expensive — a 5 MB string | **SURVIVED** — edi 38/38 |
+| `MAX_PAYLOAD_CHARS` (2 000 chars) | **cheap** — a 2 000-char payload | **SURVIVED** — agents 228/228 |
+
+**All four survived, including both cheap ones — which falsifies §1231's refinement.** I had predicted that
+*cost* discriminates: expensive-to-construct bounds go untested, cheap ones get covered. `ISA_SCAN_LIMIT` needs
+200 characters and `MAX_PAYLOAD_CHARS` needs 2 000. Neither is expensive. Both are unasserted.
+
+### The running tally, which is the actual finding
+
+| Class | Checked | Asserted |
+|---|---|---|
+| **Size / truncation bounds** — `LIMIT_CAP`, `PROMPT_EVENT_CAP`, `DETAIL_SHIPMENT_CAP`, `ISA_SCAN_LIMIT`, `MAX_INPUT`, `MAX_PAYLOAD_CHARS` | 6 | **0** |
+| **Branches with a named outcome** — `deriveDeviceId`, `internalGate`, `detectAnomaly`, `conciergeTriggerFor` | 4 | **4** |
+
+**Size bounds are a coverage blind spot as a CLASS**, and the reason is structural rather than economic: a
+truncation produces *a shorter list and nothing else*. There is no error, no branch, no named result — nothing a
+test would assert while testing the feature. A gate that returns 403, a detector that raises a flag, a parser
+that throws: each has an outcome someone writes a test *for*, and the guard gets covered as a side effect.
+**Nobody ever set out to test "the list was shorter than it would otherwise have been."**
+
+### Fixed: the per-event half of §1231's bound
+
+`PROMPT_EVENT_CAP` bounds how MANY events enter the paid prompt; `MAX_PAYLOAD_CHARS` bounds how BIG each one is.
+Capping only the count leaves 100 unbounded bodies — one event with a megabyte payload still floods the call. The
+new case asserts the longest run that actually reached the prompt is clipped, that the clip is at the cap, and
+that the truncation is **visible** to the model (`[truncated]`) rather than a silent clip that reads as complete
+data. Both mutations RED: loosening 2 000 → 100 000, and deleting the truncation outright.
+
+### Two predictors, both wrong — and that is worth recording
+
+§1229 predicted *quietness* would discriminate; `detectAnomaly` falsified it. §1231 predicted *cost*;
+`ISA_SCAN_LIMIT` and `MAX_PAYLOAD_CHARS` falsified it. In both cases the mutation run that tested the prediction
+cost about the same as the reasoning that produced it — and was right. **In this codebase, predicting where
+coverage fails has a losing record against simply measuring it**, which is an argument for spending the effort on
+probes rather than on models of where the probes should go.
+
+**Still unasserted, and filed rather than fixed** (each needs its own oversized-input harness):
+`DETAIL_SHIPMENT_CAP`, `ISA_SCAN_LIMIT`, `MAX_INPUT`, and `MAX_BODY_BYTES` — the last untested this phase because
+its 1 MB body makes the mutation run slow, so it is named as unexamined rather than claimed clean.
+
+**STOP.** §1231's queue worked to four more results, a second predictor falsified by its own test, the class-level
+pattern stated with its structural reason, the highest-stakes member fixed and mutation-proved in both directions,
+and the four that remain listed by name with why they were not closed.

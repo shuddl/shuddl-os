@@ -158,6 +158,31 @@ describe("ClaudeCopilot — grounding is the gate; the model's word is not (stub
   // The count is asserted EXACTLY, not with `toBeLessThanOrEqual`. A `<=` assertion passes when the cap is
   // tightened to 1 or removed-then-refiltered elsewhere, and it cannot see the VALUE change — the §1230 lesson
   // that a mechanism pin and a value pin are two different assertions.
+  // §1232 — THE PER-EVENT HALF OF THE SAME BOUND. `PROMPT_EVENT_CAP` bounds HOW MANY events ride into the
+  // prompt; `MAX_PAYLOAD_CHARS` bounds HOW BIG each one may be. Capping only the count leaves 100 unbounded
+  // bodies, so one event with a megabyte payload still floods a paid call. Measured at §1232: raising
+  // MAX_PAYLOAD_CHARS from 2_000 to 100_000 left this package 228/228 green — the sixth size bound in a row
+  // found unasserted, and this one is CHEAP to reach (2_000 characters), which is why §1231's cost-based
+  // prediction was wrong. Size bounds are a blind spot as a CLASS, not because they are expensive.
+  it("truncates each event payload — capping the COUNT alone still lets one huge body flood the prompt", async () => {
+    const HUGE = 10_000; // well past MAX_PAYLOAD_CHARS (2_000)
+    const fat = ev("evt-fat", "pod.signed", SHP, 1);
+    (fat as { payload: unknown }).payload = { blob: "x".repeat(HUGE) };
+    const { calls, fetchImpl } = stubFetch(JSON.stringify({ text: "n/a", citations: [], abstained: true }));
+    const copilot = new ClaudeCopilot(new FakeReadPort([fat]), { apiKey: "sk-test", model: "claude-test", fetchImpl });
+    await copilot.answer(`status of shipment ${SHP}`);
+
+    expect(calls.length, "no Messages call was made — this case cannot see the bound").toBe(1);
+    const body = String(calls[0]?.init.body ?? "");
+    // PREMISE: the payload really was oversized, or the truncation below is vacuous.
+    expect(HUGE, "the payload must exceed MAX_PAYLOAD_CHARS for this to test anything").toBeGreaterThan(2_000);
+    // The run of `x` that actually reached the prompt is the observable: it must be clipped, not whole.
+    const longest = Math.max(0, ...[...body.matchAll(/x+/g)].map((m) => m[0].length));
+    expect(longest, "an untruncated payload reached the paid prompt").toBeLessThan(HUGE);
+    expect(longest, "the clip must be at MAX_PAYLOAD_CHARS — a silently loosened cap is an unbounded bill").toBeLessThanOrEqual(2_000);
+    expect(body, "truncation must be VISIBLE to the model, not a silent clip that reads as complete data").toContain("[truncated]");
+  });
+
   it("caps how many retrieved events ride into the paid prompt (REQ-024 — an unbounded prompt is an unbounded bill)", async () => {
     const FLOOD = 150; // > PROMPT_EVENT_CAP (100), < STREAM_LIMIT (500) so the port hands back all of them
     const many = Array.from({ length: FLOOD }, (_, i) => ev(`evt-flood-${i}`, "pod.signed", SHP, i));
