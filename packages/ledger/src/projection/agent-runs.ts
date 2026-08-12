@@ -1,7 +1,7 @@
 // WP-11 Task 9 (REQ-113) — the agent_runs METERING projection. Populates the EXISTING (previously DEAD,
 // never-written) `agent_runs` table (0002_domain.sql:89-93) from committed `agent.acted` events, turning it
 // into a LIVE per-run cost/latency ledger the Watchtower reads to enforce per-agent budgets. NO new table,
-// NO new event kind — `agent.acted` already carries the fields (packages/contracts/src/events.ts:152@cost_cents , cost_cents /
+// NO new event kind — `agent.acted` already carries the fields (packages/contracts/src/events.ts:168@cost_cents , cost_cents /
 // latency_ms, both optional); the ONLY missing wiring was projecting them into a row.
 //
 // `agent_runs` is an UNGUARDED (mutable) domain read-model — NOT append-only-guarded (only events / positions /
