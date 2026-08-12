@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 565 | §1117 | **§1118** | **THE FIVE BLOCKED GATES ARE BLOCKED ON INPUTS, NOT ON UNPROVEN LOGIC — 5/5.** Every board since §1036 has reported **5 BLOCKED**, and nobody had asked the question that matters: their pass/fail path has NEVER executed in CI, so when the private fixtures land, will the verdict be TRUE? Traced each by IMPORT (not by directory). All five have their detection proved: `runParity` (penny-exact divergence · each floor compared individually · a hollow PRICED · **an EMPTY case list is not a pass in disguise**) · `runInvoiceParity` (an in-repo SMOKE set that runs **against the real engine today**, plus one-cent perturbation and thrown-comparison-as-mismatch) · the concierge harness (accessorials as a SET, queued-reason divergence) · `check:fixtures` (hash mismatch · missing file · **mode-aware** pending+merge → BLOCKED) · `check:identity` (masking, and the **fail-open fix**: CI + no denylist → code 1, *was* exit 0). |
 | 564 | §1116 | **§1117** | **STOPPING POINT XI — SIX PHASES OF CLAUSE-DECOMPOSITION; ONE REAL DEFECT, FOUR SELF-CORRECTIONS.** Board re-earned at `e867417`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs attributed by measurement to the owner's `REQ-289` row. §1111 **found and closed a real hole** (Law 5's clause 4 — a 150% executing share defended by nothing) · §1112 Law 4 5/5 · §1114 Law 2 ~13 shapes (summary UNDERstated) · §1115 Law 1 both directions · §1116 the anomaly detector 5/5. **The method's yield: 1 defect in ~40 guards.** Its cost: **four** harness errors, every one failing toward 'undefended'. Both numbers belong in the record. |
 | 563 | §1115 | **§1116** | **THE $222K DETECTOR ITSELF: 5/5 GUARDS DEFENDED.** Applied §1111's per-guard method to `packages/rater/src/anomaly.ts` — the module that names the permanent regression — using §1112's corrected TOTAL mutation form. Five guards, five REDs: cap-positive-integer (1) · sell-integer (2) · weight-positive-integer (1) · negative-sell (1) · **over-threshold (9)**. The core detection carries nine pins; the input validators carry one or two each, which is sufficient — a single pin is all that stops a silent deletion. Clean negative, zero source changed. With §1112 (Law 4, 5/5) and §1109/§1111 (Law 5, 4 clauses, 1 gap closed), the rater's constitutional surface is now proved guard-by-guard. |
 | 562 | §1114 | **§1115** | **LAW 1 HOLDS IN BOTH DIRECTIONS — AND IT TOOK FOUR PROBES, THREE OF THEM WRONG THE SAME WAY.** Planted a real violation per direction. **Built-but-unspec'd:** a `REQ-999` annotation in live source → gate prints `FAIL built-but-unspec'd`. ✓ end-to-end. **Spec'd-but-unbuilt:** three probes returned GREEN and every one was MY error — REQ-029's only hit is the coverage manifest the scanner **excludes**; REQ-001's singleton was an artifact of scoping to `packages/workers/apps/db` when the scanner also reads `tools`, `docs/wp`, `docs/ops`; and I had assumed `F0-SPEC'D` was deferred when only **vNEXT / CONFIRM-GATED** are. Reading the gate's own pathspec: **zero** active non-deferred REQs are singletons, so no single-file edit can orphan one — the direction is pinned at the FUNCTION level (`specdButUnbuilt` ⊇ REQ-025). §1107's rule, violated three more times in one phase. |
@@ -66486,4 +66487,50 @@ and only counting the clauses distinguishes them.
 **STOP.** Board 19/2/5 at `e867417`, both FAILs measured; five constitutional laws decomposed and proved
 guard-by-guard; one real defect found, fixed, and its fix mutation-proved; four self-inflicted false alarms
 documented with the three checks that catch them.
+
+## §1118 — PHASE GATE: BLOCKED is a claim about inputs; is it also hiding untested logic?
+
+**Why this phase.** Every board this session reports **5 BLOCKED** — `identity-leak`, `fixtures`,
+`rater-parity`, `invoice-parity`, `concierge-parse` — and each report correctly calls them *absent inputs, not
+defects*. That framing has gone unexamined for eleven stopping points, and it conceals a real question:
+
+> A BLOCKED gate's **pass/fail path has never executed in CI.** These five are the gates that will decide
+> whether the tenant's real data reconciles — penny-exact invoices, a 504-quote monotonic sweep, 50 parsed
+> emails. If their comparison logic is wrong, the *first real run* delivers a false verdict, and it arrives at
+> the worst possible moment.
+
+"Blocked on inputs" is only reassuring if the logic behind the block is independently proved.
+
+### Traced by import, not by directory
+
+Directory adjacency is not ownership (§1115), so each gate's module was traced to the tests that **import**
+it. All five are covered — and covered for **divergence detection**, not merely for the blocked path:
+
+| gate | what its tests prove it can say NO to |
+|---|---|
+| `rater-parity` | one cent of sell divergence · a status divergence reported *alone* · **each floor compared individually**, so one wrong floor cannot hide behind two right ones · a hollow PRICED expectation · an UNKNOWN whose machine-readable reason differs · counts per-CASE not per-mismatch |
+| `invoice-parity` | an **in-repo SMOKE set run against the real engine** — the harness works end-to-end *today* · one-cent perturbation fails · a thrown comparison is a MISMATCH, never swallowed · expecting ISSUE where the engine HOLDS · the wrong `hold_reason` · lines that do not sum to the quote's sell |
+| `concierge-parse` | each request field surfaces alone · accessorials compare as a **SET** (order never matters, membership always does) · a request the parser should NOT have formed · two QUEUED decisions with different reasons |
+| `fixtures` | hash mismatch fails · a vendored file that is missing fails · deleting an in-repo test turns CI red · **mode-aware**: pending+local → PENDING, pending+**merge → BLOCKED** (*"the advisory skip that used to green"*) |
+| `identity-leak` | flags a seeded name case-insensitively · **masks the term in output — the lint must not amplify the leak** · and the fail-open fix: CI + no denylist → code 1 (*"was exit 0"*) |
+
+**5/5.** Two of these deserve to be pulled out of the table:
+
+**The vacuity guard.** `rater-parity` has a test named *"an EMPTY case list is not a pass in disguise — total 0
+means the gate asserted nothing."* That is precisely the failure mode that would make a BLOCKED gate dangerous
+on the day it unblocks: fixtures arrive malformed or partially loaded, zero cases compare, and the gate
+reports PASS over an empty corpus. It is pinned.
+
+**The live smoke set.** `invoice-parity` is not merely unit-tested — it carries an in-repo smoke corpus it runs
+**against the real engine**, so the end-to-end path (load → price → compare → report) executes on every merge
+today. The private fixture supplies *scale and provenance*, not first execution.
+
+> **A gate reporting BLOCKED is making a claim about its inputs, and saying nothing about itself.** The two
+> failure modes look identical from the board — *"we cannot run this yet"* and *"we have never checked this
+> works"* — and only the second is a defect. Any long-lived BLOCKED entry should be asked, once, which one it
+> is. Five entries, five answers, all the good one.
+
+**STOP.** The five standing BLOCKED gates traced by import and verified to have proved divergence detection,
+mode-awareness, and (for the parity gates) empty-corpus vacuity guards; the launch-blocking posture confirmed
+to rest on **absent private inputs alone**, with no unproven logic behind it. Zero source changed.
 
