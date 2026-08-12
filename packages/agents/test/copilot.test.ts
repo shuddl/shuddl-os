@@ -145,6 +145,35 @@ describe("ClaudeCopilot — grounding is the gate; the model's word is not (stub
   const SHP = "shp-claude-1";
   const port = () => new FakeReadPort([ev("evt-real", "pod.signed", SHP, 100), ev("evt-real-2", "stop.arrived", SHP, 50)]);
 
+  // §1231 (REQ-024/113) — THE PROMPT IS BOUNDED, and nothing asserted it.
+  //
+  // `PROMPT_EVENT_CAP` slices the retrieved set before it rides into the Messages call. It is the only thing
+  // standing between a busy shipment and an arbitrarily large paid prompt: `retrieve()` asks the port for up to
+  // STREAM_LIMIT (500) events, and every one of them would otherwise be serialized into the body.
+  //
+  // MEASURED at §1231: deleting the `.slice(0, PROMPT_EVENT_CAP)` entirely left this package 227/227 GREEN,
+  // because observing the cap needs MORE events than any existing case seeds — §1229's predictor (coverage
+  // fails where the assertion is expensive), and §1230's same finding on the ledger's page-size cap.
+  //
+  // The count is asserted EXACTLY, not with `toBeLessThanOrEqual`. A `<=` assertion passes when the cap is
+  // tightened to 1 or removed-then-refiltered elsewhere, and it cannot see the VALUE change — the §1230 lesson
+  // that a mechanism pin and a value pin are two different assertions.
+  it("caps how many retrieved events ride into the paid prompt (REQ-024 — an unbounded prompt is an unbounded bill)", async () => {
+    const FLOOD = 150; // > PROMPT_EVENT_CAP (100), < STREAM_LIMIT (500) so the port hands back all of them
+    const many = Array.from({ length: FLOOD }, (_, i) => ev(`evt-flood-${i}`, "pod.signed", SHP, i));
+    const { calls, fetchImpl } = stubFetch(JSON.stringify({ text: "n/a", citations: [], abstained: true }));
+    const copilot = new ClaudeCopilot(new FakeReadPort(many), { apiKey: "sk-test", model: "claude-test", fetchImpl });
+    await copilot.answer(`status of shipment ${SHP}`);
+
+    // PREMISE, asserted rather than assumed: the model was actually called, so the body below is a real prompt.
+    expect(calls.length, "no Messages call was made — this case cannot see the cap").toBe(1);
+    const body = String(calls[0]?.init.body ?? "");
+    const ids = new Set([...body.matchAll(/evt-flood-\d+/g)].map((m) => m[0]));
+    // PREMISE: more events were available than the cap allows, or the assertion below is vacuous.
+    expect(FLOOD, "the flood must exceed the cap for this to test anything").toBeGreaterThan(100);
+    expect(ids.size, "the prompt must carry exactly PROMPT_EVENT_CAP events — more is an unbounded bill, fewer is a silently tightened cap").toBe(100);
+  });
+
   it("a model answer citing a REAL retrieved event → grounded answer with that citation", async () => {
     const { fetchImpl } = stubFetch(JSON.stringify({ text: "It was delivered.", citations: [{ event_id: "evt-real" }], abstained: false }));
     const copilot = new ClaudeCopilot(port(), { apiKey: "sk-test", model: "claude-test", fetchImpl });

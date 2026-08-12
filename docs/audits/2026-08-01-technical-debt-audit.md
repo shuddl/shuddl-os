@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 678 | §1230 | **§1231** | **THE PREDICTOR IS 2-FOR-2 — THE LLM PROMPT CAP WAS UNASSERTED TOO.** Sharpened §1230's rule into a mechanical signature: a bound on a **collection** needs N items to observe (expensive); a bound on a **scalar** needs one long string (cheap). 11 collection bounds exist; `PROMPT_EVENT_CAP` is the highest-stakes because it bounds a **PAID** LLM call — the only thing between a busy shipment and an arbitrarily large prompt. **Deleting the slice left the package 227/227 GREEN.** Stakes compound with L428 (*the one agent with variable cost and no metering*): an unbounded prompt is expensive AND invisible. Fixed with the seams that already existed (`stubFetch` + `FakeReadPort`), asserting the count **EXACTLY** so it catches removal AND silent tightening — §1230's lesson applied first-try. Both mutations RED. Record: 2 of 2 collection bounds unasserted; every scalar bound checked so far was defended. 9 bounds named unexamined. |
 | 677 | §1229 | **§1230** | **§1229'S PREDICTOR USED AS A SEARCH — THE PAGE-SIZE CAP WAS THE SOLE BOUND AND ASSERTED BY NOTHING.** *Coverage fails where the assertion is EXPENSIVE* names its own first target: `LIMIT_CAP` can only be OBSERVED with more rows than any corpus holds. Measured — raising it 1000 → 100_000 left the lens suite **34/34 green**, and the only test mentions of the name were two comments I wrote at §1228. **It is not defence-in-depth: it is the ONLY bound** — `routes/events.ts` validates only `Number.isInteger(n) && n >= 1` and `routes/export.ts`'s Zod has no `.max()`, so `?limit=100000000` is stopped by that `Math.min` alone. Fixed by EXTRACTING `effectiveLimit()` (the expression was written 3× after §1228 shared the constants), making the bound assertable without seeding 1,000 rows. **Then my own first draft failed its mutation:** every case compared against `LIMIT_CAP`, so RAISING the cap stayed green — §1197/§1210's shape in a test written to close a different gap. Value now pinned separately. lens 34 → 39. |
 | 676 | §1228 | **§1229** | **THE NULLABLE-RETURN SWEEP — AND MY PREDICTOR FOR WHERE COVERAGE FAILS WAS WRONG.** 41 functions return `T \| null`; five (six sites) were **mutated to never return null** and their owning suites run. Only `nextCursor` survived — the §1228 gap. `conciergeTriggerFor`, `internalGate`, `deriveDeviceId`, `detectAnomaly` all RED, the last with explicit *does NOT flag* cases. **Mid-sweep I predicted the untested direction would be the QUIET one** (reject = loud = tested; nothing-to-do = silent = skipped). `detectAnomaly` falsifies it: its null is the quietest outcome and the MOST two-sided function in the sample. What actually separates `nextCursor` is **SETUP COST** — asserting *cursor is null at the end* needs a page exhausted against a shared corpus, while every other null is one crafted input away. **Coverage fails where the assertion is EXPENSIVE, not where the behaviour is unimportant** — the same shape §1211 found inverted. Scope stated: 5 of 41, chosen by stakes; the other 36 unexamined. |
 | 675 | §1227 | **§1228** | **THE PAGINATION CONSTANTS WERE THREE COPIES OF ONE CORRECTNESS DEPENDENCY — AND FIXING IT EXPOSED A ONE-SIDED CONTRACT.** `DEFAULT_LIMIT`/`LIMIT_CAP` declared 3× (lens + both routes) with a comment saying they *"mirror"* each other *"so next_cursor agrees with the page size"* — a stated dependency held together by prose, no test naming both. The lens applies them to the SQL LIMIT; each route re-applies them to decide **was this page full**. A route copy LARGER than the lens's makes a full page read as short ⇒ null cursor ⇒ **the client silently never sees rows past page one**. Fixed by exporting from the lens. **Then the fix's own mutation test found a second defect:** deleting the length check went GREEN on both (44/44 and 7/7) — because dropping it can only turn nulls into STRINGS, and the existing tests assert only *full ⇒ string*. **A boolean contract asserted one-way is undefended the other way**, and the undefended side was TERMINATION — what a client uses to stop. Both halves pinned, each mutation-proved RED (7→8, 44→45). |
@@ -73208,3 +73209,61 @@ expression left in the tree.
 **STOP.** The predictor used as a search rather than a summary, the cap it named confirmed unasserted and sole,
 the expensive assertion made cheap by extraction rather than skipped, and the one-sided test I wrote while
 closing it caught by its own mutation and pinned in both directions.
+
+## §1231 — PHASE GATE: the predictor is 2-for-2 — the LLM prompt cap was unasserted too
+
+**§1230's predictor, used as a search a second time and sharpened.** *Coverage fails where the assertion is
+expensive.* The sharpest mechanical signature of "expensive" is a bound applied to a **collection** — observing
+it needs N items — as opposed to a bound on a **scalar**, which needs one long string. Enumerating the former
+gives **11** sites; `PROMPT_EVENT_CAP` is the highest-stakes of them, because it bounds a **paid** LLM call.
+
+```ts
+const retrieved = (await this.retrieve(question)).slice(0, PROMPT_EVENT_CAP);   // answer.ts:298
+```
+
+`retrieve()` asks the port for up to `STREAM_LIMIT` (500) events for a single shipment. That slice is the only
+thing between a busy shipment and an arbitrarily large prompt.
+
+**Measured: deleting the slice entirely left the package 227/227 GREEN.** No test named the constant.
+
+**The stakes compound with a debt row already on the books.** L428 records that this is *the one agent with
+variable cost and no COST/LATENCY metering*. An unbounded prompt would therefore be both **expensive and
+invisible** — nothing bills-by-token in view, and nothing counting.
+
+### Fixed using the seams that already existed
+
+The suite already had `stubFetch` (captures the request, zero network) and `FakeReadPort` (honours `query.limit`).
+So the assertion costs nothing to set up once someone decides to: seed 150 events for one shipment — above the
+cap, below `STREAM_LIMIT`, so the port returns all of them — call `answer()`, and count distinct event ids in the
+captured body.
+
+**The count is asserted EXACTLY, not with `toBeLessThanOrEqual`**, and that is §1230's lesson applied on the
+first attempt rather than after a failed mutation: `<=` passes when the cap is silently tightened and cannot see
+the value change at all. One assertion, both properties.
+
+| Mutation | Result |
+|---|---|
+| `.slice(0, PROMPT_EVENT_CAP)` removed | **RED** |
+| `PROMPT_EVENT_CAP` 100 → 50 (silent tightening) | **RED** |
+
+Both premises are asserted before the property: that the model was actually called (or the body is not a prompt),
+and that the flood exceeds the cap (or the case is vacuous).
+
+### The predictor's record
+
+| Bound | Kind | Was it asserted? |
+|---|---|---|
+| `LIMIT_CAP` (§1230) | collection — page size | **no** |
+| `PROMPT_EVENT_CAP` (§1231) | collection — prompt size | **no** |
+| `deriveDeviceId`, `internalGate`, `detectAnomaly` (§1229) | scalar / single crafted input | yes, all |
+
+**Two for two on collection bounds, and every scalar bound checked so far was defended.** The cost of writing
+the assertion — not the importance of the behaviour, not how quiet the failure is — is what predicts the gap.
+
+**Scope:** 11 collection-size bounds were enumerated; **one** was mutation-tested this phase. The remaining
+nine (`DETAIL_SHIPMENT_CAP`, `ISA_SCAN_LIMIT`, `MAX_INPUT`, `MAX_BODY_BYTES`, `MAX_PAYLOAD_CHARS`, and the id-length
+caps) are named here and unexamined.
+
+**STOP.** The predictor re-applied and confirmed on a paid code path, the cap pinned with one assertion covering
+both its mechanism and its value, both mutations proved RED, and the nine bounds not yet probed listed by name
+rather than left implied.
