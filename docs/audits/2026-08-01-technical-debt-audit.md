@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 556 | §1108 | **§1109** | **CLAUDE.md LAW 5 MUTATION-PROVED: 3 REDs, ALL THREE PARTIAL SHAPES.** Audited REQ-040 (*"interline floors compare the executing share, never gross"*) by the shape of its gate. Structure first: there is exactly **ONE** floor-comparison function (`evaluateApproval` — two `>=`), and **ONE** orchestrator choosing its input, so the entire law lives in the CHOICE of figure. The forbidden case is named in the code — a PARTIAL interline signal falling through to DIRECT compares the gross — and it **fails loud** rather than defaulting, which is right because there is no safe default for *which figure*. Mutated the guard to fall through: **3 RED**, every one in the `REQ-040 anti-$222K` block, covering legs-without-tenant, tenant-without-legs, and the subtle **EMPTY legs with a tenantParty**. Zero collateral; restore verified twice. |
 | 555 | §1107 | **§1108** | **EVERY SECRET, AND WHAT IT DOES WHEN UNBOUND — 7/7 FAIL CLOSED, ON TWO LAYERS.** Swept the KIND not yet audited this stretch. Enumerated the Env surface (**20** uppercase string bindings, **7** genuine credentials) and asked the only question that matters per [[fail-closed-is-about-the-fallback-value]]: what is the FALLBACK VALUE when it is absent? Every credential is read at a **composition root** that returns a NotConfigured port — and each selector rejects **`""` as well as `undefined`**, which is the non-obvious half (an empty `wrangler secret` would otherwise mint a live client with a blank credential). The second layer is the deploy preflight: `REQUIRED_BINDINGS.<worker>.secrets` BLOCKS a deploy missing one, and also blocks the test affordance **present-and-forbidden** in prod. Neither layer alone suffices — runtime-only runs prod silently dark; deploy-only misses dev. Both exist. Clean negative. |
 | 554 | §1106 | **§1107** | **A FALSE ALARM WHOSE ENTIRE CONTENT WAS MY REGEX — AND THE GATE HAD ALREADY WRITTEN THE RIGHT ONE.** §1106's gate gaurds `workers/api`; the invariant it protects (mutations enforce auth + idempotency) is not obviously api-only, so I measured the scope delta. First probe: **12 ungated mutating handlers across 3 workers.** Alarming, and false — `.put(`/`.delete(` are STORAGE methods (`kv.put`, `r2.put`, `storage.put`, `grants.delete`), not HTTP verbs. The gate's own failure message names the correct idiom — `.post("…")`, with the quote, because a route path is a string literal — and I had read that message minutes earlier. Corrected: **api 24, every other worker 0**, and 24 is exactly the count the gate recorded independently. **No delta: `workers/api` is the only HTTP mutation surface.** When auditing a gate's SCOPE, reuse the gate's MATCHER — else the delta you measure is your regex. |
 | 553 | §1105 | **§1106** | **AN ALLOWLIST THAT ARGUES ONE RULE WHILE EXEMPTING TWO — CLEAN, AND HARDENED ANYWAY.** Verified the `/rate` row's mitigation (the key IS required: global mount, POST in `MUTATING`, no exemption), which made the `idemKey === undefined` fallback dead code at **5 routes** — all fail-OPEN by value (`randomUUID`), all defended by a well-shaped gate (non-vacuity floor + mount + Hono ORDER + every-mutation-under-/v1). Then the real probe: `app.use("/v1/*")` mounts **auth AND idempotency**, so the 5 sanctioned non-/v1 mutations lose both — and every stated reason argued only AUTH. Two are money doors. Measured all five: **5/5 idempotent, by five DIFFERENT mechanisms** (deterministic id + sequencer dedupe · no-op once paid · unique-slug 409 · appends nothing · not an app route). Zero behavioural gap, real justification gap — so the mechanisms are now RECORDED in the allowlist with an explicit instruction for a sixth entry. |
@@ -65967,4 +65968,65 @@ Both exist, for all seven. **Clean negative, 7/7.**
 gated at deploy where it must be present; the `JWT_SECRET`-derived cap secrets confirmed to rest on a
 deploy-required value; both wrangler.toml mentions confirmed to be comments *asserting* the secret is absent
 (the §1095 trap, checked rather than assumed). Zero source changed.
+
+## §1109 — PHASE GATE: CLAUDE.md Law 5, mutation-proved
+
+**Why this phase.** REQ-040 is one of the ten laws, and CLAUDE.md calls its regression **permanent**:
+*"Interline floors compare the executing share, never gross. The $222,084/35-lb anomaly regression is
+permanent."* A law that important is exactly the kind this record has repeatedly found *stated* rather than
+*enforced*, so it gets audited [[audit-a-law-by-the-shape-of-its-gate]]: ungated, fixture-shaped, or
+mirror-shaped?
+
+### Structure first: the law has ONE comparison site
+
+`evaluateApproval(evaluatedSellCents, floors)` is the only place a sell figure meets a floor — two `>=`
+comparisons, against `floors.target` and `floors.contribution`. It takes *an already-chosen figure*. So the
+law is not really about comparing; **it is entirely about which number is passed in**, and that choice happens
+in exactly one orchestrator, `assessApproval`.
+
+That is the strongest possible arrangement for auditing a rule: one site to check, and a rule that cannot be
+violated anywhere else without adding a second comparison.
+
+### The forbidden case is named, and it refuses rather than defaults
+
+Interline is signalled by **both** a non-empty `legs` set and a `tenantParty`. A *partial* signal is the
+dangerous input, and the code says why in its own words:
+
+> *"a partial signal (only one) is a caller bug that, if we fell through to DIRECT, would compare the full
+> GROSS against the floors — the one thing REQ-040 forbids — so we FAIL LOUD, naming the missing half."*
+
+Failing loud is the correct choice specifically because **there is no safe default here**. For most guards a
+conservative fallback exists; for "which figure do we judge?" both available answers are wrong — gross
+violates the law, and the share cannot be computed without the missing half. Refusing is the only fail-closed
+move. This is [[fail-closed-is-about-the-fallback-value]] in its purest form: the guard is right because it
+has *no* fallback value.
+
+### Mutation: the gate is real
+
+Disabling the guard (`if (false && legsProvided !== tenantProvided)`) so a partial signal falls through to
+DIRECT — i.e. compares the gross:
+
+**3 RED**, and every one attributed to the subject rather than to collateral damage:
+
+```
+× PARTIAL interline input FAILS LOUD — legs without tenantParty (never falls through to gross)
+× PARTIAL interline input FAILS LOUD — tenantParty without legs
+× PARTIAL interline input FAILS LOUD — EMPTY legs with a tenantParty (empty ⇒ not provided)
+```
+
+all under `assessApproval — INTERLINE: compare the EXECUTING SHARE, never gross (REQ-040 anti-$222K)`.
+163 other tests stayed green, so the guard is pinned **specifically**, not incidentally.
+
+The third case is the one worth pausing on. `legs: []` **is** defined, so a naive `legs !== undefined` reads
+it as "interline provided" and would compute a share over an empty leg set. The implementation defines
+provided as *non-empty*, and a test pins that exact reading — the edge that a rewrite would most plausibly get
+wrong.
+
+> **A law with one enforcement site is auditable; a law with two is a coincidence.** The whole of REQ-040
+> reduces to a single function call's argument, which is why one mutation can settle it. When a rule *cannot*
+> be concentrated that way, the audit cost is not linear in the sites — it is linear in the sites times the
+> ways each can be reached.
+
+**STOP.** Law 5 mutation-proved at HEAD: one comparison site, one input choice, a fail-loud guard with no
+fallback value, 3/3 REDs attributed, 163 unrelated tests green, restore verified twice. Zero source changed.
 
