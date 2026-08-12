@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 544 | §1096 | **§1097** | **A THIRD CONSUMER WITH NO PRODUCER — AND THE REPO PUTS THE REQUIREMENT WHERE THE BUILDER WILL STAND.** L159 verified exact: `credits.ts` still resolves a credit's tenant from the Checkout Session's `metadata.tenant` (Zod-required non-empty, Stripe-signed — neither establishes it names the RIGHT tenant), and **no code anywhere creates a Checkout Session** — the only `CheckoutSession` references in the tree are that schema and its `.parse()`. Its conditional severity (*Low today, Med the day it ships*) is therefore correct as written. Third instance this session of the same shape: §1092's I4 waiver (consumer, no producer), §1094's doc-cap resolver (producer, unreachable consumer), and this. In each case the requirement is recorded **at the consuming line**, which is the one place the future builder is guaranteed to read. |
 | 543 | §1095 | **§1096** | **BOARD RE-EARNED AT `bb16006` — 19 PASS · 2 FAIL · 5 BLOCKED, IDENTICAL AFTER 31 PHASES AND SIX NEW GATES.** §1064's own rule (*a board is perishable evidence; the interval is the risk*) applied to itself. Since that run I added `no-audio-capture`, `req024-closure`, `pinned-deps-explained`, `skill-reference-lints`, the sweep-count figure, `recall` and `delta` — **none introduced a red**. Both FAILs still resolve to the single uncommitted `REQ-289` row (the run names it). All 5 BLOCKED unchanged and still absent private inputs. Every browser gate green (`perf`, `visual` 5, `a11y` 4, `e2e` 6) alongside `invariants`, `append-chokepoint`, `rater-purity`, `design-audit`, `acceptance` — all **non-skippable**. Zero repo-owned reds across ~50 phases of edits. |
 | 542 | §1094 | **§1095** | **§1094's BINDING TABLE MEASURED THE WRONG ARTIFACT, AND ITS SHARPEST CONCLUSION WAS UNFOUNDED.** I reported which of seven secrets are *bound today* from wrangler.toml membership. `workers/api/wrangler.toml:1-2` states the law: **"NO SECRETS EVER IN THIS FILE (REQ-154, REQ-134) … Secrets live in `wrangler secret` + OIDC."** A secret's absence from a `.toml` is REQUIRED, not evidence — so 6 of 7 rows measured nothing. Measured properly: **6 have zero `[vars]` assignments** and are unknowable from the repo; only `EVIDENCE_FROM` is a var (1 assignment, agents staging). The struck conclusion — *JWT_SECRET is already bound in api, so demo #1's blocker is smaller* — rested on a `grep -l` hit that is a **COMMENT**. Binding state is an ACCOUNT fact, which is precisely what **L43** records and what preflight's `--state` file supplies. |
 | 541 | §1093 | **§1094** | **DEMO #1's *+ PHOTOS* HALF IS BUILT AND UNREACHABLE — AND SEVEN SECRETS GATE FOURTEEN LIVE ROWS.** L205 verified in three parts at HEAD: the biller still emits `photos: {}` (its own comment says the resolver is not wired), `mintDocDownloadCap` **exists** in the api worker, and the agents worker binds **neither** `JWT_SECRET` nor an API base. The capability is built; the caller has no credential. Then the cross-cut: **14 live rows hinge on a secret binding**, and mapping each secret to the rows it gates gives the highest-leverage owner action in the record — `JWT_SECRET` alone gates **5** rows (L34/43/143/205/254). Measured which are bound: `JWT_SECRET` in **api only** (not agents), `RESEND_API_KEY`+`EVIDENCE_FROM` in agents, and `IDENTITY_DENYLIST` / `ANTHROPIC_API_KEY` / `STATUS_SECRET` / `DOC_SECRET` in **no wrangler.toml at all**. |
@@ -65261,4 +65262,57 @@ The composition is what makes the number meaningful:
 **STOP.** Board re-earned at HEAD: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs traced to the owner's single
 uncommitted register row, all five BLOCKED to absent private inputs, and **zero repo-owned failures** after six
 added gates and ~50 phases of edits.
+
+## §1097 — PHASE GATE: a third consumer with no producer
+
+**Why this phase.** L159 was one of three enumerative claims §1094 left unverified, and it is the one that
+touches money and tenant isolation: *"Checkout `metadata.tenant` is the credit's only tenant binding, and
+nothing in this repo sets it."*
+
+### Both halves exact at HEAD
+
+**The consumer stands.** `workers/billing/src/credits.ts` parses
+`metadata: z.object({ tenant: z.string().min(1) }).loose()` and resolves the credit's tenant from it. The row's
+analysis of why that is not enough is precise and worth preserving: **Stripe's signature covers the field and
+Zod requires it non-empty — neither establishes that it names the *right* tenant.** A signature proves the
+payload came from Stripe unmodified; it says nothing about who put the value there.
+
+**The producer does not exist.** The only `CheckoutSession` references in the entire tree are the schema and its
+`.parse()` — both consuming. Nothing creates a Checkout Session.
+
+So the conditional severity is correct exactly as written: **Low today (surface unbuilt), Med the day it
+ships.** There is no live exposure, and there will be one the moment a checkout surface lands without stamping
+the field server-side.
+
+### The third instance of one shape
+
+| phase | consumer | producer |
+|---|---|---|
+| §1092 | I4's `unwitnessed` refine reads the waiver | **nothing in production writes it** |
+| §1094 | the Biller should call `mintDocDownloadCap` | producer exists, **consumer has no credential** |
+| §1097 | `credits.ts` reads `metadata.tenant` | **nothing creates a Checkout Session** |
+
+Two of three are *consumer without producer*; one is the mirror. All three read, at first glance, as unbuilt
+work or as gaps — and none is a defect today.
+
+**What makes them safe is where the requirement is written.** Each is recorded at the **consuming line**, in the
+code, not only in the ledger. `credits.ts` carries it directly above the schema: *"metadata.tenant is the BUYER
+(**set when the Checkout Session is created**)"*. The row then adds the rule the builder needs — stamp it from a
+**server-known slug**, exactly as `routes/events.ts` stamps `override.by` from `session.sub`, and never from
+client input.
+
+That placement is the whole mechanism. A requirement in a checklist is found by someone auditing the checklist;
+a requirement in the consuming schema is found by **the person building the producer**, because they must read
+what their output will be parsed into.
+
+### What this phase says
+
+> **A forward requirement belongs at the point of consumption, not at the point of intention.** The three
+> instances here are safe for the same reason and would be dangerous for the same reason: whoever eventually
+> writes the producer will read the consumer's schema and cannot avoid the comment attached to it. The ledger
+> row is the audit trail; the comment is the control.
+
+**STOP.** L159 verified exact in both directions — consumer present, producer absent — with its conditional
+severity confirmed correct and the requirement's placement identified as the mechanism that makes the class
+safe. `pnpm delta` clean · `check:citations` 0 · `check:tables` OK.
 
