@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 548 | §1100 | **§1101** | **FOUR ROWS PROMISE A RE-LOOK ON A CONDITION. ALL FOUR CONDITIONS LOOK FIRED. EXACTLY ONE HAS.** §1100 re-derived one stake-bearing Low; this generalised the SHAPE — a fix cell containing *"unpick when…"*, *"switch to…"*, *"once X lands"*. **Four** carry one, and every trigger names something that has since happened. Checked each instead of pattern-matching the noun: **1 genuinely fired** (accepted-quote → the fix had ALREADY landed at Task 7, unrecorded, pinned three ways); **2 were NOUN COLLISIONS** — `check:coverage` is the *register*-coverage gate (REQ-118/119), not line/branch instrumentation, and `booking` landed while the agent deliberately never sends `bill_terms`; **1 changed nouns** — WP-05 landed, so the blocker is now the control-plane root key. Confirms [[a-reopen-trigger-is-written-at-least-evidence]] at the same 3-of-4 ratio, from the opposite direction. |
 | 547 | §1099 | **§1100** | **PRIORITISING THE 71 BY STAKES — 23 TOUCH MONEY/ISOLATION/DEMOS, AND THE SHARPEST IS A FROZEN LAW.** §1099 closed §3's checkable surface and said the 71 prose Lows need reading one at a time. They can be ORDERED: **23 of 74 touch money, tenant isolation, signatures or the acceptance demos**. Took the sharpest — *"device signature does not bind `source`/`party_refs`"* — and re-derived it: `sign.ts@clientView` returns **exactly ten** fields, matching §415. The exclusion is DELIBERATE and stated at the definition: *"exactly the fields a device knows OFFLINE — no seq, no prev_hash, no recorded_at (all server-assigned). This is the signed byte set. **Frozen forever, like the canonical law.**"* So the unbound fields are server-assigned by construction. The row's TITLE names two; its nature cell already says four. |
 | 546 | §1098 | **§1099** | **STOPPING POINT VIII — §3's ENTIRE CHECKABLE SURFACE IS VERIFIED, AND THE REST CANNOT BE.** §1089 found this 92-item tier unswept. It is now closed as far as it can be: **2 High** (both EDI, inert behind a transport proved unwired), **11 Med** (all verified across §1090–§1098), and of **74 live Low** — measured — **0 cite a re-runnable command**, **3 make a counted claim** (all verified here, all owner-held), and **71 are pure prose with nothing to re-run**. So the tier's checkable surface is **16 items, all verified**; the remaining 71 are not stale-*able* by any mechanism available. Board unchanged at 19/2/5 (§1096). L239 stamped with the half I verified and the half two searches did not find — recorded as unverified rather than absent. |
 | 545 | §1097 | **§1098** | **§1097's RULE TESTED — 4 OF 4 REQUIREMENTS LIVE AT THE CONSUMING LINE, AND NO MATCHER CAN PROVE IT.** Checked the four remaining unverified Med rows for an in-code marker. **All four have one**, each in different words: `perf.spec.ts` — *"§963 — THE FLOOR MUST NOT BE A HARDWARE BUDGET IN DISGUISE"*; `fence.ts` — *"detention/dwell math … DEFERRED to a later WP (no detention engine exists yet)"*; `session.ts` — *"a full login screen + lockout policy is still a follow-up"*; `biller.ts` — the photos comment. **Two heuristics found two different subsets and neither found all four**: a vocabulary matcher (`deferred`/`TODO`/`not wired`) hit L207+L209, a `§N` matcher hit L197+L204. First reported *3 of 4 have NO MARKER* — wrong, and the 16th probe-shape error. The property is real and unmechanizable. |
@@ -65481,4 +65482,57 @@ verified at §415) says four. The row corrects itself one cell to the right, whi
 **STOP.** The 71-item reading task is ordered rather than left flat — 23 stake-bearing rows identified by a
 re-runnable filter — and the sharpest is re-derived at HEAD as a deliberate frozen law, not a gap. `pnpm delta`
 clean · `check:citations` 0 · `check:tables` OK.
+
+## §1101 — PHASE GATE: a trigger fires in the world, not in the record
+
+**Why this phase.** §1100 re-derived a single Low and found it accurate. The generalisable question is not
+"is this row true" but **"what would have told me it stopped being true?"** — so I scanned the fix cells for
+rows that answer it: the ones promising a re-look on a condition (*"unpick when…"*, *"switch to…"*,
+*"once X lands"*). There are **four**, and every condition names something that has since happened.
+
+Four for four is the answer you get by reading the trigger. It is wrong three times.
+
+| Row | Trigger as written | Re-measured |
+|---|---|---|
+| Accepted quote = latest `quote.priced` | *"switch to booking-referenced quote (booking landed WP-08)"* | **FIRED — and the fix had already landed** |
+| NULL `bill_terms` → prepaid | *"unpick when booking populates terms"* | **UNFIRED** — booking landed; terms did not |
+| No line/branch coverage measured | *"when coverage instrumentation lands"* | **UNFIRED** — name collision |
+| Device signing root key | *"executable only once WP-05 lands"* | **Blocker changed nouns** |
+
+### The one that fired had already been fixed
+
+`biller.ts@handlePodSigned` GUARD 2 (Task 7, REQ-031/003) binds the invoice to the exact quote the booking
+accepted — `loadAcceptedBookingQuote` verifies id, stream, kind, **and** a naming `quote.accepted`, and fails
+closed to `held(no_quote)` on any inconsistency. Latest-pre-POD survives only on an un-booked stream, stated.
+
+And it is not merely written — `workers/api/test/biller.test.ts` prices A=111,100, books it, then prices
+B=222,200 **inside the trap window** (after the booking, before the POD) and asserts the invoice lines, the
+money projection **and the customer email** all equal A and not B. Three surfaces, asserted in both directions.
+The row describing this as an open Low was pure record debt.
+
+### The two that did not fire both failed on a NOUN
+
+- **`coverage`**: `pnpm check:coverage` exists, so the trigger reads as fired. It is
+  `tools/traceability/coverage.ts` — *"the machine-checked 100%-register-coverage gate"* (REQ-118/119).
+  **Requirement** coverage. No vitest config in this repo declares a coverage provider, so the row — *"no
+  line/branch coverage is measured anywhere"* — stands exactly as written.
+- **`booking`**: booking did land at WP-08. But `BookingCreatedPayload.bill_terms` is an *optional
+  refinement*, and the agent states it never sends one: *"No mode/service/bill_terms/opt-out: the agent books
+  the quoted shipment as-is."* The condition was never "booking lands" — it is **"the booking agent gains a
+  terms input"**, which has not happened.
+
+Both are the §1093 `assets` collision again: a word that is true in the repo and false in the sentence.
+
+### What this phase says
+
+> **A trigger fires in the world; it is read in the record.** Every one of these four was written by someone
+> careful, and three of the four read as fired to anyone who checked the noun instead of the claim — because
+> the noun DID arrive, just not carrying the clause the row was waiting on. A trigger says *"re-look when X"*;
+> it can never say *"…and X means the version of X I meant."* This is
+> [[a-reopen-trigger-is-written-at-least-evidence]] confirmed at the same **3-of-4** ratio from the opposite
+> direction: that phase found forward-looking notes wrong when written, this one finds them wrong when read.
+
+**STOP.** All four trigger rows re-measured and stamped — one closed as already-fixed, two corrected to
+UNFIRED with the real condition named, one re-labelled to its live blocker. `pnpm delta` clean ·
+`check:citations` 0 · `check:tables` OK.
 
