@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 667 | §1219 | **§1220** | **THIS SESSION'S OWN CLAIMS AUDITED — THE ERROR MODE IS SCOPE PROSE, NEVER A MEASUREMENT.** 57 quantified claims extracted from §1211–§1219; the three load-bearing ones re-derived by a DIFFERENT method than produced them. All hold: `provisionTenant`'s single caller survives a re-export/barrel/dispatch check; the single `INSERT INTO users` survives a behavioural *any-verb* query (nuance recorded — two `UPDATE users SET device_keys` exist in devices.ts, so "one INSERT" is right but "written in one place" would not be); and the **4,616 denominator, previously INHERITED, is now MEASURED** at 4,613 passed + 3 failed across 22 project runs, so §1216's 43.7% cross-check stands on a measured base. **Diagnosis: both prior overclaims were scope SENTENCES about a search, never wrong numbers** — which rules out "measure more carefully" as the fix. Rule: a scope sentence must name the SEARCH, not the SUBJECT, unless the subject was enumerated. |
 | 666 | §1218 | **§1219** | **§1218 SAID "EVERY CAPABILITY FLAG" AND HAD ENUMERATED BY MECHANISM — TWO MONEY SEAMS WERE OUTSIDE THE GREP.** Re-enumerated BY BEHAVIOUR (what moves money, sends mail, bills an external API) the corpus is **six, not four**. Missed: **Anthropic LLM egress** (3 ports; selects on binding presence, never compares to `"true"`) and the **Stripe webhook** (gate reads `secret !== undefined && secret !== ""`). Both CLEAN — and the Stripe boundary is the strongest gate in the build: raw scheme, no SDK, HMAC-SHA256 over `${t}.${rawBody}`, constant-time against EVERY v1 candidate, 300s replay tolerance, idempotency behind it. The idiom recurring across independently-written seams is evidence it is a discipline, not a reused helper. **The defect is the corpus claim — second in three phases** (§1215's "22 verified" from six): the scope sentence written from the shape of the SEARCH, not the SUBJECT. This phase's own fetch probe was also wrong (excluded `.fetch(`, returned only inbound handlers); the hostname scan disagreeing with it is the only reason the seams surfaced. |
 | 665 | §1217 | **§1218** | **EVERY CAPABILITY FLAG SWEPT — FOUR SEAMS, ONE IDIOM, ZERO FAIL-OPENS.** §1217's question (*is this flag the ONLY thing between a stranger and the capability?*) applied to every `Env` flag gating a real side effect: `PROVISIONING_ENABLED`, `PLATFORM_INTERNAL_SECRET`, `ALLOW_TEST_SEND`, `RESEND_API_KEY`+`EVIDENCE_FROM`. All fail closed. Three break-points of this class named because each is handled correctly here: the **empty-string arm** (`secret === undefined \|\| secret === ""` ⇒ 503 — the one implementations omit), **the flag alone never opens the send route** (armed but tokenless ⇒ 500 misconfigured, not an open outbound-email endpoint), and **a disabled sender REFUSES rather than skipping** (biller.ts: a silent skip would be *"a NotConfiguredSender-shaped lie"*). The idiom: EXACT comparison + absence as a DISTINCT LOUD state + a SECOND independent gate. Limit: "absent from wrangler.toml" proves this REPO ships nothing on; a dashboard-set var is invisible to any in-repo scan. |
 | 664 | §1216 | **§1217** | **THE SIGNUP ORACLE'S CONTAINMENT RE-VERIFIED — AND THE QUESTION ITS ROW NEVER ASKED.** L431's email-existence oracle is a founder UX call, so not this session's to change; its CONTAINMENT is. All four parts hold (409 mapping at `:93`, route 404s behind the flag, EXACT `=== "true"` so no truthy value opens it, flag absent from wrangler.toml), pinned across exactly 5 test files, and the row's snippet-keyed citation correctly predicted the drift from `:94`. The row never asks whether that flag guards EVERY path — so: `provisionTenant` has **exactly one caller**, the flag is checked **twice** on it (route AND function), and there is **exactly one production INSERT INTO users**, inside it. Unreachable by CONSTRUCTION, not merely by configuration. Limit stated: a dashboard/secret-set var is outside repo evidence — part four proves this repo ships nothing on, not that no deployment has it on. |
@@ -72564,3 +72565,52 @@ but inside the CSP/asset story.
 **STOP.** The capability corpus re-derived by behaviour and closed at six, the two money seams measured and
 found clean, §1218's overclaim struck at its source rather than only here, and the recurring cause — a scope
 sentence written from the search instead of the subject — named on its second instance.
+
+## §1220 — PHASE GATE: this session's own claims audited — the error mode is scope prose, never a measurement
+
+**Why.** §1215 and §1219 each caught the *previous* phase overclaiming its corpus. Two in three phases is a
+pattern, and waiting for a third instance to arrive reactively is the wrong response. So this phase audits the
+auditor: every quantified or universal claim in §1211–§1219 was extracted mechanically (**57** sentences
+carrying `every` / `all` / `no` / `zero` / `only` / `exactly` / a hard number), and the load-bearing ones were
+re-derived from scratch by a *different* method than the one that produced them.
+
+### The three that mattered, all re-derived independently — all hold
+
+**1. `provisionTenant` has exactly ONE caller** (§1217). Originally a single grep, which is the method §1219
+proved unreliable. Re-checked for the ways a caller hides — re-exports, barrels, dynamic dispatch
+([[find-the-dispatch-not-the-string]]): the only call site is `signup.ts:51`; every other occurrence is a
+comment or the export itself, and no barrel re-exports it. **TRUE.**
+
+**2. Exactly ONE production `INSERT INTO users`** (§1217). Re-run as a behavioural query — *any* SQL statement
+touching the table, not one verb: `(insert|replace|update|upsert)…users`. The single INSERT stands.
+**TRUE — with a nuance now recorded so the sentence is not over-read:** there are two `UPDATE users SET
+device_keys` in `routes/devices.ts`, an authenticated `/v1` device-enrolment write against an *existing* user.
+That is not a provisioning bypass, and "one INSERT" remains exactly right — but "the users table is written in
+one place" would have been false, and a reader could have taken the second from the first.
+
+**3. The 4,616-test denominator** (§1211, and the ratio in §1216). This was **inherited, not measured** — the
+weakest kind of claim to republish ([[a-claim-you-inherit-is-a-claim-you-are-making]]), and §1216 divided by it.
+Now measured from the merge run's 22 vitest project summaries: **4,613 passed + 3 failed = 4,616.** Exact.
+§1216's 43.7% cross-check therefore stands on a measured denominator rather than a remembered one.
+
+### The diagnosis, which is the actual result
+
+**Both overclaims were scope SENTENCES about a search. Neither was a wrong measurement.** §1215 measured six
+triggers correctly and wrote "twenty-two re-verified". §1218 measured four seams correctly and wrote "every
+capability flag in the build". In each case every *number* was right and the sentence describing *what had been
+looked at* was wrong.
+
+That distinction matters because it rules out the obvious fix. "Measure more carefully" would have prevented
+neither. The rule that would have:
+
+> **A scope sentence must name the SEARCH, not the SUBJECT — unless the subject was enumerated.**
+> "every capability flag" claims the subject. "every flag matching these two greps" claims the search, is
+> equally short, and is *true*. The second phrasing also makes its own weakness visible: a reader sees the
+> greps and can ask what they miss, which is precisely the question §1219 had to discover the hard way.
+
+This is [[floor-the-input-not-the-output]] as a writing rule rather than a scanner rule — bound the corpus you
+read, in the sentence, where the next reader will rely on it.
+
+**STOP.** Fifty-seven claims extracted, the three load-bearing ones re-derived by independent methods and all
+holding, the inherited denominator replaced with a measured one, one sentence given the nuance that stops it
+being over-read, and the recurring error diagnosed precisely enough to name the rule that prevents it.
