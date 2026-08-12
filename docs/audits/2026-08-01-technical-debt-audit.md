@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 549 | §1101 | **§1102** | **THE SEVEN WAYS A DELIVERED LOAD DOES NOT BILL — AND THE ONE PREDICATE THAT NEEDED TWO DIFFERENT ANSWERS.** Enumerated the Biller's terminal non-invoice outcomes: **5 holds + 2 skips**. All 5 holds are test-pinned (`interline_unresolved` only because an earlier phase caught it living in two COMMENTS). The 2 skips were checked against the unbounded-re-drive shape the hold marker exists to prevent: `shipment_not_found` **would** have reproduced it exactly, and **REQ-199 (WP-11 exit audit) already closed it** — but by WRAPPING the anti-join, deliberately leaving the SHARED `unbilledShipmentsSql` untouched so the Watchtower alarm still surfaces the data fault. `pod_not_found` is unreachable by the anti-join by construction. **Clean negative, 7/7.** The finding is the engineering: bounding and surfacing pulled OPPOSITE ways on one shared predicate, and fixing it at the shared layer would have made the fault invisible while looking fixed. |
 | 548 | §1100 | **§1101** | **FOUR ROWS PROMISE A RE-LOOK ON A CONDITION. ALL FOUR CONDITIONS LOOK FIRED. EXACTLY ONE HAS.** §1100 re-derived one stake-bearing Low; this generalised the SHAPE — a fix cell containing *"unpick when…"*, *"switch to…"*, *"once X lands"*. **Four** carry one, and every trigger names something that has since happened. Checked each instead of pattern-matching the noun: **1 genuinely fired** (accepted-quote → the fix had ALREADY landed at Task 7, unrecorded, pinned three ways); **2 were NOUN COLLISIONS** — `check:coverage` is the *register*-coverage gate (REQ-118/119), not line/branch instrumentation, and `booking` landed while the agent deliberately never sends `bill_terms`; **1 changed nouns** — WP-05 landed, so the blocker is now the control-plane root key. Confirms [[a-reopen-trigger-is-written-at-least-evidence]] at the same 3-of-4 ratio, from the opposite direction. |
 | 547 | §1099 | **§1100** | **PRIORITISING THE 71 BY STAKES — 23 TOUCH MONEY/ISOLATION/DEMOS, AND THE SHARPEST IS A FROZEN LAW.** §1099 closed §3's checkable surface and said the 71 prose Lows need reading one at a time. They can be ORDERED: **23 of 74 touch money, tenant isolation, signatures or the acceptance demos**. Took the sharpest — *"device signature does not bind `source`/`party_refs`"* — and re-derived it: `sign.ts@clientView` returns **exactly ten** fields, matching §415. The exclusion is DELIBERATE and stated at the definition: *"exactly the fields a device knows OFFLINE — no seq, no prev_hash, no recorded_at (all server-assigned). This is the signed byte set. **Frozen forever, like the canonical law.**"* So the unbound fields are server-assigned by construction. The row's TITLE names two; its nature cell already says four. |
 | 546 | §1098 | **§1099** | **STOPPING POINT VIII — §3's ENTIRE CHECKABLE SURFACE IS VERIFIED, AND THE REST CANNOT BE.** §1089 found this 92-item tier unswept. It is now closed as far as it can be: **2 High** (both EDI, inert behind a transport proved unwired), **11 Med** (all verified across §1090–§1098), and of **74 live Low** — measured — **0 cite a re-runnable command**, **3 make a counted claim** (all verified here, all owner-held), and **71 are pure prose with nothing to re-run**. So the tier's checkable surface is **16 items, all verified**; the remaining 71 are not stale-*able* by any mechanism available. Board unchanged at 19/2/5 (§1096). L239 stamped with the half I verified and the half two searches did not find — recorded as unverified rather than absent. |
@@ -65535,4 +65536,60 @@ Both are the §1093 `assets` collision again: a word that is true in the repo an
 **STOP.** All four trigger rows re-measured and stamped — one closed as already-fixed, two corrected to
 UNFIRED with the real condition named, one re-labelled to its live blocker. `pnpm delta` clean ·
 `check:citations` 0 · `check:tables` OK.
+
+## §1102 — PHASE GATE: seven ways a delivered load does not bill
+
+**Why this phase.** §1101 closed a row about *which* quote gets billed. The adjacent money question is the
+one where no invoice appears at all: a driver got a signature, the freight is delivered, and the tenant is
+owed money. Every path where that ends in no invoice is revenue the ledger knows about and the tenant does
+not. So: enumerate them, and check each is both **bounded** (does not retry forever) and **visible** (someone
+finds out).
+
+`handlePodSigned` has exactly **seven** terminal non-invoice outcomes — 5 holds and 2 skips.
+
+### The five holds: 5/5 pinned
+
+`anomaly` · `below_floor` · `no_quote` · `interline_unresolved` · `evidence_missing`. Each is asserted by a
+real test with a real reason check, not merely mentioned. Notably `interline_unresolved` has one *only*
+because an earlier phase caught it: the suite's own comment at `workers/api/test/biller.test.ts:241` records
+that it *"appeared in the suite only inside two comments."* The class is closed now.
+
+Four of the five write a durable terminal marker; `evidence_missing` deliberately does not, because it is the
+one **transient** member — the bytes may still arrive, and the sweep is what re-drives it (Task 9, REQ-170).
+
+### The two skips: the shape the marker was invented to prevent
+
+`emitTerminalHoldMarker` exists, in its own words, because without it the anti-join would *"re-drive a
+permanent hold every cron tick, forever (safe but unbounded/noisy)."* Both skips —
+`pod_not_found` ("poison message") and `shipment_not_found` ("data fault, not retriable") — are permanent by
+their own doc-comments and write **no marker**. That is precisely the excluded shape, so each needed checking:
+
+- **`shipment_not_found`** — a signed POD on a stream with no `shipments` row. It satisfies every clause of
+  the anti-join (`pod.signed` present, `invoice.issued` absent, no marker), so it *would* be re-enqueued every
+  tick forever, and the Biller would skip it every time. **Already closed by REQ-199**, raised at the WP-11
+  exit audit: `unbilledRedriveSql` appends `AND EXISTS (SELECT 1 FROM shipments s WHERE s.id = p.shipment_id)`.
+- **`pod_not_found`** — unreachable from this path by construction: the anti-join *selects on* `pod.signed`,
+  so a stream whose POD is not there is never a candidate. It is a queue poison message, owned by the queue's
+  own retry envelope.
+
+### The finding is in HOW REQ-199 was closed
+
+`unbilledShipmentsSql` has three consumers: the re-drive, the KPI "=0" tile, and the Watchtower unbilled
+alarm. Bounding wanted the orphan POD **out**; surfacing wanted it **in** — the same row, two opposite
+answers, one predicate. REQ-199 wrapped the re-drive and left the shared predicate alone, and said so:
+
+> *"The SHARED `unbilledShipmentsSql` is left UNCHANGED, so the Watchtower 'unbilled' alarm still surfaces the
+> data fault."*
+
+Fixing it one layer down — editing the shared predicate to exclude shipment-less streams — would have stopped
+the futile re-drive, passed review as the same fix, and **silently deleted the only signal that the data fault
+exists**. The load still never bills; now nobody is told.
+
+> **When one predicate has several consumers, a bounding fix applied at the shared layer deletes a surfacing
+> guarantee.** Same family as [[adding-a-gate-can-delete-a-gate]]: the destructive edit and the correct one
+> look identical at the diff, and only the consumer list tells them apart. Before narrowing a shared query,
+> enumerate who reads it and what each needs to still be true.
+
+**STOP.** Clean negative with a denominator: **7/7** terminal non-invoice outcomes bounded and visible; 5/5
+holds test-pinned; zero source changed. `check:citations` 0 · `check:tables` OK.
 
