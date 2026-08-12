@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 611 | §1163 | **§1164** | **THE TIMEOUT CLASS IS COMPLETE — AND COUNTING SPAWNERS WOULD HAVE REPORTED 42 FALSE POSITIVES.** §1163 fixed the four gates I had *observed* failing, which is symptom-driven, so I swept the class. **49** tools tests spawn a child process and **42** carry no per-test timeout — and reporting that would have been §1156's error exactly: most call `git rev-parse` (~10ms), so *spawner* is not the unit of risk. **Measured durations instead:** besides the four I fixed, only **4** assertions exceed 2.5s — `cwd-parity` 12082ms (120_000) · `tenant-scope` 4949ms (30_000) · `spec-collection` 3229ms (30_000) · `lint-guards` 2996ms (30_000) — and **every one already carries an allowance.** The class closed at §1163. Near-miss: I nearly filed *"a row says FIXED but the condition persists"* against `tenant-scope` before checking that §1052 did add its 30s. |
 | 610 | §1162 | **§1163** | **FIXED §1162 SURGICALLY — AND FOUND THE REPO HAD ALREADY SET THE CONVENTION.** §1162 filed the four subprocess gates as an owner decision because a suite-level timeout raises the ceiling on a genuinely hung child. There is a narrower fix that does not: a **per-test** allowance on exactly the four, leaving the suite default at **5000ms** so nothing else moves. Applied (`20_000` ×3, `30_000` for the eslint one), 81 tests green. **The corroboration came after the edit:** `spec-collection.test.ts` already carried `30_000` on a sibling, citing *"the convention already set at `cwd-parity.test.ts` (120_000 for an 11.5s test)"* — so this **extends an existing, documented practice** at ~3× headroom where the precedent uses ~10×. The decision I flagged was real; it just had a narrower answer. |
 | 609 | §1161 | **§1162** | **NEW DEBT, FOUND BY THE GATE THAT REFUSED MY COMMIT: FOUR SUBPROCESS GATES RUN AT VITEST'S DEFAULT 5000ms.** §1161's chained `delta && commit` refused and named four newly-failing tests. Not waved off: all four **shell out** (`execSync`/`execFileSync` → eslint, playwright, git-from-a-subdirectory), all pass **in isolation**, all passed in the board at `551421d`, and `pnpm reap` found **zero** orphans. **Mechanism measured:** `vitest.tools.config.ts` sets **no `testTimeout`**, so the **5000ms** default governs — and the observed durations were **5044 · 5758 · 7725ms**. Under load a child process outruns the timeout and the gate reports a failure indistinguishable from a real defect. Filed as a new row; a false RED erodes a gate faster than a slow one. |
 | 608 | §1160 | **§1161** | **I7 TRACED: THE JOURNAL-BALANCE HALF IS PINNED; THE CORRECTION-PAIR HALF IS STRUCTURAL, NOT ASSERTED.** Enumerated I1–I8 from `genesis/10` rather than memory (§1160's rule) and took the one this session had never touched. **I7 — *correction pairs net zero in GL export*.** Its enforcement is real: `iif.ts@serializeJournalIIF` Guard 2 throws on `Σdebits !== Σcredits`, pinned by *"unbalanced input … throws — never emits a lopsided journal"*. But that is **journal balance**, a different claim. Correction-pair netting holds by **construction** instead: `export.ts` emits each money_line as a debit/credit PAIR of the same `amount_cents`, so a correction carrying a negated amount nets against its original — *"signed amounts carry corrections through unchanged"*. **Structural, and no test names it.** My probe also missed it twice: the code says *"nets to 0.00"*, never *"net zero"*. |
@@ -69027,4 +69028,54 @@ not *"should timeouts be raised?"* but *"should these four join a convention the
 measured subprocess gates, suite default untouched at 5000ms, 81 tests green; the change verified as an
 extension of a documented in-repo convention (120s for an 11.5s test) rather than a new policy; the row moved
 from OPEN-proposed to FIXED with the reasoning recorded.
+
+## §1164 — PHASE GATE: the class, closed by measuring rather than counting
+
+**Why this phase.** §1163 gave per-test allowances to the four gates I had **watched fail**. That is
+symptom-driven: the fix covers what happened to break under my load, not the class. So the class needed
+enumerating.
+
+### The count that would have been wrong
+
+**49** tools tests spawn a child process; **42** carry no per-test timeout. Reported as-is, that reads as
+forty-two gates one bad CI day from a false red.
+
+It is §1156's error exactly — *a count of guards is not a count of risk*. Almost all of those `execSync` calls
+are `git rev-parse --show-toplevel` for `repoRoot()`, which costs ~10ms. **Spawning a child is not the unit;
+child LATENCY is.** A test that shells out to git is nowhere near a 5-second boundary, and a rule keyed on
+"spawns a subprocess" would have demanded 42 edits to defend against nothing.
+
+### The measurement that was right
+
+Running the suite with a JSON reporter and reading per-assertion durations: besides the four §1163 fixed, only
+**four** assertions exceed 2.5s — half the default timeout — and **every one already carries an allowance**:
+
+| assertion | measured | allowance |
+|---|---|---|
+| `cwd-parity` — *every gate reaches the same verdict from a subdirectory* | 12082ms | 120_000 |
+| `tenant-scope` — *§702 `GUARDED_FNS` completeness* | 4949ms | 30_000 (§1052) |
+| `spec-collection` — *every spec file would actually RUN* | 3229ms | 30_000 |
+| `lint-guards` — *flags an LLM SDK import in the ledger* | 2996ms | 30_000 |
+
+Nothing else in the suite reaches even 2s. **With §1163's four, the class is complete** — every assertion
+near the boundary has a bound, and the 42 without one are all comfortably far from it.
+
+### The near-miss
+
+`tenant-scope` measured **4949ms against a 5000ms default** — 51ms of headroom — and its checklist row says
+*"FIXED 2026-08-11 (§1052)"* where §1052's own words are *"DIAGNOSED by manufacturing the trigger."*
+Diagnosing is not fixing, and I was one step from filing *"a row claims FIXED while the condition persists"*.
+
+It **is** fixed: the assertion carries `}, 30_000)`. The 4949ms is safe because the bound is 30s, and my alarm
+came from reading the duration against the **default** rather than against **that test's** timeout.
+
+> **A duration is only dangerous relative to its own limit.** Every number in this phase needed pairing with
+> the bound that governs it — 12082ms is fine under 120_000, 4949ms is fine under 30_000, and 5044ms was a
+> failure under 5000. Reading durations without their timeouts produces exactly the false alarm reading
+> spawner-counts without latencies produces, one layer down.
+
+**STOP.** The subprocess-timeout class enumerated and closed: 49 spawners identified and rejected as the wrong
+unit, per-assertion durations measured instead, the four remaining slow assertions confirmed already bounded,
+and the class complete as of §1163; one near-miss withdrawn by pairing a duration with its own timeout rather
+than the suite default. Zero source changed.
 
