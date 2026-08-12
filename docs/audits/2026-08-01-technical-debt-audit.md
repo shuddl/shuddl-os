@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 670 | §1222 | **§1223** | **THE MECHANISM INVENTORY §1222 DEMANDED — AND THE TURN §1222 ITSELF MISSED: CONFIGURED ≠ EXECUTED.** Full enumeration of every enforcement surface (local 26 gates · `ci.yml` merge-gate / design-gate / **secrets** · `nightly.yml` · eslint+tsc+Zod+D1 triggers · Dependabot/branch-protection). The finding: `ci.yml` fires on `pull_request`+`push:[main]`; `origin/main` is `0415148` (2026-07-31), **1,287 commits unpushed, 0 PRs ever** — so **gitleaks has never scanned any of them**, nor has the merge-gate job. §1222 wrote *"a committed secret does not reach main"*; accurate form is *"…does not reach origin/main, on the push that has not happened"*. NOT claimed as novel — §966 (*nightly is a clock, not a check*) and §1005 already hold it; what is new is applying it to the mechanism I had cited as THE enforcement one phase earlier. Net: the §1221 gate is the ONLY EXECUTED secret check for the current tree — its justification's third and accurate version. **The first correction of an overclaim tends to overshoot toward what it just found.** |
 | 669 | §1221 | **§1222** | **§1221 SAID "ENFORCED BY NOTHING" AND CI HAS RUN GITLEAKS ALL ALONG — THE THIRD OVERCLAIM, ONE PHASE AFTER WRITING THE RULE AGAINST IT.** `.github/workflows/ci.yml` has a dedicated `secrets:` job: history-wide gitleaks at `fetch-depth: 0`, pinned SHA, configured by a `.gitleaks.toml` whose FIRST LINE cites REQ-154/134, and gated by `ci-contract.test.ts`. A committed secret never reaches main. **What is true is narrower: no LOCAL gate scans for secrets** — 26 merge gates, none — so the control lived only past a push, with **1,278 commits unpushed**. The new gate's justification is restated: it moves the check EARLIER and makes it locally provable, it does not close an absence. The corpus finding stands. Cause: the probe was `grep --include="*.ts" tools` and gitleaks is a root TOML invoked by YAML — **the search space excluded the class of enforcement it asked about**. Rule: enumerate MECHANISMS (CI, hooks, external scanners), not files. Falls out: `.gitleaks.toml` allowlists `genesis/.*` + `fixtures/.*` — the one place a credential passes BOTH controls; pen-test scope. |
 | 668 | §1220 | **§1221** | **A CONSTITUTIONAL RULE WAS DECLARED ON FOUR FILES NO *WRANGLER* GATE READ — CLOSED (⚠ this row's original "enforced by nothing" is CORRECTED by §1222: CI runs history-wide gitleaks; what was missing is a LOCAL gate).** CLAUDE.md's *NO SECRETS EVER IN wrangler.toml* (REQ-154/134) was enforced by nothing for **4 of 9** configs. Planting a live-shaped `RESEND_API_KEY` + `STRIPE_WEBHOOK_SECRET` in `apps/portal/wrangler.toml` left the tools suite **byte-identical** (3 failed / 1292 passed, both runs) — not one of 1,295 assertions saw a committed API key. Cause: three gates read wrangler configs and **all three are correct for their own subject**, but the union of their corpora missed `apps/*` and `packages/ledger`. **The tell was in the files** — all four carry the *NO SECRETS EVER IN THIS FILE* banner, so the rule was DECLARED where nothing read it. Generalisation: *look for rules declared on files outside every gate's corpus* — a scope gap between correct gates is invisible to every one of them. Closed by `wrangler-no-secrets.test.ts` (whole corpus, no entropy rule because `database_id` is a UUID, comments exempt because 100% of today's mentions are comments), mutation-proved RED, auto-wired, re-narrowing pinned by name. |
 | 667 | §1219 | **§1220** | **THIS SESSION'S OWN CLAIMS AUDITED — THE ERROR MODE IS SCOPE PROSE, NEVER A MEASUREMENT.** 57 quantified claims extracted from §1211–§1219; the three load-bearing ones re-derived by a DIFFERENT method than produced them. All hold: `provisionTenant`'s single caller survives a re-export/barrel/dispatch check; the single `INSERT INTO users` survives a behavioural *any-verb* query (nuance recorded — two `UPDATE users SET device_keys` exist in devices.ts, so "one INSERT" is right but "written in one place" would not be); and the **4,616 denominator, previously INHERITED, is now MEASURED** at 4,613 passed + 3 failed across 22 project runs, so §1216's 43.7% cross-check stands on a measured base. **Diagnosis: both prior overclaims were scope SENTENCES about a search, never wrong numbers** — which rules out "measure more carefully" as the fix. Rule: a scope sentence must name the SEARCH, not the SUBJECT, unless the subject was enumerated. |
@@ -72761,3 +72762,62 @@ would pass both controls, so it belongs in the pre-GA pen-test scope.
 row, and the shipped gate's own header — the gate's justification restated honestly as "earlier, not
 otherwise-absent", the search failure explained as a mechanism-class omission rather than carelessness, and the
 one exemption that survives both controls named.
+
+## §1223 — PHASE GATE: the enforcement-mechanism inventory §1222 demanded — and the turn §1222 itself missed
+
+**§1222 ended with a rule: *enumerate enforcement MECHANISMS, not files*. This is that enumeration, done once
+so the next "is X enforced?" starts from a list instead of a grep.**
+
+| Mechanism | Trigger | Contents | **Last executed against current code** |
+|---|---|---|---|
+| Local gates (`verify:merge`) | run by hand | 26 gates | **this session** (§1214) |
+| `ci.yml` → `merge-gate` | `pull_request`, `push:[main]` | `check:runtime`, `check:pr`, `-r build`, acceptance, visual/a11y/e2e, perf, `verify:merge`, `audit --prod` | **never** |
+| `ci.yml` → `design-gate` | same | `audit:design` | **never** |
+| `ci.yml` → `secrets` | same | **history-wide gitleaks**, `fetch-depth: 0`, pinned SHA | **never** |
+| `nightly.yml` | `schedule` (daily 08:00) | `check:traceability`, `audit --prod`, D1 backup | runs, but against `origin/main` |
+| ESLint / tsc / Zod / D1 triggers | per-build, per-write | static + runtime + schema | continuously |
+| Dependabot, branch protection | GitHub settings | — | **disabled / absent** (L354, L357) |
+
+### The turn §1222 missed: configured ≠ executed
+
+§1222 corrected §1221 by showing gitleaks exists, is pinned, is history-wide, and is gated by
+`ci-contract.test.ts`. All true. But `ci.yml` fires on `pull_request` and `push:[main]`, and:
+
+```
+origin/main tip   0415148   2026-07-31
+unpushed commits  1,287
+pull requests ever  0        (L354)
+```
+
+**So gitleaks has never scanned any of these 1,287 commits** — nor has the merge-gate job, nor the design gate.
+Every `ci.yml` control is *configured and blocking and dormant*. §1222 wrote *"a committed secret does not reach
+`main`"*; the accurate form is **"…does not reach `origin/main`, on the push that has not happened."**
+
+This is not new to the record and is not claimed as such: §966 measured the nightly as *"A CLOCK, NOT A CHECK —
+TEN RUNS, ONE COMMIT"*, and §1005 filed the Linux question as *"what CI has never been allowed to answer"*. What
+is new is applying it to the mechanism I had just cited as the enforcement, one phase after citing it.
+
+### What this does to the gate written at §1221
+
+It restores most of its original value, for a **different and correct reason**:
+
+- §1221 said it closed an absence — **wrong** (§1222).
+- §1222 said it merely moves a CI check earlier — **right, but understated**.
+- Accurate: `tools/checks/wrangler-no-secrets.test.ts` is the **only executed secret check covering the current
+  tree**. The CI control that would otherwise cover it has not run and will not until a push, at which point it
+  scans 1,287 commits of history at once — which is exactly what `fetch-depth: 0` is for, and it will work.
+
+Both claims were wrong in opposite directions before this one. Recorded so the pattern is visible: **the first
+correction of an overclaim tends to overshoot toward the thing it just discovered.**
+
+### The standing consequence, stated plainly
+
+Between now and the first push, the *executed* enforcement surface is: the 26 local gates, the static
+toolchain, and the nightly running one-commit-old. Everything else is a written intention. That is a legitimate
+posture for a pre-GA repo with an owner-held push decision — it is **not** a defect, and no row is filed. But
+any sentence of the form *"CI enforces X"* is, today, a statement about configuration and not about evidence,
+and should be written that way.
+
+**STOP.** The mechanism inventory built as §1222's rule required, the dormancy of every `ci.yml` control
+measured against the actual remote tip rather than assumed, §1222's own overshoot corrected without inventing
+novelty the record already held, and the §1221 gate's justification landed on its third and accurate version.
