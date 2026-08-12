@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 554 | §1106 | **§1107** | **A FALSE ALARM WHOSE ENTIRE CONTENT WAS MY REGEX — AND THE GATE HAD ALREADY WRITTEN THE RIGHT ONE.** §1106's gate gaurds `workers/api`; the invariant it protects (mutations enforce auth + idempotency) is not obviously api-only, so I measured the scope delta. First probe: **12 ungated mutating handlers across 3 workers.** Alarming, and false — `.put(`/`.delete(` are STORAGE methods (`kv.put`, `r2.put`, `storage.put`, `grants.delete`), not HTTP verbs. The gate's own failure message names the correct idiom — `.post("…")`, with the quote, because a route path is a string literal — and I had read that message minutes earlier. Corrected: **api 24, every other worker 0**, and 24 is exactly the count the gate recorded independently. **No delta: `workers/api` is the only HTTP mutation surface.** When auditing a gate's SCOPE, reuse the gate's MATCHER — else the delta you measure is your regex. |
 | 553 | §1105 | **§1106** | **AN ALLOWLIST THAT ARGUES ONE RULE WHILE EXEMPTING TWO — CLEAN, AND HARDENED ANYWAY.** Verified the `/rate` row's mitigation (the key IS required: global mount, POST in `MUTATING`, no exemption), which made the `idemKey === undefined` fallback dead code at **5 routes** — all fail-OPEN by value (`randomUUID`), all defended by a well-shaped gate (non-vacuity floor + mount + Hono ORDER + every-mutation-under-/v1). Then the real probe: `app.use("/v1/*")` mounts **auth AND idempotency**, so the 5 sanctioned non-/v1 mutations lose both — and every stated reason argued only AUTH. Two are money doors. Measured all five: **5/5 idempotent, by five DIFFERENT mechanisms** (deterministic id + sequencer dedupe · no-op once paid · unique-slug 409 · appends nothing · not an app route). Zero behavioural gap, real justification gap — so the mechanisms are now RECORDED in the allowlist with an explicit instruction for a sixth entry. |
 | 552 | §1104 | **§1105** | **A GATE CANNOT SEE AN UNTRACKED FILE, AND I LEARNED IT BY BREAKING IT.** A too-broad `git add -A docs/` staged the owner's untracked GTM/research corpus; `pnpm delta` immediately reported **5 NEW failures**. Unstaged it, then re-measured the same way deliberately (stage → capture → unstage) because the accident had answered a real question: **the corpus reds `absolute-paths` (a `/Users/<name>` path), `citation-links`, `citation-ratchet`, `no-sync-duplicates` and the CONFIRM-GATED citation review.** All of it invisible until the instant of `git add`, because `git grep` reads TRACKED files. Removed **40** iCloud sync duplicates after verifying each byte-identical with `cmp`; 20 authored docs intact. Filed the rest as owner-held. The lesson is the staging boundary: **`delta` is a claim about the INDEX, so it must be read after `git add`, and the staged set must be read before `git commit`** — I skipped the second check, which is how the first one happened. |
 | 551 | §1103 | **§1104** | **A DEFERRAL THAT CLAIMS A REGISTER ROW, ONE CLAUSE AWAY FROM THE ROW THAT DISCLAIMS IT.** Checked the `referralBase` row's CONDITION the §1101 way — by its clause, not its noun: the URL *is* in the body, but the hazard fires only if the send's idempotency keys off it, and it keys `evidence-email/<invoice event id>`. **UNFIRED.** The defect was the comment's OTHER claim — *"tracked as its own REQ"*, naming no ID. Measured the register: the redelivery-purity rows are all CONCIERGE-scoped, REQ-129 is the referral SURFACE, and the nearest owner is **REQ-267**, whose acceptance *"same referral facts reproduce one attribution"* is exactly what a drifting re-render breaks. Comment corrected to name it. The sweep's sharpest output was about ITSELF: the original sat on the SAME LINE as `REQ-178` — the row it explicitly disclaims — so a proximity detector scores it **NAMED**. Fixing it also rotted **4 citations across 3 files**, caught by the ratchet. |
@@ -65834,4 +65835,68 @@ not belong on this list."**
 **STOP.** `/rate` mitigation verified at HEAD; 5 fail-open fallbacks confirmed unreachable behind a gate that
 needs nothing added; 5/5 sanctioned exemptions independently idempotent; the justification gap closed in the
 allowlist itself. `check:citations` OK · typecheck OK · lint OK.
+
+## §1107 — PHASE GATE: a false alarm whose entire content was my regex
+
+**Why this phase.** §1106 leaned on `tools/checks/api-conventions.test.ts`, which scans
+`workers/api/src/*.ts`. The invariant it protects — *a mutation enforces auth and idempotency* — is not
+obviously one worker's business, and a gate whose scope is narrower than its invariant is a shape this record
+has found real defects in before. So: measure the delta.
+
+### The first probe said something alarming
+
+Counting `\.(post|put|patch|delete)\(` per worker: **api 26 · mcp 6 · agents 1 · translator 5**. Read
+literally, that is *twelve mutating handlers in three workers with zero middleware mounts*, none of them
+scanned by the gate — a constitutional gap (REQ-030) on the EDI and MCP surfaces.
+
+It is entirely false. Listing the matches instead of trusting the count:
+
+```
+workers/mcp/src/oauth.ts          await deps.grants.put(CLIENT_PREFIX + pairingId, …)
+workers/translator/src/inbound.ts await deps.evidence.put(r2Key, capped)
+workers/agents/src/spark-meter.ts await this.ctx.storage.put({ … })
+```
+
+(Line numbers deliberately omitted: writing them would create three fresh **unanchored** citations into
+high-churn files, which the ratchet refused — the §1104 self-instance, hit a second time in four phases.
+The pattern is the evidence here; the line is not.)
+
+`put` and `delete` are **storage** methods as well as HTTP verbs. Zero of the twelve is a route. This is the
+`assets` collision (§1093) in a new costume, and it failed in the direction my own record warns about:
+[[keep-a-fixed-point-before-scaling-a-probe]] — **harness bugs fail TOWARD alarming results.**
+
+### The correct matcher was already written, by the gate, and I had read it
+
+A route path is a **string literal**, so the idiom is `.post("`. The gate says so in its own non-vacuity
+failure message:
+
+> *"no mutating handlers found — the `.post(\"...\")` idiom changed and this gate now watches nothing"*
+
+I read that message minutes earlier, in §1106, and then invented a different regex to audit the thing it
+belongs to.
+
+### Corrected, with a positive control
+
+| worker | mutating routes |
+|---|---|
+| **api** | **24** |
+| mcp · agents · billing · translator | **0** |
+
+And 24 is exactly the number the gate recorded when it landed — *"24 mutating handlers, 19 under /v1, 5
+outside."* Two independent derivations agreeing on 24 is the fixed point that makes the zeros trustworthy:
+the same probe that found nothing elsewhere reproduced a known count where something exists.
+
+**No delta.** `workers/api` is the only worker with an HTTP mutation surface, so the gate's scope *equals* the
+invariant's scope. §1106's reliance on it was sound.
+
+> **When you audit a gate's SCOPE, reuse the gate's MATCHER.** Any difference between your pattern and its
+> pattern shows up as a delta in the *code*, and it is indistinguishable from a real one until you list the
+> matches. This is the repo's own `share-lint-matchers-with-parity-tests` law — *extract the target-matching
+> fragment once, share it across every surface* — which I have applied to lint rules and not, until now, to
+> my own audit probes. A scope comparison IS a parity test between two populations; it needs one matcher for
+> the same reason.
+
+**STOP.** Hypothesised gap measured and **withdrawn** on evidence, with the count fixed at both ends;
+zero source changed; the reasoning recorded so the next scope audit starts from the gate's matcher rather
+than a fresh regex.
 
