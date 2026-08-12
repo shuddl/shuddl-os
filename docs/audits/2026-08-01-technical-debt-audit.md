@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 560 | §1112 | **§1113** | **I COMMITTED OVER AN UNIDENTIFIED DELTA AGAIN — WITH THE TOOL I BUILT TO PREVENT IT, IN THE SAME COMMAND.** §1112's commit block ran `pnpm delta` and `git commit` in ONE call. Delta printed **2 NEW failures**; the commit executed anyway, because output is not a precondition. This is §942's lesson verbatim (*"a gate run only gates if the commit cannot execute when it fails"*) and the 4th unidentified-delta commit this session. Three subsequent runs are CLEAN and `pnpm reap` finds no orphans, so the committed content is sound — but the two are **unidentified**, which is exactly the state §1080 was written about. Fix is structural, not resolve: **`pnpm delta && git commit`**, or delta in its own call, read before committing. |
 | 559 | §1111 | **§1112** | **LAW 4 IS 5/5 DEFENDED — AND MY MUTATION HARNESS REPORTED TWO FALSE 'UNDEFENDED' FROM OPERATOR PRECEDENCE.** Carried §1111's clause-counting to REQ-004 (*no price on air*): 5 clauses (weight · dims-null · dims-measure · no_zone · no_rate_group). First run said C1 and C3 were **silent** — two untested guards on a constitutional law. False. `if (false && A || B || C)` parses as **`(false && A) || B || C`**: `&&` binds tighter, so the guard never stopped firing. Re-run with `if (false) {`: **C1 → 12 RED, C3 → 4 RED**. Worse, C2 was PARTIALLY disabled and returned a plausible RED 1 (true answer: 3) — so one broken harness produced valid, invalid AND half-valid cells at once. §1111's *"assert the mutation applied"* is necessary and **NOT sufficient**: the text changed and the guard still ran. **5/5 defended, 23 REDs.** |
 | 558 | §1110 | **§1111** | **DEFECT — LAW 5's SOLE DEFENCE AGAINST A 150% EXECUTING SHARE HAD NO TEST.** A law is not one proposition: REQ-040 has **four** falsifiable clauses, and §305 proved one (the arithmetic, RED 13) while §1109 proved another (the partial-signal refusal, RED 3). Mutating the remaining two: the 10000-total check REDs 2 — but the **per-leg range check went GREEN, 166/166**. One probe separated redundant-from-untested: with it removed, `[+15000, -5000]` (summing to exactly 10000, so the total-check is blind) yields **`shareCents: 150000` on a 100000 gross — a 150% share**, which clears any floor. That is the $222,084 DIRECTION. Test added and mutation-proved. And the second test I wrote asserted a mechanism that was **false** — the fractional shape is caught downstream by `mulDivHalfUp`'s BigInt, not by the guard — caught by mutating my own comment before commit. |
 | 557 | §1109 | **§1110** | **STOPPING POINT X — SIX PHASES, ONE HARDENING, ONE LAW PROVED, ONE ALARM WITHDRAWN.** Board re-earned at `6c672f8`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs attributed BY MEASUREMENT to the owner's uncommitted `REQ-289` row. §1104 named an untracked deferral to REQ-267 · §1105 learned the staging boundary by breaking it (40 verified duplicates removed) · §1106 **hardened** an allowlist that argued one rule while exempting two (5/5 measured) · §1107 **withdrew** its own alarm — the delta was my regex · §1108 swept all 7 credentials (fail-closed on two layers) · §1109 **mutation-proved CLAUDE.md Law 5** (3/3 REDs, 163 green). Two of six phases corrected ME, which is the ratio worth keeping. |
@@ -66216,4 +66217,51 @@ diligence.
 **STOP.** REQ-004 decomposed into 5 clauses, all 5 mutation-proved (23 REDs); a harness defect found and
 corrected mid-phase with the invalid cells re-run rather than patched over; the mutation discipline
 strengthened from *applied* to *total*. Baseline restored, 168/168. Zero source changed.
+
+## §1113 — PHASE GATE: the tool worked; the workflow around it did not
+
+**What happened.** §1112's commit block ran `pnpm -s delta` and `git commit` in a single call. Delta printed:
+
+```
+delta: 2 NEW failure(s) — not in BASELINE:
+```
+
+and the commit executed anyway, because **a command's output is not a precondition**. The failure names
+scrolled past above the commit hash — the same geometry as §942, whose lesson this record already states:
+
+> *"A gate run only gates if the commit cannot execute when it fails."*
+
+That makes this the **fourth** unidentified-delta commit this session (§1080, §1082, and now), and the third
+of those happened *after* I built `pnpm delta` specifically to make the failure impossible. The tool did its
+job perfectly: it detected the delta, printed it, and named it NEW. Nothing was wrong with the instrument.
+
+### What the two were — honestly, unknown
+
+Three subsequent `delta` runs are clean, and `pnpm reap` reports no orphaned workerd, so the committed content
+is **verified sound** (3 failing, all 3 the owner's `REQ-289` row). The most likely explanation is ambient
+load: §1112 ran the rater suite **six times back-to-back** through the mutation loop, and §1052 established
+that debris raises load enough to push a boundary-adjacent assertion over its timeout.
+
+But *likely* is not *identified*, and §1080's whole point is that **reproducing a count is not identifying
+it**. I cannot name those two, so this section does not pretend to. What it can say is bounded: the tree is
+clean now, three times, from a known-good baseline.
+
+### The fix is structural
+
+Resolving to be careful is what failed — three times, with the tool present. The two forms that cannot fail:
+
+```
+pnpm -s delta && git commit -F -   # the gate IS the precondition
+```
+
+or delta in its **own tool call**, read, then commit in the next. The second is better under a long session,
+because it forces the result into the transcript where it must be read rather than scrolled past.
+
+> **A gate you run in the same breath as the action it guards is a report, not a gate.** The instrument's
+> quality is irrelevant — `delta` is precise, tested, and was right — because the failure is in the *control
+> flow around it*. Anything whose failure should stop later work must be the thing that stops it.
+
+**STOP.** The lapse recorded rather than quietly fixed, the committed state re-verified clean three times from
+a no-orphan baseline, and the commit ritual changed to make the sequencing failure impossible rather than
+unlikely.
 
