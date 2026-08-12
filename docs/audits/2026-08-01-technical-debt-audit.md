@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 587 | §1139 | **§1140** | **THE HAZARD I WAS SWEEPING FOR ALREADY HAPPENED — AND IS NOW GATED IN BOTH DIRECTIONS.** `tools/checks/workflow-step-guards.test.ts` records the incident: on **2026-07-31 the `perf` step failed and the NEXT step — the 26-gate merge evidence surface — was SKIPPED**, on three consecutive CI runs, *"the last being the commit production still serves."* §978 then measured 14 steps: 4 guarded, 10 sequential, **all four browser gates unguarded** — only the accident that `perf` ran last prevented a `visual` failure from erasing a11y, e2e and perf as well. It is now pinned by **4 assertions** including a non-vacuity floor AND the reverse direction (*genuine prerequisites stay unguarded*), plus 26 more in `ci-contract.test.ts`. §1138–§1139's sweep terminates: scripts and CI both enforced. Cost: I ran the sweep without `pnpm recall` first — the record held §962/§978/§979 the whole time. |
 | 586 | §1138 | **§1139** | **CI CARRIES §1138's SHAPE CORRECTLY — AND MY ALARM WAS A FLAT READ OF A NESTED FILE, THE FOURTH TIME.** Extended the short-circuit sweep from npm scripts to the pipeline. CI is **three independent jobs** (`merge-gate` · `design-gate` · `secrets`) with **no `needs:`**, so they run in parallel; and inside `merge-gate` the six verdict-bearing steps carry `if: ${{ !cancelled() }}` (§978) — including **the merge evidence gate itself**, so `verify:merge` produces its complete verdict even after an earlier step fails. I first reported that a design-audit failure would skip the history-wide **secret scan**: FALSE. My extractor flattened the YAML and lost the job boundaries — `gitleaks` is a separate JOB. Same class as §1129's switch and §1131's nested `kind`: **a flat read of a nested structure, failing toward alarm.** |
 | 585 | §1137 | **§1138** | **SWEEPING §1137's SHAPE: 3 `&&` CHAINS, AND THE ONE THAT MATTERS IS CITED AS COVERAGE BY A GATE.** *A gate can be wired, green, and not running* generalises to every `&&` between steps, so I enumerated: **3 of 51** scripts chain with `&&`. The load-bearing negative first — **`verify:merge` is not among them**, so the shippable verdict runs its gates independently, as it claims. `deploy:surfaces` is correct (do not deploy a failed build); `verify:dev` is documented in CLAUDE.md. That leaves **`verify:docs`**, which is not in CI — but `dev-loop-parity.test.ts:49@covered` cites it as the REASON `check:citations`/`check:tables`/`check:section-refs` may be absent from `verify:dev`: *"covered by `verify:docs`, which a session runs."* It short-circuits, so that coverage is conditional on the first check passing. **Bounded to Low**: the merge board runs all four as INDEPENDENT gates (verified in the artifact). |
 | 584 | §1136 | **§1137** | **LAW 8's LAST CLAUSE CLOSED — AND A NOTE I WAS CARRYING WAS STALE.** §1136 left one bound: does the isolation suite actually RUN on every merge? `tools/checks/isolation-suite.test.ts` records that this exact claim was **FALSE WHEN WRITTEN** (§954): `pnpm test` used `&&`, short-circuited on the REQ-289 trio, and **105 of 112 isolation cases were not executing** — only the 7 roster cases were. Restored at §940/§949. My own working note still said the short-circuit persists, so the two disagreed. **Measured at HEAD:** `test` now reads `test:tools; t=$?; pnpm -r --no-bail …; p=$?; exit $(( t || p ))` — both halves run unconditionally, exit is the OR. Board artifact confirms isolation files executing among **4,564** passing tests. Law 8: 4/4 clauses. |
@@ -67721,4 +67722,64 @@ Three of the four failed toward alarm, which is the direction that gets written 
 mechanisms** — parallel jobs with no `needs:`, and `!cancelled()` on every verdict-bearing step including the
 merge gate; a serious-sounding alarm raised and **withdrawn on evidence** before it reached a finding; the
 recurring flat-read failure tabulated across four phases with the preventive read named. Zero source changed.
+
+## §1140 — PHASE GATE: the sweep terminates, on an incident that already happened
+
+**Why this phase.** §1138 swept the short-circuit shape through npm scripts; §1139 extended it to CI and found
+the pipeline correct. The remaining question was whether CI's correctness is **enforced or conventional** —
+`if: ${{ !cancelled() }}` appears six times, and a convention applied six times is exactly what drifts on the
+seventh.
+
+It is enforced, and finding the gate that does it produced something better than a verdict.
+
+### The hazard is not hypothetical — it is this repo's own incident
+
+`tools/checks/workflow-step-guards.test.ts` opens with the measurement:
+
+> *"GitHub runs a job's steps in order and skips every later step once one fails. MEASURED AT §962: on
+> 2026-07-31 the `perf` step failed and the NEXT step — 'merge evidence gate — the complete non-skippable
+> surface', the one that runs all 26 gates — was **SKIPPED**. Three consecutive CI runs ended that way, the
+> last being **the commit production still serves**."*
+
+And §978's follow-up measurement: **14 steps, 4 guarded, 10 sequential, all four browser gates unguarded** —
+so a `visual` failure would have erased a11y, e2e and perf too. *"Only the accident that `perf` is last kept
+that from happening."*
+
+That is the whole argument for §1138's rule, made by the pipeline rather than by reasoning: for three runs,
+the build's complete verdict did not exist, and nothing in the CI summary said so — the job simply showed a
+failure it did have, while silently omitting the twenty-six checks it did not run.
+
+### Enforced in both directions, with a floor
+
+Four assertions, and the set is the shape §1112 argued for — a rule **and** its boundary:
+
+1. *"finds steps and verdict-producing steps at all (non-vacuity — §968's rule)"* — the corpus floor.
+2. *"every verdict-producing step carries `if: !cancelled()`"* — the rule.
+3. *"§980: `nightly.yml` still has no job that produces two independent verdicts"* — the sibling file.
+4. *"genuine prerequisites stay unguarded (the rule has a boundary, and it is deliberate)"* — **the reverse
+   direction**, so the fix cannot be over-applied into guarding a real precondition.
+
+Plus **26** assertions in `ci-contract.test.ts` covering the merge surface by name, the design job's naming,
+the gitleaks scan, SHA-pinned actions, and evidence upload on failure.
+
+**§1138–§1139's sweep terminates here:** scripts enumerated, CI verified, and both enforced by gates that
+carry their own non-vacuity floors.
+
+### Cost, recorded
+
+I ran a two-phase sweep for a hazard the record had already measured, fixed, and gated — because I did not
+run `pnpm recall` first. The tool exists for exactly this (§1068 built it after the same failure), and
+§962/§978/§979/§980 were all findable by one query.
+
+> **The record is a search index, and I keep treating it as a diary.** §1067 cost a phase this way, §1068
+> built `recall` to make it cheap, §1128 re-derived a number rather than re-reading one — and here two phases
+> re-discovered an incident that is quoted verbatim in a file the sweep itself opened. The tell is when a
+> sweep's *first* find is a gate that already covers the thing: that is not luck, it is the record answering
+> a question I should have asked it directly.
+
+**STOP.** CI's `!cancelled()` discipline confirmed **enforced**, in both directions, over both workflow files,
+with a non-vacuity floor; the incident that motivated it surfaced in full (three CI runs with no complete
+verdict, including the commit production serves); the short-circuit arc closed across scripts and pipeline;
+the recall failure that made this a two-phase sweep instead of one query recorded against myself. Zero source
+changed.
 
