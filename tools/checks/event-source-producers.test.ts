@@ -22,10 +22,13 @@ import { repoRoot } from "./repo-root.js";
 // (events.ts and internal-platform.ts), and the other 22 emitters hardcode the literal in a server-built
 // object. Measured at §1178 — all of it holds today.
 //
-// THE SERVER HALF WAS ENFORCED BY NOTHING. Nothing stopped a future route or agent from emitting
-// `source: "legacy"` directly, which is not a client attack but the far likelier regression: someone wiring a
-// new backfill or import path picks the value that makes the gates stop complaining. That is the same
-// convenience-shaped failure `rater-purity` and `append-chokepoint` exist to prevent, and it had no lint.
+// THE SERVER HALF WAS COVERED FOR ROUTES ONLY (corrected §1181 — this comment first said "by nothing").
+// `append-chokepoint.test.ts` §567 already requires every file in `workers/api/src/routes` that calls
+// `.append(` to contain `source:"native"` — seven files, all compliant. What it does NOT reach is everything
+// else: `workers/agents`, `workers/translator`, `workers/billing`, `workers/mcp`, and `packages/*`. An AGENT
+// emitting `source:"legacy"` directly was unguarded, and that is the likelier regression: someone wiring a new
+// backfill or import picks the value that makes the gates stop complaining. This gate is the complement, not a
+// duplicate — §567 is a POSITIVE requirement scoped to routes, this is a NEGATIVE one scoped to the repo.
 //
 // WHY A CLOSED SET IS THE RIGHT SHAPE HERE, when the neighbouring rule was not. The obvious formulation —
 // "every sequencer-append caller must pin source" — was measured first and REJECTED: of the 15 files touching

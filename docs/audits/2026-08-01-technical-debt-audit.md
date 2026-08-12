@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 628 | §1180 | **§1181** | **A SECOND SELF-CORRECTION IN THREE PHASES, AND THE SAME ROOT CAUSE BOTH TIMES: I CLAIMED ABSENCE FROM MY OWN SEARCH.** §1178 wrote *"THE SERVER HALF WAS ENFORCED BY NOTHING."* False for routes: `append-chokepoint.test.ts` **§567** has required every appending file in `workers/api/src/routes` to pin `source:"native"` since it was written — **7 files, all compliant**, with its scope stated in its own comment. §1178's gate is the **complement** (a negative rule reaching agents, translator, billing, mcp and packages, which §567 does not touch), so nothing built was redundant — but the claim of total absence was mine and unmeasured. **AND THE REJECTED RULE WAS NOT WRONG — ITS SCOPE WAS.** I measured *"every append caller pins source"* at 7 exceptions in 15 files and inverted it; §567 runs the SAME rule over routes alone, where it has **zero**. My exception count came from choosing the corpus **by mechanism** (everything touching `SHIPMENT_SEQ`) rather than **by role** (files constructing client-facing appends). A rule needing exemptions for half its corpus is pointed at the wrong side **or measured over the wrong corpus** — different fixes, and this build had already done the second. Corrected in three places. Also confirmed clean: the delta BASELINE's three entries all attribute to the owner's uncommitted REQ-289 row (verified read-only: 288 rows at HEAD, 289 in the tree), and no repo gate uses `\b`/`\s` under POSIX ERE. |
 | 627 | §1179 | **§1180** | **THE TWO-EDGES RULE SWEPT ACROSS EVERY ENUM — FOUR GUARDS CONFIRMED, ONE GAP CLOSED, AND MY HYPOTHESIS WAS WRONG FIRST.** §1179's rule says an exemption keyed on one enum value leaves every other value free to move. Swept all 25 contract enums. The scariest candidate looked like `lensFor`, whose default branch returns `{scope:"tenant"}` — **the widest scope** — for anything that is not `portal` or `driver`; adding a 7th role **compiles clean**. But it is NOT undefended: `lens.test.ts:430` pins `Role.options` against a classification and says the hazard outright — *"Doing nothing is not neutral — an unclassified role falls through lensFor's default and inherits the most permissive lens there is."* Mutation-proved: the 7th role REDs it. `Visibility` likewise (planted 4th value → RED). `AuthorityModule` ×2 and `MessageChannel` also guarded. `AuthorityLevel` was the **one money-gating enum with no classification guard** — every consumer is a `=== "native"` ternary, so a third level silently executes as the incumbent's (fail-closed, but silently wrong); guard added in the `Role` idiom, mutation-proved. **Controls in both directions in one sweep**: the same method found silence at §1179 and REDs here. Fourth `\b`-in-POSIX-ERE error, this time returning ZERO for a pattern I had just read with my own eyes; and a `git checkout` run from a subdirectory FAILED, leaving a mutation in the tree — caught by `git status`, not by the checkout. |
 | 626 | §1178 | **§1179** | **THE CARVE-OUT IS `legacy`-ONLY, AND ALL THREE BOUNDARIES WERE UNDEFENDED — PLUS A CORRECTION TO §1178.** The sequencer keys **three** independent carve-outs on `source === "legacy"`: the I2 POD gate, the transition-gate short-circuit, and the projection skip. Widening each to `!== "native"` — a **one-token** change, and a plausible one since the same file legitimately uses both idioms — left **65 tests across four suites GREEN**. Test (4) does not catch it: it pins the NATIVE side, and every widening keeps native gated. This is live, not theoretical: `map-204.ts` stamps `source:"edi"` on EVERY EDI-tendered event (WP-12), so a widening silently converts every partner load tender into an ungated, unprojected shadow — no POD requirement, no money_lines, no AR. Three pins added, keyed on `edi` because it is PRODUCED (`email` is emitted by nothing, §1178); **all three mutations now RED, one test each.** **CORRECTION:** §1178 said the DO exempts *non-native* events. Wrong — `legacy` only; `edi`/`email` are fully gated and fully projected, and `NATIVE_VISIBLE_SOURCES = ["native","edi","email"]` says the same thing in the KPI layer. Fixed in three places. |
 | 625 | §1177 | **§1178** | **A GATE EXEMPTION WITH NO GATE ON WHO MAY CLAIM IT.** `EventInput.source` is `z.enum(["native","legacy","edi","email"])`, and the DO **exempts `legacy` events from the native physical-precondition gates** (invoice→POD, appointment, dispatch; `legacy` ONLY — corrected at §1179) — so declaring `source:"legacy"` asserts *"the incumbent already did this"* and the DO believes it. The CLIENT half is airtight (both loose-body seams coerce `source="native"`; the other 22 emitters hardcode it — all verified). **The SERVER half was enforced by nothing**: any future route could emit `legacy` directly, which is the likelier regression — a new backfill picks the value that makes the gates stop complaining. Built the closed-set gate: 3 allowlisted producers with reasons. The obvious rule (*every append caller must pin source*) was measured FIRST and **rejected** — 7 of 15 SHIPMENT_SEQ files legitimately do not pin, and an allowlist covering half the corpus is a gate people silence; inverting to positively match the DANGEROUS value gives 3 entries instead of 7 exemptions. Mutation-proved both halves. **Also found: `email` is declared and produced by NOTHING** — an exemption with no seam — and the events.ts comment asserting an *"email pipeline"* was corrected. Third `\s`-in-POSIX-ERE probe error this stretch, caught by a control (0 hits vs 2). |
@@ -69839,10 +69840,15 @@ DO (`routes/events.ts` and `internal-platform.ts`, both writing `source = "nativ
 non-object case falling through to `EventInput.parse`). The other **22** emitters hardcode the literal in a
 server-built object.
 
-Nothing stopped a future route or agent from emitting `source: "legacy"` directly. That is not a client attack
-— it is the far likelier regression: **someone wiring a new backfill or import path picks the value that makes
-the gates stop complaining.** Exactly the convenience-shaped failure `rater-purity` and `append-chokepoint`
-exist to prevent, with no lint of its own.
+Nothing stopped a future **agent or package** from emitting `source: "legacy"` directly. That is not a client
+attack — it is the far likelier regression: **someone wiring a new backfill or import path picks the value that
+makes the gates stop complaining.**
+
+> **CORRECTED at §1181.** This paragraph originally read *"the server half was enforced by nothing."* That is
+> wrong for **routes**: `append-chokepoint.test.ts` §567 has required every appending file in
+> `workers/api/src/routes` to pin `source:"native"` since §567 — seven files, all compliant. The gate below is
+> the **complement** (a negative rule over the whole repo, reaching agents, translator, billing, mcp and
+> packages), not a duplicate — but the claim of total absence was mine and it was not measured.
 
 ### The rule I did not build, and why that mattered more than the one I did
 
@@ -69867,6 +69873,17 @@ workers/translator/src/core/map-204.ts    the inbound EDI 204 mapper
 > **When a safe-side rule needs an exemption for half the corpus, the rule is pointed at the wrong side.**
 > Detect the violation, not the compliance — the same inversion that fixed the CLAIM-detector problem, here
 > applied to a boundary that turned out not to be semantic at all.
+
+**§1181 sharpens this, and the sharpening is the better lesson.** The safe-side rule is not wrong — its
+**scope** was. `append-chokepoint.test.ts` §567 already runs it against `workers/api/src/routes` alone, where
+it has **zero** exceptions (seven appending files, all pinning `native`), and its comment states the boundary:
+*"this is FILE-level … the failure this catches is a NEW route written without the coercion."* My 7-of-15
+exception count came from choosing the corpus **by mechanism** (everything touching `SHIPMENT_SEQ`) instead of
+**by role** (the files that construct client-facing appends).
+
+> A rule that needs exemptions for half its corpus is either pointed at the wrong side **or measured over the
+> wrong corpus**, and those have different fixes: invert it, or scope it. This build had already done the
+> second, and I re-derived the first without checking.
 
 ### Mutation-proved, both halves
 
@@ -70103,4 +70120,63 @@ enough, because it scrolls past the result you were actually looking at.
 **STOP.** The two-edges rule swept across every enum: four guards confirmed (two mutation-proved), one real gap
 closed with a mutation-proved guard, one wrong hypothesis corrected before it produced a redundant gate, and
 both probe errors recorded with mechanical countermeasures.
+
+## §1181 — PHASE GATE: the same mistake twice, and what the codebase already knew
+
+**Why this phase.** Two clean negatives first, then the finding they led to.
+
+### Two things measured clean
+
+**The delta BASELINE is honest.** Three permanently-failing tests are reported on every commit, which is
+exactly the shape that hides debt. It does not: each entry is keyed by `(file, title)` with a `why` **and** an
+`until`, and all three attribute to one cause — the owner's uncommitted register row. Verified read-only
+rather than taken on trust: **288 rows at HEAD** against an approved terminal id of REQ-288, **289 in the
+working tree**. The mechanism even reports the opposite direction (`BASELINE HEALED`), which is the half most
+baselines omit.
+
+**No repo gate is vacuous from the POSIX-ERE trap.** Having made the `\b` error four times, the obvious worry
+is that a *gate* contains one — a `grep -E "\bFOO\b"` matches nothing and passes forever. It does not happen
+here: the gates are TypeScript with JS regexes, where `\b` works, and the one place that spawns `git grep` as
+a subprocess (`tools/traceability/orphans.ts`) uses `REQ-[0-9]{3,}` — pure POSIX, and it correctly
+distinguishes exit 1 from a real error. Probe positive-controlled first (100 files for a known string).
+
+### The finding: §1178's central claim was false
+
+§1178 wrote, in bold, **"THE SERVER HALF WAS ENFORCED BY NOTHING."**
+
+`tools/checks/append-chokepoint.test.ts` §567 — *"no append route can omit the native-source lock"* — has
+required every file under `workers/api/src/routes` that calls `.append(` to contain `source:"native"`, since
+long before this session. Seven files, all compliant. It even states its own limits: *"this is FILE-level …
+the failure this catches is a NEW route written without the coercion."*
+
+**What §1178 built is not redundant** — measured: §567's corpus is `workers/api/src/routes` only, and nothing
+covered `workers/agents`, `workers/translator`, `workers/billing`, `workers/mcp` or `packages/*`. §567 is a
+POSITIVE requirement scoped to routes; §1178's is a NEGATIVE one scoped to the repo. They compose. But the
+*claim* was mine, and I never measured it.
+
+**Root cause, identical to §1179's:** both self-corrections in the last three phases were **absence claims
+derived from my own search**. *A grep proves presence, never absence* — I have that written down, and the
+failure mode is not forgetting the rule, it is not noticing that a sentence is an absence claim. *"Enforced by
+nothing"* and *"exempts non-native events"* both read as descriptions; both are universal quantifiers.
+
+> **Before writing a sentence of the form "nothing does X", name the search that would have found it.** If the
+> answer is *"I grepped for the thing I was about to build"*, the sentence is a hypothesis, not a finding.
+
+### The better lesson, which the codebase already had
+
+§1178 measured *"every append caller must pin source"* at **7 exceptions in 15 files**, concluded the rule was
+pointed at the wrong side, and inverted it. §567 runs **the same rule** over routes alone, where it has
+**zero** exceptions.
+
+The rule was never wrong. **The corpus was.** I selected it **by mechanism** — everything touching
+`SHIPMENT_SEQ`, which sweeps in transport seams, binding declarations, the DO itself and the mirror seam — where
+the meaningful set is **by role**: the files that construct client-facing appends.
+
+> **A rule that needs exemptions for half its corpus is pointed at the wrong side, OR measured over the wrong
+> corpus.** Those look identical from the exception count and have different fixes — invert it, or scope it.
+> Inverting was still worth doing (it produced the repo-wide complement), but I reached it by re-deriving a
+> question this build had already answered better.
+
+**STOP.** Two clean negatives with controls, one false claim of my own found and corrected in three places, and
+the root cause named: an absence claim is a universal quantifier wearing a description's clothes.
 
