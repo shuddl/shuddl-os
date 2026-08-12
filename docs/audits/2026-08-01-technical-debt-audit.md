@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 599 | §1151 | **§1152** | **RECONCILED MY OWN WORK WITH THE LEDGER — ONE OWNER DECISION REMOVED FROM THE QUEUE.** Building a gate does not close a row; somebody has to say so. The rule-9 row asked the owner to *"either amend rule 9 … or resume per-WP swarms"* on a premise §1142 proved **false**, and §1149 has since made the fact **enforced**. Both halves now recorded and the row **CLOSED — no owner action**. Checked the sibling: the authority-registry row (§1124's manual roster) stays **OPEN**, because gating its completeness needs the kind-classification §1145 proved is not pattern-decidable — ruled out on evidence rather than left ambiguous. |
 | 598 | §1150 | **§1151** | **CHECKED MY OWN THREE GATES AGAINST THE FAILURE MODE THAT ONCE HIT SIXTEEN SCRIPTS — CLEAN.** This repo fixed **16** gates for CWD-dependence, whose worst form is *a pass over nothing* (`design-audit` once printed `clean` from the wrong directory). My three new gates resolve their corpus through `repoRoot()` → `git rev-parse --show-toplevel`, which returns the identical path from the root, `workers/api/src` and `docs/wp`; run from a subdirectory, `tenant-source` still passes **6/6 including its >25-call-site floor**. The repo enforces this **behaviourally** — `cwd-parity.test.ts` runs every package.json gate from a subdirectory and compares verdicts — which is why `repo-root.ts` may legitimately contain `process.cwd()`: it is the FIX, and a lint on the mechanism would flag it. |
 | 597 | §1149 | **§1150** | **STOPPING POINT XVII — THE READ CLASS WORKED DOWN TO WHAT CANNOT BE MECHANISED.** Board re-earned at `277cc5b` **with the three new gates in it**: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs measured to `REQ-289`; tools tests **1,255 → 1,271**. §1146 graded the session's verdicts and found the READ class right but not re-runnable; §1147–§1149 converted **three** of them into mutation-proved gates — tenant-never-from-client-input · no-blank-credential · every-WP-records-its-exit-audit. The remainder is ruled OUT on evidence, not skipped: Law 3's `input`-passing routes, R2 key derivation and the uncalled-exports classification each failed a control (§1122/§1145). **Three gates, three files, +16 tests.** |
 | 596 | §1148 | **§1149** | **THIRD READ-CLASS VERDICT HARDENED — AND THIS ONE GATES THE CLAIM THAT WAS FALSE FOR WEEKS.** §1148's test for hardenability (danger positively matchable, legitimate forms enumerable) rules R2 key-scoping OUT — the key is a variable — and Law 9's WP exit-audits **IN**. Built `tools/checks/wp-exit-audit.test.ts` (REQ-119): every `docs/wp/WP-*.md` must carry an exit-audit heading. Its **boundary test pins all THREE drifted conventions**, because matching only one produced §1142's *"4 of 16"* artifact — the shape of the false claim that stood in the checklist for weeks framed as an owner decision. A separate test rejects a passing prose MENTION, which was §1142's *first* wrong answer. Mutation-proved: renaming WP-13's heading turns it **RED**. |
@@ -68372,4 +68373,52 @@ mechanism. Two consequences worth recording:
 directories) and behaviourally (6/6 from a subdirectory, floor intact); the repo's enforcement identified as a
 behavioural parity test over `package.json` gates, with the reason a mechanism-lint would be wrong recorded;
 the new gates' absence from that corpus explained rather than filed. Zero source changed.
+
+## §1152 — PHASE GATE: reconciling the gates with the ledger
+
+**Why this phase.** §1147–§1149 built three gates and §1151 verified them. None of that closes a **row**.
+A gate changes what the build enforces; the debt ledger still says what it said, and this record's own finding
+(§1142) is that a stale row survives precisely because re-deriving it is expensive. Having just made one
+cheap, the honest next step is to spend it.
+
+### One owner decision removed
+
+The rule-9 row asked for a signature:
+
+> *"Either amend rule 9 to describe the periodic whole-codebase practice, or resume per-WP swarms. Amending a
+> stated law needs an owner signature."*
+
+Both halves of that ask are now answered:
+
+1. **The premise was false** (§1142). The practice never lapsed — all sixteen WPs carry an exit-audit section,
+   under three heading conventions that drifted across the build. The row's claim that WP-04…WP-16 had none
+   was a pattern artifact.
+2. **The fact is now enforced** (§1149). `wp-exit-audit.test.ts` requires the heading in every
+   `docs/wp/WP-*.md`, pins all three conventions so the *"4 of 16"* artifact cannot recur, rejects a passing
+   prose mention, carries a non-vacuity floor, and is mutation-proved.
+
+So there is nothing to amend and nothing to resume. Row **CLOSED — enforced, no owner action.**
+
+### The sibling that stays open, and why
+
+`REQ-030 authority-registry completeness has no recurring owner` — §1124's finding that `AUTHORITATIVE_FILES`
+is a **hand-listed** roster, so a new emitter in a new file passes for free. That is the same shape, and it is
+**not** closable the same way: gating the roster's completeness requires deciding which files emit which kinds,
+which §1131 showed a literal scan under-reports and §1145 showed is **not pattern-decidable** (the routes that
+matter pass an opaque `input` and never assign `kind:`).
+
+It stays **OPEN**, ruled out on evidence rather than left ambiguous — and §1124 did what could be done there:
+recorded *why* the one deliberate absence is correct, so the next reader running that trigger does not "fix"
+it into breaking platform revenue.
+
+> **A gate that nobody connects to the row it answers leaves the debt where it was.** Three gates landed in
+> this session; exactly one existing row was actually closable by them, and finding that out required reading
+> the ledger against the work rather than assuming a relationship. The other two gates hardened verdicts that
+> had **no** row — they were audit findings, not filed debt — which is worth knowing: **building enforcement
+> and reducing the ledger are different activities**, and only one of them shortens the owner's queue.
+
+**STOP.** The three new gates reconciled against the debt ledger; one row closed on both its false premise and
+its now-enforced fact, removing an owner signature from the queue; the structurally-similar sibling checked and
+kept open with the reason it cannot be gated; the distinction between hardening a verdict and closing a row
+recorded. `check:tables` OK.
 
