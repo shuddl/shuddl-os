@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 619 | §1171 | **§1172** | **I6 CLOSED STRUCTURALLY: NO VIEW CAN BYPASS THE LENS, BECAUSE NO VIEW TOUCHES THE DATABASE.** I6 — *`events.visibility` respected by every view, tested adversarially* — was the last invariant unexamined. The adversarial half is emphatic: `lens-adversarial.test.ts` carries **44** assertions including **case 9, a table-driven I6 visibility sweep**, and **case 9b, *independent I6 guards that do NOT import the map under test*** — the mirror-shaped-gate hazard deliberately avoided. The *views* half holds by construction: **no file under `apps/` reaches D1**, so every read crosses the lens-gated API. Near-miss: my probe flagged **4** app files, and all four were noise — three are UI copy (*"SELECT A KPI"*, *"SELECT A SHIPMENT"*) and one is a `.d.ts` type declaration. |
 | 618 | §1170 | **§1171** | **THE ARC'S TWO TRANSFERABLE LESSONS WERE NOT IN MEMORY — NOW THEY ARE.** A session's most durable output is the rule it leaves behind, and two of this one's were unrecorded. **(1)** §1143/§1144's *a clean negative contains two claims* — extended `a-false-clean-invites-no-follow-up`, whose existing rule fired only on **zero** results while both failures here were **populated and unsurprising**: a 43-file sweep that read everything and still filtered the violation out as safe, and a probe that **agreed** with the row it checked. **(2)** §1170's *a rule applied only forwards is half a rule* — extended `self-review-with-the-reviewers-questions`, adding the rules variant plus the corollary that **building is the most expensive way to discover a thing exists**. Both indexed. |
 | 617 | §1169 | **§1170** | **STOPPING POINT XX — FOUR SELF-CORRECTIONS, EACH FOUND BY APPLYING A RULE BACKWARDS.** Board at `2f17d87`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs measured to `REQ-289`. §1166–§1169 corrected **my own** output, not the build: §1166 struck a false I7 observation (I searched `net zero`; the test says `net to exactly 0` — the trap that phase had just named) · §1167 **deleted a gate I built** that already existed, proved by watching the pre-existing one catch my plant · §1168 finished that sweep on all three gates (2 survive) · §1169 verified the deletion across four signals. **Net enforcement this session: 2 gates**, both mutation-proved, non-duplicate, cwd-independent. |
 | 616 | §1168 | **§1169** | **POST-DELETION HYGIENE: THE REMOVAL IS CLEAN, VERIFIED RATHER THAN ASSUMED.** §1167 deleted a file; a deletion leaves dangling references that not every gate catches, so it needed checking rather than trusting. The only surviving `tenant-source` string is a **comment** in `supply-chain.test.ts:22` about *"tenant-source allowlists"* (§571) — a different concept, not a reference. Both surviving gates are **collected** by `vitest.tools.config.ts` (so they run in the unit-tests merge gate); the deleted one is **not**. Tools assertions **1271 → 1265**, exactly the six removed. `check:citations` green, so no `path:line` pointed at it either. |
@@ -69386,4 +69387,58 @@ one rule can drift into two.
 **STOP.** The arc's two transferable rules extracted from the audit record into memory, each appended to the
 existing entry it strengthens rather than filed as a duplicate, with the index lines updated to carry the
 sharper form.
+
+## §1172 — PHASE GATE: I6, and why no view can bypass the lens
+
+**Why this phase.** I6 — *"`events.visibility` respected by every view (tested adversarially)"* — was the last
+invariant this session had not examined. It has two halves, and the record covered neither directly: the
+**adversarial** half, and the **every view** half whose denominator is CLAUDE.md's 12 canonical views.
+
+### The adversarial half is emphatic
+
+`workers/api/test/lens-adversarial.test.ts` carries **44** assertions across twenty-one scenarios — a portal
+party seeing zero internal kinds, margins stripped from `quote.priced`, a forged `party_id` ignored, geo
+coarsened pre-OFD and unlocked post-OFD, a `requested_visibility: "counterparty"` on an internal kind
+**ignored**, and a kind filter that *"never widens"* a party lens.
+
+Two are worth naming:
+
+- **case 9 — *"table-driven I6 visibility sweep on shipment A"*** — the invariant swept as a table rather than
+  as anecdotes.
+- **case 9b — *"independent I6 guards (do NOT import the map under test)"*** — the guards deliberately avoid
+  importing the thing they check. That is the **mirror-shaped gate** hazard solved: a test that derives its
+  expectation from the artifact under test proves only self-consistency.
+
+### The "every view" half holds by construction
+
+The sharper question is whether a *view* could read around the lens. It cannot: **no file under `apps/`
+touches D1.** Every read crosses the API, which applies the lens — so the twelve canonical views inherit I6
+rather than each having to implement it.
+
+That is the same quality as Law 8's DO addressing (§1135) and the append chokepoint: **the violation is not
+forbidden, it is unexpressable.** A view has no database handle to misuse.
+
+### The near-miss, and it is the session's recurring shape
+
+My probe for direct database access flagged **four** files under `apps/`. All four were noise:
+
+```
+apps/command/src/views/KpiDrill.tsx:104     <Mono size={11}>SELECT A KPI</Mono>
+apps/portal/src/App.tsx:199                 SELECT A SHIPMENT ON OVERVIEW TO SEE ITS …
+apps/portal/src/components/QuotePanel.tsx   PREVIEW ONLY — SELECT A SHIPMENT TO BOOK
+apps/driver/src/cf-d1.d.ts                  a TYPE DECLARATION, not a query
+```
+
+Three are **UI copy** in this build's uppercase display style; one is a `.d.ts`. Reported unread, that is
+*"four app files reach the database directly"* — a constitutional finding, and pure artifact.
+
+> **This build's uppercase UI copy collides with SQL keywords, permanently.** `SELECT`, `ORDER`, `UPDATE` and
+> `DELETE` are all plausible button and empty-state text in a product whose design system shouts. Any future
+> scan for SQL in `apps/` inherits this false-positive floor — the same standing collision as `assets`,
+> `register`/`registry`, `kind` at two nesting levels, and `10%` meaning two things.
+
+**STOP.** I6 answered on both halves — adversarially by 44 assertions including a table-driven sweep and
+independent non-importing guards, and structurally for views by the absence of any database handle under
+`apps/`; the four-file alarm read and dissolved into three strings of UI copy and one type declaration, with
+the permanent collision recorded for the next scan. Zero source changed.
 
