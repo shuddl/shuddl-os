@@ -7,6 +7,7 @@ import { applyMigrations } from "../src/migrate.js";
 import {
   computeAllParity,
   computeModuleParity,
+  type ParityValue,
   PARITY_MODULES,
   PARITY_TOLERANCE_BPS,
   type ModuleParity,
@@ -150,6 +151,41 @@ describe("computeModuleParity — per-module honest metric from source-split eve
     expect(p.legacy_value).toBe(120_000);
     expect(p.drift_bps).toBe(0);
     expect(p.status).toBe("MATCH");
+  });
+
+  // §1201 — THE DEDUP KEY FOLDS IN THE SOURCE, AND NOTHING TESTED WHY.
+  //
+  // `latestSumBySource` keys on `${source}|${stream_id}` so "a native quote and a legacy mirror quote on the
+  // SAME stream are deduped independently" — its own comment. Every existing rating case seeds the two sides on
+  // DIFFERENT shipments (`rat-p-nat` / `rat-p-leg`), so the two never share a key and the fold is never
+  // exercised. MEASURED at §1201: dropping `${source}|` from that key left the ENTIRE ledger suite green
+  // (698 passed).
+  //
+  // What it would cost: a mirrored stream carries BOTH a native quote and its legacy mirror. Collide them on
+  // one key and only the higher-seq event survives — one side silently loses that stream, and parity compares
+  // two incomplete aggregates. Parity is what authorises an authority flip (REQ-008/023), so the wrong number
+  // there moves the money path's source of truth.
+  //
+  // Asserted as a DELTA because this file has no per-test reset (`beforeAll` only): an absolute expectation
+  // would depend on which sibling seeded `quote.priced` first.
+  it("§1201: a native quote and a LEGACY mirror on the SAME stream are deduped INDEPENDENTLY", async () => {
+    const num = (v: ParityValue): number => (v === "UNKNOWN" ? 0 : v);
+    const before = await computeModuleParity(DB, "rating");
+    // One shipment, both sources. The legacy mirror carries the HIGHER seq, so a source-blind key would keep
+    // it and discard the native quote entirely.
+    await seed("quote.priced", { source: "native", shipment: "rat-shared-1201", seq: 0, payload: pricedPayload(100_000) });
+    await seed("quote.priced", { source: "legacy", shipment: "rat-shared-1201", seq: 1, payload: pricedPayload(100_000) });
+    const after = await computeModuleParity(DB, "rating");
+
+    expect(
+      num(after.native_value) - num(before.native_value),
+      "the native quote vanished — the dedup key is not folding in the source, so the legacy mirror on the " +
+        "same stream overwrote it and parity is comparing an incomplete native side",
+    ).toBe(100_000);
+    expect(
+      num(after.legacy_value) - num(before.legacy_value),
+      "the legacy mirror vanished — same collision, other direction",
+    ).toBe(100_000);
   });
 
   it("invoicing (±2% + penny): sums invoice.issued line totals; penny-exact match ⇒ drift 0, MATCH", async () => {

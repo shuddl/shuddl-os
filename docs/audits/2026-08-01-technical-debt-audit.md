@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 648 | §1200 | **§1201** | **A SECOND REAL GAP FROM THE SAME MECHANISM: PARITY'S DEDUP KEY COULD CONFLATE THE TWO SIDES IT EXISTS TO SEPARATE.** §1197's deeper lesson — *a check whose inputs share a source cannot see what that source loses* — applied to **parity**, which authorises authority flips (REQ-008/023) on the money path. Both sides come from ONE query split by the `source` column, so the question is whether the split can fail. Three metric paths, each mutated to double-attribute: `count` **2 RED**, `sum` **6 RED** — defended. The third, `latestSumBySource`, dedups on `${source}|${stream_id}` *"so a native quote and a legacy mirror quote on the SAME stream are deduped independently"* — its own comment. **Dropping `${source}|` from that key left the ENTIRE ledger suite green: 698 passed.** Every existing rating case seeds the two sides on DIFFERENT shipments (`rat-p-nat`/`rat-p-leg`), so the fold was never exercised. On a mirrored stream the collision discards one side's quote entirely and parity compares two incomplete aggregates. Pinned with a same-stream case asserted as a DELTA; the mutation now REDs naming the vanished side. |
 | 647 | §1199 | **§1200** | **THE SHARED-PROJECTION SHAPE SWEPT BEYOND THE LEDGER: THE TWO PUBLIC CAP SURFACES ARE SAFE, BY A FOURTH MECHANISM.** §1199's corrected discriminator — *one projection feeding both sides of a verification* — applies wherever a producer and a verifier exist. Outside the ledger that is the capability MACs gating the only unauthenticated endpoints: `/pub/status/:cap` (`{t,s}`) and `/pub/documents/:cap` (`{t,k}`). **The shape does not apply**: both are JWTs, so the MAC covers the ENTIRE payload and `verify` never rebuilds a projection — it checks the signature over the raw token. The live risk there is the different one this record has met (*parsed but unconsumed*), and both consumers bind every claim with **no request-supplied alternative to confuse**: status resolves the tenant DB from `claims.t` and binds `claims.s` into both queries; documents confines `claims.k` to `evidence/${claims.t}/` before the R2 read, so even a MAC-valid cap cannot leave its own tenant. **Mutation-proved**: removing that confinement REDs a test. Four mechanisms now measured across every verification-bearing projection in the build — shared+allowlist (the one gap), shared+denylist, inverse pair, and whole-payload MAC. |
 | 646 | §1198 | **§1199** | **THE PROJECTION SWEEP CLOSES: THREE PROJECTIONS, THREE DIFFERENT REASONS, ONE GAP — AND THE DISCRIMINATOR IS NOT ALLOWLIST-vs-DENYLIST.** `eventToRow` is an explicit ALLOWLIST, the same shape §1197 found unpinned — but blanking `payload` in it REDs **39** tests. So the allowlist/denylist axis §1198 named is not what decides safety. The real discriminator is whether **ONE projection feeds BOTH sides of a verification**: `clientView` is called by `signEvent` AND `verifyEventSig`, so blanking a field makes both sides agree and the check passes over nothing — invisible. `hashView` is likewise shared, and survives only because its denylist shape makes omission impossible. `eventToRow`/`rowToEvent` are INVERSE functions, not a shared one, so a blanked value produces an observable mismatch the round-trip catches. Taxonomy measured, not argued: **shared+allowlist = the gap (§1197, now pinned) · shared+denylist = safe by construction (§1198) · inverse pair = safe by observable mismatch (§1199)**. The ledger's verification-bearing projections are now all accounted for. |
 | 645 | §1197 | **§1198** | **THE SIBLING PROJECTION IS DEFENDED, AND THE REASON IS ARCHITECTURAL: DENYLIST vs ALLOWLIST.** §1197's shape — two sides sharing a projection, the field LIST pinned while value coverage is not — swept to its highest-stakes sibling: `hashView`, which is to the I1/I7 chain hash exactly what `clientView` is to the I4 signature (`hashEvent = sha256Hex(canonicalBytes(hashView(e)))`). **All five mutations RED**: `delete payload` 3 · `payload = {}` 3 · `delete prev_hash` 2 · `delete seq` 2 · `delete visibility` 2. The difference is structural, not diligence: `hashView` is a **spread-and-delete** (`{...e}`, drop `sig` and `hash`) — a DENYLIST, which covers every field by default and can only lose one by an explicit `delete`. `clientView` is an **explicit allowlist**, which loses a field by omission, silently. **Standing asymmetry recorded:** a new `LedgerEvent` field is automatically covered by the hash and automatically NOT covered by the signature. That is correct by design (a device signs only what it knows offline) and is exactly why no gate was built — the boundary is *device-known vs server-assigned*, which is English. Two probe errors: a grep that missed the summary when a `Snapshots` line appeared, and three empty results that were **workerd exhaustion on back-to-back pool runs**, not greens. |
@@ -71472,4 +71473,75 @@ different reasons** — which is itself the result, because it means no single r
 **STOP.** The producer/verifier shape swept across the whole build, the two public cap surfaces confirmed safe
 by structure and their claim-binding mutation-proved, and the taxonomy closed at four mechanisms with one real
 gap — found, pinned, and the only one that any of the four rules would have missed.
+
+## §1201 — PHASE GATE: the key that could have merged the two things it separates
+
+**Why this phase.** §1197's mechanism generalises past projections: **a check whose two inputs derive from one
+source cannot detect what that source loses.** The remaining high-stakes instance is `computeModuleParity` —
+the comparison that decides whether SHUDDL's native computation matches the incumbent's, and therefore whether
+an authority flip is authorised (REQ-008/023). Its two sides come from **one query**, split in code by the
+`source` column:
+
+```sql
+SELECT source, stream_id, seq, kind, payload FROM events
+ WHERE kind IN (…) AND source IN ('native','legacy')
+```
+
+So the question is exact: **can the split fail such that the two sides stop being independent?**
+
+### Two of three metrics are defended
+
+The reducer dispatches by metric, and each is separate code. Mutated to double-attribute — every row counted
+on **both** sides, which makes the values equal and the verdict MATCH:
+
+| metric | modules | result |
+|---|---|---|
+| `count` | dispatch, comms | **2 RED** |
+| `sum` | invoicing, settlement | **6 RED** |
+| `sum_latest_per_stream` | **rating** | see below |
+
+Worth noting *why* misattribution alone is not the risk: `toValue` returns `UNKNOWN` for an empty side, and an
+`UNKNOWN` side fails closed to `status: UNKNOWN`. Sending every row to one accumulator therefore yields
+UNKNOWN, not a false MATCH. **Double**-attribution is the dangerous shape, because both sides stay non-empty
+and equal — which is why that is the mutation.
+
+### The third had a subtler seam, and it was open
+
+`latestSumBySource` keeps the max-seq event **per stream, per source**:
+
+```ts
+const key = `${r.source}|${r.stream_id}`;   // "the dedup key folds in the source, so a native quote
+                                            //  and a legacy mirror quote on the SAME stream are
+                                            //  deduped independently"
+```
+
+**Dropping `${r.source}|` left the entire ledger suite green — 698 passed.**
+
+The reason is visible in the existing cases: every rating test seeds the two sides on **different shipments**
+(`rat-p-nat` and `rat-p-leg`). The suite proves dedup *within* a source — *"native requotes on ONE stream (seq
+0 then seq 1) — only the latest counts"* — and never puts the two sources on one stream, which is the only
+arrangement the fold exists for.
+
+**What it would cost.** A mirrored stream carries both a native quote and its legacy mirror by construction —
+that is what mirroring *is*. Collide them on one key and only the higher-seq event survives, so one side
+silently loses that stream. Parity then compares two incomplete aggregates and reports a drift figure computed
+from partial data, on the path that decides which system is authoritative for money.
+
+> **A dedup key is a claim about identity, and §1194's lesson applies to code as well as to probes: two things
+> that share a key are counted as one.** Here the two things are *the incumbent's answer* and *ours* — the
+> exact pair the whole mechanism exists to keep apart.
+
+### The pin
+
+A native quote and a legacy mirror on the **same** shipment, with the legacy mirror carrying the higher seq so
+a source-blind key would keep it and discard the native quote. Asserted as a **delta** rather than an absolute,
+so it cannot be made flaky by whichever sibling seeded `quote.priced` first. The failure message names which
+side vanished.
+
+Mutation-proved: with the key source-blind, it REDs — *"the native quote vanished — the dedup key is not
+folding in the source."*
+
+**STOP.** Parity's three metric paths mutated individually; two defended, and the third's identity key found
+undefended by a suite that had only ever tested the two sides on separate streams — the second real gap this
+stretch, from the same mechanism as the first.
 
