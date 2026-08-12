@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 575 | §1127 | **§1128** | **AFTER ASSERTING AN UNMEASURED NUMBER, I RE-DERIVED MY MOST LOAD-BEARING ONE — IT HOLDS.** §1127 caught me reporting an unpushed-commit count I had never run (*137*; the measured figure is **1,190** — `origin/main` is at 2026-07-31). The repo-relevant question is whether that habit reached the RECORD, so I re-derived §1126's Law 3 verdict, whose probe output had been mangled when I first read it: **19** append-seam callers · 5 API routes with literal kinds · 2 without. Confirmed. Then closed the one part that rested on ASSERTION rather than measurement — *"the other 12 are internal with no client-facing body"* — because `translator/inbound.ts` **is** externally reachable (a partner POSTs an X12 204). It emits **literal** kinds; the single data-derived `kind:` is a MONEY-LINE kind inside a payload, not the event kind. Two `kind` fields, two levels. |
 | 574 | §1126 | **§1127** | **STOPPING POINT XIII — TWO FINDINGS ON THE MONEY PATH, BOTH AWAITING ONE OWNER RULING.** Board re-earned at `6bbdb7c`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs measured to `REQ-289`. Three phases: §1124 ran §313's trigger and **documented the one money emitter that is RIGHT to be outside the authority roster** (adding it would fail-close SHUDDL's own revenue) · §1125 found a **real Med defect** — `quote.priced` appendable through the public events route, bypassing the rater, REQ-040's floors and the anomaly detector · §1126 answered Law 3 across **all 19** append paths (17 server-fixed, 2 client-chosen) and bounded the second to **Low**. Both open items are the same class — *prose narrower than schema* — and should be ruled on together. |
 | 573 | §1125 | **§1126** | **LAW 3, ANSWERED COMPLETELY: 2 OF 19 APPEND PATHS TAKE A CLIENT-SUPPLIED KIND — 17 ARE SERVER-FIXED.** §1125 found the defect in one caller; Law 3 asks about *every* API-reachable flow, so I finished the enumeration. `approvals` · `authority` · `dunning` · `portal-actions` · `rate` all append **literal** kinds — a client cannot choose. Only two take the kind from the body: **`events.ts`** (§1125's Med defect, ops/admin reachable) and **`internal-platform.ts`**, whose `AppendBody.input` is an unconstrained `z.record(z.string(), z.unknown())` — so a `PLATFORM_INTERNAL_SECRET` holder may append **any** of the frozen 35 kinds to `_platform`, not just the *"ONE credit money event"* its header promises. Bounded to **Low**: secret-gated server-to-server (503 unbound / 403 mismatch), never customer-JWT reachable, `source` forced to native, and `sequencer.ts:275@EventInput` still validates kind + payload. |
 | 572 | §1124 | **§1125** | **DEFECT — A HAND-CRAFTED `quote.priced` IS APPENDABLE THROUGH THE PUBLIC EVENTS ROUTE.** Closing §1124's stated bound with the CHOKEPOINT (one `INSERT INTO events`, so append-seam callers ARE the emitter set) surfaced 19 callers, and the generic `POST /v1/shipments/:id/events` among them. Its `SERVER_EMITTED_KINDS` refuses `invoice.issued` · `invoice.corrected` · `split.computed` · `payment.received` · `settlement.executed` — **but not `quote.priced`**, while the constant's own comment says these are appended *"ONLY through server-internal seams … and the Rater."* Read the whole guard chain: `quote.priced` passes all eight checks for `ops`/`admin` (and a `driver` on an assigned shipment). A forged quote bypasses the rater, REQ-040's floors and the anomaly detector — which the comment itself places in `composeInvoice`, **not** the DO gate — and §1102 established the Biller bills the RECORDED basis. Fix is one line and breaks nothing in-repo; **not applied** — it 403s a public API surface, so the owner rules. |
@@ -67046,4 +67047,64 @@ caller, since the sole caller emits exactly those.
 answered across its whole population rather than at the point of failure; one Med and one Low filed on the
 money path, each with its blast radius bounded by checked facts rather than assumed ones, and both left
 deliberately unapplied pending a single owner ruling.
+
+## §1128 — PHASE GATE: re-deriving my own most load-bearing number
+
+**Why this phase.** §1127 ended with a correction: I had told the owner *"137 commits"* unpushed, four times,
+without ever running it. The measured figure is **1,190** (`origin/main` sits at `0415148`, 2026-07-31). The
+number was never derived — it was carried forward from an earlier message and re-stated with growing
+confidence.
+
+That is a reporting failure, not a repo defect. But it raises a question that *is* repo-relevant: **did the
+habit reach the record?** The audit's counts are historical claims and cannot be pinned (a record that
+preserves its history necessarily contains its own superseded numbers), so the answerable version is narrower:
+**is this session's most load-bearing recent count correct?**
+
+That is §1126's Law 3 verdict — **17 server-fixed, 2 client-chosen, of 19** — and it is the right thing to
+re-check because its probe output was *mangled* when I first read it (a stray `|| echo 0` split every line),
+and I read the signal through the mangling rather than fixing it first.
+
+### Re-derived cleanly
+
+| claim | re-derived |
+|---|---|
+| 19 append-seam callers | **19** ✓ |
+| API routes appending a **literal** kind | `approvals` 1 · `authority` 1 · `dunning` 1 · `portal-actions` 1 · `rate` **2** ✓ |
+| API routes with **no** literal kind (client-chosen) | `internal-platform`, `events` ✓ |
+
+The verdict stands, including the detail that `rate.ts` carries **two** literals (`quote.priced` +
+`agent.acted`).
+
+### The part that rested on assertion, now measured
+
+§1126 dismissed the remaining twelve callers as *"internal consumers with no client-facing body at all."* For
+the agents and sweeps that is true — they are queue and cron consumers. But **`translator/inbound.ts` is
+externally reachable**: a partner POSTs an X12 204, authenticated by `pairings.secret_ref`. That is a *more*
+exposed surface than `events.ts` in one respect — the caller is not even a tenant principal.
+
+Measured: it emits `quote.priced`, `agent.acted`, `approval.requested` and `quote.accepted` as **literals**.
+The partner controls the EDI *content*, never the event kind. §1126's verdict holds — but it held by luck of
+phrasing, since the sentence that covered this file gave a reason (*"no client-facing body"*) that is false
+for it.
+
+And the trap worth recording: the file *does* contain a data-derived `kind:` —
+
+```
+lines: quote.lines.map((l) => ({ kind: l.kind, code: l.code, amount_cents: l.amount_cents }))
+```
+
+That is a **money-line** kind (freight, fsc, accessorial) *inside a payload*, not an event kind. Two different
+fields named `kind` at two different levels, one client-influenced and one not. A grep for `kind:` cannot tell
+them apart, and reading only the match would have produced either a false alarm or a false clean depending on
+which line was seen first.
+
+> **The claim you are least likely to re-derive is the one you have already reported.** Restating a number
+> feels like recall, not assertion, and each restatement raises its apparent authority without adding
+> evidence. The commit count survived four tellings; §1126's counts survived one mangled probe. Both needed
+> the same thing: running it again, cleanly, with the output readable.
+
+**STOP.** The unmeasured figure corrected in the record (1,190, not 137, with `origin/main`'s date); this
+session's most load-bearing count re-derived cleanly and confirmed; §1126's one asserted clause replaced with
+a measurement, including an externally-reachable surface it had mis-described; the two-level `kind` collision
+recorded so the next reader of that file is not misled. Zero source changed.
 
