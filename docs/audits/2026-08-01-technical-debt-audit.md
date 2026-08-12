@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 631 | §1183 | **§1184** | **FIVE CLEAN NEGATIVES, THEN A STALE MEASUREMENT INSIDE AN OWNER DECISION.** Finished §1183's sweep: `migration-fixture-parity`'s selector has no real blind spot (the only `applyMigrations` callers outside its filter are the migrator itself and the seed loader); `superrefine-parity` is deliberately scoped to one file and states its limits; `booking.ts`'s duplicated window refine is defended on BOTH copies (each mutation reds exactly one test); and the THIRD copy of the device-dedupe rule (`EventBase`) is already filed at §913 as no-consumer public API — verified still true at HEAD and correctly anchored in GO-LIVE:272. The finding is the row beside it: GO-LIVE:273 asks the owner to choose between adding a narrow anchor rule and leaving the substring match, and frames option (a) as *"would flag 0 after this phase's fixes"* with the two known instances *"both now resolved"*. **RE-MEASURED: it flags 2** — `events.ts:290@EventBase` (the SAME citation the filing said was resolved; span 288–292 all comment, declaration at :295) and `migrator.ts:415@idx` (a third instance the filing never knew about; declared at :422). Both verified by reading. The decision is untouched; its cost is now measured instead of assumed. Also: my `.refine(` duplicate probe returned ZERO against a known duplicate — the message was in the `{ message }` object form, which is exactly why the third copy is easy to miss. |
 | 630 | §1182 | **§1183** | **SECOND INSTANCE OF §1182's IDIOM, AND THIS ONE BOUND TO THE WRONG FUNCTION RATHER THAN SKIPPING.** Swept `tools/` for selectors that discard a SUBJECT; most hits are benign (comment-skipping, markdown-table parsing, extension filters). `list-endpoint-pagination` — the unbounded-read guard — selected handlers by scanning for the next `=>` **anywhere after the registration**. For a NAMED handler (`app.get("/pub/status/:cap", publicStatusHandler)`, an idiom this repo already uses) there is no arrow at all, so it bound to a LATER, UNRELATED function's body: not a skip, **a verdict computed from someone else's code**. **CONTROLLED to one variable** — same route, same `SELECT * FROM events`, same file: inline ⇒ RED, named ⇒ **5/5 PASS**. Fixed by resolving named handlers, locally and **across imports**. Two of my own fixes failed their controls first and both were caught: the naive body-finder returned the PARAMETER's type annotation (`{ env: { DB: D1Database } }`) — failing exactly like the bug it replaced — and a premise assertion rejected `status_cache` as a proof marker because public.ts names it in prose. Resolver now unit-tested (4 cases incl. real cross-file resolution); 9/9; the original defect REDs. Also measured: `/pub/status/:cap` is genuinely bounded (`WHERE id = ?`, `LIMIT 1`), so nothing was hiding. |
 | 629 | §1181 | **§1182** | **THE AUTHZ GATE'S OWN CORPUS SELECTOR HAD TWO SILENT HOLES — AN INVISIBLE ROUTE IS AN UNGATED ROUTE WITH A CLEAN REPORT.** Followed §1181's discipline (record first): the `/pub/*` edge rate-limit + Turnstile prerequisite is properly filed — GO-LIVE:53 and :158, PROJECT-STATE:379, register REQ-193/REQ-125, pen-test-basics, WP-09/WP-14, R4 — a clean negative that cost one command. The unauthenticated surface IS gated by `route-authz-coverage`, **mutation-proved** by planting an unregistered `/pub` route. But `routes()` sees a registration only if the receiver is literally `app` AND the path starts with `/v1`, `/pub` or `/internal` — anything else hits an explicit `return` and is DISCARDED. **Both planted into a real route file passed 5/5:** `app.get("/admin-backdoor")` and `sub.get("/pub/sneaky")`. Neither is exotic — a Hono SUB-ROUTER is the framework's own grouping idiom and produces the second exactly. Every test in the file iterates `routes()`'s output, so an invisible route faces **no authorization requirement at all**. Closed with a floor on the scanner's INPUT; both plants now RED with the reason named. Also measured: 38 `/v1` · 4 `/pub` · 2 `/internal` · **0 elsewhere**, one `new Hono()`, no `.route()` mounting — and a two-probe disagreement (1 vs 0 "OTHER") resolved by READING it: `lastIndexOf("/")`, not a route. |
 | 628 | §1180 | **§1181** | **A SECOND SELF-CORRECTION IN THREE PHASES, AND THE SAME ROOT CAUSE BOTH TIMES: I CLAIMED ABSENCE FROM MY OWN SEARCH.** §1178 wrote *"THE SERVER HALF WAS ENFORCED BY NOTHING."* False for routes: `append-chokepoint.test.ts` **§567** has required every appending file in `workers/api/src/routes` to pin `source:"native"` since it was written — **7 files, all compliant**, with its scope stated in its own comment. §1178's gate is the **complement** (a negative rule reaching agents, translator, billing, mcp and packages, which §567 does not touch), so nothing built was redundant — but the claim of total absence was mine and unmeasured. **AND THE REJECTED RULE WAS NOT WRONG — ITS SCOPE WAS.** I measured *"every append caller pins source"* at 7 exceptions in 15 files and inverted it; §567 runs the SAME rule over routes alone, where it has **zero**. My exception count came from choosing the corpus **by mechanism** (everything touching `SHIPMENT_SEQ`) rather than **by role** (files constructing client-facing appends). A rule needing exemptions for half its corpus is pointed at the wrong side **or measured over the wrong corpus** — different fixes, and this build had already done the second. Corrected in three places. Also confirmed clean: the delta BASELINE's three entries all attribute to the owner's uncommitted REQ-289 row (verified read-only: 288 rows at HEAD, 289 in the tree), and no repo gate uses `\b`/`\s` under POSIX ERE. |
@@ -70321,4 +70322,67 @@ blind spot was the finding.
 **STOP.** Second instance of the corpus-selector idiom closed, this one a mis-bind rather than a skip, proved
 by a one-variable control, fixed with cross-file resolution, and pinned by four unit tests — two of which exist
 because my own fix and my own proof each failed a control first.
+
+## §1184 — PHASE GATE: an owner decision resting on a stale number
+
+**Why this phase.** §1183 named two mechanism-selecting gates it did not examine. Leaving them would be the
+loose end the sweep existed to close.
+
+### Finishing the sweep — four clean negatives
+
+- **`migration-fixture-parity`** selects files under `/test/` containing `applyMigrations`. The only callers
+  outside that filter are `packages/ledger/src/migrate.ts` (the migrator itself) and `tools/seed/load.ts` (the
+  seed loader) — neither is a suite standing up a schema. No blind spot.
+- **`superrefine-parity`** is deliberately scoped to ONE file and ONE duplication (the mirrored `LedgerEvent` /
+  `EventInput` blocks), and states what a green does *not* mean. `.refine(` appearing in 10 files is out of
+  scope by design, not by oversight.
+- **`booking.ts`'s duplicated window rule** — the same `window_end_ts >= window_start_ts` refine written twice,
+  for the same reason as events.ts (a discriminated union cannot inherit a refinement). §912's defect was that
+  such a pair was tested asymmetrically. **Mutation-proved here: dropping either copy reds exactly one test.**
+  Both defended, and the bare `.toThrow()` is sound because the fixture is otherwise valid.
+- **The third copy of the device-dedupe rule** (`EventBase`) is already filed at §913 as public API with **no
+  consumer** — verified still true at HEAD, and GO-LIVE:272 anchors it correctly at `events.ts:295@EventBase`.
+
+### The finding: the option's cost was asserted, not measured
+
+GO-LIVE:273 files a real weakness — *a `path:line@symbol` anchor is satisfied by a PROSE MENTION*, so
+documenting a symbol can re-validate a stale pointer to it. It is correctly marked **OWNER DECISION**, because
+the broad fix (requiring a declaration) would re-judge 258 content-anchored citations and turn correct docblock
+citations red. It offers two options, and frames the narrow one as costless:
+
+> *"The narrow decidable signal … is exactly **2** repo-wide, **both now resolved**"* · *"(a) … which today
+> would flag **0** after this phase's fixes"*
+
+**Re-measured by implementing the rule as a probe** (reusing the gate's own `collectCitations` /
+`resolveCandidates` rather than re-deriving them): of **280** anchored citations resolving via a hit, the
+narrow rule flags **2**:
+
+| citation | why it qualifies |
+|---|---|
+| `…:53669 → packages/contracts/src/events.ts:290@EventBase` | span 288–292 is **all comment**; `EventBase` is declared at **:295**, outside the ±2 window |
+| `…:25629 → packages/adapters/src/migrator.ts:415@idx` | span 413–417 all comment; `idx` declared at **:422** |
+
+Both verified by reading the spans, not by trusting the probe. The first is **the same citation the filing
+named** and described as rescued-then-resolved; it is not resolved. The second is a **third** instance the
+filing never knew about, while `events.ts:371@unwitnessed` is no longer one.
+
+> **A filed decision inherits the measurement it was filed with, and nothing re-measures it.** The verdict
+> ("this is the owner's call") stays true indefinitely while the *number the owner would decide on* rots
+> silently. Every option framed as "costs nothing today" needs a date and a re-run trigger, exactly like a
+> reopen trigger.
+
+**The decision itself is untouched** — choosing between (a) and (b) is the owner's, and implementing (a) here
+would be straying. What changed is that (a) now says *"flags these 2 named citations, so adopting it means
+re-pointing them at their declaration lines first — a mechanical, one-commit fix"* instead of *"flags 0"*.
+
+### A probe error that is also the finding's mechanism
+
+My sweep for duplicated `.refine(` messages returned **zero** against a duplicate I had just read in
+`booking.ts`. The pattern assumed the positional form `.refine(pred, "message")`; the third copy of the
+device rule uses the **object** form `.refine(pred, { message: "…", path: […] })`. Two Zod idioms for one
+concept — and the object form is precisely the one that hid the third copy from a message-based sweep. The
+same shape as §1183's `.all<` selector: *a scan keyed on one idiom is blind to the concept's other spelling.*
+
+**STOP.** Sweep finished with four clean negatives (one mutation-proved), and one stale measurement corrected
+inside an open owner decision — the number, not the verdict.
 
