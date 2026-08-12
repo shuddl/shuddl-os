@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 577 | §1129 | **§1130** | **§1125 ESCALATES: `quote.accepted` IS APPENDABLE TOO, SO THE WHOLE AUTHORITY CHAIN IS FORGEABLE — AND THE FIX IS A RULE, NOT AN ENTRY.** Ran §1129's condition (c) on the sharpest candidate. `quote.accepted` decides WHICH quote gets billed (§1101's GUARD 2) and has a **dedicated gated route** — `/v1/shipments/:id/accept-quote`: lens gate on `:id` FIRST, then the `quote_event_id` must exist as a `quote.priced` on that stream. That is exactly the structure of `approval.decided` and `authority.flipped`, **both refused by name at the generic route for that very reason**. `quote.accepted` is not refused. Forge a `quote.priced` (§1125) + the `quote.accepted` naming it → a self-consistent chain that GUARD 2 accepts, because it verifies **consistency and existence, never provenance**. So the fix is the RULE the file already applies twice: **any kind with a dedicated recording route is refused here.** |
 | 576 | §1128 | **§1129** | **§1125's CLASS, BOUNDED EXACTLY: 9 KINDS CARRY A DO TRANSITION GATE, 26 DO NOT — BY CONSTRUCTION.** Asked which OTHER kinds could repeat §1125 (protections living OUTSIDE the append path). The sequencer answers structurally: `if (!isGatedKind(incoming.kind)) return {};` then an **exhaustive** switch over `GatedKind` whose `default:` is `assertNever` — *"a GatedKind with no case above = a Set/switch desync … never a silent fall-through to an ungated append"* (compile-time belt, runtime suspenders). The 9: `stop.departed` · `delivery.evidenced` · `custody.transferred` · `exception.raised` · `osd.captured` · `stop.arrived` · `appointment.set` · `booking.created` · `dispatch.assigned`. So **26 kinds are ungated at the DO deliberately**, and §1125's class is exactly: those 26, minus the 7 the route refuses, whose protections live elsewhere. `quote.priced` is one CONFIRMED member; the rest is per-kind work, not a grep. My first extraction said 9-of-9 and was imprecise (grouped fall-through, default bleed) — corrected by reading. |
 | 575 | §1127 | **§1128** | **AFTER ASSERTING AN UNMEASURED NUMBER, I RE-DERIVED MY MOST LOAD-BEARING ONE — IT HOLDS.** §1127 caught me reporting an unpushed-commit count I had never run (*137*; the measured figure is **1,190** — `origin/main` is at 2026-07-31). The repo-relevant question is whether that habit reached the RECORD, so I re-derived §1126's Law 3 verdict, whose probe output had been mangled when I first read it: **19** append-seam callers · 5 API routes with literal kinds · 2 without. Confirmed. Then closed the one part that rested on ASSERTION rather than measurement — *"the other 12 are internal with no client-facing body"* — because `translator/inbound.ts` **is** externally reachable (a partner POSTs an X12 204). It emits **literal** kinds; the single data-derived `kind:` is a MONEY-LINE kind inside a payload, not the event kind. Two `kind` fields, two levels. |
 | 574 | §1126 | **§1127** | **STOPPING POINT XIII — TWO FINDINGS ON THE MONEY PATH, BOTH AWAITING ONE OWNER RULING.** Board re-earned at `6bbdb7c`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs measured to `REQ-289`. Three phases: §1124 ran §313's trigger and **documented the one money emitter that is RIGHT to be outside the authority roster** (adding it would fail-close SHUDDL's own revenue) · §1125 found a **real Med defect** — `quote.priced` appendable through the public events route, bypassing the rater, REQ-040's floors and the anomaly detector · §1126 answered Law 3 across **all 19** append paths (17 server-fixed, 2 client-chosen) and bounded the second to **Low**. Both open items are the same class — *prose narrower than schema* — and should be ruled on together. |
@@ -67167,4 +67168,65 @@ was attributed to `dispatch.assigned`. Both were visible only by reading the reg
 **STOP.** §1125's class bounded exactly rather than guessed: 9 gated kinds, 26 ungated by construction, with
 the roster/dispatch desync closed at compile time; the class's third condition identified as per-kind analysis
 and explicitly **not** asserted; one imprecise extraction corrected by reading. Zero source changed.
+
+## §1130 — PHASE GATE: the sibling kind, and why the fix is a rule rather than an entry
+
+**Why this phase.** §1129 bounded §1125's class and named condition **(c)** — *protected by logic living
+elsewhere* — as per-kind analysis. So: run it on the sharpest candidate rather than leaving the class
+abstract.
+
+`quote.accepted` is that candidate, because §1101 established it is the **authority for which quote gets
+billed**: the Biller's GUARD 2 (`loadAcceptedBookingQuote`) resolves `booking.created.quote_event_id` only
+when a `quote.accepted` on the same stream **names** it.
+
+### It satisfies all three conditions
+
+- **(a) ungated at the DO** — not among §1129's nine `GatedKind`s.
+- **(b) client-appendable** — absent from `SERVER_EMITTED_KINDS`, and not one of the two specially-refused
+  kinds. Reachable by `ops`/`admin`, and by a `driver` on an assigned shipment.
+- **(c) protected elsewhere** — by a **dedicated route**, `POST /v1/shipments/:id/accept-quote`, which
+  enforces two things the generic route does not:
+  1. a **lens gate on `:id`, checked first**, so *"an unauthorized caller learns nothing about the body"* and
+     *"a party can never name a quote off a shipment outside its scope"*;
+  2. the `quote_event_id` **must exist as a `quote.priced` on this shipment's stream** — *"a dangling or
+     wrong-kind quote_event_id is a client error, never an accept-then-booking of a phantom quote."*
+
+### The precedent is in the same file, applied twice
+
+`approval.decided` → refused: *"IS RECORDED VIA /approval-decision (REQ-194)."*
+`authority.flipped` → refused: *"IS RECORDED VIA /v1/authority/:module/flip (REQ-030/023)."*
+
+Both are refused at the generic route **because they have a dedicated route that gates them**. `quote.priced`
+(via `/v1/rate`) and `quote.accepted` (via `/accept-quote`) have exactly that structure and are **not**
+refused. The rule exists in this file; its application is incomplete.
+
+### Why the two compound
+
+Separately, §1125 is *a forged price on the record*. Together with this, it is **a forged price made
+authoritative for billing**:
+
+> forge `quote.priced` → forge `quote.accepted` naming it → the booking references it → GUARD 2 resolves the
+> chain and the Biller projects that quote's basis.
+
+GUARD 2 is not defeated by a bug; it is answering a different question. It verifies the chain is **consistent
+and its members exist** — exactly what §1101 recorded and mutation-proved. **Provenance is not among the
+things an append-only ledger can check about its own events**: once an event is committed, nothing
+distinguishes one appended through a gated route from one appended through an ungated one. That is precisely
+why the refusal has to happen *at the write boundary*, which is where the two existing refusals live.
+
+### Therefore the fix is a rule
+
+Adding `"quote.priced"` closes one hole and leaves its sibling open. The correct change is the generalisation
+the file already states twice:
+
+> **Any kind with a dedicated recording route must be refused by the generic events route.**
+
+That is enumerable (route inventory → kinds each emits), reviewable, and it fails safe as the product grows —
+whereas a per-kind denylist drifts exactly the way this one did. It remains an **owner decision** for the same
+reason as §1125: it 403s a public API surface with no deprecation, and now for two kinds rather than one.
+
+**STOP.** §1129's condition (c) executed on the highest-stakes candidate rather than left abstract; a second
+member of §1125's class confirmed against all three conditions; the compounding stated precisely (consistency
+and existence are checkable, provenance is not); the remedy re-framed from an entry to the rule the file
+already applies twice; the checklist row escalated in place. Zero source changed.
 
