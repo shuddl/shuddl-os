@@ -736,7 +736,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 571 | §1123 | **§1124** | **RAN §313's OWN REOPEN TRIGGER: ONE MONEY EMITTER SITS OUTSIDE THE AUTHORITY ROSTER, CORRECTLY — AND ADDING IT WOULD BREAK PLATFORM REVENUE.** The authority-coverage gate states its own limitation: *"registration is MANUAL … a NEW emitter in a NEW file passes for free."* §313 filed the matching trigger; §1101 says triggers go unread, so I ran it. `workers/billing/src/credits.ts` constructs `invoice.issued` and is **not** registered. Correct — it writes the reserved `_platform` tenant, and `resolveAuthority` FAIL-CLOSES to **'legacy'**, i.e. *the incumbent is authoritative*. `_platform` has no incumbent, so a consult would gate SHUDDL's own revenue against a system that does not exist. **The harm is two plausible steps**: rostering it fails the gate; the natural fix is to add the consult. Reason now recorded in the roster. Also: my emitter probe MISSED rostered `rate.ts` — literal-kind grep is incomplete, stated. |
 | 570 | §1122 | **§1123** | **STOPPING POINT XII — THE PRODUCTION-READY VERDICT, STATED PLAINLY.** Board re-earned at `89ced98`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs measured to the owner's `REQ-289` row. Five phases: §1118 the five BLOCKED gates hide **no unproven logic** (5/5) · §1119 all three parity gates floor **count AND composition** · §1120 the five acceptance demos re-derived — **still 3 of 5 blocked**, demo 3 narrowed to *a token store with no producer* · §1121 489 exports → 11 uncalled → **0 defects** · §1122 that sweep's bound proved **unclosable by grep**, with a witness in each direction. **The verdict: every gate the repo owns is green; everything blocking launch is an absent private input or an owner decision.** Zero source changed across all five. |
 | 569 | §1121 | **§1122** | **TRIED TO CLOSE §1121's STATED BOUND; PROVED THE INSTRUMENT CANNOT.** §1121 left the sweep bounded to `export function` and said so. Extending it to interface methods failed in **both** directions, each with a concrete witness: **false NEGATIVE** — `setToken` (§1120's own confirmed finding) is not flagged, because three separate modules (`command`, `driver`, `portal`) declare a method of that name and a token counter cannot tell them apart; **false POSITIVE** — `checkAndReserve` is flagged yet is genuinely called at `spark-caps.ts:112@stub` and `caps.ts:213@stub`, because both call sites sit INSIDE files that also declare the interface. A name-frequency sweep cannot resolve module-scoped symbols. The bound is not closed and **cannot be** by grep — it needs an import/type graph. Corrective to §1121: its clean result rests on the manual triage of 11, not on the sweep. |
-| 568 | §1120 | **§1121** | **489 EXPORTED FUNCTIONS → 11 WITH NO PRODUCTION CALLER → 0 DEFECTS. AND THE SWEEP'S FIRST RUN FLAGGED 100%.** §1120's *setter with no caller* is a CLASS, so I swept it. Four candidates were security-shaped and each had an innocent explanation that only reading the protocol's DIRECTION could supply: `verifyWebhook`/`verifyInclusion` are **recipient-side** counterparts (SHUDDL signs and builds; the receiver verifies) · `assertHazmatEnabled` is a thin wrapper over `hazmatEnabled`, which IS called at `sequencer.ts:883@hazmatEnabled` and was mutation-measured at §740 · the proof-to-cash pair gates a `[HYPOTHESIS]` SKU not provisioned until M-H/R1. Reporting *"an unverified webhook"* was one unchecked step away. The first run flagged **489/489** — `\b` is not a word boundary in `git grep -E`, a KNOWN error repeated. **A sweep that flags its whole population is measuring nothing.** Honest bound: the population is `export function` only, so it would NOT have found §1120's own `setToken`. |
+| 568 | §1120 | **§1121** | **489 EXPORTED FUNCTIONS → 11 WITH NO PRODUCTION CALLER → 0 DEFECTS. AND THE SWEEP'S FIRST RUN FLAGGED 100%.** §1120's *setter with no caller* is a CLASS, so I swept it. Four candidates were security-shaped and each had an innocent explanation that only reading the protocol's DIRECTION could supply: `verifyWebhook`/`verifyInclusion` are **recipient-side** counterparts (SHUDDL signs and builds; the receiver verifies) · `assertHazmatEnabled` is a thin wrapper over `hazmatEnabled`, which IS called at `sequencer.ts:897@hazmatEnabled` and was mutation-measured at §740 · the proof-to-cash pair gates a `[HYPOTHESIS]` SKU not provisioned until M-H/R1. Reporting *"an unverified webhook"* was one unchecked step away. The first run flagged **489/489** — `\b` is not a word boundary in `git grep -E`, a KNOWN error repeated. **A sweep that flags its whole population is measuring nothing.** Honest bound: the population is `export function` only, so it would NOT have found §1120's own `setToken`. |
 | 567 | §1119 | **§1120** | **THE FIVE ACCEPTANCE DEMOS RE-DERIVED AT HEAD: STILL 3 OF 5 BLOCKED — AND DEMO 3'S MECHANISM IS NOW SHARPER.** §237 swept the demos a week ago; CLAUDE.md calls them *"done enough to show"*, so an inherited verdict on them is the one most worth re-deriving. **1 (photos)** — blocked, re-verified §1094. **2 (stranger signs up)** — blocked; 0 `<form>`, 0 `type="email"`, 0 `onSubmit` across `apps/`, on a **positive-controlled** pathspec. **3 (real driver)** — blocked, but NARROWED: the bearer plumbing has shipped since §237, and the gap is now precise — **`setToken` has ZERO production callers** while `getToken` is consumed in four modules, so the token store is read everywhere and written nowhere; the capture party is still the constant `p:carrier`. **4 · 5 clean.** Cost: two probe errors (a `--` placement; a `register`/`registry` collision), both caught by the control. |
 | 566 | §1118 | **§1119** | **THE VACUITY FLOOR IS ON ALL THREE PARITY GATES, AND STRONGER THAN I WOULD HAVE SPECIFIED.** §1118 found `rater-parity` pins *"an EMPTY case list is not a pass in disguise"* — an idiom, and idioms are rarely uniform. Checked the siblings: **3/3 floored**, each with an EXACT-count check (*"pins exactly 48/504"* · *"exactly 500"* · *"the WP-07 DoD pins exactly 50 — a short/over/empty set is a real discrepancy, not a pass. No merge."*) **plus** a smoke-COMPOSITION floor that count alone would miss: invoice-parity hard-fails if its in-repo set lacks an `issue`, a below-floor hold, or an interline split. Its comment cites the prior false green this fixed (§558: *"0/0 … harness live at exit 0"*) and says *"counting is not enough."* My hypothesis was wrong in the safe direction. Cost: probe error #22 — `^function main` misses `async function main`. |
 | 565 | §1117 | **§1118** | **THE FIVE BLOCKED GATES ARE BLOCKED ON INPUTS, NOT ON UNPROVEN LOGIC — 5/5.** Every board since §1036 has reported **5 BLOCKED**, and nobody had asked the question that matters: their pass/fail path has NEVER executed in CI, so when the private fixtures land, will the verdict be TRUE? Traced each by IMPORT (not by directory). All five have their detection proved: `runParity` (penny-exact divergence · each floor compared individually · a hollow PRICED · **an EMPTY case list is not a pass in disguise**) · `runInvoiceParity` (an in-repo SMOKE set that runs **against the real engine today**, plus one-cent perturbation and thrown-comparison-as-mismatch) · the concierge harness (accessorials as a SET, queued-reason divergence) · `check:fixtures` (hash mismatch · missing file · **mode-aware** pending+merge → BLOCKED) · `check:identity` (masking, and the **fail-open fix**: CI + no denylist → code 1, *was* exit 0). |
@@ -10423,7 +10423,7 @@ reached, and several hits are bounded by their `WHERE` regardless. Adjudicated e
 
 | Site | Bound | Verdict |
 |---|---|---|
-| `workers/api/src/do/sequencer.ts:650@stream_id`, `:1014@money_lines` | `WHERE stream_id = ?` / `WHERE event_id = ?` | bounded — one shipment, one event |
+| `workers/api/src/do/sequencer.ts:666@stream_id`, `:1014@money_lines` | `WHERE stream_id = ?` / `WHERE event_id = ?` | bounded — one shipment, one event |
 | `routes/documents.ts:57@DOC_LIST_COLS` | `WHERE shipment_id = ?` | bounded — a handful per shipment |
 | `routes/board.ts`, `routes/exceptions.ts`, `routes/approvals.ts` | `LIMIT ?` / `EXCEPTIONS_LIMIT` | **already bounded** |
 | **`routes/invoices.ts:56@INVOICE_COLS_TENANT`** | **none — no `WHERE` at all** | **unbounded** |
@@ -11062,9 +11062,9 @@ Quick Reference table — the part a reader consults *while implementing a gate*
 
 | The skill claimed | Cited line actually held | Corrected to |
 |---|---|---|
-| gates `stop.arrived` | a generic gate-block comment | `sequencer.ts:683@stop.arrived` |
+| gates `stop.arrived` | a generic gate-block comment | `sequencer.ts:699@stop.arrived` |
 | 403s an unassigned driver | `if (events.length < effective) return null` — a **pagination check** | `routes/events.ts:267@assignmentOf` |
-| requires the device co-sign | `if (e instanceof Error …) throw new Error(e.message)` — an **error re-wrap** | `sequencer.ts:1215@deviceOwnedBy` |
+| requires the device co-sign | `if (e instanceof Error …) throw new Error(e.message)` — an **error re-wrap** | `sequencer.ts:1231@deviceOwnedBy` |
 | server-emitted money kind refused | `const kinds: EventKind[] = []` — an empty declaration | `routes/events.ts:217@SERVER-EMITTED` |
 
 A reader following the device-co-sign row to check how ownership is enforced would have landed on an
@@ -27023,7 +27023,7 @@ CLEAN NEGATIVE reached through three steps — worth recording precisely because
 `ORDER BY seq LIMIT 1` — ascending, so the FIRST `booking.created` wins. Flipping it to `DESC` leaves all
 **24** biller tests green. On its face: a silent change to *which quote a shipment bills against*.
 
-**Step 2 — is a second booking reachable?** No. `sequencer.ts:832@REQ-191` enforces REQ-191: *"booking.created is
+**Step 2 — is a second booking reachable?** No. `sequencer.ts:848@REQ-191` enforces REQ-191: *"booking.created is
 IDEMPOTENT PER STREAM: at most ONE per shipment"*, rejected server-side before the append, explicitly so the
 append-only ledger never gains a duplicate and `status_cache` never regresses.
 
@@ -46876,7 +46876,7 @@ Not read — measured, because §804 proved the status fields unreliable:
 | row | verification |
 |---|---|
 | **14** — a 4-hour SLA policed by a 24-hour detector | `wrangler.toml` → `crons = ["0 1 * * *"]`; `sla-sweep.ts:94` says *"a DAILY cron policing a FOUR-HOUR SLA accumulates ~19h of overdue rows per tick"* |
-| **15** — a lost booking trigger has no backstop | `workers/api/src/do/sequencer.ts:578@AGENT_QUEUE` carries §131's correction: the recovery it once named *"DOES NOT EXIST"* |
+| **15** — a lost booking trigger has no backstop | `workers/api/src/do/sequencer.ts:586@AGENT_QUEUE` carries §131's correction: the recovery it once named *"DOES NOT EXIST"* |
 | **17** — pool-binding exclusivity on enumeration, not resolution | `provision.ts:275`: the control-plane UNIQUE index *"is the structural answer"*, dark today |
 
 ### And one I was about to "fix" and should not
@@ -64117,7 +64117,7 @@ recorded so the next reader knows the two are a pair.
 ### And fixing it broke eight citations
 
 My first correction expanded the comment to four lines. That shifted every line below it in a 1,248-line file
-and **rotted 8 anchored citations** — in two skill files and the audit — pointing at `sequencer.ts:650@stream_id`,
+and **rotted 8 anchored citations** — in two skill files and the audit — pointing at `sequencer.ts:666@stream_id`,
 `:683@stop.arrived`, `:832@REQ`, `:1215@deviceOwnedBy`.
 
 `check:citations` caught all eight **immediately**, because they are `path:line@symbol` and the gate re-derives
@@ -66777,7 +66777,7 @@ remember. Re-run with `-P`: **317,295 tokens**, controls sane (`Button` 56, `App
 | candidate | verdict |
 |---|---|
 | `verifyWebhook`, `verifyInclusion` | **by design** — `webhooks.ts` is an OUTBOUND system (SHUDDL `signWebhook`s and delivers; merkle roots are built here). These are the **recipient's** half, exported as contract surface and exercised by tests to prove the scheme round-trips |
-| `assertHazmatEnabled` | a thin wrapper over `hazmatEnabled`, which IS enforced at `sequencer.ts:883@hazmatEnabled` and mutation-measured at §740. It **wraps** rather than reimplements, so there is no drift surface |
+| `assertHazmatEnabled` | a thin wrapper over `hazmatEnabled`, which IS enforced at `sequencer.ts:897@hazmatEnabled` and mutation-measured at §740. It **wraps** rather than reimplements, so there is no drift surface |
 | `assertProofToCashEntitledFor`, `resolveProofToCashEntitlement` | gate a `[HYPOTHESIS]` SKU (REQ-162/130) not provisioned until M-H/R1 — pre-built, correctly uncalled |
 | `applyMigrations`, `eventFixture`, `buildChain` | second production callers exist (scripts / seed / fixtures) |
 | `applyMapping`, `isComplete`, `resetMutationChecks` | thin unused helpers; `isComplete` is one line on a flow its own file calls *"the client mirror of a server gate block"* — the server gate is authoritative (REQ-030) |
