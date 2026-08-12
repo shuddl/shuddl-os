@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 640 | §1192 | **§1193** | **98 FILES IMPORT IT; NOTHING ASSERTED IT. `repoRoot()` — THE MODULE THAT ENDS 'A GATE THAT CANNOT FAIL FOR LACK OF INPUT' — HAD NO TEST.** §1192's finding came from a FILE LISTING, not the record, so the probe was generalised: in every directory following a sibling-test convention, which files are the exceptions? Most hits are convention artifacts (`packages/contracts` keeps tests in `test/`, so its "18 missing" is my probe misreading the tree) — the real one is **`tools/checks/repo-root.ts`, the single exception among twelve**. Its header records the stakes: three gates once certified constitutional laws against an EMPTY SET (*"OK (0 markdown files)"*, *"OK — 0/22 tables … (0 migration files)"*, *"OK — 0 path:line citations resolve"*) because each resolved inputs against `process.cwd()`. **The regression it pins is not a deletion but a KINDNESS** — a `try/catch` returning `cwd`, which reads as defensive programming and would leave all 98 gates green while scanning whatever directory they were started from. Mutation-proved: adding exactly that fallback REDs two of four, the second naming the returned temp path. |
 | 639 | §1191 | **§1192** | **THE ONE RELEASE GATE WITH NO TESTS, AND THE ONLY PATH IT CAN TAKE WAS THE UNTESTED ONE.** Asked which board gates the record never pairs with a mutation: 7 of 31. Three are BLOCKED on private inputs (and `identity-leak` WAS proved at §1002 — my pattern missed the wording, a false positive worth naming). `backup-manifest` is `kind:"external"` (OIDC), correctly unrunnable. Of the three runnable release gates, `preflight` executes fully here (**85 assertions**, 8 unsatisfied prerequisites) and `restore-verify`'s decision surface carries **47 `it()` blocks** — so my *never-proved* hypothesis was about the RECORD's wording, not coverage. **The real finding was in the file listing:** every tool in `tools/deploy/` has a sibling test except **`staging-smoke.ts`**. And `SMOKE_API_BASE` appears in **no workflow**, `smoke:staging` in **no CI job** — so the ONLY path that gate can take anywhere today is prerequisite-absent, which was its entire observable behaviour and was untested. Pinned with 5 assertions; **mutation-proved**: flipping `PREREQ_BLOCKED` → `OK` turns a release blocker into a green light and now REDs on *"a release gate with no environment must not exit 0"*. |
 | 638 | §1190 | **§1191** | **THE RELEASE EVIDENCE'S `assertions` FIELD IS A TEST-RUN COUNT ON EVERY BROWSER GATE, AND I MISREAD IT ONE PHASE AGO.** §1190's board carries per-gate counts, which makes the *hollow gate* shape measurable: `perf` reports **1**, `a11y` 4, `visual` 5, `e2e` 6. Traced to `playwright-guard.ts:141` — `assertions: stats.expected + stats.flaky`, i.e. **test RUNS**, because Playwright's JSON reporter exposes no `expect()` count. Measured against the specs: `perf` is **1 test carrying 5 budget checks** (long-task, frame p50/p95, interaction p95, frame-count floor); `visual` is 1 test × 5 blessed screens; `e2e` is 11 tests / 45 expects. **The contract already warns about this — but only for the SYNTHESIZED case** (*"`assertions: 1` and `detail: "command exited 0"` … means the command succeeded, not that a specific number of assertions held"*), and a real Playwright run reports `detail: "1 passed"`, so rule 5's tell does not fire. Nothing covered the real-run case, which is exactly why §1190 read `perf — 1 passed` as a candidate hollow gate. The perf spec is in fact strong: software-rasterizer detection, cold boot reported-not-budgeted, and a frame-count floor added because a prior CI failure came from that line rather than any budget. Rule 6 added to the misreading list. |
 | 637 | §1189 | **§1190** | **THE FULL MERGE BOARD, RUN AND ATTRIBUTED: 21 PASS · 2 FAIL · 5 BLOCKED · 4,601 TESTS / 3 FAILING.** Seventeen commits this stretch landed on `delta` alone, which only sees test-suite regressions — CLAUDE.md says green means `verify:merge`, so it was run. **Both FAILs are ONE cause, verified not inherited:** the failing assertions are *exactly* the three delta-baseline entries (`coverage.test.ts` ×2 + `traceability.test.ts` ×1), all from the owner's uncommitted REQ-289 row — 288 rows at HEAD against approved terminal REQ-288, 289 in the tree. **All 5 BLOCKED are absent private inputs**: nine unvendored engagement fixtures and the `IDENTITY_DENYLIST` secret. Denominator measured rather than assumed: **22 vitest projects, 4,601 tests**, correcting an undated 4,152. **Traced one anomaly to ground:** `fatal: not a git repository` appeared **5×** — the signature of a gate scanning an empty corpus. Bisected to `invariants.test.ts`, where `findStraySql` deliberately falls back to a filesystem glob outside a git work tree, exercised by tests in a real temp dir and asserted there (*"a stray anywhere else is caught"*). **Correct by design, and fail-SAFE**: the fallback is MORE inclusive than git's ignore-aware listing. |
@@ -70938,4 +70939,71 @@ empty string and an unset variable are different inputs to a `??`.
 **STOP.** The board's gates swept for missing mutation proofs, four resolved by reading (one of them a false
 positive in my own probe), and the genuine gap — the single deploy tool without a test, whose only reachable
 path was its untested one — closed and mutation-proved.
+
+## §1193 — PHASE GATE: the helper every gate trusts, and nothing checked
+
+**Why this phase.** §1192's real finding did not come from the audit record — it came from a **file listing**:
+*every tool in `tools/deploy/` has a sibling test except one.* That is a cheap, general probe, so it was
+generalised: in every directory that follows a sibling-test convention, which files are the exceptions?
+
+### The sweep, and its noise
+
+Five directories qualified. Most hits are **convention artifacts**, and saying so is part of the result:
+`packages/contracts/src` shows 18 "missing" only because that package keeps its tests in `test/` — the three
+in-`src` tests my probe read as *the convention* are the exception, not the rule. `apps/driver/src/components`
+and `apps/portal/src` are the same shape at smaller scale.
+
+One hit is real: **`tools/checks/repo-root.ts` — the single exception in a directory where twelve modules
+carry a sibling test.**
+
+### What it is
+
+```
+files importing repo-root.js : 98
+tests asserting its contract : 0
+```
+
+Every gate that resolves a corpus goes through it. Its own header records why it exists, and the stakes sit in
+that history — three gates, written by different hands, certified **constitutional** laws against an **empty
+set**:
+
+```
+check:tables      OK (0 markdown files)
+check:invariants  OK — 0/22 tables, events append-only (0 migration files)
+check:citations   OK — 0 path:line citations resolve
+```
+
+each because it resolved inputs against `process.cwd()`. *"The defect was in the convention, not in any gate."*
+This module is the one place the answer is written — and nothing tested it.
+
+### The regression is a kindness, not a deletion
+
+The dangerous edit here is not removing the call. It is wrapping it:
+
+```ts
+try { return execSync("git rev-parse --show-toplevel", …).trim() }
+catch { return cwd; }   // "defensive"
+```
+
+That reads as good practice and is the precise vacuity the module exists to remove — its header says so:
+*"a permissive default here would recreate exactly the vacuity this module exists to remove, and would do it
+invisibly."* With that fallback in place, **all 98 gates keep passing** while scanning whatever directory they
+were started from.
+
+> **The most dangerous change to a fail-closed helper looks like defensive programming.** Deleting a guard
+> feels like a decision; adding a `catch` feels like care. Only one of them has a test that can tell.
+
+**Mutation-proved**: adding exactly that fallback REDs two of four — the throw assertion, and the belt beneath
+it that names the returned path (`repoRoot returned /var/folders/…/shuddl-norepo2-… instead of throwing`). The
+two are deliberately different: one catches the **absence of a throw**, the other catches the **shape of the
+fallback**, so a `catch` that returns something else still fails.
+
+The out-of-tree case asserts its own **premise** first — that the temp directory really is outside a work tree
+— because a machine whose tmpdir sat inside a repo would make the throw assertion pass for the wrong reason.
+And the file documents that it deliberately emits `fatal: not a git repository`, so the next reader does not
+spend §1190's six bisect runs tracing that string to a benign source.
+
+**STOP.** The sibling-test probe generalised, its convention noise identified rather than reported, and the one
+real exception closed: the module that ends *"a gate that cannot fail for lack of input"* now has a test that
+fails when it stops failing closed.
 
