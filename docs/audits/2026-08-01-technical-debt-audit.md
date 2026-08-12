@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 567 | §1119 | **§1120** | **THE FIVE ACCEPTANCE DEMOS RE-DERIVED AT HEAD: STILL 3 OF 5 BLOCKED — AND DEMO 3'S MECHANISM IS NOW SHARPER.** §237 swept the demos a week ago; CLAUDE.md calls them *"done enough to show"*, so an inherited verdict on them is the one most worth re-deriving. **1 (photos)** — blocked, re-verified §1094. **2 (stranger signs up)** — blocked; 0 `<form>`, 0 `type="email"`, 0 `onSubmit` across `apps/`, on a **positive-controlled** pathspec. **3 (real driver)** — blocked, but NARROWED: the bearer plumbing has shipped since §237, and the gap is now precise — **`setToken` has ZERO production callers** while `getToken` is consumed in four modules, so the token store is read everywhere and written nowhere; the capture party is still the constant `p:carrier`. **4 · 5 clean.** Cost: two probe errors (a `--` placement; a `register`/`registry` collision), both caught by the control. |
 | 566 | §1118 | **§1119** | **THE VACUITY FLOOR IS ON ALL THREE PARITY GATES, AND STRONGER THAN I WOULD HAVE SPECIFIED.** §1118 found `rater-parity` pins *"an EMPTY case list is not a pass in disguise"* — an idiom, and idioms are rarely uniform. Checked the siblings: **3/3 floored**, each with an EXACT-count check (*"pins exactly 48/504"* · *"exactly 500"* · *"the WP-07 DoD pins exactly 50 — a short/over/empty set is a real discrepancy, not a pass. No merge."*) **plus** a smoke-COMPOSITION floor that count alone would miss: invoice-parity hard-fails if its in-repo set lacks an `issue`, a below-floor hold, or an interline split. Its comment cites the prior false green this fixed (§558: *"0/0 … harness live at exit 0"*) and says *"counting is not enough."* My hypothesis was wrong in the safe direction. Cost: probe error #22 — `^function main` misses `async function main`. |
 | 565 | §1117 | **§1118** | **THE FIVE BLOCKED GATES ARE BLOCKED ON INPUTS, NOT ON UNPROVEN LOGIC — 5/5.** Every board since §1036 has reported **5 BLOCKED**, and nobody had asked the question that matters: their pass/fail path has NEVER executed in CI, so when the private fixtures land, will the verdict be TRUE? Traced each by IMPORT (not by directory). All five have their detection proved: `runParity` (penny-exact divergence · each floor compared individually · a hollow PRICED · **an EMPTY case list is not a pass in disguise**) · `runInvoiceParity` (an in-repo SMOKE set that runs **against the real engine today**, plus one-cent perturbation and thrown-comparison-as-mismatch) · the concierge harness (accessorials as a SET, queued-reason divergence) · `check:fixtures` (hash mismatch · missing file · **mode-aware** pending+merge → BLOCKED) · `check:identity` (masking, and the **fail-open fix**: CI + no denylist → code 1, *was* exit 0). |
 | 564 | §1116 | **§1117** | **STOPPING POINT XI — SIX PHASES OF CLAUSE-DECOMPOSITION; ONE REAL DEFECT, FOUR SELF-CORRECTIONS.** Board re-earned at `e867417`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs attributed by measurement to the owner's `REQ-289` row. §1111 **found and closed a real hole** (Law 5's clause 4 — a 150% executing share defended by nothing) · §1112 Law 4 5/5 · §1114 Law 2 ~13 shapes (summary UNDERstated) · §1115 Law 1 both directions · §1116 the anomaly detector 5/5. **The method's yield: 1 defect in ~40 guards.** Its cost: **four** harness errors, every one failing toward 'undefended'. Both numbers belong in the record. |
@@ -66582,4 +66583,64 @@ the probe.**
 **STOP.** All three parity gates verified to floor both the cardinality and the composition of their corpora,
 with the historical false green that motivated the stronger floor identified in-code; §1118's claim that the
 five BLOCKED gates hide no unproven logic is now checked one level deeper. Zero source changed.
+
+## §1120 — PHASE GATE: the five acceptance demos, re-derived at HEAD
+
+**Why this phase.** CLAUDE.md defines five acceptance demos as *"done enough to show"* — the closest thing
+this build has to a definition of production-ready. §237 swept them and found **three of five assert a
+capability the product lacks**. That verdict is a week old, several things have shipped since, and §1044's
+rule is that an inherited claim is a claim you are making. So: re-derive all five.
+
+| demo | §237 | **HEAD** |
+|---|---|---|
+| 1 — POD → invoice **+ photos** | BLOCKED | **BLOCKED** — `photos: {}`; the resolver exists but the agents worker binds neither `JWT_SECRET` nor an API service (re-verified §1094) |
+| 2 — a stranger signs up and quotes | BLOCKED | **BLOCKED** — no signup surface: 0 `<form>`, 0 `type="email"`, 0 `onSubmit` in `apps/` |
+| 3 — a real driver, zero instruction | BLOCKED | **BLOCKED, narrowed** — see below |
+| 4 — a booking from Claude via MCP | clean | **clean** |
+| 5 — the exception pulse dims the map | clean | **clean** (basemap hold recorded) |
+
+**Still 3 of 5.** None of the three is a defect; each is an absent surface or an owner decision.
+
+### Demo 3 narrowed: the gap moved, and got more precise
+
+§237 recorded *"no driver login (REQ-069 deferred)"*. Since then the **bearer plumbing shipped**:
+`apps/driver/src/auth/session.ts` is a guarded token store, `api/client.ts` sends
+`Authorization: Bearer`, and a 401 clears the session so revoked access cannot leave stale data on screen.
+That is real work, and a flat "no driver login" now understates it — the §1114 shape again.
+
+What remains is sharper than the old wording, and settled by one probe:
+
+- **`setToken` has ZERO production callers.** It appears only in its own definition and in tests.
+- **`getToken` has production callers in four modules** — `App.tsx`, `api/client.ts`, `sync/transport.ts`,
+  `sync/useSync.ts`.
+
+So the token store is **read everywhere and written nowhere**: the consumer side is complete and nothing
+*mints* a session. A driver can only be logged in by hand-injecting a bearer into `localStorage`. The file
+says so itself — *"a full magic-link/PIN login screen is a follow-up (REQ-069)"* — and REQ-069's register
+status is still `F0-SPEC'D`.
+
+Separately, the capture identity remains the constant `CARRIER_PARTY = "p:carrier"`, used as the recorded
+`party`. So even with a token injected, custody records the carrier, not the individual driver — which is the
+half of demo 3 that says *"a REAL driver."*
+
+> **A setter with no caller is the mirror of a field with no consumer**, and it reads as *finished* far more
+> convincingly: every accessor is implemented, guarded, tested, and used. The absence is one hop away, in who
+> *supplies* the value. When a subsystem looks complete, check the producers as well as the consumers — the
+> direction that is easy to test in isolation is exactly the direction that can ship with nothing behind it.
+
+### Cost, recorded
+
+Two probe errors, both caught by a positive control before anything was written:
+
+1. A `--` placement in `git grep -ci -- "$pat" -- apps` suppressed every match, returning **four zeros** that
+   read as "no signup surface, confirmed". The control (`133 files under apps/`) exposed it.
+2. The corrected search then matched **`register`** — service-worker registration and the command *registry* —
+   not `signup`. The word collision this record keeps meeting (`assets`, `kv.put`, `row`, `floors`).
+
+Seventh instance this session of *my pattern, not the code*. The control is what makes the count tolerable:
+every one was caught before it reached a section.
+
+**STOP.** All five acceptance demos re-derived at HEAD; the 3-of-5 verdict confirmed a week on; demo 3's
+blocker narrowed from *"no driver login"* to *"the token store has no producer, and the capture party is a
+constant"*; two self-inflicted probe errors caught by control. Zero source changed.
 
