@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 656 | §1208 | **§1209** | **SESSION STOPPING POINT — THE BOARD RE-MEASURED AFTER ~20 COMMITS, AND IT IS UNMOVED.** §1190 measured 21 PASS · 2 FAIL · 5 BLOCKED. Twenty commits later — a gate rewritten (`check-table-shape`), 24 record rows re-shaped, four test suites extended — the board reads **identically**, and the two FAILs are still *exactly* the three delta-baseline assertions from the owner's uncommitted REQ-289 row. Suite grew **4,601 → 4,616** (+15: the per-field signature tamper sweep, the parity same-stream pin, `staging-smoke`'s blocked-path contract, `repoRoot`'s fail-closed contract, `recall`'s phrase-miss behaviour). **Everything this session added is green; nothing it touched moved a verdict.** Two real defects were found and closed — a device signature that could cover a constant while 749 tests passed (§1197), and a parity dedup key that could merge the two sides it exists to separate (§1201) — plus a gate false negative closed (§1206) that turned out to be **suppressing another gate's finding**. |
 | 655 | §1207 | **§1208** | **THE KEY-CONSTRAINT SWEEP CLOSES: THE DANGEROUS SHAPE HAS EXACTLY ONE INSTANCE, AND IT IS THE CONSTRAINED ONE.** §1207 showed a `z.record` KEY doing load-bearing work. Swept all **22** `z.record` uses by extracting each key schema with a paren-matcher rather than a truncating grep: **4 constrained** (`DayOfWeekKey`, `TransitZoneKey` ×2, and the zip regex) and 18 `z.string()`. But an unconstrained key is only hazardous where the consumer matches **fuzzily** — an exact `obj[key]` lookup cannot be fooled by an empty key. Swept the consumers: exactly **three** prefix-matching sites exist. `engine.ts` is the zip map (constrained, §1207); `dunning.ts` matches a **literal constant** (`collector-dunning/`); `mcp/rest.ts` derives its prefix from a hardcoded route template (`/shipments/:id` → `/shipments/`), never from a validated record. **Zero instances of unconstrained-key-plus-fuzzy-match.** The eighteen free-form keys are JSON payloads, EDI raw maps and CSV rows — read by exact lookup, where the constraint would buy nothing. |
 | 654 | §1206 | **§1207** | **§1206's LESSON APPLIED TO DATA: A TRUNCATED EDI SEGMENT CANNOT REACH A PRICE, AND THE GUARD IS A KEY REGEX.** *A malformed structure feeds a smaller input downstream* is not only about markdown — X12 is positional, so a short segment silently yields `undefined` for every later element. Traced the whole path: `parse-204` reads `elements[N]?.trim()` (no crash), `EdiAddress` declares street/city/state/zip **all optional** (so a truncated N4 parses clean), and the shipment reaches the rater with no destination. **It fails closed there**: `matchZone` finds no prefix and the engine returns `UNKNOWN / no_zone` — law 4 holds for the ADDRESS, not just for the weight and dims §820 hardened. The one way to defeat it would be a tariff carrying an **empty** zip prefix, since `"".startsWith("")` is true — and that is **unrepresentable**: `zip_to_zone` keys are `z.record(z.string().regex(/^\d{3,5}$/), …)`. **Mutation-proved**: relaxing the key law REDs a contracts test. The rater suite stays silent and correctly so — the constraint is §1203's *unrepresentable* class, so the schema is the guard and the engine rightly trusts it. |
 | 653 | §1205 | **§1206** | **THE CIRCULAR FIX RESOLVED — AND IT REVEALED A DEFECT THE BROKEN TABLE HAD BEEN HIDING FROM ANOTHER GATE.** §1205 reverted the mechanical escape because a whole-line backtick toggle merged three rows; the correction it specified turns out to be implementable: **split on unescaped pipes FIRST, then a cell with ODD backtick parity absorbs the following delimiter, repeating until even.** All **24** rows repaired to exactly their header count, **0** unresolved. Then the same two ledger gates failed again — and this time they were RIGHT: with cells correctly aligned, the GUARDED_FNS status cell reads **both** `FIXED` and a preserved prior `OPEN`, a real vocabulary violation the mis-split had been **hiding** by truncating the cell the gate reads. Struck the superseded verdict (the row is genuinely fixed — verified in code at §1192). Then tightened `cellCount` to honour only the escape, corrected the unit test that asserted the false premise, and **mutation-proved**: the row that passed at §1204 now REDs. |
@@ -71970,4 +71971,55 @@ records, the platform append body. Constraining those would buy nothing and woul
 
 **STOP.** The key-constraint class enumerated on both sides — 22 declarations and 3 fuzzy consumers — and the
 intersection that defines the hazard is empty apart from the instance §1207 already proved guarded.
+
+## §1209 — PHASE GATE: session stopping point, measured
+
+**Why this phase.** ~20 commits have landed since §1190's board, including a rewritten gate, 24 re-shaped
+record rows and four extended suites. `pnpm delta` answers *"did I break what already worked?"* — it does not
+answer *"is the build still green?"* Only the 26-gate aggregate does.
+
+### The board, unmoved
+
+```
+§1190   21 PASS · 2 FAIL · 5 BLOCKED
+§1209   21 PASS · 2 FAIL · 5 BLOCKED        (identical, gate for gate)
+```
+
+Both FAILs are still **exactly** the three delta-baseline assertions — two in `coverage.test.ts`, one in
+`traceability.test.ts` — all from the owner's uncommitted REQ-289 register row. All five BLOCKs are still the
+absent private inputs: the `IDENTITY_DENYLIST` secret and the nine unvendored engagement fixtures.
+
+**Suite: 4,601 → 4,616.** The fifteen are this session's pins — the per-field signature tamper sweep, parity's
+same-stream case, `staging-smoke`'s blocked-path contract, `repoRoot`'s fail-closed contract, and `recall`'s
+phrase-miss behaviour.
+
+### What this stretch actually found
+
+**Two real defects, both in the *evidence* rather than the behaviour** — the code was correct; nothing would
+have noticed it becoming incorrect:
+
+- **§1197** — `clientView` is shared by `signEvent` *and* `verifyEventSig`, so a field blanked there leaves
+  both sides agreeing. Measured: `payload: {}` kept **749 tests green** while the device signature covered a
+  constant instead of the freight it attests. Now pinned per field.
+- **§1201** — parity's `latestSumBySource` folds the source into its dedup key *"so a native quote and a legacy
+  mirror on the SAME stream are deduped independently."* Dropping the fold left the whole ledger suite green,
+  because every existing case seeded the two sides on **different** shipments. Now pinned on one stream.
+
+**One gate false negative closed** (§1206) which was **suppressing another gate's finding** — the malformed
+table truncated the cell `ledger-status-vocabulary` reads, hiding a live two-verdict row.
+
+**And three sweeps that closed empty, with the reason recorded**: every verification-bearing projection
+(§1200, four mechanisms), all eighteen constitutional rules by enforcement kind (§1203/§1204, none test-only),
+and the unconstrained-key hazard (§1208, the intersection is what matters).
+
+### Where the build stands
+
+The single thing between this tree and a green board is **the owner's `genesis/09` row**: commit it with a
+classifying status and both FAILs clear. Everything else outstanding is owner-held by construction —
+§1186 triaged all 15 live repository-owned rows and found **zero** repo-actionable, and the two filed this
+session (the table-gate remedy, now specified as *cells-first*) are the only additions.
+
+**STOP.** Board re-measured and identical after twenty commits, every FAIL and BLOCK attributed to an input
+this repository does not own, fifteen new assertions all green, and the session's two real defects closed with
+mutation proofs rather than claims.
 
