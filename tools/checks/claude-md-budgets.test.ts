@@ -164,7 +164,13 @@ describe("REQ-118 §611: CLAUDE.md's hard budgets match what enforces them", () 
   // hard-budgets line must be claimed by some BUDGETS entry — or be named below with its reason.
   /** Every document that states the used-table figure, with the regex that finds it. §833 gates completeness. */
   const DOCS: ReadonlyArray<{ file: string; re: RegExp }> = [
-    { file: "CLAUDE.md", re: /\((\d+)\s+used/ },
+    // §1174 — ANCHORED TO ITS SUBJECT, not to its shape. This read `/\((\d+)\s+used/`, and CLAUDE.md's budgets
+    // line carries TWO such parentheticals — `≤22 tables (21 used; …)` and `12 canonical views (11 used, one
+    // spare)`. It returned 21 only because tables are written first. Reorder the line and it compares the
+    // migrations' table count against the VIEWS figure. That direction fails LOUD rather than silent (11 ≠ 21,
+    // so the assertion reds), which is why this is a latent bet rather than the false pass §1173 found — but
+    // it is the same mechanism, and BUILD-PROMPT.md's entry below was already anchored this way.
+    { file: "CLAUDE.md", re: /≤\d+ tables \((\d+) used/ },
     { file: "README.md", re: /35 kinds,\s*(\d+)\s+tables/ },
     // FOUND BY THE §833 DISCOVERY HALF, which is the point of having one: §829 rewrote this file's stale
     // register count and §830/§831 pinned the table figure in two documents — and BUILD-PROMPT.md states it
@@ -203,6 +209,17 @@ describe("REQ-118 §611: CLAUDE.md's hard budgets match what enforces them", () 
         "document was not updated — and because the budget check only fails ABOVE TABLE_BUDGET, nothing else " +
         "would have said so. A stale law is worse than an absent one: it is followed.",
     ).toEqual([]);
+  });
+
+  it("§1174: the used-table regex names its SUBJECT, so line order cannot change what it reads", () => {
+    // CLAUDE.md's budgets line carries two "(N used)" parentheticals. Shape-matching picks whichever comes
+    // first; subject-anchoring picks the table figure wherever it sits. Written with the order REVERSED,
+    // because with the real order both regexes agree and the test would prove nothing (§1145: a plant must
+    // separate the two mechanisms, not merely coexist with them).
+    const reordered = "12 canonical views (11 used, one spare) · ≤22 tables (21 used; the spare requires a written deletion)";
+    expect(/\((\d+)\s+used/.exec(reordered)![1], "shape-matching reads whichever parenthetical is written first").toBe("11");
+    const anchored = DOCS.find((d) => d.file === "CLAUDE.md")!.re;
+    expect(anchored.exec(reordered)![1], "subject-anchored reads the TABLE figure regardless of position").toBe("21");
   });
 
   it("§833: no OTHER tracked document states a used-table figure without being on the DOCS roster", () => {

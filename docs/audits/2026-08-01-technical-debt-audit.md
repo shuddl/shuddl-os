@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 621 | §1173 | **§1174** | **SWEPT THE IDIOM; FOUND INSTANCE #2, AND THE LINE-COUNT PROBE HID IT.** §1173's shape — a first-match `exec` over a whole document — appears at 22 sites in `tools/checks`, but 19 extract a NAMED symbol (`export const X =`), unique by construction. Three read prose. Measured occurrences: design-ci mode 1, unbounded-reads claim 1, README 1, BUILD-PROMPT 1 — **and CLAUDE.md's `(N used` = 2**, because the budgets line carries `≤22 tables (21 used…)` AND `12 canonical views (11 used, one spare)`. `grep -c` reported **1** (it counts LINES) and `grep -o` reported **2**; both parentheticals sit on line 15, so the line-count probe would have closed this as a singleton. `/\((\d+)\s+used/` matches a SHAPE; it returns 21 only because tables are written first. Re-anchored to its subject (`/≤\d+ tables \((\d+) used/`, the form BUILD-PROMPT's entry already used), with a regression test on a REORDERED line where the two mechanisms disagree — shape reads 11, anchored reads 21. Severity honestly lower than §1173: reordering fails LOUD (11≠21), so it was a latent bet, not a false pass. 11/11 clean; a planted `(20 used)` reds **two** tests — §830 and the §743 floor, the latter because `EXEMPT` holds the literal `"21 used"`, so the exemption doubles as a pin on the figure. |
 | 620 | §1172 | **§1173** | **A REAL DEFECT IN THE GATE THAT GUARDS THE GOVERNING DOCUMENT: ONE OF THE SIX HARD BUDGETS WAS READ OUT OF PROSE.** `claude-md-budgets.test.ts` exec'd each `stated` regex against **all of CLAUDE.md**, and `exec` returns the FIRST match. Five patterns occur once — they hit the budgets line by luck of phrasing. `/(\d+) surfaces/` occurs **twice**, and CLAUDE.md:5's *"**3 surfaces** (Command, Driver PWA, Portal)"* precedes the budgets line at :15. **MUTATION-PROVED:** setting the budgets line to `4 surfaces` while `SURFACE_ROSTER` held three left the file **9/9 GREEN** — the governing document stating a budget its enforcer contradicts, which is the one thing this gate exists to catch. Fixed by reading the LAW where the law is (`budgetsLine()`); the planted drift now REDs naming *"surfaces: CLAUDE.md says 4 … enforces 3"*, clean is 10/10. Separately probed all six extractors against the **runtime** constants: 22/3/12/35/5/2, six-for-six agreement. |
 | 619 | §1171 | **§1172** | **I6 CLOSED STRUCTURALLY: NO VIEW CAN BYPASS THE LENS, BECAUSE NO VIEW TOUCHES THE DATABASE.** I6 — *`events.visibility` respected by every view, tested adversarially* — was the last invariant unexamined. The adversarial half is emphatic: `lens-adversarial.test.ts` carries **44** assertions including **case 9, a table-driven I6 visibility sweep**, and **case 9b, *independent I6 guards that do NOT import the map under test*** — the mirror-shaped-gate hazard deliberately avoided. The *views* half holds by construction: **no file under `apps/` reaches D1**, so every read crosses the lens-gated API. Near-miss: my probe flagged **4** app files, and all four were noise — three are UI copy (*"SELECT A KPI"*, *"SELECT A SHIPMENT"*) and one is a `.d.ts` type declaration. |
 | 618 | §1170 | **§1171** | **THE ARC'S TWO TRANSFERABLE LESSONS WERE NOT IN MEMORY — NOW THEY ARE.** A session's most durable output is the rule it leaves behind, and two of this one's were unrecorded. **(1)** §1143/§1144's *a clean negative contains two claims* — extended `a-false-clean-invites-no-follow-up`, whose existing rule fired only on **zero** results while both failures here were **populated and unsurprising**: a 43-file sweep that read everything and still filtered the violation out as safe, and a probe that **agreed** with the row it checked. **(2)** §1170's *a rule applied only forwards is half a rule* — extended `self-review-with-the-reviewers-questions`, adding the rules variant plus the corollary that **building is the most expensive way to discover a thing exists**. Both indexed. |
@@ -69526,4 +69527,75 @@ exactly cancel a real drift — a conjunction, not a mechanism. Recorded as a re
 nonetheless read out of the intro paragraph — proved by planting a drift that stayed 9/9 green, fixed by
 reading the law where the law is, and re-proved by the same plant now REDing with the right subject named.
 Extractors verified against runtime, six-for-six.
+
+## §1174 — PHASE GATE: sweeping the idiom, and the probe that would have hidden instance #2
+
+**Why this phase.** §1173 found a first-match `exec` over a whole document reading a budget out of the intro
+prose. *N instances share one idiom* — at instance #2 stop fixing and start counting — so before moving on,
+count.
+
+### The sweep
+
+Twenty-two `exec`-over-a-document sites in `tools/checks`. Nineteen extract a **named symbol**
+(`export const NAME = …`, `function ${fn}(`, `CANONICAL_VIEWS = [`), which is unique by construction — a
+declaration cannot repeat. Those are not positional bets and need nothing. Three read **prose**, where a
+phrase genuinely can recur:
+
+| site | document | occurrences |
+|---|---|---|
+| `design-mode-parity.test.ts:37` | CLAUDE.md design-ci mode claim | 1 |
+| `unbounded-reads-roster.test.ts:90` | GO-LIVE `Unbounded list reads — N sites` | 1 |
+| `claude-md-budgets.test.ts` DOCS → README.md | `35 kinds, N tables` | 1 |
+| `claude-md-budgets.test.ts` DOCS → BUILD-PROMPT.md | `≤22 tables (N used)` | 1 |
+| **`claude-md-budgets.test.ts` DOCS → CLAUDE.md** | **`(N used`** | **2** |
+
+### The probe that would have closed this as clean
+
+The first measurement used `grep -c` and returned **1**. `grep -c` counts **lines containing a match**, not
+matches. Both parentheticals live on line 15:
+
+```
+≤22 tables (21 used; …) · 3 surfaces + command bar + queues · 12 canonical views (11 used, one spare) · …
+```
+
+`grep -o | wc -l` returns **2**. Had the sweep stopped at the line count, §1173 would have been written up as a
+one-off and instance #2 left standing — a **false clean produced by the counting unit**, not by the pattern.
+That is §1144's rule biting from a new angle: the probe agreed with the hoped-for answer, and the control that
+separated them was running the same method on the *known* positive (`surfaces` = 2) in the same command.
+
+> **Same defect, different unit: "how many lines match" is not "how many matches".** Any sweep that decides
+> singleton-vs-class from `grep -c` is answering a question one word away from the one asked, and it fails in
+> the direction that ends the investigation.
+
+### Instance #2, and its honest severity
+
+`/\((\d+)\s+used/` matches a **shape**. It returns 21 because tables are written before views on that line —
+a positional bet, identical in mechanism to §1173. Fixed by anchoring to the **subject**:
+`/≤\d+ tables \((\d+) used/` — which is the form `BUILD-PROMPT.md`'s own roster entry already used, so the
+fix is making one entry consistent with its neighbour rather than inventing a convention.
+
+**Severity is lower than §1173 and the record says so.** If the line were reordered, this compares the
+migrations' table count against the views figure — 11 against 21 — and the assertion **reds**. A false alarm,
+not a false pass. §1173 was a genuine silent pass. Both get fixed; only one was hiding a green lie.
+
+The regression test writes the line **reordered**, because with the real order both regexes return 21 and the
+test would prove nothing — §1145's rule that a plant must make the two mechanisms *disagree*, not merely
+coexist. Shape-matching reads `"11"`; subject-anchored reads `"21"`.
+
+### The planted control, fully attributed
+
+A planted `(20 used)` reds **two** tests, and the second one is worth naming:
+
+```
+× §830: the "(N used)" table figure equals what the migrations actually declare
+× every budget STATED in CLAUDE.md is covered by the roster (§743 completeness floor)
+```
+
+The floor fires because `EXEMPT` holds the **literal** `"21 used"`, so a changed figure stops being exempted
+and reappears as an uncovered number on the budgets line. **An exemption written as a literal doubles as a pin
+on the value it exempts** — unintended when it was authored, and a property worth keeping deliberately.
+
+**STOP.** Idiom swept: 22 sites, 19 immune by construction, 3 prose reads measured, one further instance found
+and fixed — plus the measurement lesson that found it, which is that the sweep's first probe counted the wrong
+unit and would have reported a clean singleton.
 
