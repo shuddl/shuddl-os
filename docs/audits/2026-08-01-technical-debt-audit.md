@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 552 | §1104 | **§1105** | **A GATE CANNOT SEE AN UNTRACKED FILE, AND I LEARNED IT BY BREAKING IT.** A too-broad `git add -A docs/` staged the owner's untracked GTM/research corpus; `pnpm delta` immediately reported **5 NEW failures**. Unstaged it, then re-measured the same way deliberately (stage → capture → unstage) because the accident had answered a real question: **the corpus reds `absolute-paths` (a `/Users/<name>` path), `citation-links`, `citation-ratchet`, `no-sync-duplicates` and the CONFIRM-GATED citation review.** All of it invisible until the instant of `git add`, because `git grep` reads TRACKED files. Removed **40** iCloud sync duplicates after verifying each byte-identical with `cmp`; 20 authored docs intact. Filed the rest as owner-held. The lesson is the staging boundary: **`delta` is a claim about the INDEX, so it must be read after `git add`, and the staged set must be read before `git commit`** — I skipped the second check, which is how the first one happened. |
 | 551 | §1103 | **§1104** | **A DEFERRAL THAT CLAIMS A REGISTER ROW, ONE CLAUSE AWAY FROM THE ROW THAT DISCLAIMS IT.** Checked the `referralBase` row's CONDITION the §1101 way — by its clause, not its noun: the URL *is* in the body, but the hazard fires only if the send's idempotency keys off it, and it keys `evidence-email/<invoice event id>`. **UNFIRED.** The defect was the comment's OTHER claim — *"tracked as its own REQ"*, naming no ID. Measured the register: the redelivery-purity rows are all CONCIERGE-scoped, REQ-129 is the referral SURFACE, and the nearest owner is **REQ-267**, whose acceptance *"same referral facts reproduce one attribution"* is exactly what a drifting re-render breaks. Comment corrected to name it. The sweep's sharpest output was about ITSELF: the original sat on the SAME LINE as `REQ-178` — the row it explicitly disclaims — so a proximity detector scores it **NAMED**. Fixing it also rotted **4 citations across 3 files**, caught by the ratchet. |
 | 550 | §1102 | **§1103** | **STOPPING POINT IX — THE RECORD WAS THE DEFECT, FOUR PHASES RUNNING.** Board re-earned at `50276d8`: **19 PASS · 2 FAIL · 5 BLOCKED**, and the 2 FAILs MEASURED (not assumed) to the owner's single uncommitted `REQ-289` row — `check:coverage` names it. Across §1100–§1102 **zero source files changed**: 1 row closed as already-fixed, 2 triggers corrected to UNFIRED, 1 blocker re-labelled, and four clean negatives with denominators (7/7 non-invoice outcomes bounded+visible · caps 3/3 claims · the POD-gate exemption inert and mutation-proved · `clientView`'s ten frozen fields). Every defect this stretch was in the RECORD, not the behaviour. |
 | 549 | §1101 | **§1102** | **THE SEVEN WAYS A DELIVERED LOAD DOES NOT BILL — AND THE ONE PREDICATE THAT NEEDED TWO DIFFERENT ANSWERS.** Enumerated the Biller's terminal non-invoice outcomes: **5 holds + 2 skips**. All 5 holds are test-pinned (`interline_unresolved` only because an earlier phase caught it living in two COMMENTS). The 2 skips were checked against the unbounded-re-drive shape the hold marker exists to prevent: `shipment_not_found` **would** have reproduced it exactly, and **REQ-199 (WP-11 exit audit) already closed it** — but by WRAPPING the anti-join, deliberately leaving the SHARED `unbilledShipmentsSql` untouched so the Watchtower alarm still surfaces the data fault. `pod_not_found` is unreachable by the anti-join by construction. **Clean negative, 7/7.** The finding is the engineering: bounding and surfacing pulled OPPOSITE ways on one shared predicate, and fixing it at the shared layer would have made the fault invisible while looking fixed. |
@@ -65718,4 +65719,58 @@ exactly: **a record that preserves its own history is the one corpus where quoti
 **STOP.** Condition re-derived UNFIRED by its clause; the untracked deferral named to REQ-267 with the
 owner asked to confirm; the generalisation measured to **1 corpus-wide hit** with the detector's own blind
 spot stated rather than hidden. `check:citations` 0 · `check:tables` OK · typecheck OK · lint OK.
+
+## §1105 — PHASE GATE: a gate cannot see an untracked file, and I learned it by breaking it
+
+**What happened.** Staging §1104 I reached for `git add -A docs/` instead of naming files. It swept in the
+owner's untracked `docs/gtm/` and `docs/research/` — a workstream I have deliberately not touched all session
+— and `pnpm delta` answered instantly: **5 NEW failures, not in BASELINE.**
+
+That is the tool working exactly as designed. §1081 built `delta` because *"reproducing a count is not
+identifying it"*; here it identified five in one line, before a commit existed to be wrong.
+
+I unstaged with `git reset HEAD` (not `git rm --cached` — §1063's lesson) and confirmed both directories back
+to `??`.
+
+### The accident answered a question worth asking
+
+The corpus is the owner's, but *"can it be committed?"* is a real question with a real answer, so I re-ran the
+same measurement deliberately — **stage → capture → unstage** — rather than leaving the finding as an
+accident I'd merely recovered from. It reds five gates:
+
+| gate | what it objects to |
+|---|---|
+| `absolute-paths` | a `/Users/<name>` path — the **REQ-167 sibling** |
+| `citation-links` | a citation that does not resolve |
+| `citation-ratchet` | unanchored citations into churny files |
+| `no-sync-duplicates` | duplicate files |
+| `coverage` (CONFIRM-GATED review) | a register CONFIRM-GATED citation unreviewed |
+
+**Every one of these was invisible ten seconds earlier**, and would have stayed invisible indefinitely, because
+`git grep` reads **tracked** files. An untracked corpus is not "passing" the gates — it is *unmeasured by*
+them. The two states are indistinguishable from the outside and opposite in meaning.
+
+### One part fixed, the rest filed
+
+`no-sync-duplicates` was mine to close: **40** iCloud artifacts (`name 2.md`, `name 3.md` — every one of the
+20 documents duplicated twice). Before deleting anything I verified each was byte-identical to its base with
+`cmp`: **40 identical, 0 diverged, 0 orphaned.** That check is the difference between removing a sync artifact
+and destroying an edit the owner made in the copy. All 20 authored documents are intact; the six remaining
+matches repo-wide are inside a nested `node_modules/.vite` cache.
+
+The other four are content questions in the owner's own documents, and are filed as an owner-held row rather
+than edited by me.
+
+### What this phase says
+
+> **`git add` is where a gate's field of view begins.** A verdict on an untracked file is not "clean" — there
+> is no verdict. This is the mirror of a rule this record already keeps ([[verify-the-commit-not-the-tree]]):
+> that one says the gates you ran before `git add` may not describe what you committed; this one says the
+> files you never added were never gated at all. **`delta` is a claim about the INDEX** — read it *after*
+> staging, and read the **staged set** before committing. I did the first and skipped the second, which is
+> precisely how a too-broad `add` reached a commit boundary undetected.
+
+**STOP.** Owner's files restored to untracked and never committed; 40 verified-identical duplicates removed;
+the four content failures filed as owner-held with a reopen trigger of *"when the corpus is staged."*
+`check:tables` OK · staged set verified by name before commit.
 
