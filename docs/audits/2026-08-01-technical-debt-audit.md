@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 569 | §1121 | **§1122** | **TRIED TO CLOSE §1121's STATED BOUND; PROVED THE INSTRUMENT CANNOT.** §1121 left the sweep bounded to `export function` and said so. Extending it to interface methods failed in **both** directions, each with a concrete witness: **false NEGATIVE** — `setToken` (§1120's own confirmed finding) is not flagged, because three separate modules (`command`, `driver`, `portal`) declare a method of that name and a token counter cannot tell them apart; **false POSITIVE** — `checkAndReserve` is flagged yet is genuinely called at `spark-caps.ts:112@stub` and `caps.ts:213@stub`, because both call sites sit INSIDE files that also declare the interface. A name-frequency sweep cannot resolve module-scoped symbols. The bound is not closed and **cannot be** by grep — it needs an import/type graph. Corrective to §1121: its clean result rests on the manual triage of 11, not on the sweep. |
 | 568 | §1120 | **§1121** | **489 EXPORTED FUNCTIONS → 11 WITH NO PRODUCTION CALLER → 0 DEFECTS. AND THE SWEEP'S FIRST RUN FLAGGED 100%.** §1120's *setter with no caller* is a CLASS, so I swept it. Four candidates were security-shaped and each had an innocent explanation that only reading the protocol's DIRECTION could supply: `verifyWebhook`/`verifyInclusion` are **recipient-side** counterparts (SHUDDL signs and builds; the receiver verifies) · `assertHazmatEnabled` is a thin wrapper over `hazmatEnabled`, which IS called at `sequencer.ts:883@hazmatEnabled` and was mutation-measured at §740 · the proof-to-cash pair gates a `[HYPOTHESIS]` SKU not provisioned until M-H/R1. Reporting *"an unverified webhook"* was one unchecked step away. The first run flagged **489/489** — `\b` is not a word boundary in `git grep -E`, a KNOWN error repeated. **A sweep that flags its whole population is measuring nothing.** Honest bound: the population is `export function` only, so it would NOT have found §1120's own `setToken`. |
 | 567 | §1119 | **§1120** | **THE FIVE ACCEPTANCE DEMOS RE-DERIVED AT HEAD: STILL 3 OF 5 BLOCKED — AND DEMO 3'S MECHANISM IS NOW SHARPER.** §237 swept the demos a week ago; CLAUDE.md calls them *"done enough to show"*, so an inherited verdict on them is the one most worth re-deriving. **1 (photos)** — blocked, re-verified §1094. **2 (stranger signs up)** — blocked; 0 `<form>`, 0 `type="email"`, 0 `onSubmit` across `apps/`, on a **positive-controlled** pathspec. **3 (real driver)** — blocked, but NARROWED: the bearer plumbing has shipped since §237, and the gap is now precise — **`setToken` has ZERO production callers** while `getToken` is consumed in four modules, so the token store is read everywhere and written nowhere; the capture party is still the constant `p:carrier`. **4 · 5 clean.** Cost: two probe errors (a `--` placement; a `register`/`registry` collision), both caught by the control. |
 | 566 | §1118 | **§1119** | **THE VACUITY FLOOR IS ON ALL THREE PARITY GATES, AND STRONGER THAN I WOULD HAVE SPECIFIED.** §1118 found `rater-parity` pins *"an EMPTY case list is not a pass in disguise"* — an idiom, and idioms are rarely uniform. Checked the siblings: **3/3 floored**, each with an EXACT-count check (*"pins exactly 48/504"* · *"exactly 500"* · *"the WP-07 DoD pins exactly 50 — a short/over/empty set is a real discrepancy, not a pass. No merge."*) **plus** a smoke-COMPOSITION floor that count alone would miss: invoice-parity hard-fails if its in-repo set lacks an `issue`, a below-floor hold, or an interline split. Its comment cites the prior false green this fixed (§558: *"0/0 … harness live at exit 0"*) and says *"counting is not enough."* My hypothesis was wrong in the safe direction. Cost: probe error #22 — `^function main` misses `async function main`. |
@@ -66697,4 +66698,52 @@ that here so a later reader does not mistake this section for a closure of the c
 **STOP.** 489 exported functions swept, 11 with no production caller, all 11 explained, 0 defects; a 100%
 false-alarm first run attributed to a known regex error and turned into a reusable sanity check; the sweep's
 syntactic bound stated so the class is not falsely closed. Zero source changed.
+
+## §1122 — PHASE GATE: the bound §1121 stated cannot be closed by the instrument that found it
+
+**Why this phase.** §1121 swept for exports with no production caller, found 11, explained all 11 — and
+explicitly recorded a bound: the population was `export function` declarations only, so it would **not** have
+found §1120's own `setToken`, an interface method. Leaving a stated bound open is how a partial result gets
+read as a closed one, so: extend the sweep to the missing forms.
+
+It does not work, and establishing *why* is worth more than the sweep would have been.
+
+### Both directions fail, each with a witness
+
+The natural criterion — *a symbol whose name appears nowhere outside its declaring files* — is unsound for
+module-scoped names, and this repo supplies a counterexample in each direction:
+
+| direction | witness | mechanism |
+|---|---|---|
+| **false NEGATIVE** | `setToken` — §1120's *confirmed* finding — is **not flagged** | `apps/command/src/session.ts`, `apps/driver/src/auth/session.ts` and `apps/portal/src/session.ts` each declare a `setToken`. The counter sees 7 production occurrences of the *name* and concludes it is referenced. Three different symbols, one string. |
+| **false POSITIVE** | `checkAndReserve` **is** flagged, and is genuinely called | its call sites (`spark-caps.ts:112@stub`, `caps.ts:213@stub`) live **inside files that also declare the interface**, which the "outside the declaring files" rule excludes by construction. |
+
+A name-frequency sweep has no notion of module scope, so it conflates distinct symbols that share a string and
+hides call sites that happen to be co-located with a declaration. Neither is a bug I can patch cheaply: the
+correct instrument is an **import/type graph** (the TypeScript compiler API or `ts-morph`), which resolves a
+reference to a *declaration* rather than to a *spelling*.
+
+> **§1121's bound is not closed, and cannot be closed by grep.** Recording that explicitly, because the
+> failure mode of a partial sweep is not "someone re-runs it" — it is that nobody does, and the clean line
+> stands.
+
+### The corrective to §1121
+
+This changes how §1121's own result should be read. Its eleven candidates were trustworthy **because each was
+opened and explained by hand** — `verifyWebhook` needed the protocol's direction, `assertHazmatEnabled` needed
+its wrapper relationship, the proof-to-cash pair needed the register. The *sweep* proposed; **reading
+disposed**. §1121's clean verdict rests on that triage, not on the instrument's soundness, and the same
+collision risk applies to top-level function names too — it is merely less likely there, not absent.
+
+That is the standing rule this record already keeps for static checks, arriving again from a new direction:
+**a static check produces candidates, never verdicts.** What §1122 adds is the sharper corollary —
+
+> When a static check returns a **clean** result, ask what its false-negative mode is *before* recording the
+> clean. A false positive is corrected by the reading that follows it. A false negative is corrected by
+> nothing, because nothing follows it.
+
+**STOP.** §1121's bound re-examined and found structural rather than incidental; both unsoundness directions
+demonstrated with named witnesses from this repo; the correct instrument identified (import/type graph, not
+grep); §1121's clean result re-attributed to its manual triage. No new candidate list published, because an
+unsound one is worse than none. Zero source changed.
 
