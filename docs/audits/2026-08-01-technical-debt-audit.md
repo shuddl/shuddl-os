@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 671 | §1223 | **§1224** | **THE DORMANT WORKFLOW'S FIRST-RUN FAILURE MODE, CLOSED — AND THE PARSER THAT REPORTED IT WRONG FIRST.** §1223 found every `ci.yml` job dormant (0 PRs, 1,287 unpushed), so its first execution is its first test — and the thing that fails first is a command that no longer resolves. `ci-contract.test.ts`'s 26 assertions pin that the workflow SAYS the right things; nothing checked its commands can RUN. Measured: **all 11 resolve, zero defects** — but the naive parser flagged 2 FALSE positives (`pnpm -r --if-present build` dispatches to WORKSPACE manifests; `pnpm exec playwright` runs a binary from `@playwright/test`, whose dep name ≠ bin name). A gate with that parser reds two correct lines on day one and gets deleted. New gate resolves each of 4 dispatch forms against what it actually targets; mutation-proved BOTH ways (renaming `check:pr` reds it with file:line; the naive-parser forms stay green) and floored against vacuity (≥3 of 4 forms must appear). **A gate's parser is itself a corpus filter** — same class as §1211's brace-matcher reporting 94 when the answer was 0. |
 | 670 | §1222 | **§1223** | **THE MECHANISM INVENTORY §1222 DEMANDED — AND THE TURN §1222 ITSELF MISSED: CONFIGURED ≠ EXECUTED.** Full enumeration of every enforcement surface (local 26 gates · `ci.yml` merge-gate / design-gate / **secrets** · `nightly.yml` · eslint+tsc+Zod+D1 triggers · Dependabot/branch-protection). The finding: `ci.yml` fires on `pull_request`+`push:[main]`; `origin/main` is `0415148` (2026-07-31), **1,287 commits unpushed, 0 PRs ever** — so **gitleaks has never scanned any of them**, nor has the merge-gate job. §1222 wrote *"a committed secret does not reach main"*; accurate form is *"…does not reach origin/main, on the push that has not happened"*. NOT claimed as novel — §966 (*nightly is a clock, not a check*) and §1005 already hold it; what is new is applying it to the mechanism I had cited as THE enforcement one phase earlier. Net: the §1221 gate is the ONLY EXECUTED secret check for the current tree — its justification's third and accurate version. **The first correction of an overclaim tends to overshoot toward what it just found.** |
 | 669 | §1221 | **§1222** | **§1221 SAID "ENFORCED BY NOTHING" AND CI HAS RUN GITLEAKS ALL ALONG — THE THIRD OVERCLAIM, ONE PHASE AFTER WRITING THE RULE AGAINST IT.** `.github/workflows/ci.yml` has a dedicated `secrets:` job: history-wide gitleaks at `fetch-depth: 0`, pinned SHA, configured by a `.gitleaks.toml` whose FIRST LINE cites REQ-154/134, and gated by `ci-contract.test.ts`. A committed secret never reaches main. **What is true is narrower: no LOCAL gate scans for secrets** — 26 merge gates, none — so the control lived only past a push, with **1,278 commits unpushed**. The new gate's justification is restated: it moves the check EARLIER and makes it locally provable, it does not close an absence. The corpus finding stands. Cause: the probe was `grep --include="*.ts" tools` and gitleaks is a root TOML invoked by YAML — **the search space excluded the class of enforcement it asked about**. Rule: enumerate MECHANISMS (CI, hooks, external scanners), not files. Falls out: `.gitleaks.toml` allowlists `genesis/.*` + `fixtures/.*` — the one place a credential passes BOTH controls; pen-test scope. |
 | 668 | §1220 | **§1221** | **A CONSTITUTIONAL RULE WAS DECLARED ON FOUR FILES NO *WRANGLER* GATE READ — CLOSED (⚠ this row's original "enforced by nothing" is CORRECTED by §1222: CI runs history-wide gitleaks; what was missing is a LOCAL gate).** CLAUDE.md's *NO SECRETS EVER IN wrangler.toml* (REQ-154/134) was enforced by nothing for **4 of 9** configs. Planting a live-shaped `RESEND_API_KEY` + `STRIPE_WEBHOOK_SECRET` in `apps/portal/wrangler.toml` left the tools suite **byte-identical** (3 failed / 1292 passed, both runs) — not one of 1,295 assertions saw a committed API key. Cause: three gates read wrangler configs and **all three are correct for their own subject**, but the union of their corpora missed `apps/*` and `packages/ledger`. **The tell was in the files** — all four carry the *NO SECRETS EVER IN THIS FILE* banner, so the rule was DECLARED where nothing read it. Generalisation: *look for rules declared on files outside every gate's corpus* — a scope gap between correct gates is invisible to every one of them. Closed by `wrangler-no-secrets.test.ts` (whole corpus, no entropy rule because `database_id` is a UUID, comments exempt because 100% of today's mentions are comments), mutation-proved RED, auto-wired, re-narrowing pinned by name. |
@@ -72821,3 +72822,65 @@ and should be written that way.
 **STOP.** The mechanism inventory built as §1222's rule required, the dormancy of every `ci.yml` control
 measured against the actual remote tip rather than assumed, §1222's own overshoot corrected without inventing
 novelty the record already held, and the §1221 gate's justification landed on its third and accurate version.
+
+## §1224 — PHASE GATE: the dormant workflow's first-run failure mode, closed — and the parser that reported it wrong first
+
+**Why now.** §1223 measured every `ci.yml` job as **dormant** — triggers are `pull_request` and `push:[main]`,
+`origin/main` is 1,287 commits behind, zero PRs ever. A workflow that has never executed is unexercised code,
+and the failure that bites **first**, on the very first run, is a command that no longer resolves: a renamed
+`package.json` script, a dropped binary, a workspace that lost its `build`.
+
+**What already existed, and precisely where it stops.** `ci-contract.test.ts` carries **26** assertions pinning
+that ci.yml *contains* the right steps — `--frozen-lockfile` on every install, the merge gate, the doc gates
+**by name**, gitleaks at full fetch depth, every action SHA-pinned, the backup's `--mode release`. It asserts
+the workflow **says** the right things. Nothing asserted that what it says can **run**. The two are
+complementary — one guards the file's shape, the other its commands' reachability — and this is the second time
+this session that a gate's stopping point, not its correctness, was the finding
+([[check-what-a-discipline-stops-one-line-short-of]]).
+
+**Measured first: zero defects.** All 11 workflow-referenced scripts resolve today.
+
+### The parser was wrong before the gate was right
+
+A naive scan — strip flags, take the next word, look it up in root `scripts` — reported **two missing**:
+
+```
+.github/workflows/ci.yml:34   pnpm -r --if-present build
+.github/workflows/ci.yml:38   pnpm exec playwright install --with-deps chromium
+```
+
+Both are **correct lines**. `-r` dispatches to **workspace** manifests (three apps define `build`), and `exec`
+runs a **binary from a dependency** (`playwright` ships inside `@playwright/test`, so the dependency name does
+not equal the binary name). A gate carrying that parser would red two valid commands on day one — and a gate
+that cries wolf is deleted, which is the failure mode that matters more than the miss
+([[semantic-false-positives-need-a-marker]]).
+
+So each pnpm form is resolved against what it **actually dispatches to**:
+
+| Form | Example | Resolved against |
+|---|---|---|
+| builtin | `pnpm install --frozen-lockfile` | pnpm itself — unrenameable |
+| root script | `pnpm check:pr` | root `package.json` scripts |
+| workspace script | `pnpm -r --if-present build` | **any** workspace manifest's scripts |
+| binary | `pnpm exec playwright …` | a declared dependency, name matched as a **substring** |
+
+**A gate's parser is itself a corpus filter** — the same class as §1211's brace-matcher, which reported 94
+assertion-free tests when the answer was 0. The instrument decides what the measurement can say.
+
+### Mutation-proved in both directions
+
+- **Detects the real regression:** renaming `check:pr` in `package.json` reds the gate with the exact
+  location — `.github/workflows/ci.yml:32 [root-script] "check:pr" ← pnpm check:pr`. Reverted; green again.
+- **Does not fire on the forms a naive parser breaks on:** a fourth test pins `-r --if-present build`,
+  `exec playwright`, `install`, and `audit` as clean, so the false positives cannot come back.
+- **Cannot go vacuous:** the corpus is floored (≥10 invocations, ≥10 manifests, both workflow files non-empty)
+  and **at least three of the four dispatch forms must appear**, so a classifier that collapsed every form into
+  one would fail rather than silently pass everything.
+
+Suite: 110 → **111** files, 1,299 → **1,303** tests, failures unchanged at the 3 known register-row ones.
+Auto-wired — `tools/**/*.test.ts` feeds the `unit-tests` merge gate.
+
+**STOP.** The first-run failure mode of a never-executed workflow measured clean and then pinned, the gate's
+parser corrected before it shipped rather than after it cried wolf, both directions mutation-proved, and the
+recurring shape — an instrument's parser silently bounding what its verdict can mean — named for the second
+time this session.
