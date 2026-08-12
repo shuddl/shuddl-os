@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 542 | §1094 | **§1095** | **§1094's BINDING TABLE MEASURED THE WRONG ARTIFACT, AND ITS SHARPEST CONCLUSION WAS UNFOUNDED.** I reported which of seven secrets are *bound today* from wrangler.toml membership. `workers/api/wrangler.toml:1-2` states the law: **"NO SECRETS EVER IN THIS FILE (REQ-154, REQ-134) … Secrets live in `wrangler secret` + OIDC."** A secret's absence from a `.toml` is REQUIRED, not evidence — so 6 of 7 rows measured nothing. Measured properly: **6 have zero `[vars]` assignments** and are unknowable from the repo; only `EVIDENCE_FROM` is a var (1 assignment, agents staging). The struck conclusion — *JWT_SECRET is already bound in api, so demo #1's blocker is smaller* — rested on a `grep -l` hit that is a **COMMENT**. Binding state is an ACCOUNT fact, which is precisely what **L43** records and what preflight's `--state` file supplies. |
 | 541 | §1093 | **§1094** | **DEMO #1's *+ PHOTOS* HALF IS BUILT AND UNREACHABLE — AND SEVEN SECRETS GATE FOURTEEN LIVE ROWS.** L205 verified in three parts at HEAD: the biller still emits `photos: {}` (its own comment says the resolver is not wired), `mintDocDownloadCap` **exists** in the api worker, and the agents worker binds **neither** `JWT_SECRET` nor an API base. The capability is built; the caller has no credential. Then the cross-cut: **14 live rows hinge on a secret binding**, and mapping each secret to the rows it gates gives the highest-leverage owner action in the record — `JWT_SECRET` alone gates **5** rows (L34/43/143/205/254). Measured which are bound: `JWT_SECRET` in **api only** (not agents), `RESEND_API_KEY`+`EVIDENCE_FROM` in agents, and `IDENTITY_DENYLIST` / `ANTHROPIC_API_KEY` / `STATUS_SECRET` / `DOC_SECRET` in **no wrangler.toml at all**. |
 | 540 | §1092 | **§1093** | **TWO DEAD STRUCTURES VERIFIED, ONE ROW CORRECTED, AND A WORD THAT MEANS TWO THINGS 18:1.** §1092's *dead field has two ends* applied to the tier's two structural instances. **`passports`** — still WRITE-ONLY at HEAD: the projection holds the INSERT, the sequencer imports the projector, and there is **no `SELECT … FROM passports` in production**, so every qualifying append pays an upsert that returns nothing. **`assets`** — still a table with no readers or writers, but the row says its only references are the `CREATE TABLE` and the `MUTABLE_TABLES` entry; there are **three** — a schema test also asserts its `kind` CHECK values. *Zero tests* was wrong; *zero readers, zero writers* holds. **Grep hazard:** the bare word `assets` returns **54** hits that are Cloudflare's `[assets]` config key and **3** that are the table — one word, two meanings, 18:1. |
 | 539 | §1091 | **§1092** | **I4's WAIVER: NO READER *AND* NO WRITER — WHICH CHANGES WHICH OPTION THE OWNER IS CHOOSING.** L186 says the `unwitnessed` waiver has no downstream reader. Verified exact: it appears in **one** non-test file (`contracts/src/events.ts` — twice as a schema field, twice in the I4 refines) and **zero** times in `workers/`, `apps/` or any other package. Then measured the direction the row did NOT: **nothing in production SETS it either.** Every `unwitnessed: true` in the tree is a test fixture satisfying I4 without a device signature — one says so in a comment. So the waiver is exercised only by tests, which makes the row's option (a) *accept it* currently **free**, and option (b) *give it a reader* a **precondition** for any surface that starts setting it. The API accepts it from any authenticated client today; the driver app never sends it. |
@@ -65114,19 +65115,29 @@ across three cases including a caption-swap trap. Nothing resolves the URLs.
 Three rows in a row now (§1083 `EVIDENCE_FROM`, §1085 `ANTHROPIC_API_KEY`, this one `JWT_SECRET`) turned out to
 hinge on whether a secret is bound. That is not a coincidence, so it was measured:
 
-| secret | live rows it gates | bound today? |
+| secret | live rows it gates | binding state |
 |---|---|---|
-| `JWT_SECRET` | **5** — L34, L43, L143, L205, L254 | **api only** — *not* agents |
-| `EVIDENCE_FROM` | 5 — L36, L43, L214, L424, L425 | ✓ agents (staging) |
-| `ANTHROPIC_API_KEY` | 4 — L39, L40, L115, L425 | **no wrangler.toml** |
-| `IDENTITY_DENYLIST` | 3 — L35, L43, L413 | **no wrangler.toml** |
-| `RESEND_API_KEY` | 3 — L36, L43, L424 | ✓ agents |
-| `STATUS_SECRET` / `DOC_SECRET` | 2 each — L34, L254 | **no wrangler.toml** |
+| `JWT_SECRET` | **5** — L34, L43, L143, L205, L254 | **not knowable from the repo** (§1095) |
+| `EVIDENCE_FROM` | 5 — L36, L43, L214, L424, L425 | ✓ a **var**, set in agents staging — the one measurable case |
+| `ANTHROPIC_API_KEY` | 4 — L39, L40, L115, L425 | **not knowable from the repo** |
+| `IDENTITY_DENYLIST` | 3 — L35, L43, L413 | **not knowable from the repo** |
+| `RESEND_API_KEY` | 3 — L36, L43, L424 | **not knowable from the repo** |
+| `STATUS_SECRET` / `DOC_SECRET` | 2 each — L34, L254 | **not knowable from the repo** |
+
+**⚠️ §1095 CORRECTION.** This column originally read *"bound today?"* and reported wrangler.toml membership —
+`JWT_SECRET` as *"api only"*, four others as *"no wrangler.toml"*. **That measured the wrong artifact.**
+`workers/api/wrangler.toml:1-2` states the law: *"NO SECRETS EVER IN THIS FILE (REQ-154, REQ-134). Secrets
+(JWT_SECRET, …) live in `wrangler secret` + GitHub Actions OIDC."* A secret's absence from a `.toml` is
+**required**, not evidence. Six of the seven have **zero** `[vars]` assignments and are unknowable from the
+repo; only `EVIDENCE_FROM` is a var, with exactly one assignment. The sentence below about the blocker being
+"smaller than the row implies" was built on that error and is struck.
 
 **Fourteen live rows across two sections resolve to seven secrets**, and the mapping is derived from the rows
-rather than asserted. `JWT_SECRET` is the sharpest: it is already bound **in the api worker**, so the blocker
-for demo #1 is not "generate a secret" but "bind the existing one into a second worker" — a materially smaller
-action than the row's prose implies, and one nothing in the record had connected.
+rather than asserted. ~~`JWT_SECRET` is the sharpest: it is already bound in the api worker, so the blocker for demo #1 is not
+"generate a secret" but "bind the existing one into a second worker" — a materially smaller action than the
+row's prose implies.~~ **STRUCK (§1095): unfounded.** That rested on a `git grep -l` hit which turned out to be
+a COMMENT, and no repo artifact can establish whether any secret is bound — that is exactly what **L43**
+(*"Prod secret set never enumerated"*) records, and what preflight's `--state` file exists to supply.
 
 ### What this phase says
 
@@ -65141,4 +65152,61 @@ class.** Seven secrets is a list a person can act on in an afternoon; fourteen r
 **STOP.** L205 verified in three parts at HEAD, with demo #1's blocker narrowed from *unbuilt* to *unbound*.
 Seven secrets mapped to the fourteen live rows they gate, with each one's binding state measured. `pnpm delta`
 clean · `check:citations` 0 · `check:tables` OK.
+
+## §1095 — PHASE GATE: the binding table measured a comment
+
+**Why this phase.** §1094 ended on its strongest claim: seven secrets gate fourteen live rows, and `JWT_SECRET`
+is *"already bound in the api worker"*, making demo #1's blocker **smaller** than its row implies. That sentence
+was the phase's product. It was not measured.
+
+### What the evidence actually was
+
+`git grep -l JWT_SECRET -- workers/` returned `workers/api/wrangler.toml`, and I read a **file-name hit** as a
+binding. The line:
+
+> `workers/api/wrangler.toml:2` — *"Secrets (JWT_SECRET, …) live in `wrangler secret` + GitHub Actions OIDC."*
+
+with the line above it stating the law outright: *"**NO SECRETS EVER IN THIS FILE** (REQ-154, REQ-134)."*
+
+So the hit was a **comment explaining that the secret is not there** — and I cited it as proof that it is.
+
+### The column was structurally incapable of being right
+
+Measured properly, counting real `[vars]` assignments:
+
+| | assignments | meaning |
+|---|---|---|
+| `JWT_SECRET`, `RESEND_API_KEY`, `ANTHROPIC_API_KEY`, `IDENTITY_DENYLIST`, `STATUS_SECRET`, `DOC_SECRET` | **0** each | secrets — absence is **mandated** by REQ-154 |
+| `EVIDENCE_FROM` | **1** | a **var**, legitimately in the config (agents staging) |
+
+Six of seven entries reported *"no wrangler.toml"* as if it were a finding, when it is the **required state**.
+The one entry that was correct — `EVIDENCE_FROM` — was correct for a different reason than the others: it is
+not a secret at all.
+
+**Whether a secret is bound is an account fact, not a repo fact.** The repo cannot answer it, which is exactly
+what **L43** (*"Prod secret set never enumerated"*) records, and why `preflight` takes a `--state` file and
+prints *"no state file supplied — account-side facts [unavailable]"* without one.
+
+Both the column and the conclusion are struck at their source rather than only noted here.
+
+### What survives §1094
+
+The part that was derived rather than inferred: **fourteen live rows resolve to seven secrets**, with the
+per-secret row mapping. That was read out of the rows themselves and is unaffected. `JWT_SECRET` still gates
+five rows; the correction is that nothing in the repo says whether it is bound anywhere.
+
+### What this phase says
+
+> **A `grep -l` answers "is this word in this file", and I keep spending it on "is this true".** §1069 caught
+> me reading an exit code as a verdict; §1071 caught a scoped grep returning a confident empty; this is the same
+> error with the same instrument, and this time the hit was a sentence *denying* the thing I claimed it proved.
+
+The narrower rule, and the one worth keeping: **when a repo forbids a fact from appearing in it, its absence
+carries no information.** REQ-154 makes secret-absence mandatory, so any check that reads absence as evidence is
+measuring compliance with a rule and reporting it as a state of the world. Ask first whether the artifact is
+even *permitted* to hold the answer.
+
+**STOP.** §1094's binding column and its sharpest conclusion are corrected at source; the surviving
+derivation (14 rows → 7 secrets) is unaffected; the account-vs-repo boundary is stated where the next reader
+will hit it. `pnpm delta` clean · `check:citations` 0 · `check:tables` OK.
 
