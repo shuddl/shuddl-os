@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 645 | §1197 | **§1198** | **THE SIBLING PROJECTION IS DEFENDED, AND THE REASON IS ARCHITECTURAL: DENYLIST vs ALLOWLIST.** §1197's shape — two sides sharing a projection, the field LIST pinned while value coverage is not — swept to its highest-stakes sibling: `hashView`, which is to the I1/I7 chain hash exactly what `clientView` is to the I4 signature (`hashEvent = sha256Hex(canonicalBytes(hashView(e)))`). **All five mutations RED**: `delete payload` 3 · `payload = {}` 3 · `delete prev_hash` 2 · `delete seq` 2 · `delete visibility` 2. The difference is structural, not diligence: `hashView` is a **spread-and-delete** (`{...e}`, drop `sig` and `hash`) — a DENYLIST, which covers every field by default and can only lose one by an explicit `delete`. `clientView` is an **explicit allowlist**, which loses a field by omission, silently. **Standing asymmetry recorded:** a new `LedgerEvent` field is automatically covered by the hash and automatically NOT covered by the signature. That is correct by design (a device signs only what it knows offline) and is exactly why no gate was built — the boundary is *device-known vs server-assigned*, which is English. Two probe errors: a grep that missed the summary when a `Snapshots` line appeared, and three empty results that were **workerd exhaustion on back-to-back pool runs**, not greens. |
 | 644 | §1196 | **§1197** | **A DEVICE SIGNATURE COVERING A CONSTANT INSTEAD OF THE FREIGHT IT ATTESTS LEFT 749 TESTS GREEN.** `recall "signEvent"` → **0 mentions in either governing record**: the co-signing primitive behind I4/REQ-016 had never been audited. It is 50 lines with two guards, and the suite pins two halves that do not join. `clientView is the frozen offline field set` pins the ten field NAMES — dropping any one REDs it, which is why all ten looked defended. The behavioural test *"any change to a signed field breaks verification"* varies exactly **one** field (`ts`). **Neither pins that the signature covers a field's VALUE**, and that is a separate property because sign AND verify both route through `clientView`: return a constant for a field and the two sides still agree, verification still passes, and the field is unprotected. **MEASURED: `payload: {}` inside clientView left 697 ledger + 52 workers/api tests GREEN** — a signature covering `{}` instead of the POD's actual payload, which is the exact forgery I4 exists to prevent. The uniform *"1 failed"* across all ten drops was §1194's invariance tell, and following it is what exposed the join. Pinned per field with type-appropriate tampering; three blanking mutations now RED, each naming the field that verified as authentic. |
 | 643 | §1195 | **§1196** | **THE DRIVER DRAIN LOOP: EVERY CONTROL POINT MUTATED, ALL FIVE DEFENDED — AND §579's CLAIM RE-VERIFIED RATHER THAN INHERITED.** With `recall` fixed, the search §1195 interrupted actually worked: it named **§579** (*"a prior iteration's anti-stranding fix had ZERO tests; `continue`→`break` left 39+68 tests green… strands evidence in airplane mode"*) and iteration 4's drain-order defect. `recall`'s own message says a heading still needs re-verifying at HEAD, so it was: flipping that same `continue`→`break` today REDs **2** tests. §579 pinned ONE branch; the loop has five. Mutated each independently on the surface where data loss is least observable: backing-off `continue`→`break` **2 RED** · the 401 `break` removed **1 RED** · `moved` `continue`→`break` **6 RED** · the parked-item counter dropped **1 RED** · the 8-leg guard cut to 1 **6 RED**. **No control point in the offline drain is undefended.** A clean negative that is worth as much as a defect here, because the failure mode it rules out is invisible online and unrecoverable offline. |
 | 642 | §1194 | **§1195** | **THE INSTRUMENT §1181's DISCIPLINE RUNS THROUGH WAS ANSWERING PHRASE MISSES WITH A NOVELTY VERDICT.** Went to audit the driver offline sync; `pnpm recall` said *"appears in NO governing record. It is genuinely new — trace the code."* A direct grep found the work recorded at **six** places in the audit. Traced: `recall()` is a literal `includes` and the CLI **joins every argv into ONE phrase**, which is right for its advertised usage (`pnpm recall NotConfiguredMigrator`, a single symbol) and silently wrong for the way it is used — a question in words. `drain-order` alone returns **6** mentions and `stranded` **21**; the seven-word phrase returns zero. **FOUR of this session's own queries got that verdict**, and at least one was demonstrably covered: §1182's *"public quote rate limit abuse throttle guest"* reported new while the subject was filed in **seven** places, which a grep found moments later. Fixed: on a phrase miss with >1 term, retry PER TERM and report what each finds; novelty is claimed only when no term matches. Pinned by 4 tests keyed on facts about the live record. **Second `git checkout --` destroying an uncommitted fix this session** — the restore is exact only for committed files. |
@@ -71286,4 +71287,77 @@ make the tamper assertions pass vacuously.
 **STOP.** The co-signing primitive audited for the first time: two pins that looked complete, a value-coverage
 property neither reached, a mutation that left 749 tests green, and a per-field pin that names the field whose
 protection was lost.
+
+## §1198 — PHASE GATE: why the sibling held, and the asymmetry that follows from it
+
+**Why this phase.** §1197 found a value-coverage gap in `clientView`, the projection the device signature is
+taken over. The generalisation is immediate: **wherever two sides share a projection, the field list can be
+pinned while value coverage is not.** This build has exactly one other projection of that kind guarding a
+constitutional invariant — `hashView`, over which the chain hash is taken:
+
+```ts
+hashEvent(e) = sha256Hex(canonicalBytes(hashView(e)))     // I1 / I7
+signEvent(e) = ECDSA-P256   (canonicalBytes(clientView(e)))  // I4 / REQ-016
+```
+
+### It is defended, five ways
+
+| mutation | result |
+|---|---|
+| `delete rest.payload` — the freight excluded from the hash | **3 RED** |
+| `rest.payload = {}` — hash a constant instead of the real payload (§1197's exact defect) | **3 RED** |
+| `delete rest.prev_hash` — the link itself | **2 RED** |
+| `delete rest.seq` | **2 RED** |
+| `delete rest.visibility` | **2 RED** |
+
+### The reason is architectural, not diligence
+
+`hashView` is a **spread-and-delete**:
+
+```ts
+const rest = { ...e }; delete rest.sig; delete rest.hash; return rest;
+```
+
+That is a **denylist**. Every field of the envelope is covered *by default*; coverage can only be lost by
+someone writing an explicit `delete`, which is a visible, reviewable act. `clientView` is an **allowlist** — a
+destructure-and-return of ten names — where coverage is lost by **omission**, which is invisible.
+
+> **Two projections, one job, opposite failure modes.** A denylist fails by commission and an allowlist fails
+> by omission — and only one of those leaves something to review. §1197's gap was not carelessness in the
+> signature code; it is what an allowlist does when nobody pins the values.
+
+### The asymmetry this leaves standing
+
+It follows structurally, and it is worth writing down because it is invisible from either file alone:
+
+**A new field added to `LedgerEvent` is automatically covered by the chain hash and automatically NOT covered
+by the device signature.**
+
+That is **correct by design** — `clientView` is *"exactly the fields a device knows OFFLINE — no seq, no
+prev_hash, no recorded_at (all server-assigned)"*, and a device cannot sign what it has not seen. But it means
+a future field that a device *does* know (a second capture stamp, a sensor reading) is unsigned unless someone
+remembers, and the existing pin cannot tell: that pin asserts the list equals ten known names, which stays true
+when a new field is added *elsewhere*.
+
+**No gate was built for it, deliberately.** The discriminator is *device-known vs server-assigned* — a
+judgement about where a value originates, not a property of the type. That boundary is English, and this record
+has measured twice what happens when a detector is built on one: it produces a false-positive stream that gets
+silenced. The honest artefact is the note, plus §1197's per-field pin, which now fails the moment `clientView`
+signs something other than a field's real value.
+
+### Two probe errors, both caught by the same rule
+
+1. A summary grep matched `^ +Tests ` and **missed every run that also printed a `Snapshots` line** — the
+   first mutation looked like it produced no output at all.
+2. Three consecutive mutations returned **empty summaries**, which read as "no tests". They were
+   **workerd exhaustion on back-to-back vitest-pool-workers runs** — a known condition in this record. Re-run
+   one per invocation, all three were defended.
+
+Both were caught by the standing rule that **a missing summary is an ERROR, never a green** — *"neither `N
+failed` nor `N passed` appeared"* is the one output that must never fall through to the clean branch. Without
+it, this phase would have reported three undefended hash fields.
+
+**STOP.** The sibling projection swept and defended five ways, the architectural reason for the asymmetry
+identified, the residual it leaves recorded as a note rather than an undecidable gate, and two probe failures
+caught by the missing-summary rule before either became a finding.
 
