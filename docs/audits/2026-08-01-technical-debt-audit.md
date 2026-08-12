@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 576 | §1128 | **§1129** | **§1125's CLASS, BOUNDED EXACTLY: 9 KINDS CARRY A DO TRANSITION GATE, 26 DO NOT — BY CONSTRUCTION.** Asked which OTHER kinds could repeat §1125 (protections living OUTSIDE the append path). The sequencer answers structurally: `if (!isGatedKind(incoming.kind)) return {};` then an **exhaustive** switch over `GatedKind` whose `default:` is `assertNever` — *"a GatedKind with no case above = a Set/switch desync … never a silent fall-through to an ungated append"* (compile-time belt, runtime suspenders). The 9: `stop.departed` · `delivery.evidenced` · `custody.transferred` · `exception.raised` · `osd.captured` · `stop.arrived` · `appointment.set` · `booking.created` · `dispatch.assigned`. So **26 kinds are ungated at the DO deliberately**, and §1125's class is exactly: those 26, minus the 7 the route refuses, whose protections live elsewhere. `quote.priced` is one CONFIRMED member; the rest is per-kind work, not a grep. My first extraction said 9-of-9 and was imprecise (grouped fall-through, default bleed) — corrected by reading. |
 | 575 | §1127 | **§1128** | **AFTER ASSERTING AN UNMEASURED NUMBER, I RE-DERIVED MY MOST LOAD-BEARING ONE — IT HOLDS.** §1127 caught me reporting an unpushed-commit count I had never run (*137*; the measured figure is **1,190** — `origin/main` is at 2026-07-31). The repo-relevant question is whether that habit reached the RECORD, so I re-derived §1126's Law 3 verdict, whose probe output had been mangled when I first read it: **19** append-seam callers · 5 API routes with literal kinds · 2 without. Confirmed. Then closed the one part that rested on ASSERTION rather than measurement — *"the other 12 are internal with no client-facing body"* — because `translator/inbound.ts` **is** externally reachable (a partner POSTs an X12 204). It emits **literal** kinds; the single data-derived `kind:` is a MONEY-LINE kind inside a payload, not the event kind. Two `kind` fields, two levels. |
 | 574 | §1126 | **§1127** | **STOPPING POINT XIII — TWO FINDINGS ON THE MONEY PATH, BOTH AWAITING ONE OWNER RULING.** Board re-earned at `6bbdb7c`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs measured to `REQ-289`. Three phases: §1124 ran §313's trigger and **documented the one money emitter that is RIGHT to be outside the authority roster** (adding it would fail-close SHUDDL's own revenue) · §1125 found a **real Med defect** — `quote.priced` appendable through the public events route, bypassing the rater, REQ-040's floors and the anomaly detector · §1126 answered Law 3 across **all 19** append paths (17 server-fixed, 2 client-chosen) and bounded the second to **Low**. Both open items are the same class — *prose narrower than schema* — and should be ruled on together. |
 | 573 | §1125 | **§1126** | **LAW 3, ANSWERED COMPLETELY: 2 OF 19 APPEND PATHS TAKE A CLIENT-SUPPLIED KIND — 17 ARE SERVER-FIXED.** §1125 found the defect in one caller; Law 3 asks about *every* API-reachable flow, so I finished the enumeration. `approvals` · `authority` · `dunning` · `portal-actions` · `rate` all append **literal** kinds — a client cannot choose. Only two take the kind from the body: **`events.ts`** (§1125's Med defect, ops/admin reachable) and **`internal-platform.ts`**, whose `AppendBody.input` is an unconstrained `z.record(z.string(), z.unknown())` — so a `PLATFORM_INTERNAL_SECRET` holder may append **any** of the frozen 35 kinds to `_platform`, not just the *"ONE credit money event"* its header promises. Bounded to **Low**: secret-gated server-to-server (503 unbound / 403 mismatch), never customer-JWT reachable, `source` forced to native, and `sequencer.ts:275@EventInput` still validates kind + payload. |
@@ -67107,4 +67108,63 @@ which line was seen first.
 session's most load-bearing count re-derived cleanly and confirmed; §1126's one asserted clause replaced with
 a measurement, including an externally-reachable surface it had mis-described; the two-level `kind` collision
 recorded so the next reader of that file is not misled. Zero source changed.
+
+## §1129 — PHASE GATE: bounding §1125's class exactly
+
+**Why this phase.** §1125's defect had a precise mechanism: `quote.priced` is client-appendable **and** its
+protections (the rater's floors, the anomaly detector) live **outside** the append path, so the DO's gates
+never see it. That mechanism is not unique to one kind, and the useful question is *how many kinds could
+repeat it* — which requires knowing exactly which kinds the DO gates.
+
+### The sequencer answers structurally
+
+```
+if (!isGatedKind(incoming.kind)) return {};
+switch (incoming.kind) { …9 cases… default: return assertNever(incoming.kind); }
+```
+
+The `default` is not a catch-all — it is an **exhaustiveness assertion over `GatedKind`**, and the code says
+what it is for:
+
+> *"A GatedKind with no case above = a Set/switch desync. `assertNever` makes that a COMPILE error (belt) and
+> throws at runtime (suspenders) — never a silent fall-through to an ungated append."*
+
+That is a genuinely strong arrangement: the roster (`isGatedKind`) and the dispatch cannot drift apart
+without failing the build. It is the mirror of the defect [[a-selector-between-artifacts-and-run]] warns
+about, solved rather than merely documented.
+
+**The nine gated kinds:** `stop.departed` · `delivery.evidenced` · `custody.transferred` ·
+`exception.raised` · `osd.captured` · `stop.arrived` · `appointment.set` · `booking.created` ·
+`dispatch.assigned`.
+
+### Which bounds the class exactly
+
+**26 of the 35 kinds carry no DO transition gate — by construction, not omission.** For most that is
+obviously right: a note, a message, a position ping has no state transition to guard.
+
+So §1125's class is now stateable precisely:
+
+> the kinds that are **(a)** ungated at the DO, **(b)** appendable by a client through `/v1/shipments/:id/events`
+> (i.e. not among the five `SERVER_EMITTED_KINDS`, `approval.decided`, or `authority.flipped`), and **(c)**
+> protected by logic living elsewhere.
+
+`quote.priced` is one **confirmed** member — (a) ungated, (b) not refused, (c) protected by the rater and
+read back by `composeInvoice`. Whether others qualify turns on **(c)**, which is a per-kind question about
+where each kind's invariants are enforced — genuine analysis, not a grep, and not something to assert from a
+pattern.
+
+### The extraction that was wrong first
+
+My initial pass reported "9 kinds in the switch, 8 gated, 1 ungated" — treating the switch as the whole
+catalog. It was imprecise twice over: `exception.raised` and `osd.captured` are a **grouped fall-through**
+sharing `assertException`, which my per-case attribution split; and `assertNever` from the `default` branch
+was attributed to `dispatch.assigned`. Both were visible only by reading the region rather than parsing it.
+
+> **A switch is not a population.** Nine cases over a narrowed union says nothing about the thirty-five until
+> you find the narrowing — and the narrowing was one line above the switch, in the guard clause I had not
+> read.
+
+**STOP.** §1125's class bounded exactly rather than guessed: 9 gated kinds, 26 ungated by construction, with
+the roster/dispatch desync closed at compile time; the class's third condition identified as per-kind analysis
+and explicitly **not** asserted; one imprecise extraction corrected by reading. Zero source changed.
 
