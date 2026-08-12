@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 543 | §1095 | **§1096** | **BOARD RE-EARNED AT `bb16006` — 19 PASS · 2 FAIL · 5 BLOCKED, IDENTICAL AFTER 31 PHASES AND SIX NEW GATES.** §1064's own rule (*a board is perishable evidence; the interval is the risk*) applied to itself. Since that run I added `no-audio-capture`, `req024-closure`, `pinned-deps-explained`, `skill-reference-lints`, the sweep-count figure, `recall` and `delta` — **none introduced a red**. Both FAILs still resolve to the single uncommitted `REQ-289` row (the run names it). All 5 BLOCKED unchanged and still absent private inputs. Every browser gate green (`perf`, `visual` 5, `a11y` 4, `e2e` 6) alongside `invariants`, `append-chokepoint`, `rater-purity`, `design-audit`, `acceptance` — all **non-skippable**. Zero repo-owned reds across ~50 phases of edits. |
 | 542 | §1094 | **§1095** | **§1094's BINDING TABLE MEASURED THE WRONG ARTIFACT, AND ITS SHARPEST CONCLUSION WAS UNFOUNDED.** I reported which of seven secrets are *bound today* from wrangler.toml membership. `workers/api/wrangler.toml:1-2` states the law: **"NO SECRETS EVER IN THIS FILE (REQ-154, REQ-134) … Secrets live in `wrangler secret` + OIDC."** A secret's absence from a `.toml` is REQUIRED, not evidence — so 6 of 7 rows measured nothing. Measured properly: **6 have zero `[vars]` assignments** and are unknowable from the repo; only `EVIDENCE_FROM` is a var (1 assignment, agents staging). The struck conclusion — *JWT_SECRET is already bound in api, so demo #1's blocker is smaller* — rested on a `grep -l` hit that is a **COMMENT**. Binding state is an ACCOUNT fact, which is precisely what **L43** records and what preflight's `--state` file supplies. |
 | 541 | §1093 | **§1094** | **DEMO #1's *+ PHOTOS* HALF IS BUILT AND UNREACHABLE — AND SEVEN SECRETS GATE FOURTEEN LIVE ROWS.** L205 verified in three parts at HEAD: the biller still emits `photos: {}` (its own comment says the resolver is not wired), `mintDocDownloadCap` **exists** in the api worker, and the agents worker binds **neither** `JWT_SECRET` nor an API base. The capability is built; the caller has no credential. Then the cross-cut: **14 live rows hinge on a secret binding**, and mapping each secret to the rows it gates gives the highest-leverage owner action in the record — `JWT_SECRET` alone gates **5** rows (L34/43/143/205/254). Measured which are bound: `JWT_SECRET` in **api only** (not agents), `RESEND_API_KEY`+`EVIDENCE_FROM` in agents, and `IDENTITY_DENYLIST` / `ANTHROPIC_API_KEY` / `STATUS_SECRET` / `DOC_SECRET` in **no wrangler.toml at all**. |
 | 540 | §1092 | **§1093** | **TWO DEAD STRUCTURES VERIFIED, ONE ROW CORRECTED, AND A WORD THAT MEANS TWO THINGS 18:1.** §1092's *dead field has two ends* applied to the tier's two structural instances. **`passports`** — still WRITE-ONLY at HEAD: the projection holds the INSERT, the sequencer imports the projector, and there is **no `SELECT … FROM passports` in production**, so every qualifying append pays an upsert that returns nothing. **`assets`** — still a table with no readers or writers, but the row says its only references are the `CREATE TABLE` and the `MUTABLE_TABLES` entry; there are **three** — a schema test also asserts its `kind` CHECK values. *Zero tests* was wrong; *zero readers, zero writers* holds. **Grep hazard:** the bare word `assets` returns **54** hits that are Cloudflare's `[assets]` config key and **3** that are the table — one word, two meanings, 18:1. |
@@ -65209,4 +65210,55 @@ even *permitted* to hold the answer.
 **STOP.** §1094's binding column and its sharpest conclusion are corrected at source; the surviving
 derivation (14 rows → 7 secrets) is unaffected; the account-vs-repo boundary is stated where the next reader
 will hit it. `pnpm delta` clean · `check:citations` 0 · `check:tables` OK.
+
+## §1096 — PHASE GATE: the board re-earned after fifty phases of edits
+
+**Why this phase.** §1064 measured the board and closed on its own rule: *a board is perishable evidence, and
+the interval is the risk.* That run was **31 phases ago**, and in between I added six gates, corrected two of
+my own published conclusions, and edited the checklist, CLAUDE.md, the sequencer, the preflight and the
+contracts. Every one of those touched something a gate watches.
+
+### The result at `bb16006`
+
+| | count |
+|---|---|
+| **PASS** | **19** |
+| **FAIL** | **2** |
+| **BLOCKED** | **5** |
+
+**Identical to §1064** — and identical to §1036 before it. Three full runs, ~90 phases apart, same shape.
+
+**Both FAILs are still the one register row.** The run names it in its own output
+(`expected [ { req_id: 'REQ-289', … } ] to deeply equal []`), surfacing as `unit-tests` and `coverage`. Two gate
+names, one uncommitted line in the owner's file, zero repo-owned defects.
+
+**All five BLOCKED are unchanged**: `identity-leak`, `fixtures`, `rater-parity`, `invoice-parity`,
+`concierge-parse` — every one waiting on an absent private input, and every one correctly BLOCKED rather than
+passed. §1070 proved that set is exactly the set that skips locally, and §1071 that the evidence contract makes
+a skipped gate structurally incapable of emitting PASS.
+
+### What the interval actually contained
+
+Six gates added since §1064 — `no-audio-capture` (§1048), `req024-closure` (§1049), `pinned-deps-explained`
+(§1058), `skill-reference-lints` (§1051), the sweep-count figure (§1077), plus `recall` (§1068) and `delta`
+(§1081) as tooling. **None introduced a red.** That is the claim worth having measured: adding enforcement is
+the easiest way to break a board, and six additions plus roughly fifty phases of edits moved nothing.
+
+The composition is what makes the number meaningful:
+
+- **every browser gate green** — `perf`, `visual` (5 blessed screenshots), `a11y` (4), `e2e` (6);
+- **every constitutional gate green and non-skippable** — `invariants` (I1–I8, re-proved by layer at §1087/§1088),
+  `append-chokepoint`, `rater-purity`, `design-audit`, `acceptance` (the five doc-00 demos).
+
+### What this phase says
+
+> **A stable board across a long interval is a stronger result than a green one at a point in time.** §1036,
+> §1064 and §1096 agree, and the ninety phases between them include every correction, every new gate and every
+> mistake recorded in this record. The number did not hold because nothing happened; it held because the things
+> that happened were caught at the staging boundary rather than after it — three times by the citation
+> machinery, twice by `delta`, once by the index gate.
+
+**STOP.** Board re-earned at HEAD: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs traced to the owner's single
+uncommitted register row, all five BLOCKED to absent private inputs, and **zero repo-owned failures** after six
+added gates and ~50 phases of edits.
 
