@@ -174,6 +174,67 @@ describe("§927: every /v1 route is authorized by a named mechanism", () => {
     ).toEqual([]);
   });
 
+  // §1182 — THIS SCANNER'S OWN CORPUS SELECTOR HAD TWO HOLES, AND BOTH WERE SILENT.
+  //
+  // `routes()` finds a registration only when BOTH assumptions hold: the receiver is literally named `app`
+  // (the ROUTE regex is anchored on `\bapp\.`), and the path starts with `/v1`, `/pub` or `/internal` (anything
+  // else hits an explicit `return` and is DISCARDED, not reported). Every test above iterates that output, so a
+  // route missing from it faces no authorization requirement at all — from the gate whose entire purpose is
+  // "every route declares what authorizes it".
+  //
+  // MEASURED at §1182, both planted into a real route file:
+  //   app.get("/admin-backdoor", h)                   → 5/5 PASS   (outside the three namespaces)
+  //   const sub = app; sub.get("/pub/sneaky", h)      → 5/5 PASS   (receiver not named `app`)
+  // Neither is exotic. A Hono SUB-ROUTER (`const r = new Hono(); r.get("/x", h); app.route("/v1/y", r)`) is the
+  // framework's own idiom for grouping routes, and it produces exactly shape #2.
+  //
+  // Both assumptions are correct TODAY — measured: one `new Hono()` (the root app), no `.route()` mounting, and
+  // every registration on `app.<method>` inside the three namespaces. This test is what makes them CHECKED
+  // rather than merely true, so the next route added by a different idiom reds here instead of passing
+  // invisibly. It is a floor on the scanner's INPUT, which is the half a floor on its findings cannot reach.
+  const ROUTE_SHAPED = /\b([A-Za-z_][A-Za-z0-9_]*)\.(?:get|post|put|patch|delete)\(\s*"(\/[^"]*)"/g;
+  const NAMESPACES = ["/v1", "/pub", "/internal"];
+
+  /** Registrations this scanner would NOT see: a foreign receiver, or a path outside the known namespaces. */
+  function unscannable(files: readonly { file: string; text: string }[]): string[] {
+    const out: string[] = [];
+    for (const { file, text } of files) {
+      const src = stripComments(text);
+      for (const m of src.matchAll(ROUTE_SHAPED)) {
+        const receiver = m[1] as string;
+        const path = m[2] as string;
+        if (receiver !== "app") out.push(`${file}: \`${receiver}.…("${path}")\` — receiver is not \`app\`, so routes() cannot see it`);
+        else if (!NAMESPACES.some((n) => path.startsWith(n))) out.push(`${file}: "${path}" — outside /v1, /pub and /internal, so routes() DISCARDS it`);
+      }
+    }
+    return out;
+  }
+
+  it("§1182 SENSITIVITY: both blind spots are detected", () => {
+    expect(unscannable([{ file: "x.ts", text: 'app.get("/admin-backdoor", h);' }])).toHaveLength(1);
+    expect(unscannable([{ file: "y.ts", text: 'sub.get("/pub/sneaky", h);' }])).toHaveLength(1);
+    expect(unscannable([{ file: "z.ts", text: 'app.get("/v1/fine", h);' }]), "a real route must not be flagged").toEqual([]);
+    expect(unscannable([{ file: "w.ts", text: 'const t = c.req.header("X-Tenant"); m.get("key");' }]), "non-route .get calls must not be flagged").toEqual([]);
+  });
+
+  it("§1182: every route-shaped registration in the API source is one this scanner can SEE", () => {
+    const root = repoRoot();
+    const files = execSync(`git ls-files ${API_SRC}`, { cwd: root, encoding: "utf8" })
+      .split("\n")
+      .filter((f) => f.endsWith(".ts") && !f.includes(".test."))
+      .map((f) => ({ file: f, text: readFileSync(`${root}/${f}`, "utf8") }));
+    expect(files.length, "no API source files found — the scan is broken, not the tree").toBeGreaterThan(10);
+
+    expect(
+      unscannable(files),
+      "a route-shaped registration exists that `routes()` above cannot see, so NONE of the authorization rules " +
+        "in this file apply to it. That is not a style complaint: the tests here iterate what routes() returns, " +
+        "so an invisible route is an UNGATED route with a clean report. Either register it as `app.<method>` " +
+        "under /v1, /pub or /internal, or widen routes() and this floor together:\n  " +
+        unscannable(files).join("\n  "),
+    ).toEqual([]);
+  });
+
   it("no declared row outlives its route (§672)", () => {
     // A row rots two ways: the route is deleted, or it GAINS a requireRole — at which point the row is no
     // longer what authorizes it and would mask a later removal of the real guard.

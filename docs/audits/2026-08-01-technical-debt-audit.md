@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 629 | §1181 | **§1182** | **THE AUTHZ GATE'S OWN CORPUS SELECTOR HAD TWO SILENT HOLES — AN INVISIBLE ROUTE IS AN UNGATED ROUTE WITH A CLEAN REPORT.** Followed §1181's discipline (record first): the `/pub/*` edge rate-limit + Turnstile prerequisite is properly filed — GO-LIVE:53 and :158, PROJECT-STATE:379, register REQ-193/REQ-125, pen-test-basics, WP-09/WP-14, R4 — a clean negative that cost one command. The unauthenticated surface IS gated by `route-authz-coverage`, **mutation-proved** by planting an unregistered `/pub` route. But `routes()` sees a registration only if the receiver is literally `app` AND the path starts with `/v1`, `/pub` or `/internal` — anything else hits an explicit `return` and is DISCARDED. **Both planted into a real route file passed 5/5:** `app.get("/admin-backdoor")` and `sub.get("/pub/sneaky")`. Neither is exotic — a Hono SUB-ROUTER is the framework's own grouping idiom and produces the second exactly. Every test in the file iterates `routes()`'s output, so an invisible route faces **no authorization requirement at all**. Closed with a floor on the scanner's INPUT; both plants now RED with the reason named. Also measured: 38 `/v1` · 4 `/pub` · 2 `/internal` · **0 elsewhere**, one `new Hono()`, no `.route()` mounting — and a two-probe disagreement (1 vs 0 "OTHER") resolved by READING it: `lastIndexOf("/")`, not a route. |
 | 628 | §1180 | **§1181** | **A SECOND SELF-CORRECTION IN THREE PHASES, AND THE SAME ROOT CAUSE BOTH TIMES: I CLAIMED ABSENCE FROM MY OWN SEARCH.** §1178 wrote *"THE SERVER HALF WAS ENFORCED BY NOTHING."* False for routes: `append-chokepoint.test.ts` **§567** has required every appending file in `workers/api/src/routes` to pin `source:"native"` since it was written — **7 files, all compliant**, with its scope stated in its own comment. §1178's gate is the **complement** (a negative rule reaching agents, translator, billing, mcp and packages, which §567 does not touch), so nothing built was redundant — but the claim of total absence was mine and unmeasured. **AND THE REJECTED RULE WAS NOT WRONG — ITS SCOPE WAS.** I measured *"every append caller pins source"* at 7 exceptions in 15 files and inverted it; §567 runs the SAME rule over routes alone, where it has **zero**. My exception count came from choosing the corpus **by mechanism** (everything touching `SHIPMENT_SEQ`) rather than **by role** (files constructing client-facing appends). A rule needing exemptions for half its corpus is pointed at the wrong side **or measured over the wrong corpus** — different fixes, and this build had already done the second. Corrected in three places. Also confirmed clean: the delta BASELINE's three entries all attribute to the owner's uncommitted REQ-289 row (verified read-only: 288 rows at HEAD, 289 in the tree), and no repo gate uses `\b`/`\s` under POSIX ERE. |
 | 627 | §1179 | **§1180** | **THE TWO-EDGES RULE SWEPT ACROSS EVERY ENUM — FOUR GUARDS CONFIRMED, ONE GAP CLOSED, AND MY HYPOTHESIS WAS WRONG FIRST.** §1179's rule says an exemption keyed on one enum value leaves every other value free to move. Swept all 25 contract enums. The scariest candidate looked like `lensFor`, whose default branch returns `{scope:"tenant"}` — **the widest scope** — for anything that is not `portal` or `driver`; adding a 7th role **compiles clean**. But it is NOT undefended: `lens.test.ts:430` pins `Role.options` against a classification and says the hazard outright — *"Doing nothing is not neutral — an unclassified role falls through lensFor's default and inherits the most permissive lens there is."* Mutation-proved: the 7th role REDs it. `Visibility` likewise (planted 4th value → RED). `AuthorityModule` ×2 and `MessageChannel` also guarded. `AuthorityLevel` was the **one money-gating enum with no classification guard** — every consumer is a `=== "native"` ternary, so a third level silently executes as the incumbent's (fail-closed, but silently wrong); guard added in the `Role` idiom, mutation-proved. **Controls in both directions in one sweep**: the same method found silence at §1179 and REDs here. Fourth `\b`-in-POSIX-ERE error, this time returning ZERO for a pattern I had just read with my own eyes; and a `git checkout` run from a subdirectory FAILED, leaving a mutation in the tree — caught by `git status`, not by the checkout. |
 | 626 | §1178 | **§1179** | **THE CARVE-OUT IS `legacy`-ONLY, AND ALL THREE BOUNDARIES WERE UNDEFENDED — PLUS A CORRECTION TO §1178.** The sequencer keys **three** independent carve-outs on `source === "legacy"`: the I2 POD gate, the transition-gate short-circuit, and the projection skip. Widening each to `!== "native"` — a **one-token** change, and a plausible one since the same file legitimately uses both idioms — left **65 tests across four suites GREEN**. Test (4) does not catch it: it pins the NATIVE side, and every widening keeps native gated. This is live, not theoretical: `map-204.ts` stamps `source:"edi"` on EVERY EDI-tendered event (WP-12), so a widening silently converts every partner load tender into an ungated, unprojected shadow — no POD requirement, no money_lines, no AR. Three pins added, keyed on `edi` because it is PRODUCED (`email` is emitted by nothing, §1178); **all three mutations now RED, one test each.** **CORRECTION:** §1178 said the DO exempts *non-native* events. Wrong — `legacy` only; `edi`/`email` are fully gated and fully projected, and `NATIVE_VISIBLE_SOURCES = ["native","edi","email"]` says the same thing in the KPI layer. Fixed in three places. |
@@ -70179,4 +70180,75 @@ the meaningful set is **by role**: the files that construct client-facing append
 
 **STOP.** Two clean negatives with controls, one false claim of my own found and corrected in three places, and
 the root cause named: an absence claim is a universal quantifier wearing a description's clothes.
+
+## §1182 — PHASE GATE: an invisible route is an ungated route with a clean report
+
+**Why this phase.** §1181's lesson is *search the record before claiming absence*. Applied here twice, and it
+paid twice — then the third question found something.
+
+### Two clean negatives, both cheap because the record came first
+
+**The public surface's abuse control is filed, not forgotten.** `/pub/*` endpoints are unauthenticated and one
+of them runs the rater, so "is this rate-limited?" is a real production question. It is answered, deliberately:
+in-Worker limiting is **rejected** (*"it would burn Worker invocations on attack traffic and duplicate a
+platform control"*), and a per-IP Cloudflare edge rule plus optional Turnstile is declared a deploy
+prerequisite. That prerequisite is recorded in **seven** places — GO-LIVE-CHECKLIST:53 (REQ-193) and :158
+(REQ-125 for `/pub/signup`), PROJECT-STATE:379, the register rows themselves, `docs/security/pen-test-basics.md`,
+WP-09/WP-14, and the R4 line of the execution framework. One `recall` and one grep, no false finding.
+
+*Also corrected in passing:* I had assumed `/pub/quote` appends to the ledger. It does not — *"a pure price
+PREVIEW … guest may QUOTE, never BOOK."* Read before writing.
+
+**The unauthenticated surface is gated, and now mutation-proved.** `route-authz-coverage.test.ts` derives the
+route population from source, floors non-vacuity, and requires every `/pub` route to declare why it may answer
+without a session. Planting an unregistered `GET /pub/probe` REDs it, naming the route and its file:line.
+
+### The finding: the scanner's corpus selector
+
+`routes()` finds a registration only when **both** assumptions hold:
+
+```ts
+const ROUTE = /\bapp\.(get|post|put|patch|delete)\(\s*"([^"]+)"(.*)$/;   // receiver must be `app`
+…
+if (!path.startsWith("/v1") && !path.startsWith("/pub") && !path.startsWith("/internal")) return;  // else DISCARD
+```
+
+Every test in the file iterates that output. So a registration the selector misses is not *under-checked* — it
+is **entirely outside** the gate whose purpose is *"every route declares what authorizes it."*
+
+**Measured, both planted into a real route file:**
+
+| plant | result |
+|---|---|
+| `app.get("/admin-backdoor", h)` | **5/5 PASS** — outside the three namespaces, silently discarded |
+| `const sub = app; sub.get("/pub/sneaky", h)` | **5/5 PASS** — receiver not named `app`, never matched |
+
+Neither shape is exotic. A **Hono sub-router** — `const r = new Hono(); r.get("/x", h); app.route("/v1/y", r)`
+— is the framework's own idiom for grouping routes, and it produces the second exactly. Someone tidying a large
+route file into sub-routers would silently remove every route in it from the authorization gate, and every
+test would stay green.
+
+> **A gate's corpus selector is part of its trust boundary, and it is the part that never appears in its
+> output.** The findings-side floors here are excellent — non-vacuity, §672 staleness, a declared reason per
+> route. None of them can see a route the selector never yielded.
+
+### The fix
+
+A floor on the **input**: every route-shaped registration in the API source must be one the scanner can see —
+receiver `app`, path inside a known namespace — or be adjudicated. Both assumptions are true today (measured:
+one `new Hono()`, no `.route()` mounting, 38 `/v1` · 4 `/pub` · 2 `/internal` · **0** elsewhere), so this locks
+a clean state rather than repairing a defect. Both plants now RED with the reason named; the sensitivity test
+also pins that `c.req.header("X-Tenant")` and `m.get("key")` are **not** flagged, since `.get("…")` is a common
+non-route call and the discriminator is the leading `/`.
+
+### A two-probe disagreement, resolved by reading
+
+Counting path literals said **1 route outside the three namespaces**; counting `app.<method>` registrations
+said **0**. Rather than pick one, I opened the file: `dunning.ts` line 113 is `rest.lastIndexOf("/")` — a
+string constant in a body-ref parser. The registration-based probe was right and the path-literal probe was
+matching any quoted string that looks like a path.
+
+**STOP.** Two production-readiness questions answered clean against the record, one gate mutation-proved, and
+one real hole closed in the corpus selector of the gate that guards the API's authorization surface — the hole
+that made an ungated route indistinguishable from a clean report.
 
