@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 589 | §1141 | **§1142** | **LAW 9 IS 16/16 — AND I GOT THREE DIFFERENT ANSWERS BEFORE THE RIGHT ONE.** CLAUDE.md rule 9 demands an adversarial swarm at EVERY WP exit; a note of mine said *"WP-04…WP-16 have no exit-audit section at all."* **False at HEAD: all sixteen have one.** Getting there took three passes, and the direction of the error ALTERNATED — counting *mentions* said all 16 (too generous: a mention is not a section); matching `## REQ-119 exit audit` said 4 of 16 (too harsh: a heading-format artifact); matching **both** conventions said 16. The corpus uses **three** heading forms (`## WP-exit audit swarm (REQ-119)` for WP-01–11, `## REQ-119 exit audit — CLEAR-TO-CLOSE` for 12–15, `launch audit` for 16) because it was written over months by an evolving convention. **No single pattern matches a corpus whose convention drifted.** |
 | 588 | §1140 | **§1141** | **STOPPING POINT XV — LAW 8 CLOSED 4/4, AND THE RETURN CURVE IS NOW MEASURABLE.** Board re-earned at `b764d5e`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs measured to `REQ-289`. Six phases: **Law 8 verified 4/4** (tenant source across 43 sites · structural DO pinning · R2 keys built-or-checked · the suite executes) and the short-circuit shape swept through scripts AND CI. **Yield across the six: one stale note of my own, corrected; zero new defects.** §1139 withdrew a false alarm, §1140 found the work already done. Recording the curve because it is decision-relevant: §1111 (a real hole) → §1125/§1130 (a real pair) → six phases of confirmation. The build is answering the same way from every new angle. |
 | 587 | §1139 | **§1140** | **THE HAZARD I WAS SWEEPING FOR ALREADY HAPPENED — AND IS NOW GATED IN BOTH DIRECTIONS.** `tools/checks/workflow-step-guards.test.ts` records the incident: on **2026-07-31 the `perf` step failed and the NEXT step — the 26-gate merge evidence surface — was SKIPPED**, on three consecutive CI runs, *"the last being the commit production still serves."* §978 then measured 14 steps: 4 guarded, 10 sequential, **all four browser gates unguarded** — only the accident that `perf` ran last prevented a `visual` failure from erasing a11y, e2e and perf as well. It is now pinned by **4 assertions** including a non-vacuity floor AND the reverse direction (*genuine prerequisites stay unguarded*), plus 26 more in `ci-contract.test.ts`. §1138–§1139's sweep terminates: scripts and CI both enforced. Cost: I ran the sweep without `pnpm recall` first — the record held §962/§978/§979 the whole time. |
 | 586 | §1138 | **§1139** | **CI CARRIES §1138's SHAPE CORRECTLY — AND MY ALARM WAS A FLAT READ OF A NESTED FILE, THE FOURTH TIME.** Extended the short-circuit sweep from npm scripts to the pipeline. CI is **three independent jobs** (`merge-gate` · `design-gate` · `secrets`) with **no `needs:`**, so they run in parallel; and inside `merge-gate` the six verdict-bearing steps carry `if: ${{ !cancelled() }}` (§978) — including **the merge evidence gate itself**, so `verify:merge` produces its complete verdict even after an earlier step fails. I first reported that a design-audit failure would skip the history-wide **secret scan**: FALSE. My extractor flattened the YAML and lost the job boundaries — `gitleaks` is a separate JOB. Same class as §1129's switch and §1131's nested `kind`: **a flat read of a nested structure, failing toward alarm.** |
@@ -67842,4 +67843,54 @@ for end to end; the acceptance demos are re-derived; the pipeline is enforced in
 **STOP.** Board 19/2/5 at `b764d5e` with both FAILs attributed; Law 8 closed 4/4; the short-circuit arc
 terminated across scripts and CI; the six-phase yield reported honestly as one self-correction and zero new
 defects, with the return curve tabulated so the decision to continue is the owner's and is informed.
+
+## §1142 — PHASE GATE: Law 9 is 16/16, and the three answers I got first
+
+**Why this phase.** CLAUDE.md rule 9: *"Adversarial audit swarm at every WP exit (50-agent pattern; it found
+42 real defects in a 'finished' module). No open Criticals at close (REQ-119)."* It is the one law this
+session had not touched, and my own working note carried a specific, damning claim about it:
+
+> *"WP-02 and WP-03 ran per-WP swarms and recorded them; **WP-04…WP-16 have no exit-audit section at all.**"*
+
+**That is false at HEAD.** All sixteen work packages carry an exit-audit section:
+
+| WPs | heading |
+|---|---|
+| WP-01 – WP-11 | `## WP-exit audit swarm (REQ-119)` |
+| WP-12 – WP-15 | `## REQ-119 exit audit — CLEAR-TO-CLOSE` |
+| WP-16 | `## REQ-119 launch audit — CLEAR-TO-CLOSE` |
+
+WP-12 records an **8-lens** swarm (gate-bypass · tenant isolation · auth/injection · idempotency · hostile-X12
+· identity/redaction · no-price-on-air · additivity); WP-15 a **6-lens** one. Rule 9 is satisfied **16/16**.
+
+### Three passes, and the error alternated direction
+
+| pass | method | answer | why it was wrong |
+|---|---|---|---|
+| 1 | count *mentions* of `exit.audit\|adversarial\|swarm` | all 16 have 2–10 | **too generous** — a mention is not a section (§1128's word-vs-thing) |
+| 2 | match the heading `## REQ-119 exit audit` | **4 of 16**; 12 "missing" | **too harsh** — a heading-format artifact |
+| 3 | match *both* conventions | **16 of 16** | correct |
+
+Pass 2 is the dangerous one: "12 of 16 work packages closed without the constitutionally-required adversarial
+audit" is a serious, publishable finding, and it was an artifact of encoding **one** convention into a pattern
+for a corpus that uses **three**.
+
+### The reason no single pattern could work
+
+These sixteen documents were written over months, by the same author, under a convention that changed twice —
+`WP-exit audit swarm` → `REQ-119 exit audit` → `launch audit` for the final one. Nothing is wrong with the
+corpus; the drift is a normal artifact of a long build, and each heading is locally sensible.
+
+> **A corpus written over time encodes its own history in its conventions, and no single pattern matches all
+> of it.** The preventive read is one command and it is not a better regex: **enumerate the distinct forms
+> first** — `grep -h '^## ' docs/wp/*.md | sort -u` — and only then decide what to match. This is §1132's
+> catalog lesson in a corpus that has no catalog: where a declaration exists, read it; where none does,
+> *derive* the vocabulary before matching against it.
+
+Fifth pattern-read miss this session, and the first where successive refinements moved the answer in
+**opposite** directions — which is itself the tell that the pattern, not the corpus, is the variable.
+
+**STOP.** Law 9 verified **16/16** by matching the corpus's three actual heading conventions; a false and
+specific claim in my own notes corrected against HEAD; the three-pass sequence recorded with the direction of
+each error, and the preventive read named as *derive the vocabulary before matching it*. Zero source changed.
 
