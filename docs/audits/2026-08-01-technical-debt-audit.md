@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 547 | §1099 | **§1100** | **PRIORITISING THE 71 BY STAKES — 23 TOUCH MONEY/ISOLATION/DEMOS, AND THE SHARPEST IS A FROZEN LAW.** §1099 closed §3's checkable surface and said the 71 prose Lows need reading one at a time. They can be ORDERED: **23 of 74 touch money, tenant isolation, signatures or the acceptance demos**. Took the sharpest — *"device signature does not bind `source`/`party_refs`"* — and re-derived it: `sign.ts@clientView` returns **exactly ten** fields, matching §415. The exclusion is DELIBERATE and stated at the definition: *"exactly the fields a device knows OFFLINE — no seq, no prev_hash, no recorded_at (all server-assigned). This is the signed byte set. **Frozen forever, like the canonical law.**"* So the unbound fields are server-assigned by construction. The row's TITLE names two; its nature cell already says four. |
 | 546 | §1098 | **§1099** | **STOPPING POINT VIII — §3's ENTIRE CHECKABLE SURFACE IS VERIFIED, AND THE REST CANNOT BE.** §1089 found this 92-item tier unswept. It is now closed as far as it can be: **2 High** (both EDI, inert behind a transport proved unwired), **11 Med** (all verified across §1090–§1098), and of **74 live Low** — measured — **0 cite a re-runnable command**, **3 make a counted claim** (all verified here, all owner-held), and **71 are pure prose with nothing to re-run**. So the tier's checkable surface is **16 items, all verified**; the remaining 71 are not stale-*able* by any mechanism available. Board unchanged at 19/2/5 (§1096). L239 stamped with the half I verified and the half two searches did not find — recorded as unverified rather than absent. |
 | 545 | §1097 | **§1098** | **§1097's RULE TESTED — 4 OF 4 REQUIREMENTS LIVE AT THE CONSUMING LINE, AND NO MATCHER CAN PROVE IT.** Checked the four remaining unverified Med rows for an in-code marker. **All four have one**, each in different words: `perf.spec.ts` — *"§963 — THE FLOOR MUST NOT BE A HARDWARE BUDGET IN DISGUISE"*; `fence.ts` — *"detention/dwell math … DEFERRED to a later WP (no detention engine exists yet)"*; `session.ts` — *"a full login screen + lockout policy is still a follow-up"*; `biller.ts` — the photos comment. **Two heuristics found two different subsets and neither found all four**: a vocabulary matcher (`deferred`/`TODO`/`not wired`) hit L207+L209, a `§N` matcher hit L197+L204. First reported *3 of 4 have NO MARKER* — wrong, and the 16th probe-shape error. The property is real and unmechanizable. |
 | 544 | §1096 | **§1097** | **A THIRD CONSUMER WITH NO PRODUCER — AND THE REPO PUTS THE REQUIREMENT WHERE THE BUILDER WILL STAND.** L159 verified exact: `credits.ts` still resolves a credit's tenant from the Checkout Session's `metadata.tenant` (Zod-required non-empty, Stripe-signed — neither establishes it names the RIGHT tenant), and **no code anywhere creates a Checkout Session** — the only `CheckoutSession` references in the tree are that schema and its `.parse()`. Its conditional severity (*Low today, Med the day it ships*) is therefore correct as written. Third instance this session of the same shape: §1092's I4 waiver (consumer, no producer), §1094's doc-cap resolver (producer, unreachable consumer), and this. In each case the requirement is recorded **at the consuming line**, which is the one place the future builder is guaranteed to read. |
@@ -65429,4 +65430,55 @@ session.
 
 **STOP.** §3 is closed to the limit of what any available mechanism can verify. `pnpm delta` clean ·
 `check:citations` 0 · `check:tables` OK · board 19/2/5 unchanged.
+
+## §1100 — PHASE GATE: ordering the unorderable tier, and a gap that is a frozen law
+
+**Why this phase.** §1099 measured that 71 of the tier's Low items are prose with nothing to re-run, and
+concluded they are *"a reading task rather than a gap in my sweep."* True — but a reading task can still be
+**ordered**, and an unordered 71 is indistinguishable from an ignored 71.
+
+### 23 of 74 touch something that matters
+
+Filtering the live Lows for money, tenant isolation, signatures, auth, secrets, lens/visibility and the
+acceptance demos: **23**. Not a priority list handed down — a filter anyone can re-run, over the rows'
+own text.
+
+That is the useful shape: the tier does not need 74 readings before anything can be said about it. It needs 23,
+and the other 51 are genuinely low-stakes prose (a richer cash-app surface, a documented SLA default, a deferred
+voice capture).
+
+### The sharpest one is a deliberate law
+
+**L229 — *"Device signature does not bind `source`/`party_refs`."*** By title, that is a forgery vector: fields
+outside a signature can be altered without invalidating it, on **custody events**.
+
+Re-derived at HEAD rather than inherited. `packages/ledger/src/sign.ts@clientView` returns **exactly ten**
+fields — `id, shipment_id, kind, payload, evidence, actor, ts, device_id, device_seq, captured_ts` — matching
+§415's count precisely. And the definition states why, in the code:
+
+> *"clientView: exactly the fields a device knows OFFLINE — no seq, no prev_hash, no recorded_at (all
+> server-assigned). This is the signed byte set. **Frozen forever, like the canonical law.**"*
+
+The unbound fields are **server-assigned or server-validated by construction**. A device cannot sign what it
+does not know, and signing a server-assigned value would either be a lie or force the server to round-trip
+before the device could sign — which is exactly what an offline-first capture path cannot do.
+
+So the "gap" is the shape of an offline signature, and the row knows it: its fix is *"register note before
+`clientView` frozen-law change"* — a note, because the only real risk is someone widening a frozen law without
+recording it.
+
+One imprecision survives and is now marked: the **title** names two unbound fields; the **nature** cell (scope-
+verified at §415) says four. The row corrects itself one cell to the right, which is where nobody reads.
+
+### What this phase says
+
+> **A title is a claim, and it is the only part most readers use.** *"Device signature does not bind
+> source/party_refs"* is alarming, incomplete, and sits above a cell that already says four fields and explains
+> why. Three phases this session found the same shape — a severity contradicted by its status (§1083), a count
+> corrected in the nature but not the title (here), an exhaustiveness word wrong by one (§1093). **The cell a
+> row is judged by is not the cell the correction lands in.**
+
+**STOP.** The 71-item reading task is ordered rather than left flat — 23 stake-bearing rows identified by a
+re-runnable filter — and the sharpest is re-derived at HEAD as a deliberate frozen law, not a gap. `pnpm delta`
+clean · `check:citations` 0 · `check:tables` OK.
 
