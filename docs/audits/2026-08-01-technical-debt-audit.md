@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 634 | §1186 | **§1187** | **TWO OF THE FIVE ACCEPTANCE-DEMO OPERATOR ROWS UNDERSTATE THEIR BLOCKERS, AND `demos.ts` PREDICTED IT.** §1186 emptied the repo-actionable ledger, so this audits what is NOT yet in it: CLAUDE.md's five demos — the build's own definition of *done enough to show*. The machinery is excellent (manifest parity both directions, all five declared, spine-file existence, a case-count floor, a may-not-be-gutted guard), so the unexamined half is each demo's stated **filmed delta**. **Demo #2:** the operator row's blocker read *"Bind the R4 flag/secret set, then the observed human run"* — binding the flags does **not** make it runnable. **THERE IS NO SIGNUP SURFACE**, re-verified at HEAD with a positive control: 0 references to `/pub/signup` in `apps/`, **0** `<form`, **0** `type="email"`, **0** `onSubmit` (control: 61 `onClick` in the same corpus). **Demo #3:** status read **PILOT**, implying the software is ready; REQ-069 (driver login) is `F0-SPEC'D` and *"a real driver cannot authenticate at all today"*, plus a HIGH-graded custody-parties block. `demos.ts` warns of exactly this — *"disclosed elsewhere ONLY as a browser-TEST gap … reads as a coverage limitation rather than the filming blocker it is"* and *"neither block is visible from this file otherwise"* — **and these rows were that elsewhere.** Demo #1 (photos) and #4 (staging smoke) are accurate; #5 needs no operator row. Both corrected. |
 | 633 | §1185 | **§1186** | **TRIAGED ALL 15 LIVE REPO-OWNED ROWS: THE REPO-ACTIONABLE SET IS EMPTY, AND ONE ROW IS ALREADY FIXED.** §1185 produced the count; this reads every row and asks what actually blocks it. **Row 436 is FIXED** — verified in the code, not inherited: `tenant-scope.test.ts` carries `}, 30_000);` on the §702 assertion, the exact remedy §1052 recorded. It is unstruck only because it holds a watch trigger, so the live figure is **14 open + 1 fixed-with-watch**. Every one of the 14 is blocked by construction: *"not a defect to fix"* (407, 408, 415), *"needs a REQ row first"* (428, 429, 430), *"needs a decision"* / *"needs a definition"* (409, 410, 411), owner-held (412, 413 — *"the fix is one line … but the FIX is an owner decision"*), a private input (416), accepted-for-now (431), and R4-with-a-reverted-fix (432 — written, REVERTED, and §1056 measured the wall as a **dependency** property, `isolatedStorage: false`). **CLAUDE.md forbids building what has no REQ row, so the correct action on all 14 is to leave them.** Also: a keyword scan for resolution markers FALSE-POSITIVED on 416 — its "CLOSED" is *"this gate fails CLOSED in CI"*, a mechanism, not a status. |
 | 632 | §1184 | **§1185** | **THE LEDGER'S DESCRIPTION OF ITSELF UNDERSTATED OPEN DEBT BY NINE ROWS.** §1184's rule — a filed decision inherits the measurement it was filed with — applied to the ledger as a whole. Most rows are well disciplined: they carry `measured <date>, audit §N`, which is the practice. The exception is the row that exists *"so a reader need not count"*: **3 tables to 32 rows — 19 struck, 13 live**. **RE-MEASURED: 3 tables · 49 rows · 27 struck · 22 live.** Corrected and, more usefully, **decomposed** — the section also holds a gate-status table and a COMMAND table, neither of which is debt, so the number a reader actually wants is **table 1: 42 rows, 27 struck, 15 LIVE repository-owned debt items**. My own three attempts prove the decomposition is the point: whole-file **323**, whole-section **49**, table-1 **42** — and the second was only caught because a control printed each row's first cell and revealed `pnpm -s test:e2e …` counted as a debt row. A self-describing count is the one measurement guaranteed to rot, because every edit to the thing changes it. |
 | 631 | §1183 | **§1184** | **FIVE CLEAN NEGATIVES, THEN A STALE MEASUREMENT INSIDE AN OWNER DECISION.** Finished §1183's sweep: `migration-fixture-parity`'s selector has no real blind spot (the only `applyMigrations` callers outside its filter are the migrator itself and the seed loader); `superrefine-parity` is deliberately scoped to one file and states its limits; `booking.ts`'s duplicated window refine is defended on BOTH copies (each mutation reds exactly one test); and the THIRD copy of the device-dedupe rule (`EventBase`) is already filed at §913 as no-consumer public API — verified still true at HEAD and correctly anchored in GO-LIVE:272. The finding is the row beside it: GO-LIVE:273 asks the owner to choose between adding a narrow anchor rule and leaving the substring match, and frames option (a) as *"would flag 0 after this phase's fixes"* with the two known instances *"both now resolved"*. **RE-MEASURED: it flags 2** — `events.ts:290@EventBase` (the SAME citation the filing said was resolved; span 288–292 all comment, declaration at :295) and `migrator.ts:415@idx` (a third instance the filing never knew about; declared at :422). Both verified by reading. The decision is untouched; its cost is now measured instead of assumed. Also: my `.refine(` duplicate probe returned ZERO against a known duplicate — the message was in the `{ message }` object form, which is exactly why the third copy is easy to miss. |
@@ -70498,4 +70499,98 @@ cell, which is the only thing that separates them.
 **STOP.** All fifteen live repository-owned rows triaged against their own text: one already fixed and verified
 in code, fourteen blocked by construction — six of them saying so explicitly — and none buildable without a
 register amendment that is the owner's to make. The repo-actionable open-debt set is **empty**.
+
+## §1187 — PHASE GATE: the demos whose blockers were disclosed in the wrong file
+
+**Why this phase.** §1186 established that the repository-owned ledger holds nothing I may act on. The
+instruction is to keep auditing, so the target is debt **not yet in the ledger** — and the highest-stakes
+un-ledgered claim is CLAUDE.md's five acceptance demos, *"the five acceptance demos that define done enough to
+show."*
+
+### The machinery is not the problem
+
+`tools/acceptance/` is strong: a `DEMOS` registry, manifest parity checked in **both** directions, all five
+declared with at least one spine test, `§607` proving every registered spine file exists, a case-count floor
+(*"`heartbeat.test.ts` is ONE `it()` carrying FORTY-EIGHT assertions"*), and a **§889 may-not-be-gutted**
+guard. Asking "is the registry consistent?" gets a clean answer.
+
+The unexamined half is what each demo **concedes it does not prove** — the `filmed` field, which states the
+delta between the spine test and the real filmed demonstration.
+
+### Demo #2 — binding the flags does not make it runnable
+
+The operator row's blocker read: **"Bind the R4 flag/secret set, then the observed human run."** A reader who
+binds `PROVISIONING_ENABLED` and the secrets would expect a runnable demo.
+
+`demos.ts` says otherwise, and I re-verified it at HEAD rather than inheriting it:
+
+```
+references to /pub/signup in apps/ : 0
+<form  in apps/**/src              : 0
+type="email"                       : 0
+onSubmit                           : 0
+onClick (positive control)         : 61
+```
+
+**There is no signup surface.** `/pub/signup` is a raw JSON API; the only way to sign up is hand-issued HTTP,
+which is *"neither unassisted nor a demonstration of a product."*
+
+### Demo #3 — "PILOT" implies the software is ready
+
+The row's status read **PILOT** and its blocker *"Real tenant-0 driver completes gated stop unassisted."* That
+describes the demo, not what stops it. `demos.ts` names two prerequisites: **REQ-069 driver login is
+`F0-SPEC'D`** — verified in the register — so *"a real driver cannot authenticate at all today"*, and a pickup
+custody handoff **cannot record real parties**, graded HIGH. Both are filed elsewhere in the checklist; neither
+is reachable from the demo's own row.
+
+### The part worth keeping
+
+`demos.ts` predicted both failures, in writing:
+
+> demo 2: *"This is disclosed elsewhere ONLY as a browser-TEST gap … which is why it reads as a coverage
+> limitation rather than the filming blocker it is."*
+> demo 3: *"this is the demo most blocked by absent capability, and **neither block is visible from this file
+> otherwise**."*
+
+**Both sentences are about the operator rows, and both were right.** The author knew the disclosure was in the
+wrong place and wrote that down instead of moving it.
+
+> **A blocker recorded next to the code is a note; recorded next to the decision it blocks, it is a control.**
+> The same fact in the wrong file reads as a caveat about test coverage rather than a reason the demo cannot be
+> filmed — and the person who binds the flags never opens `demos.ts`.
+
+Demo #1's gap (photos absent from the evidence email) **is** filed against the demo. Demo #4's row is accurate
+(a deferred staging smoke, matching its delta). Demo #5 needs no operator row: its delta is the in-repo visual
+capture, with no external prerequisite. So the defect is exactly two of five, and both are now corrected in the
+operator table — naming the unbuilt surface, `F0-SPEC'D` REQ-069, and the HIGH custody-parties block.
+
+**Nothing was built.** A signup surface and driver login are unbuilt product scope requiring register
+amendments; §1186's conclusion is unchanged.
+
+### The correction tripped a gate, for a reason worth keeping
+
+Staging it produced `delta: 1 NEW failure` — `checklist-symbols`: *"every camelCase symbol the checklist
+backticks exists in tracked source."* The offender was **`onSubmit`**, which I had backticked as evidence that
+it appears **zero** times.
+
+The gate is right and the collision is structural: backticks in this checklist mean *"this identifier exists,
+go look at it"*, so a row whose content is **an absence** cannot spell the absent thing in that notation. The
+evidence is now prose — *0 form elements, 0 email inputs, 0 submit handlers* — with the positive control
+(`onClick`, 61) still backticked, because that one does exist.
+
+> **This is §1178's shape again from the other side.** There, a record explaining a bad citation could not
+> quote it in citation form. Here, a record proving a symbol's absence cannot name it in symbol form. Any gate
+> that reads prose eventually collides with prose *about* the thing it gates, and the honest fix is to change
+> the notation, never to widen the rule.
+
+### A guard that caught my own inverted logic
+
+The demo-3 edit was written with a fallback branch and an `assert`, and the assert fired: I had inverted the
+condition so the script aborted on the exact case it was meant to handle. It printed *"unexpected exact-row
+match; aborting"* and changed nothing — a no-op rather than a wrong edit. **A mutation script's
+assert-before-write earns its keep on the author's own control flow at least as often as on a stale pattern.**
+
+**STOP.** All five acceptance demos audited against their own stated deltas: two operator rows understated
+their blockers in ways that would mislead someone preparing to film, both corrected against re-verified
+evidence, and the remaining three confirmed accurate.
 
