@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 613 | §1165 | **§1166** | **§1161's OBSERVATION WAS FALSE — AND I FELL INTO THE TRAP I HAD JUST NAMED.** §1161 concluded I7's *correction pairs net zero* holds structurally with **no test naming it**. `packages/ledger/test/gl-netting.fixture.test.ts` names it exactly: header *"THE WP-02 DoD (I7): correction pairs net to zero through the REAL projection path"*, assertion (a) *"every corrected event: reversed originals + correction credits net to exactly 0"*, against a **vendored hash-pinned seed** — plus journal balance, penny-exact AR total, and zero-leakage division partitioning. I searched `net zero`/`netZero`; the test says `net to exactly 0`. **§1161's own closing line was *"an invariant's NAME is not its VOCABULARY"*** — diagnosed in the same phase, then violated in it. I7 is fully covered; the observation is struck. |
 | 612 | §1164 | **§1165** | **STOPPING POINT XIX — ALL TEN LAWS DECOMPOSED, AND THE LOOP CLOSED ITS OWN FINDING END-TO-END.** Board at `88e0040`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs measured to `REQ-289`. §1159–§1164 finished the constitutional surface — **Law 6** (2 enforced · 1 pending · **1 phantom gate that names a capability the build lacks**), **Law 7** (closing a gap §111 had declared about itself), **I7** (journal balance pinned; correction-pair netting structural) — and demonstrated the loop working end to end: the chained gate **refused a commit** (§1161) → the refusal became **filed debt** (§1162) → the debt was **closed inside an existing convention** (§1163) → the class was **swept and completed** (§1164). Nothing added to the owner's queue. |
 | 611 | §1163 | **§1164** | **THE TIMEOUT CLASS IS COMPLETE — AND COUNTING SPAWNERS WOULD HAVE REPORTED 42 FALSE POSITIVES.** §1163 fixed the four gates I had *observed* failing, which is symptom-driven, so I swept the class. **49** tools tests spawn a child process and **42** carry no per-test timeout — and reporting that would have been §1156's error exactly: most call `git rev-parse` (~10ms), so *spawner* is not the unit of risk. **Measured durations instead:** besides the four I fixed, only **4** assertions exceed 2.5s — `cwd-parity` 12082ms (120_000) · `tenant-scope` 4949ms (30_000) · `spec-collection` 3229ms (30_000) · `lint-guards` 2996ms (30_000) — and **every one already carries an allowance.** The class closed at §1163. Near-miss: I nearly filed *"a row says FIXED but the condition persists"* against `tenant-scope` before checking that §1052 did add its 30s. |
 | 610 | §1162 | **§1163** | **FIXED §1162 SURGICALLY — AND FOUND THE REPO HAD ALREADY SET THE CONVENTION.** §1162 filed the four subprocess gates as an owner decision because a suite-level timeout raises the ceiling on a genuinely hung child. There is a narrower fix that does not: a **per-test** allowance on exactly the four, leaving the suite default at **5000ms** so nothing else moves. Applied (`20_000` ×3, `30_000` for the eslint one), 81 tests green. **The corroboration came after the edit:** `spec-collection.test.ts` already carried `30_000` on a sibling, citing *"the convention already set at `cwd-parity.test.ts` (120_000 for an 11.5s test)"* — so this **extends an existing, documented practice** at ~3× headroom where the precedent uses ~10×. The decision I flagged was real; it just had a narrower answer. |
@@ -68910,9 +68911,9 @@ That is a real mechanism and a good one — the same *shape that makes the viola
 praised in Law 8's DO addressing (§1135). But **no test names it**. Guard 2 would not catch a correction whose
 sign or magnitude was wrong; it would emit a perfectly balanced journal in which the pair does not net.
 
-**Filed as an observation, not a defect**: no such correction can be produced today, because the amount comes
+****CORRECTED at §1166 — the claim below is FALSE.** `packages/ledger/test/gl-netting.fixture.test.ts` names I7 exactly: its header reads *"THE WP-02 DoD (I7): correction pairs net to zero through the REAL projection path"*, and assertion (a) is *"every corrected event: reversed originals + correction credits net to exactly 0"*, run against a vendored hash-pinned seed. I missed it by searching `net zero` while the test says `net to exactly 0` — **the same vocabulary trap this very section diagnosed one paragraph earlier.** Original text kept below, struck, per the supersede-never-rewrite rule. ~~Filed as an observation, not a defect: no such correction can be produced today, because the amount comes
 from the money_line and corrections are projected as signed values. The gap is evidentiary — I7's *named*
-property rests on construction, while the test pins its *sibling*.
+property rests on construction, while the test pins its *sibling*.~~
 
 ### The probe missed it twice
 
@@ -69123,4 +69124,54 @@ the clause from `genesis/11` as vestigial · **1,190 unpushed commits**.
 I7 traced; a self-found gate defect filed, fixed within existing convention, and its class swept to completion
 without escalation; the queue unchanged except for one phantom clause that only a decomposition could have
 surfaced.
+
+## §1166 — PHASE GATE: correcting §1161, which fell into the trap it named
+
+**Why this phase.** §1161 concluded that I7 — *"correction pairs net zero in GL export"* — holds
+**structurally** through paired same-amount emission, and that **no test names it**. It filed that as an
+evidentiary observation.
+
+**The observation is false.** `packages/ledger/test/gl-netting.fixture.test.ts` names it precisely, and says
+so in its own header:
+
+> *"THE WP-02 DoD (I7): **correction pairs net to zero** through the REAL projection path, and the journal
+> reconciles to the uncorrected total to the penny. The seed is the vendored, hash-pinned…"*
+
+Its five assertions cover the property and its neighbours:
+
+| # | assertion |
+|---|---|
+| (a) | *every corrected event: reversed originals + correction credits **net to exactly 0*** |
+| (b) | the journal balances: `sum(debits) === sum(credits)` |
+| (c) | the grand AR total equals the uncorrected 20-shipment total, **to the penny** |
+| (d) | a division filter partitions the journal with **ZERO leakage** (REQ-057) |
+| (d') | invoices carry division and filter |
+
+It runs through `exportJournal` — the **real** path, not a unit stub — against a vendored, hash-pinned seed.
+I7 is not merely structural; it is behaviourally pinned, and better than §1161 supposed.
+
+### How I missed it, in the phase that named the reason
+
+§1161 searched `net zero` and `netZero`. The test says **`net to exactly 0`**. And §1161's own closing rule
+was:
+
+> *"An invariant's NAME is not its VOCABULARY. I7 is written as 'net zero' and implemented as 'nets to
+> 0.00'… the authority is `genesis/10`'s statement plus the code that claims to implement it, never a string
+> search for the statement's wording."*
+
+I wrote that about the **implementation**, then searched the **tests** by the statement's wording anyway. The
+rule was correct, stated in the right phase, and applied to only half the corpus it governed.
+
+> **A lesson learned about one corpus does not transfer itself to the next.** §1161 fixed its vocabulary
+> assumption for source and left it intact for tests, in the same breath. The transferable form is narrower
+> and harsher: **after a vocabulary miss, re-run every search in that phase**, not only the one that failed —
+> because the wording that misled you once is still in your hands.
+
+The original text is **struck in place rather than deleted**, per the ops-record rule, so a reader meets the
+claim, its correction, and the reason together.
+
+**STOP.** §1161's evidentiary observation withdrawn on evidence: I7's named property is pinned by a
+five-assertion fixture test running the real export path against a hash-pinned seed; the miss attributed to
+searching tests by the invariant's wording immediately after diagnosing that exact failure for source; the
+false claim struck in place with the correction beside it.
 
