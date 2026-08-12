@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 663 | §1215 | **§1216** | **I CORRECTED THAT ROW LAST PHASE AND STOPPED ONE LINE SHORT OF ITS TITLE.** §1215 rewrote L408's body — count, enumeration, `workers/api` specifier — and left the headline asserting *the older vitest major carries MOST of the tests*. Measured: **1,854 of 4,205 static sites, 44.1% — a MINORITY** (160 files v3 vs 225 v4). True at §1054 (2,018/2,421 = 83%), made false by GROWTH on the v4 side, not by an edit. Held against three checks: §1054's runtime ratio independently gives 43.7% (0.4 points apart), `.each` density is 1.0% v3 vs 2.3% v4 so expansion WIDENS the gap, and every unmodelled effect pushes the same way. The general rule: §1215's subject was pins, so the specifier got measured and the sentence directly above it did not. The gate's prose carries the SAME number honestly — *"2,018 of the 2,421 measured at §1054"* — and the entire difference is the attribution clause: **a measurement stated without a date claims the present tense.** |
 | 662 | §1214 | **§1215** | **§1213'S RULE RUN AS A SWEEP — 17 OF 22 DEBT ROWS RE-VERIFIED AGAINST THEIR OWN TRIGGERS; TWO STALE, ONE ASSERTING THE OPPOSITE OF THE TRUTH.** Four confirmed by measurement (no coverage config, no pool_binding UNIQUE index, identity still SKIPPED, `quote.priced` genuinely absent from SERVER_EMITTED_KINDS). **L408 said "five packages declare `~3.2.4`" while ENUMERATING SIX — and `workers/api` declared `^3.2.7`, a caret.** Five of six pool-bound suites were tilde-pinned; the largest (70 test files) was not, so a vitest 3.3 would float it alone to a third version line. `check:pinned-deps` is caret-blind BY DESIGN, so the gap sat between a correct gate and a false row. Fixed at zero resolution cost (one specifier line; all six already resolved 3.2.7). L356 drifted 1,016 → 1,278 unpushed commits. The tell: the gate's reason says "all SIX workerd suites", the row says "FIVE packages" — one fact, two numbers. |
 | 661 | §1213 | **§1214** | **STOPPING POINT — BOARD RE-RUN, AND THE YIELD CURVE HAS MOVED FROM CODE TO RECORD.** 26 gates: **19 PASS · 2 FAIL · 5 BLOCKED** at HEAD (measured 18/3/5 at 7fcd125; the third FAIL was section-refs, MINE and in flight, fixed by §1213). Both FAILs are the owner's uncommitted REQ-289 row — the failing test NAMES say so. All five BLOCKED are absent private inputs. **Zero repo-owned failures.** The gate is the yield finding: four consecutive targets (assertion-free tests, collection selectors, the acceptance spine, catch fallback values) were opened and measured ALREADY COVERED, while every defect that did surface — §1213's two — changed zero runtime semantics. Rule extracted: a fix is complete when every artifact DESCRIBING the code is right, not when the code is; neither a comment nor a ledger row is reached by a behavioural test, which is why both survived the phase that fixed their gate. |
 | 660 | §1212 | **§1213** | **TWO STALE RECORDS IN THE GATE §1206 FIXED — LEFT BY THE PHASE THAT FIXED IT.** (1) `cellCount`'s comment described a cells-first split where "a cell with ODD backtick parity absorbs the following delimiter" — logic that exists nowhere, being the §1205 attempt that was REVERTED for merging three rows. It promised a code-span guard the code deliberately omits, inviting the exemption §1204 was filed against. (2) The §1204 debt row sat OPEN for six sections with its own trigger ("when the 24 rows are escaped") already satisfied by §1206. Both survived because §1206 measured the gate's BEHAVIOUR, so artifacts that merely DESCRIBE it were never in frame: a fix is done when every artifact describing the code is right, not when the code is. `check:section-refs` then caught me forward-referencing §1213 three times while writing this — the same defect class, same phase, cost one command. |
@@ -72362,3 +72363,51 @@ and `docs/research`, which this session will not do.
 two found stale, the one with a forward consequence fixed at zero resolution cost, five named as out of reach
 with the reason, and the mechanism — a gate's reason and a checklist row describing one fact with different
 numbers — recorded as the tell.
+
+## §1216 — PHASE GATE: I corrected that row last phase and stopped one line short of its title
+
+**§1215 fixed L408's body and left its headline wrong.** The row's title asserted *"the workspace runs TWO
+vitest majors, and **the older one carries most of the tests**."* §1215 rewrote the cell beneath it — the count,
+the enumeration, the `workers/api` specifier — and never looked up.
+
+**Measured:**
+
+```
+v3 (workerd)   160 files   1,854 tests   44.1%     ← the "most" claim
+v4             225 files   2,351 tests   55.9%
+                           4,205 static test sites across 385 files
+```
+
+The older major is a **minority**. The claim was true when written — §1054 measured 2,018 of 2,421, i.e. 83% —
+and went false by growth, not by edit: the v4 side (tools, apps, packages) roughly doubled while the workerd
+packages did not.
+
+**Three independent checks, because a static count is exactly the instrument §1211 caught lying by 94:**
+
+1. **Cross-method agreement.** §1054's *runtime* 2,018 against this session's ~4,616 total ⇒ **43.7%**. The
+   static scan says **44.1%**. Two unrelated methods, 0.4 points apart.
+2. **The expansion error bounded, not assumed.** `it.each` counts once statically and N at runtime, which could
+   in principle flip a ratio. Density is **1.0%** of the v3 bucket against **2.3%** of v4 — low in both, and
+   *higher on the side that would benefit*, so expansion widens the gap rather than closing it.
+3. **The direction of the error is safe.** Every unmodelled effect pushes v4 up.
+
+### What actually generalises
+
+**The row was checked against reality on the axis I was already looking at, and nowhere else.** §1215's
+subject was *pins* — so the specifier got measured and the sentence directly above it did not, though both make
+claims of the same kind about the same subject. [[check-what-a-discipline-stops-one-line-short-of]] says the
+highest-yield search is adjacency to an applied pattern; this is that rule turned on my own work from the
+previous phase, and it produced a hit on the first try.
+
+**Note also what the gate's prose did right.** `pinned-deps-explained.test.ts` carries the same ratio, and it is
+*not* a defect there, because it is written as **"2,018 of the 2,421 tests measured at §1054"** — dated and
+cited. The identical number is stale in one artifact and honest in the other, and the whole difference is the
+attribution clause. That is the cheapest possible defence against this class: **a measurement stated without a
+date claims the present tense.**
+
+Its other four claims were verified exact this phase, none stale: `@cloudflare/vitest-pool-workers@^0.9.14`,
+`chai: "5.3.3"` in `pnpm-workspace.yaml`, `@playwright/test 1.61.1`, `@axe-core/playwright 4.12.1`.
+
+**STOP.** The headline that survived its own row's correction re-measured and struck, the verdict held against
+a cross-method check and a bounded expansion error, and the rule that separates the honest copy of this number
+from the stale one — a date — written down where the next measurement will be pasted.
