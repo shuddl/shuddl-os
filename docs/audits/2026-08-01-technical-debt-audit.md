@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 581 | §1133 | **§1134** | **STOPPING POINT XIV — THE APPEND-SURFACE ARC, CLOSED.** Board re-earned at `b3e2f0c`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs measured to `REQ-289`. Six phases (§1128–§1133) took one defect and turned it into a complete account of the append surface: **35** kinds catalogued → **27** client-appendable → **9** DO-gated → **5** with a dedicated route and no refusal → **2** confirmed money-authority holes, **3** owner judgements, and **13** route-less kinds of which **5** are gate preconditions — correctly, because there the client IS the sensor. Two instrument corrections en route: a restated number I had never run (**1,190** unpushed, not 137) and grep→catalog after the `kind` collision misled three phases running. **No unresolved defect; two decisions.** |
 | 580 | §1132 | **§1133** | **WHAT PASSING A GATE ACTUALLY MEANS — NOT A DEFECT, BUT A BOUNDARY WORTH WRITING DOWN.** The last unexamined slice: **13** kinds are client-appendable, ungated and route-less, and **5 of them are read by the gates as PRECONDITIONS** (`freight.counted` · `dims.captured` · `freight.photographed` · `seal.applied` · `document.attached`). That looked like §1130's provenance problem generalised — and it is **not**, for a reason worth stating: these kinds have no dedicated route precisely because **the client IS the legitimate sensor**. The gates check them by **presence** (`prior.some(e => e.kind === …)`); the one cryptographic check is the receiver **cosig on the INCOMING** `custody.transferred`, never on a prior. Two priors are stronger (the placed-photo binds `photo_hash === incomingPlaced`), and the money path is byte-verified downstream (REQ-170/§1102). So gate passage certifies **that an authenticated principal asserted these facts**, not that they physically occurred — which is correct, and is not what "gated" reads like. |
 | 579 | §1131 | **§1132** | **STOP GREPPING CONSTRUCTIONS; READ THE CATALOG — AND THE POPULATION BECOMES COMPUTABLE.** The two-level `kind` collision produced a wrong first answer in THREE consecutive phases, so I stopped restating it and changed instrument: `packages/contracts@EVENT_KINDS` is the authoritative list, and it is **exactly 35** — CLAUDE.md's budget, confirmed. Computing against it rather than grepping: **27 of 35 kinds are client-appendable** through `/v1/shipments/:id/events` (35 − 5 server-emitted − 2 dedicated-route refusals − 1 rejected at the DO); **9** of those carry a DO transition gate (§1129); **5** have a dedicated recording route with no refusal (§1131). Every number in this arc now derives from the catalog instead of from a pattern that cannot see nesting. |
 | 578 | §1130 | **§1131** | **THE RULE ENUMERATED: 7 KINDS HAVE A DEDICATED RECORDING ROUTE, 2 ARE REFUSED, 5 ARE NOT.** §1130 said the remedy is a rule and that the rule is enumerable, so I enumerated it — the owner should get the decision CONTENT, not a principle. Refused: `approval.decided`, `authority.flipped`. **Not refused:** `quote.priced` (§1125) · `quote.accepted` (§1130) · `message.sent` (dunning) · `message.received` (portal-actions) · `agent.acted` (paired with /v1/rate). The first two are the confirmed money-authority pair; the other three need a per-kind ruling on whether the dedicated route is the ONLY legitimate producer — I do not assert that it is. Extraction hit the two-level `kind` collision a THIRD time: `rate.ts`'s only literals are `basis` payload entries, which is exactly why §1124's literal-kind sweep missed it. |
@@ -67393,4 +67394,62 @@ apparent §1130 generalisation **withdrawn on the reason it does not apply**; th
 carry evidentiary weight located and quoted; the boundary between *asserted* and *occurred* written down where
 a future reader of "gated" will meet it. Zero source changed — this arc (§1124–§1133) leaves two owner
 decisions and no unresolved defect.
+
+## §1134 — PHASE GATE: STOPPING POINT XIV — the append-surface arc, closed
+
+**Board re-earned at `b3e2f0c`** — full 26-gate `verify:merge`:
+
+**19 PASS · 2 FAIL · 5 BLOCKED**
+
+Unchanged across §1096, §1103, §1110, §1117, §1123, §1127 and now. Both FAILs measured: `check:coverage`
+names `REQ-289`; `delta` accounts for unit-tests (3 failing, all BASELINE). **Zero repo-owned reds.**
+
+### One defect became a complete account of the append surface
+
+| § | question | answer |
+|---|---|---|
+| §1125 | can a client append a priced quote? | **yes** — `quote.priced` is not refused (Med) |
+| §1126 | which append paths take a client-chosen kind? | 2 of 19 · the other 17 are literal |
+| §1129 | which kinds does the DO gate? | **9**, exhaustively, desync-proof at compile time |
+| §1130 | is `quote.priced` alone? | **no** — `quote.accepted` too, and together they forge an authority chain |
+| §1131 | which kinds have a dedicated route but no refusal? | **5** — 2 confirmed, 3 owner judgements |
+| §1132 | how big is the population, really? | **27 of 35**, computed from the catalog |
+| §1133 | are the 13 route-less kinds a hole? | **no** — there the client *is* the sensor |
+
+The arithmetic closes: **35** catalogued · **27** client-appendable · **9** DO-gated · **5** dedicated-route ·
+**13** route-less, of which **5** are read as gate preconditions.
+
+### What is actually open
+
+**Two decisions, one rule.** `quote.priced` and `quote.accepted` are confirmed members of a class whose fix
+is the generalisation the file already applies twice — *any kind with a dedicated recording route must be
+refused by the generic events route*. Three further kinds (`message.sent`, `message.received`, `agent.acted`)
+need a product ruling on whether their dedicated route is the **only** legitimate producer; I declined to
+assert that it is, because padding three unverified kinds onto a finding that stands on two would be
+over-claiming in the direction that looks like thoroughness.
+
+**No unresolved defect.** Everything else in the arc came back sound, twice by *withdrawal* — §1133 retracted
+an apparent generalisation of §1130 on the reason it did not apply, and §1126 bounded the platform route to
+Low on four independently-checked facts.
+
+### The two instrument corrections
+
+Both are mine, and both are the reason the arc's numbers can be trusted now:
+
+1. **A restated number I had never run.** I told the owner "137 commits" unpushed, four times. The measured
+   figure is **1,190**; `origin/main` is at 2026-07-31. Restating feels like recall and is assertion.
+2. **grep → catalog.** The two-level `kind` field (an event's kind vs a money-line's kind inside a payload)
+   produced a wrong first answer in **three consecutive phases**. The fix was not a better regex — it was
+   reading `packages/contracts@EVENT_KINDS`, the declaration, which also derived CLAUDE.md's **35-kind
+   budget** from source for the first time.
+
+> **An arc that ends in two decisions and no open defect is only worth as much as the instruments that
+> produced it.** This one required changing instrument once and correcting a reported number once, and both
+> corrections came from the same reflex: a result that contradicts something already known is the
+> *measurement*, until proven otherwise.
+
+**STOP.** Board 19/2/5 at `b3e2f0c`, both FAILs attributed by measurement; the append surface accounted for
+end to end with every count derived from the declared catalog; two owner decisions filed with their exact
+blast radius and the rule that closes both; two self-inflicted instrument errors corrected in the record
+rather than quietly fixed.
 
