@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 607 | §1159 | **§1160** | **LAW 7 DECOMPOSED — ALL TEN LAWS NOW COMPLETE, AND §111's SELF-DECLARED GAP IS CLOSED.** I claimed after §1159 that all ten were done; **that was wrong — Law 7 was outstanding**, and correcting it is the phase. Its audit half was proved at §111/§252 (twelve rules each failing alone; a planted shadow, over-budget radius and raw hex). Its **screenshot half** is what §111 explicitly did NOT touch — *"the screenshot half runs through a different mechanism the section never touched"*. It is gated: **5 blessed PNGs** with `visual-corpus.test.ts` asserting non-vacuity, **BIDIRECTIONAL** registry↔reference matching, the five canonical WP-03 screens by name, and that **an iCloud collision copy is not mistaken for an unregistered screen** (§673). Ten of ten. |
 | 606 | §1158 | **§1159** | **LAW 6 DECOMPOSED: 2 OF 4 CLAUSES ENFORCED, 1 PENDING A FIXTURE, 1 A PHANTOM — AND I NEARLY CLOSED THE PHANTOM ON A COINCIDENCE.** The last undecomposed law. **QB penny-reconcile** (vendored, 7 tests) and **airplane soak** (in-repo, 2 tests) are real; **legacy-export replay ±2%** is a pending private fixture; **`routes ±10%` has no gate, no manifest row, no REQ row and no routing capability anywhere** — a clause naming a gate that does not exist, in TWO source-of-truth docs. **The near-miss:** I found `PARITY_TOLERANCE_BPS.rating = 1_000` — exactly 10% — and almost concluded the clause was satisfied. It is an unrelated module tolerance. **A number matching is not a claim matching**, and closing it would have removed a live owner decision from the queue on a coincidence of magnitude. |
 | 605 | §1157 | **§1158** | **STOPPING POINT XVIII — THE LEDGER IS EXHAUSTED OF WHAT I CAN REDUCE.** Board at `551421d`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs measured to `REQ-289`. §1151–§1157 did the two things §1152 distinguished: **built enforcement** (three gates, each mutation-proved end-to-end, verified cwd-independent against the defect that once hit sixteen scripts) and **reduced the ledger** — the multi-guard 403 row closed at **zero** through four measurements and no executions, and one owner signature removed. The counted-row sweep then found **no second instance**. Everything remaining needs input from outside the repo: two code decisions, three product rulings, nine fixtures, a denylist, a register row, three demo blockers, and a push. |
 | 604 | §1156 | **§1157** | **§1156's DEFECT WAS SPECIFIC, NOT SYSTEMIC — SWEPT THE OTHER COUNTED ROWS, NOTHING FOLLOWS.** *A count of guards is not a count of risk* invited a sweep: **9** live rows carry a count in their title. Five are owner-held (private fixtures · the denylist · the photos demo · the authority roster §1124 ruled ungateable). The one that matched the shape — *Unbounded list reads, 9 sites* — turns out to be **the best-instrumented item in the ledger**: its count was corrected twice (7 → 8 → 9, the 9th found by enumerating every API list endpoint), and `unbounded-reads-roster.test.ts` (13 tests) **compares the doc's number to `ROSTER.length`** so it cannot drift. Crucially its **unit is right** — each site IS a hazard, where guards were not reachable pairs. The ledger is now exhausted of items I can reduce. |
@@ -68799,4 +68800,68 @@ on a false ground**, and a clause recorded as satisfied that names a capability 
 phantom naming a gate with no implementation, no fixture row and no capability — correctly filed as an owner
 decision and correctly rated Low for producing no false green; a near-miss recorded in which a coincidental
 10% would have closed that decision on the wrong evidence. Zero source changed.
+
+## §1160 — PHASE GATE: Law 7, and the correction that made it necessary
+
+**Why this phase.** §1159 closed with *"all ten laws are now decomposed."* **That was wrong.** Laws 1, 2, 3,
+4, 5, 6, 8, 9 and 10 had been taken apart; **Law 7 had not.** The claim was made by counting the laws I could
+recall rather than by listing the ten and checking each — the same error class this record keeps finding, and
+the correction is the work.
+
+### Law 7's two halves
+
+> *"Design CI: color/contrast/font/case/radius/shadow/motion audits + 5 blessed screenshots. `--signal-deep` is
+> tuned by the contrast test, not by eye."*
+
+**The audit half — proved earlier.** §111 verified the mode file reads `blocking` and the gate sits in the
+non-skippable merge list, with **twelve rules each failing alone**; §252 planted a shadow, an over-budget
+radius and a raw hex, and the gate caught each.
+
+**The screenshot half — the piece §111 declared it had not checked.** Its own words: *"the rule it named is
+'…audits **+ 5 blessed screenshots**', and the screenshot half runs through a different mechanism
+(`playwright-guard.ts`) that the section never touched. 'Both halves' meant mode-file and gate-list of one
+mechanism."* That is a phase flagging its own incompleteness — and, until now, nobody had returned to it.
+
+It is gated, by `tools/checks/visual-corpus.test.ts`, with four assertions:
+
+1. **non-vacuity** — parses the `SCREENS` registry and finds the blessed refs, so a broken parse cannot read
+   as a clean corpus;
+2. **bidirectional** — *every blessed reference is named by `SCREENS`, and every `SCREENS` entry has a
+   reference*, which is the [[two-mechanisms-disagreeing-is-the-finding]] shape solved rather than merely
+   checked: neither side can drift without the other;
+3. **§673's iCloud guard** — *an iCloud collision copy is not mistaken for an unregistered screen*, the same
+   `name 2.png` hazard that produced 40 duplicate files in this repo at §1105;
+4. **the named five** — *"the five canonical screens of WP-03's DoD are all present"*.
+
+On disk: `command.png` · `driver.png` · `evidence-email.png` · `portal.png` · `status.png`. The board's
+`visual — 5 passed` is the same five.
+
+### All ten, and what "decomposed" bought
+
+| law | clauses | strongest evidence |
+|---|---|---|
+| 1 traceability both directions | 2 | end-to-end plant (§1115) |
+| 2 append-only | ~13 shapes | mutation ×2 + purpose-built tests (§1114) |
+| 3 gates server-side | 19 append paths | reading; **not** pattern-decidable (§1126/§1145) |
+| 4 no price on air | 5 | 23 REDs (§1112) |
+| 5 interline share | 4 | **a real defect found and closed** (§1111) |
+| 6 fixtures gate merges | 4 | 2 enforced · 1 pending · **1 phantom** (§1159) |
+| 7 design CI | 12 rules + 5 screens | §111/§252 + `visual-corpus` (this phase) |
+| 8 tenant isolation | 4 | structural pinning + **a new gate** (§1147) |
+| 9 WP exit audits | 16 WPs | **a false claim corrected + gated** (§1142/§1149) |
+| 10 no silent drops | — | mutation-proved (§115/§533) |
+
+Across ten laws the decomposition produced **one real defect** (Law 5's clause 4), **two false record claims
+corrected** (Law 9's, and Law 6's phantom re-confirmed rather than closed), and **three new gates**.
+
+> **A claim about a set is only as good as the enumeration behind it.** "All ten laws" was asserted from
+> memory of the work rather than from the list of laws, and the tenth was missing. This record has caught the
+> same shape in a switch (§1129), a route inventory (§1131), a heading convention (§1142) and a workflow
+> (§1139) — every time, the fix was to *write the members down first*. It applies to my own summaries with no
+> exemption.
+
+**STOP.** Law 7 decomposed into its audit half (proved §111/§252) and its screenshot half (gated by
+`visual-corpus.test.ts` with non-vacuity, bidirectionality, an iCloud-collision guard and the five named
+screens), closing a gap §111 had declared about itself; the overstatement in §1159's closing line corrected;
+**all ten laws now decomposed**, with the yield across them stated. Zero source changed.
 
