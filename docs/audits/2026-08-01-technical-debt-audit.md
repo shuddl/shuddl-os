@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 655 | §1207 | **§1208** | **THE KEY-CONSTRAINT SWEEP CLOSES: THE DANGEROUS SHAPE HAS EXACTLY ONE INSTANCE, AND IT IS THE CONSTRAINED ONE.** §1207 showed a `z.record` KEY doing load-bearing work. Swept all **22** `z.record` uses by extracting each key schema with a paren-matcher rather than a truncating grep: **4 constrained** (`DayOfWeekKey`, `TransitZoneKey` ×2, and the zip regex) and 18 `z.string()`. But an unconstrained key is only hazardous where the consumer matches **fuzzily** — an exact `obj[key]` lookup cannot be fooled by an empty key. Swept the consumers: exactly **three** prefix-matching sites exist. `engine.ts` is the zip map (constrained, §1207); `dunning.ts` matches a **literal constant** (`collector-dunning/`); `mcp/rest.ts` derives its prefix from a hardcoded route template (`/shipments/:id` → `/shipments/`), never from a validated record. **Zero instances of unconstrained-key-plus-fuzzy-match.** The eighteen free-form keys are JSON payloads, EDI raw maps and CSV rows — read by exact lookup, where the constraint would buy nothing. |
 | 654 | §1206 | **§1207** | **§1206's LESSON APPLIED TO DATA: A TRUNCATED EDI SEGMENT CANNOT REACH A PRICE, AND THE GUARD IS A KEY REGEX.** *A malformed structure feeds a smaller input downstream* is not only about markdown — X12 is positional, so a short segment silently yields `undefined` for every later element. Traced the whole path: `parse-204` reads `elements[N]?.trim()` (no crash), `EdiAddress` declares street/city/state/zip **all optional** (so a truncated N4 parses clean), and the shipment reaches the rater with no destination. **It fails closed there**: `matchZone` finds no prefix and the engine returns `UNKNOWN / no_zone` — law 4 holds for the ADDRESS, not just for the weight and dims §820 hardened. The one way to defeat it would be a tariff carrying an **empty** zip prefix, since `"".startsWith("")` is true — and that is **unrepresentable**: `zip_to_zone` keys are `z.record(z.string().regex(/^\d{3,5}$/), …)`. **Mutation-proved**: relaxing the key law REDs a contracts test. The rater suite stays silent and correctly so — the constraint is §1203's *unrepresentable* class, so the schema is the guard and the engine rightly trusts it. |
 | 653 | §1205 | **§1206** | **THE CIRCULAR FIX RESOLVED — AND IT REVEALED A DEFECT THE BROKEN TABLE HAD BEEN HIDING FROM ANOTHER GATE.** §1205 reverted the mechanical escape because a whole-line backtick toggle merged three rows; the correction it specified turns out to be implementable: **split on unescaped pipes FIRST, then a cell with ODD backtick parity absorbs the following delimiter, repeating until even.** All **24** rows repaired to exactly their header count, **0** unresolved. Then the same two ledger gates failed again — and this time they were RIGHT: with cells correctly aligned, the GUARDED_FNS status cell reads **both** `FIXED` and a preserved prior `OPEN`, a real vocabulary violation the mis-split had been **hiding** by truncating the cell the gate reads. Struck the superseded verdict (the row is genuinely fixed — verified in code at §1192). Then tightened `cellCount` to honour only the escape, corrected the unit test that asserted the false premise, and **mutation-proved**: the row that passed at §1204 now REDs. |
 | 652 | §1204 | **§1205** | **THE MECHANICAL FIX WAS ATTEMPTED, AND FAILED FOR A REASON THAT UPGRADES THE FILED ROW: THE PROBLEM IS CIRCULAR.** §1204 filed the table-gate false negative as *"a decision about the record"*; that was over-caution — it is a gate-correctness fix like §1182/§1183/§1188, all taken unilaterally — so it was attempted. Probe controlled first (§1194): counting headers strictly as well as rows leaves the figure at **24**, so header-leniency was not the cause. Escaped all 24, tightened `cellCount` to honour only backslash-pipe, mutation-proved the gate: the row that passed at §1204 now RED. **Then two ledger gates failed** — the naive escaper had MERGED cells on three checklist rows, pairing a backtick in one cell with a backtick in the next. **That is the finding: deciding whether a pipe is inside a code span requires knowing the cell boundaries, which is the thing being computed.** Reverted to HEAD; the filed row now carries the real remedy (parse cells FIRST, then spans within each cell, verified per row). Process: `git checkout -- <path>` restores from the **INDEX**, not HEAD, when a file is staged — my "revert" silently kept the staged gate and I chased a moving target for three probes. |
@@ -71927,4 +71928,46 @@ it is.
 **STOP.** §1206's structural lesson carried into the data path: a truncated EDI tender traced from parse to
 price, fail-closed at the zone with law 4 intact for the address half, and the single schema constraint that
 makes the bypass unrepresentable mutation-proved.
+
+## §1208 — PHASE GATE: where an unconstrained key can actually hurt
+
+**Why this phase.** §1207 found a `z.record` **key** regex holding a real line — an empty zip prefix would have
+priced a shipment with no destination. Key constraints are the least-tested kind, so the population is worth
+enumerating rather than sampling.
+
+### Both halves measured
+
+**Keys.** All **22** `z.record` uses, with each key schema extracted by a paren-matcher (a plain grep truncates
+before any trailing `.regex(…)`, which would have mis-classified the very constraint §1207 turned on):
+
+```
+constrained : DayOfWeekKey · TransitZoneKey ×2 · z.string().regex(/^\d{3,5}$/)
+z.string()  : 18
+```
+
+**Consumers.** An unconstrained key is only dangerous where matching is **fuzzy** — an exact `obj[key]` lookup
+cannot be fooled by an empty key, because the empty key only ever answers an empty query. Sweeping for
+prefix/substring matching over keys yields exactly **three** sites:
+
+| site | prefix source | verdict |
+|---|---|---|
+| `packages/rater/src/engine.ts` | `zip_to_zone` keys | the constrained one — §1207 |
+| `workers/api/src/routes/dunning.ts` | a literal constant (`collector-dunning/`) | not a key at all |
+| `workers/mcp/src/rest.ts` | a hardcoded route template, sliced at `/:` | never schema-derived |
+
+**Zero instances of unconstrained-key-plus-fuzzy-match.** The one place the combination could bite is the one
+place the key is constrained.
+
+### The eighteen are not a backlog
+
+Free-form keys are correct where the map *is* free-form: JSON payload objects, EDI raw code maps, CSV row
+records, the platform append body. Constraining those would buy nothing and would reject legitimate data —
+**a key constraint is worth exactly what its consumer's matching rule makes it worth.**
+
+> **The population that matters is not "unconstrained keys" but "unconstrained keys read fuzzily."** Sweeping
+> the first alone yields 18 findings and no defects; intersecting it with the consumer's matching rule yields
+> one, and that one is already closed. The intersection is the class — either half alone is noise.
+
+**STOP.** The key-constraint class enumerated on both sides — 22 declarations and 3 fuzzy consumers — and the
+intersection that defines the hazard is empty apart from the instance §1207 already proved guarded.
 
