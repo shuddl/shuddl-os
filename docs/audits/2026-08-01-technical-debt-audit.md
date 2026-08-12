@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 625 | §1177 | **§1178** | **A GATE EXEMPTION WITH NO GATE ON WHO MAY CLAIM IT.** `EventInput.source` is `z.enum(["native","legacy","edi","email"])`, and the DO **exempts non-native events from the native physical-precondition gates** (invoice→POD, appointment, dispatch) — so declaring `source:"legacy"` asserts *"the incumbent already did this"* and the DO believes it. The CLIENT half is airtight (both loose-body seams coerce `source="native"`; the other 22 emitters hardcode it — all verified). **The SERVER half was enforced by nothing**: any future route could emit `legacy` directly, which is the likelier regression — a new backfill picks the value that makes the gates stop complaining. Built the closed-set gate: 3 allowlisted producers with reasons. The obvious rule (*every append caller must pin source*) was measured FIRST and **rejected** — 7 of 15 SHIPMENT_SEQ files legitimately do not pin, and an allowlist covering half the corpus is a gate people silence; inverting to positively match the DANGEROUS value gives 3 entries instead of 7 exemptions. Mutation-proved both halves. **Also found: `email` is declared and produced by NOTHING** — an exemption with no seam — and the events.ts comment asserting an *"email pipeline"* was corrected. Third `\s`-in-POSIX-ERE probe error this stretch, caught by a control (0 hits vs 2). |
 | 624 | §1176 | **§1177** | **A REAL HARDENING ON THE MONEY PATH: THE PLATFORM CREDIT SEAM BOUNDED ITS TENANT, ITS VISIBILITY AND ITS `source` — BUT NOT ITS `kind`.** Followed the roster-vs-selector rule to the highest-stakes roster, `AUTHORITATIVE_FILES`, whose own comment admits *"a NEW emitter in a NEW file passes for free."* Its only completeness guard is a SHRINK check, which catches removal and never omission. Enumerated the ledger emitters via the DO addressing seam (10 callers); five are unrostered and four are benign (`approval.decided`, `authority.flipped` — which does consult authority, `message.received`/`quote.accepted` from the portal). The fifth, `internal-platform.ts`, named **no kind at all** — a `z.record` body, so the kind is caller-supplied. **Nothing bounded it: any of the 35 kinds could land on the reserved `_platform` revenue tenant.** The decisive detail is that the SAME seam already received this exact hardening for a different field — WP-15 Task 4b forces `input.source = "native"` two lines below, reasoning *"NOT reachable today … but forbids leaving the latent hole."* **The discipline stopped one field short.** Bounded to the two kinds its sole caller sends (measured: `credits.ts:213` invoice.issued, `:147` payment.received), REJECT not coerce. Mutation-proved (guard → `if (false)` ⇒ 1 failed/16); 17/17 green. Worse than the `source` hole for one reason: events are APPEND-ONLY, so a forged `settlement.executed` on SHUDDL's own books is permanent. |
 | 623 | §1175 | **§1176** | **THE GATE I SHIPPED ONE PHASE AGO HAD A HOLE, AND THE HOLE WAS ITS ROSTER.** §1175's `RESTATEMENT_DOCS` enumerated three root documents. **`genesis/11-REPO-CLAUDE-MD.md` carries a `## Hard budgets (CI-enforced; …)` SECTION of its own** — it is the spec CLAUDE.md was written from — with **8 more restatements** nothing checked. The two are NOT copies (50 differing lines; CLAUDE.md:15 has `12 canonical views (11 used, one spare)` where genesis/11 has bare `12 canonical views`), which is precisely why the VALUES can drift apart unnoticed. All 8 agree today. Fixed by rostering it AND by closing the class: a discovery half requires **every tracked document carrying a `^#+ Hard budgets` heading** to be on the roster — heading, not mention, so declaring is separated from quoting (5 files contain the phrase; exactly 2 declare it). **MUTATION-PROVED twice:** `6 color tokens` in genesis/11 → RED naming the file; a budgets section appended to an unrostered `docs/wp/WP-16.md` → RED naming it. Each fires exactly one test. 15/15 clean. The lesson is the shape: an ENUMERATION acquires holes, and this one acquired its first before the commit that created it was an hour old. |
 | 622 | §1174 | **§1175** | **THE MECHANISM THAT CONCEALED §1173 IS NOW GATED: 22 BUDGET RESTATEMENTS, ONE OF WHICH WAS CHECKED.** §1173's drift was absorbed by CLAUDE.md:5's prose copy of the surfaces figure, so the obvious follow-on is *how many other copies are there*. Measured across the three root governing documents: **22 restatements of the six ceilings**, of which exactly one — the `(N used)` table figure — had a gate. A budget amendment had to be hand-propagated to sixteen places with fifteen unverified. All twenty-two AGREE today, so this LOCKS a clean state (§486's cheap half). Scans **whitespace-normalised whole text, not lines**, because BUILD-PROMPT.md wraps `12` at the end of :85 and `views` at the start of :86 — a restatement invisible to a line scan purely from where the paragraph broke. Distinguishes the CEILING (`≤N tables`) from the USED figure (a bare `21 tables`, which DOCS owns) — two properties sharing a noun. **MUTATION-PROVED at both sites that matter:** `**4 surfaces**` in CLAUDE.md:5 → RED *"restates surfaces as 4, enforced value is 3"*; `≤23 tables` in the wrapped BUILD-PROMPT paragraph → RED *"restates tables as 23, enforced value is 22"*. Only §1175 fires on either, which is the proof both were previously invisible. 13/13 clean; corpus floored at 15 with a per-budget silence check. |
@@ -11015,9 +11016,9 @@ Quick Reference table — the part a reader consults *while implementing a gate*
 | The skill claimed | Cited line actually held | Corrected to |
 |---|---|---|
 | gates `stop.arrived` | a generic gate-block comment | `sequencer.ts:683@stop.arrived` |
-| 403s an unassigned driver | `if (events.length < effective) return null` — a **pagination check** | `routes/events.ts:263@assignmentOf` |
+| 403s an unassigned driver | `if (events.length < effective) return null` — a **pagination check** | `routes/events.ts:267@assignmentOf` |
 | requires the device co-sign | `if (e instanceof Error …) throw new Error(e.message)` — an **error re-wrap** | `sequencer.ts:1215@deviceOwnedBy` |
-| server-emitted money kind refused | `const kinds: EventKind[] = []` — an empty declaration | `routes/events.ts:213@SERVER-EMITTED` |
+| server-emitted money kind refused | `const kinds: EventKind[] = []` — an empty declaration | `routes/events.ts:217@SERVER-EMITTED` |
 
 A reader following the device-co-sign row to check how ownership is enforced would have landed on an
 error-message re-wrap. The behaviours themselves are all correctly implemented and all still there — this
@@ -69811,4 +69812,118 @@ Two details worth keeping:
 
 **STOP.** One real hardening on the money path, mutation-proved, behaviour-preserving for the only caller
 that exists, and derived from a rule the codebase had already written for itself one field earlier.
+
+## §1178 — PHASE GATE: who is allowed to claim a gate exemption
+
+**Why this phase.** §1177 came from adjacency — a discipline applied to `source` and not to `kind` at one
+seam. The inverse question is the natural next one: the `source` field is what §1177's neighbour protects, so
+**is the `source` invariant itself complete?**
+
+### What the field actually does
+
+`EventInput.source` is `z.enum(["native", "legacy", "edi", "email"])`, and it is not cosmetic. The sequencer
+DO **exempts non-native events from the native physical-precondition gates** — invoice→POD, appointment,
+dispatch. A record declaring itself `legacy` asserts *"the incumbent's system already did this"*, and the DO
+believes it. `routes/events.ts` says so in as many words:
+
+> *"A client that could self-declare `source:'legacy'` would BYPASS those gates entirely, forging a 'the
+> incumbent already did this' record."*
+
+### The client half holds; the server half had nothing
+
+Verified all of it. Two seams take a loose `z.record` body and both **coerce** `source = "native"` before the
+DO (`routes/events.ts` and `internal-platform.ts`, both writing `source = "native"` — and the events.ts coercion is correctly guarded, the
+non-object case falling through to `EventInput.parse`). The other **22** emitters hardcode the literal in a
+server-built object.
+
+Nothing stopped a future route or agent from emitting `source: "legacy"` directly. That is not a client attack
+— it is the far likelier regression: **someone wiring a new backfill or import path picks the value that makes
+the gates stop complaining.** Exactly the convenience-shaped failure `rater-purity` and `append-chokepoint`
+exist to prevent, with no lint of its own.
+
+### The rule I did not build, and why that mattered more than the one I did
+
+The obvious formulation is *"every sequencer-append caller must pin `source`."* Measured first:
+
+| | files |
+|---|---|
+| touch `SHIPMENT_SEQ` | 15 |
+| pin `source` | 8 |
+| **legitimately do not** | **7** — transport seams whose inputs are built elsewhere, binding declarations, the DO itself, and the mirror seam whose entire job is emitting `legacy` |
+
+**An allowlist covering half its corpus is the profile of a gate people learn to silence.** Inverting it —
+positively matching the **dangerous** value instead of the safe one — turns 7 exemptions into **3 allowlist
+entries**:
+
+```
+packages/adapters/src/legacy-mirror.ts    the legacy MIRROR draft builder
+workers/agents/src/mirror-sweep.ts        the internal mirror SEAM (the one producer events.ts names)
+workers/translator/src/core/map-204.ts    the inbound EDI 204 mapper
+```
+
+> **When a safe-side rule needs an exemption for half the corpus, the rule is pointed at the wrong side.**
+> Detect the violation, not the compliance — the same inversion that fixed the CLAIM-detector problem, here
+> applied to a boundary that turned out not to be semantic at all.
+
+### Mutation-proved, both halves
+
+| plant | result |
+|---|---|
+| `source: "legacy"` in `routes/approvals.ts` | RED: `workers/api/src/routes/approvals.ts declares source:"legacy"` |
+| the EDI producer retired from `map-204.ts` | RED **twice**: the stale-exemption test *and* the non-vacuity floor, since the producer count fell below 3 |
+
+The second plant reddening two tests is the floor working, not noise: an exemption whose subject vanished and a
+corpus that shrank are both real, and they are different failures.
+
+### Two smaller findings
+
+**`email` is declared and produced by nothing.** A gate exemption with no seam behind it. Recorded rather than
+pruned — the enum is a contract and removing a value is a register question, not a lint's call — and the new
+gate means a producer appearing later gets adjudicated at that moment instead of inheriting the carve-out
+silently. The `events.ts` comment asserting *"the 'edi'/'email' seams are the inbound translator + email
+pipelines"* was **false for email** and is corrected; a comment stating a mechanism can be falsified by the
+code, and this one was.
+
+**Third `\s`-in-POSIX-ERE error this stretch.** `git grep -E 'source\s*=\s*"native"'` returned **0** against a
+literal search's **2** — it missed the two sites I already knew existed, which is the only reason it was
+caught. The control was in the same command.
+
+### Editing a comment broke five citations elsewhere, and the tooling handled it better than I would have
+
+The four-line comment correction shifted `routes/events.ts` by four lines and **rotted five `path:line`
+citations in other files** — two in a skill, three in this audit. `line-numbers-are-not-a-key`, arriving from
+the direction that is easy to forget: the citation rots because of an edit **elsewhere in the cited file**,
+made by someone with no reason to think about who is pointing at it.
+
+`pnpm fix:citations` repaired 2 and **REFUSED 3**, printing why: *"anchor `assignmentOf` appears on 3 lines
+(8, 267, 271) and 0 of them …"*. A tool that guesses here would silently re-point a citation at an import
+statement. Refusing is the correct behaviour and it is the reason the anchors are worth writing.
+
+The three refusals were settled by **comparison, not judgement**: `git show HEAD:<file>` puts the cited line
+263 at the comment, and the working tree puts that same comment at 267. One diff, no reasoning about intent.
+
+Then the **ratchet** caught the follow-on: my own new prose had cited line 203 of `events.ts` bare — an **unanchored**
+citation into a high-churn file, which is precisely what the ratchet exists to prevent, in the same session
+that used its output. One further detail worth keeping:
+
+> **A bare basename citation to an ambiguous filename increments TWO counters.** That one bare `events.ts`
+> line reference was reported
+> as growth against *both* `packages/contracts/src/events.ts` (2→3) and `workers/api/src/routes/events.ts`
+> (1→2), because basename resolution reaches both. One citation, two rotting addresses.
+
+The line had no unique token within the anchor's ±2 window, and the honest answer to that is not a weaker
+anchor — it is **not to write an address at all**. Replaced with a content reference naming the file and
+quoting the assignment, which cannot rot.
+
+And the escape hatch does not apply: writing the rotted citation into this section *as an example* re-tripped
+the gate, and marking it `citation-check: ignore` tripped a DIFFERENT one — *"no tracked file outside the
+scanner's own tree suppresses a citation."* The marker exists, and is usable only by the scanner itself. So a
+document explaining a bad citation cannot quote it in citation form; the text now names the file and the line
+in prose. **That is the permanent false-positive floor of any gate that reads prose** — a record about a
+violation contains the violation — and this build answers it by making the suppression unavailable rather than
+by widening the rule, which is the strictly safer of the two.
+
+**STOP.** The `source` invariant is now closed on both halves: coerced against clients, allowlisted against
+servers, with three named producers, two mutation proofs, a stale-exemption tripwire, and one false comment
+corrected.
 

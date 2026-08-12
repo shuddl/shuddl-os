@@ -190,7 +190,11 @@ export function mountEventRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>):
     // WP-15 Task 4b (REQ-021/022/030) — FORCE source:'native' on EVERY client post, overriding any
     // client-supplied `source`. `source:'legacy'` is a SHADOW mirror record producible ONLY by the internal
     // mirror seam (workers/agents mirror-sweep, which calls the sequencer DO directly — never this route); the
-    // 'edi'/'email' seams are the inbound translator + email pipelines (likewise DO-direct). A client that could
+    // 'edi' seam is the inbound translator (likewise DO-direct). ('email' is DECLARED in the source enum and
+    // produced by NOTHING — measured §1178. The exemption exists with no seam behind it; that is recorded rather
+    // than pruned, because the enum is a contract and removing a value is a register question. The producer set
+    // is now pinned by tools/checks/event-source-producers.test.ts, so an email seam appearing later is
+    // adjudicated at that moment instead of inheriting a carve-out silently.) A client that could
     // self-declare `source:'legacy'` would — now that the DO exempts legacy from the native physical-precondition
     // gates (invoice→POD, appointment, dispatch) — BYPASS those gates entirely, forging a "the incumbent already
     // did this" record. Coercing the source HERE, before the DO append, makes `source:'legacy'` (and 'edi'/'email')

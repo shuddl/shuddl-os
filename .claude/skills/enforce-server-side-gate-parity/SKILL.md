@@ -25,7 +25,7 @@ REQUIRED BACKGROUND: `cloudflare:workers-best-practices` (generic auth). This sk
 ## The RED this closes
 `workers/api/src/routes/positions.ts:15-60` — the raw-GPS write does role-check + `PositionInput` parse + `INSERT OR IGNORE`, with **NO consent lookup and NO `deriveOperatingState`**. But `workers/api/src/do/sequencer.ts:683@stop.arrived` gates `stop.arrived` through `assertConsentBeforeGps`, and `sequencer.ts:92-93` explicitly names this route as the consent owner: *"position.updated ... owned by the positions bypass route, which must enforce the same consent gate."* The bypass shipped the fast path and dropped the gate (REQ-166 CRITICAL bypass).
 
-Same file binds client `p.shipment_id`/`p.device_id` (position.ts:13-14) with **no assignment and no device-ownership check** — whereas `workers/api/src/routes/events.ts:263@assignmentOf` 403s an unassigned driver and `workers/api/src/do/sequencer.ts:1215@deviceOwnedBy` requires the device co-signature to verify before a device may claim a slot. A driver can post GPS for a shipment they aren't on, under any `device_id`.
+Same file binds client `p.shipment_id`/`p.device_id` (position.ts:13-14) with **no assignment and no device-ownership check** — whereas `workers/api/src/routes/events.ts:267@assignmentOf` 403s an unassigned driver and `workers/api/src/do/sequencer.ts:1215@deviceOwnedBy` requires the device co-signature to verify before a device may claim a slot. A driver can post GPS for a shipment they aren't on, under any `device_id`.
 
 ## The pattern: one shared predicate, invoked by BOTH paths
 Factor `assignmentOf`, `deviceOwnedBy` and `streamPrior` into one module (see `reference-predicates.ts`, which exports exactly those three) — in this repo they landed in `workers/api/src/gate-context.ts` so the route and the DO cannot drift. The bypass route re-enforces before its INSERT:
@@ -52,8 +52,8 @@ assertConsentBeforeGps(await streamPrior(db, p.shipment_id), asPositionStamp(p),
 | raw GPS / positions | route owns it (never hits DO) | `assignmentOf` + `deviceOwnedBy` + `assertConsentBeforeGps` |
 | stop.arrived / departed | `workers/api/src/do/sequencer.ts:683@stop.arrived` | n/a — goes through DO |
 | device-namespaced event | `workers/api/src/do/sequencer.ts:1215@deviceOwnedBy` (sig verify) | `deviceOwnedBy` before slot claim |
-| driver write to shipment | route, `workers/api/src/routes/events.ts:263@assignmentOf` | `assignmentOf(db, shipmentId, session.sub)` |
-| server-emitted money kind | refused pre-append `workers/api/src/routes/events.ts:213@SERVER-EMITTED` | reject at every client entry |
+| driver write to shipment | route, `workers/api/src/routes/events.ts:267@assignmentOf` | `assignmentOf(db, shipmentId, session.sub)` |
+| server-emitted money kind | refused pre-append `workers/api/src/routes/events.ts:217@SERVER-EMITTED` | reject at every client entry |
 
 ## Common Mistakes
 - **"The PWA already checks consent / assignment."** A UI-only gate is not a gate (REQ-030). The API path is reachable directly.
