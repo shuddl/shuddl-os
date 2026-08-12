@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 563 | §1115 | **§1116** | **THE $222K DETECTOR ITSELF: 5/5 GUARDS DEFENDED.** Applied §1111's per-guard method to `packages/rater/src/anomaly.ts` — the module that names the permanent regression — using §1112's corrected TOTAL mutation form. Five guards, five REDs: cap-positive-integer (1) · sell-integer (2) · weight-positive-integer (1) · negative-sell (1) · **over-threshold (9)**. The core detection carries nine pins; the input validators carry one or two each, which is sufficient — a single pin is all that stops a silent deletion. Clean negative, zero source changed. With §1112 (Law 4, 5/5) and §1109/§1111 (Law 5, 4 clauses, 1 gap closed), the rater's constitutional surface is now proved guard-by-guard. |
 | 562 | §1114 | **§1115** | **LAW 1 HOLDS IN BOTH DIRECTIONS — AND IT TOOK FOUR PROBES, THREE OF THEM WRONG THE SAME WAY.** Planted a real violation per direction. **Built-but-unspec'd:** a `REQ-999` annotation in live source → gate prints `FAIL built-but-unspec'd`. ✓ end-to-end. **Spec'd-but-unbuilt:** three probes returned GREEN and every one was MY error — REQ-029's only hit is the coverage manifest the scanner **excludes**; REQ-001's singleton was an artifact of scoping to `packages/workers/apps/db` when the scanner also reads `tools`, `docs/wp`, `docs/ops`; and I had assumed `F0-SPEC'D` was deferred when only **vNEXT / CONFIRM-GATED** are. Reading the gate's own pathspec: **zero** active non-deferred REQs are singletons, so no single-file edit can orphan one — the direction is pinned at the FUNCTION level (`specdButUnbuilt` ⊇ REQ-025). §1107's rule, violated three more times in one phase. |
 | 561 | §1113 | **§1114** | **LAW 2's SUMMARY UNDERSTATED IT — 2 MUTATIONS NAMED, ~13 SHAPES DEFENDED. THE MIRROR OF §1111.** Decomposed REQ-002/I3/I7 the §1111 way: **11 append-only triggers** across events/positions/money_lines, whose `WHEN` clauses enumerate distinct REPLACE surfaces. §305 recorded *two* mutations (`events_guard_upd`, `events_guard_del`) — but the suite carries a purpose-built test for **every** shape, three of them titled *"colliding ONLY on X"* (hash · ux_events_device · ux_ml_corrects), plus two I had not enumerated: `INSERT OR IGNORE` of a duplicate and `ON CONFLICT DO UPDATE`. So §1111's error runs BOTH ways: Law 5's summary **overstated** (4 clauses, 1 blind), Law 2's **understated** (2 named, ~13 defended). Done at ZERO wedge risk — `packages/ledger` is pool-workers, so I READ instead of running 11 mutations. Residual stated: presence of purpose-built tests, not mutation proof, for 11 of 13. |
 | 560 | §1112 | **§1113** | **I COMMITTED OVER AN UNIDENTIFIED DELTA AGAIN — WITH THE TOOL I BUILT TO PREVENT IT, IN THE SAME COMMAND.** §1112's commit block ran `pnpm delta` and `git commit` in ONE call. Delta printed **2 NEW failures**; the commit executed anyway, because output is not a precondition. This is §942's lesson verbatim (*"a gate run only gates if the commit cannot execute when it fails"*) and the 4th unidentified-delta commit this session. Three subsequent runs are CLEAN and `pnpm reap` finds no orphans, so the committed content is sound — but the two are **unidentified**, which is exactly the state §1080 was written about. Fix is structural, not resolve: **`pnpm delta && git commit`**, or delta in its own call, read before committing. |
@@ -66383,4 +66384,44 @@ direction that looks like a discovery.
 **STOP.** Law 1 verified in both directions with the asymmetry explained; the gate's real corpus recorded (12
 exclusions, 7 singletons, zero active); three self-inflicted false GREENs attributed to one repeated cause;
 tree clean, `check:traceability` green. Zero source changed.
+
+## §1116 — PHASE GATE: the $222K detector itself, guard by guard
+
+**Why this phase.** §1111 found a real hole by mutating *each guard* of one module rather than crediting the
+law as a whole. The natural place to repeat that is `packages/rater/src/anomaly.ts` — the module that decides
+whether a recorded price is the anomaly CLAUDE.md calls a permanent regression, and the one the Biller's
+`held(anomaly)` outcome depends on (§1102).
+
+Node tests, no `vitest-pool-workers`, so unlike §1114 the mutation route is cheap and safe here.
+
+Five guards, mutated one at a time with §1112's corrected **total** form (`if (false) {`, never `false &&`):
+
+| guard | RED |
+|---|---|
+| `cap` must be a positive integer | 1 |
+| `sell_cents` must be an integer | 2 |
+| `weight_lb` must be a positive integer | 1 |
+| a negative `sell_cents` returns its own result | 1 |
+| **`sell_cents > threshold` — the detection itself** | **9** |
+
+**5/5 defended, 14 REDs.** Restored and re-verified at 168/168.
+
+The distribution is the right shape: the detection rule carries **nine** pins, and the input validators carry
+one or two each. That asymmetry is correct rather than thin — a guard needs exactly **one** honest test to
+stop being silently deletable, which is the property §1111 found missing on Law 5's clause 4. More pins on the
+central rule buy resistance to *subtle* drift; more pins on an argument validator would buy little.
+
+### Where this leaves the rater
+
+| law / module | status |
+|---|---|
+| Law 4 (REQ-004, *no price on air*) | 5 clauses, **5/5** (§1112) |
+| Law 5 (REQ-040, executing share) | 4 clauses, 3 pre-proved + **1 gap found and closed** (§1109/§1111) |
+| anomaly detector | 5 guards, **5/5** (this phase) |
+
+The package that owns *"no price on air"* and *"never gross"* is now proved guard-by-guard rather than
+law-by-name, and the one hole that existed was invisible to every law-level summary.
+
+**STOP.** 5 guards mutated with the total form, 14 REDs, zero silent; baseline restored and re-verified; zero
+source changed.
 
