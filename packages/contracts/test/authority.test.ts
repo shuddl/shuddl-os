@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { AuthorityFlippedPayload, AuthorityModule, LedgerEvent, EventInput, eventFixture } from "../src/index.js";
+import { AuthorityFlippedPayload, AuthorityLevel, AuthorityModule, LedgerEvent, EventInput, eventFixture } from "../src/index.js";
 
 // ─── WP-15 Task 1 (REQ-008/023, Ten Laws L8) — authority.flipped carries a TYPED, self-describing payload:
 // the module, the authority BEFORE (`from`) and AFTER (`to`) the flip, and WHY (reason). gate_snapshot and
@@ -47,6 +47,47 @@ describe("REQ-008/023: AuthorityFlippedPayload is a typed, self-describing flip 
   it("rejects a bad authority level on from/to", () => {
     expect(() => AuthorityFlippedPayload.parse({ ...valid, to: "hybrid" })).toThrow();
     expect(() => AuthorityFlippedPayload.parse({ ...valid, from: "unknown" })).toThrow();
+  });
+
+  // §1180 (REQ-008/023/030) — THE AUTHORITY LEVEL'S COMPLETENESS, in the shape lens.test.ts uses for Role.
+  //
+  // The test above is NEGATIVE: it proves "hybrid" is rejected TODAY. It says nothing about a level that is
+  // legitimately ADDED to the enum later — which is the case that matters, because every consumer in the build
+  // is a two-way ternary keyed on ONE value:
+  //
+  //   packages/ledger/src/authority.ts:43   row.authority === "native" ? "native" : "legacy"
+  //   packages/ledger/src/authority.ts:64   if (authority === "native") return "native";
+  //   workers/api/src/routes/authority.ts   if (to === "native") { … }
+  //
+  // So a third level collapses into the `legacy` branch. That direction is FAIL-CLOSED — it never grants
+  // SHUDDL's native computation authority it was not given — but it is silently WRONG: a genuinely distinct
+  // level would be executed as "the incumbent's system is authoritative" with nothing saying so.
+  //
+  // §1180 swept every enum for this shape. `Role`, `Visibility`, `AuthorityModule` and `MessageChannel` all
+  // carry a classification guard; `AuthorityLevel` was the one money-gating enum without one. This is that
+  // guard, not a new rule — the adjacent case the existing discipline had not reached.
+  /** Levels meaning SHUDDL's native computation is authoritative. */
+  const NATIVE_AUTHORITY = ["native"] as const;
+  /** Levels meaning the incumbent system is authoritative (resolveAuthority's fail-closed default). */
+  const INCUMBENT_AUTHORITY = ["legacy"] as const;
+
+  it("§1180: the declared AuthorityLevel union is exactly what is classified — a new level reds HERE", () => {
+    expect(
+      [...AuthorityLevel.options].sort(),
+      "an AuthorityLevel was added or removed. Classify it: NATIVE_AUTHORITY means SHUDDL's own computation " +
+        "governs; INCUMBENT_AUTHORITY means the legacy system does. Doing nothing is not neutral — every " +
+        "consumer is a `=== \"native\"` ternary, so an unclassified level silently executes as the incumbent's.",
+    ).toEqual([...NATIVE_AUTHORITY, ...INCUMBENT_AUTHORITY].sort());
+  });
+
+  it("§1180: every declared level round-trips through the flip payload (derived, never re-listed)", () => {
+    for (const from of AuthorityLevel.options) {
+      for (const to of AuthorityLevel.options) {
+        const p = AuthorityFlippedPayload.parse({ module: "rating", from, to, reason: "manual" });
+        expect(p.from).toBe(from);
+        expect(p.to).toBe(to);
+      }
+    }
   });
 
   it("rejects a bad reason enum value", () => {

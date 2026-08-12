@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 627 | §1179 | **§1180** | **THE TWO-EDGES RULE SWEPT ACROSS EVERY ENUM — FOUR GUARDS CONFIRMED, ONE GAP CLOSED, AND MY HYPOTHESIS WAS WRONG FIRST.** §1179's rule says an exemption keyed on one enum value leaves every other value free to move. Swept all 25 contract enums. The scariest candidate looked like `lensFor`, whose default branch returns `{scope:"tenant"}` — **the widest scope** — for anything that is not `portal` or `driver`; adding a 7th role **compiles clean**. But it is NOT undefended: `lens.test.ts:430` pins `Role.options` against a classification and says the hazard outright — *"Doing nothing is not neutral — an unclassified role falls through lensFor's default and inherits the most permissive lens there is."* Mutation-proved: the 7th role REDs it. `Visibility` likewise (planted 4th value → RED). `AuthorityModule` ×2 and `MessageChannel` also guarded. `AuthorityLevel` was the **one money-gating enum with no classification guard** — every consumer is a `=== "native"` ternary, so a third level silently executes as the incumbent's (fail-closed, but silently wrong); guard added in the `Role` idiom, mutation-proved. **Controls in both directions in one sweep**: the same method found silence at §1179 and REDs here. Fourth `\b`-in-POSIX-ERE error, this time returning ZERO for a pattern I had just read with my own eyes; and a `git checkout` run from a subdirectory FAILED, leaving a mutation in the tree — caught by `git status`, not by the checkout. |
 | 626 | §1178 | **§1179** | **THE CARVE-OUT IS `legacy`-ONLY, AND ALL THREE BOUNDARIES WERE UNDEFENDED — PLUS A CORRECTION TO §1178.** The sequencer keys **three** independent carve-outs on `source === "legacy"`: the I2 POD gate, the transition-gate short-circuit, and the projection skip. Widening each to `!== "native"` — a **one-token** change, and a plausible one since the same file legitimately uses both idioms — left **65 tests across four suites GREEN**. Test (4) does not catch it: it pins the NATIVE side, and every widening keeps native gated. This is live, not theoretical: `map-204.ts` stamps `source:"edi"` on EVERY EDI-tendered event (WP-12), so a widening silently converts every partner load tender into an ungated, unprojected shadow — no POD requirement, no money_lines, no AR. Three pins added, keyed on `edi` because it is PRODUCED (`email` is emitted by nothing, §1178); **all three mutations now RED, one test each.** **CORRECTION:** §1178 said the DO exempts *non-native* events. Wrong — `legacy` only; `edi`/`email` are fully gated and fully projected, and `NATIVE_VISIBLE_SOURCES = ["native","edi","email"]` says the same thing in the KPI layer. Fixed in three places. |
 | 625 | §1177 | **§1178** | **A GATE EXEMPTION WITH NO GATE ON WHO MAY CLAIM IT.** `EventInput.source` is `z.enum(["native","legacy","edi","email"])`, and the DO **exempts `legacy` events from the native physical-precondition gates** (invoice→POD, appointment, dispatch; `legacy` ONLY — corrected at §1179) — so declaring `source:"legacy"` asserts *"the incumbent already did this"* and the DO believes it. The CLIENT half is airtight (both loose-body seams coerce `source="native"`; the other 22 emitters hardcode it — all verified). **The SERVER half was enforced by nothing**: any future route could emit `legacy` directly, which is the likelier regression — a new backfill picks the value that makes the gates stop complaining. Built the closed-set gate: 3 allowlisted producers with reasons. The obvious rule (*every append caller must pin source*) was measured FIRST and **rejected** — 7 of 15 SHIPMENT_SEQ files legitimately do not pin, and an allowlist covering half the corpus is a gate people silence; inverting to positively match the DANGEROUS value gives 3 entries instead of 7 exemptions. Mutation-proved both halves. **Also found: `email` is declared and produced by NOTHING** — an exemption with no seam — and the events.ts comment asserting an *"email pipeline"* was corrected. Third `\s`-in-POSIX-ERE probe error this stretch, caught by a control (0 hits vs 2). |
 | 624 | §1176 | **§1177** | **A REAL HARDENING ON THE MONEY PATH: THE PLATFORM CREDIT SEAM BOUNDED ITS TENANT, ITS VISIBILITY AND ITS `source` — BUT NOT ITS `kind`.** Followed the roster-vs-selector rule to the highest-stakes roster, `AUTHORITATIVE_FILES`, whose own comment admits *"a NEW emitter in a NEW file passes for free."* Its only completeness guard is a SHRINK check, which catches removal and never omission. Enumerated the ledger emitters via the DO addressing seam (10 callers); five are unrostered and four are benign (`approval.decided`, `authority.flipped` — which does consult authority, `message.received`/`quote.accepted` from the portal). The fifth, `internal-platform.ts`, named **no kind at all** — a `z.record` body, so the kind is caller-supplied. **Nothing bounded it: any of the 35 kinds could land on the reserved `_platform` revenue tenant.** The decisive detail is that the SAME seam already received this exact hardening for a different field — WP-15 Task 4b forces `input.source = "native"` two lines below, reasoning *"NOT reachable today … but forbids leaving the latent hole."* **The discipline stopped one field short.** Bounded to the two kinds its sole caller sends (measured: `credits.ts:213` invoice.issued, `:147` payment.received), REJECT not coerce. Mutation-proved (guard → `if (false)` ⇒ 1 failed/16); 17/17 green. Worse than the `source` hole for one reason: events are APPEND-ONLY, so a forged `settlement.executed` on SHUDDL's own books is permanent. |
@@ -70011,4 +70012,95 @@ Four failed attempts, each corrected by measurement rather than by guessing agai
 **STOP.** Three constitutional carve-outs pinned at the edge nobody had tested, all three mutation-proved from
 silent to RED, and a wrong claim in the immediately preceding section found and corrected in every place it
 was written.
+
+## §1180 — PHASE GATE: sweeping the two-edges rule across every enum
+
+**Why this phase.** §1179's rule — *an exemption keyed on one value of an enum leaves every other value free
+to move to either side* — is a shape, not an instance. The whole point of naming a shape is to sweep it.
+
+### The scariest-looking candidate, and why the hypothesis was wrong
+
+`packages/ledger/src/lens.ts` computes I6's read scope:
+
+```ts
+export function lensFor(s: SessionClaims): Lens {
+  if (s.role === "portal") { … return { scope: "party", partyId } }
+  if (s.role === "driver") return { scope: "driver", userId: s.sub };
+  return { scope: "tenant" };          // ← the DEFAULT is the WIDEST scope
+}
+```
+
+Six roles; two branches. **The default branch is whole-tenant read**, and adding a seventh role
+**typechecks clean** — measured. That is textbook two-edges, at the single highest-stakes dispatch in the
+build.
+
+**And it is already defended.** `packages/ledger/test/lens.test.ts:430` pins `Role.options` against an
+explicit classification, and its failure message states the hazard better than I would have:
+
+> *"Doing nothing is not neutral — an unclassified role falls through lensFor's default and inherits the most
+> permissive lens there is."*
+
+**Mutation-proved:** the planted seventh role REDs it. I did not build a second gate — §1167's lesson (a gate
+built on top of one that already existed, then deleted) applied before writing rather than after.
+
+### The sweep
+
+25 contract enums. Five carry a `.options` completeness guard; the rest were classified by reading:
+
+| enum | guard | verdict |
+|---|---|---|
+| `Role` | `lens.test.ts` | **mutation-proved RED** on a 7th value |
+| `Visibility` | `enum-parity.test.ts` | **mutation-proved RED** on a 4th value |
+| `AuthorityModule` | two tests | guarded |
+| `MessageChannel` | `comms.test.ts` | guarded |
+| **`AuthorityLevel`** | **none** | **the gap — closed here** |
+| `source` | §1178 producers + §1179 edges | a new value defaults to *fully gated and projected* — the safe side |
+| `MessageIntent`, `FacilityKind`, `AuthorityFlipReason`, `AnchorScanStage` | none | metadata; no permissive default |
+
+### The gap, and why it is worth a guard even though it fails closed
+
+Every `AuthorityLevel` consumer is a two-way ternary keyed on one value:
+
+```
+packages/ledger/src/authority.ts:43   row.authority === "native" ? "native" : "legacy"
+packages/ledger/src/authority.ts:64   if (authority === "native") return "native";
+workers/api/src/routes/authority.ts   if (to === "native") { … }
+```
+
+A third level collapses into the `legacy` branch. That direction is **fail-closed** — it never grants SHUDDL's
+own computation authority it was not given — but it is **silently wrong**: a genuinely distinct level would
+execute as *"the incumbent's system is authoritative"* with nothing saying so.
+
+The existing test is **negative** (`to: "hybrid"` throws) and hardcodes two literals, so it catches those two
+names and no others. The new guard is a **classification**: any addition reds until someone decides which side
+it belongs to. Written in the `Role` guard's exact idiom, because the discipline already existed — this is the
+adjacent case it had not reached, not a new rule.
+
+> **A negative test and a completeness guard answer different questions.** *"Is `hybrid` rejected today?"* and
+> *"is every declared value classified?"* — the first cannot see a legitimate future addition, which is the
+> only case where the answer changes.
+
+### The control story, which this sweep happens to demonstrate in both directions
+
+A method that reports "guarded" everywhere is indistinguishable from a method that reports nothing. In the same
+sweep: §1179's three mutations were **silent** (an absence found) and §1180's Role and Visibility mutations were
+**RED** (a presence found). Same technique, opposite results, hours apart — which is the strongest available
+evidence that the "guarded" verdicts are real rather than vacuous.
+
+### Two probe errors, both worth recording
+
+**Fourth `\b`-in-POSIX-ERE this stretch.** `git grep -noE "\b[A-Z]\w*\.options"` returned **zero** — for a
+pattern whose match (`Role.options`) I had read on screen minutes earlier. Every previous instance was caught
+by a control; this one was caught by *knowing the answer already*. The habit is strong enough that the rule is
+now mechanical: **`git grep -E` gets no `\b` and no `\s`, ever — use `-F`, a character class, or `grep -P`.**
+
+**A `git checkout --` run from a subdirectory FAILED and left the mutation in the tree.** The restore printed
+`error: pathspec … did not match any file(s) known to git` — into the same output as the test summary I was
+reading. `git status` caught it. Second restore failure of the session after §1177's uncommitted-file case, and
+the same lesson generalises: **the restore must be verified, never assumed** — its own error message is not
+enough, because it scrolls past the result you were actually looking at.
+
+**STOP.** The two-edges rule swept across every enum: four guards confirmed (two mutation-proved), one real gap
+closed with a mutation-proved guard, one wrong hypothesis corrected before it produced a redundant gate, and
+both probe errors recorded with mechanical countermeasures.
 
