@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 639 | §1191 | **§1192** | **THE ONE RELEASE GATE WITH NO TESTS, AND THE ONLY PATH IT CAN TAKE WAS THE UNTESTED ONE.** Asked which board gates the record never pairs with a mutation: 7 of 31. Three are BLOCKED on private inputs (and `identity-leak` WAS proved at §1002 — my pattern missed the wording, a false positive worth naming). `backup-manifest` is `kind:"external"` (OIDC), correctly unrunnable. Of the three runnable release gates, `preflight` executes fully here (**85 assertions**, 8 unsatisfied prerequisites) and `restore-verify`'s decision surface carries **47 `it()` blocks** — so my *never-proved* hypothesis was about the RECORD's wording, not coverage. **The real finding was in the file listing:** every tool in `tools/deploy/` has a sibling test except **`staging-smoke.ts`**. And `SMOKE_API_BASE` appears in **no workflow**, `smoke:staging` in **no CI job** — so the ONLY path that gate can take anywhere today is prerequisite-absent, which was its entire observable behaviour and was untested. Pinned with 5 assertions; **mutation-proved**: flipping `PREREQ_BLOCKED` → `OK` turns a release blocker into a green light and now REDs on *"a release gate with no environment must not exit 0"*. |
 | 638 | §1190 | **§1191** | **THE RELEASE EVIDENCE'S `assertions` FIELD IS A TEST-RUN COUNT ON EVERY BROWSER GATE, AND I MISREAD IT ONE PHASE AGO.** §1190's board carries per-gate counts, which makes the *hollow gate* shape measurable: `perf` reports **1**, `a11y` 4, `visual` 5, `e2e` 6. Traced to `playwright-guard.ts:141` — `assertions: stats.expected + stats.flaky`, i.e. **test RUNS**, because Playwright's JSON reporter exposes no `expect()` count. Measured against the specs: `perf` is **1 test carrying 5 budget checks** (long-task, frame p50/p95, interaction p95, frame-count floor); `visual` is 1 test × 5 blessed screens; `e2e` is 11 tests / 45 expects. **The contract already warns about this — but only for the SYNTHESIZED case** (*"`assertions: 1` and `detail: "command exited 0"` … means the command succeeded, not that a specific number of assertions held"*), and a real Playwright run reports `detail: "1 passed"`, so rule 5's tell does not fire. Nothing covered the real-run case, which is exactly why §1190 read `perf — 1 passed` as a candidate hollow gate. The perf spec is in fact strong: software-rasterizer detection, cold boot reported-not-budgeted, and a frame-count floor added because a prior CI failure came from that line rather than any budget. Rule 6 added to the misreading list. |
 | 637 | §1189 | **§1190** | **THE FULL MERGE BOARD, RUN AND ATTRIBUTED: 21 PASS · 2 FAIL · 5 BLOCKED · 4,601 TESTS / 3 FAILING.** Seventeen commits this stretch landed on `delta` alone, which only sees test-suite regressions — CLAUDE.md says green means `verify:merge`, so it was run. **Both FAILs are ONE cause, verified not inherited:** the failing assertions are *exactly* the three delta-baseline entries (`coverage.test.ts` ×2 + `traceability.test.ts` ×1), all from the owner's uncommitted REQ-289 row — 288 rows at HEAD against approved terminal REQ-288, 289 in the tree. **All 5 BLOCKED are absent private inputs**: nine unvendored engagement fixtures and the `IDENTITY_DENYLIST` secret. Denominator measured rather than assumed: **22 vitest projects, 4,601 tests**, correcting an undated 4,152. **Traced one anomaly to ground:** `fatal: not a git repository` appeared **5×** — the signature of a gate scanning an empty corpus. Bisected to `invariants.test.ts`, where `findStraySql` deliberately falls back to a filesystem glob outside a git work tree, exercised by tests in a real temp dir and asserted there (*"a stray anywhere else is caught"*). **Correct by design, and fail-SAFE**: the fallback is MORE inclusive than git's ignore-aware listing. |
 | 636 | §1188 | **§1189** | **SWEPT EVERY GATE'S CORPUS; ONE MONEY CHECK EXCLUDED A TREE FOR NO STATED REASON — MEASURED, AND THE EXCLUSION IS RIGHT.** §1188's lesson is that a corpus is a choice nobody revisits. Swept all ~50 gate corpora: almost all are correctly scoped to their subject (a `wrangler.toml` gate scans `wrangler.toml`). One file uses **three different scopes across five checks** — `float-money-division` — and two are justified in their own text (§845 is explicitly *"the pure layer"*; §843 scans all three trees). The main float-division check excluded `apps/` **with no stated reason**. Measured by widening it and running the gate: **exactly one hit, a false positive** — `` `/v1/shipments/${id}/events?limit=200` ``, URL path separators — and **zero real findings**. The FP is STRUCTURAL: `codeSkeleton` deliberately does not blank template literals because they can carry real interpolated arithmetic (`${a / b}`), and front-end code is dense with relative API paths in exactly that position. So the exclusion is correct — money is DISPLAYED in `apps/`, computed server-side — and `apps/` is not unguarded anyway: §843 covers it at the identifier level. **Nothing changed but the record**: the choice is now written down with the number that justifies it, so the next reader revisits it with data instead of re-deriving it. |
@@ -70873,4 +70874,68 @@ reviewer reads.
 **STOP.** The board's own evidence used as an audit instrument, its one outlier traced to a reporter artifact
 rather than a thin gate, the perf spec confirmed strong, and the contract's misreading list extended to cover
 the case that had just caught me.
+
+## §1192 — PHASE GATE: the gate whose only reachable path was the untested one
+
+**Why this phase.** The highest-yield instrument in this record is planting a violation and watching it go
+green. So: **which of the board's gates has the record never paired with a mutation?** Measured across all 31
+gate names in `run-gate.ts` — **7**.
+
+### Four of the seven are answered by reading
+
+- **`identity-leak`** — a **false positive of my own pattern**. §1002 proved it *"detects a planted term, names
+  the file and redacts it."* The record says `planted`, my regex wanted it within 160 characters of the gate
+  name. Worth naming: a keyword-proximity search over prose is a *weaker* instrument than the thing it is
+  auditing, which is the §1187 lesson arriving from a third direction.
+- **`backup-manifest`** — `kind: "external"`, OIDC credentials. Correctly unrunnable in-repo; nothing to plant.
+- **`deploy-preflight`** — executes fully here: **85 assertions**, BLOCKED on 8 unsatisfied prerequisites. A
+  gate that reports `executed: true, assertions: 85` while refusing to pass is doing exactly what it should.
+- **`restore-verify`** — its decision surface carries **47 `it()` blocks**, and the tool itself is written
+  *"PURE over metadata so the whole decision surface is unit-testable without a database."* Well covered.
+
+**So the hypothesis that started this phase was wrong**, and it was wrong in the familiar direction: an
+absence claim derived from my own search. What the search actually found was a *gap in the record's wording*.
+
+### The real finding came from the file listing, not the record
+
+Every tool in `tools/deploy/` has a sibling `.test.ts` — `backup`, `binding-parity`, `preflight`,
+`provision-prod`, `restore-verify`, `snapshot-ledger`, `surface-contract`, `wrangler-scope-parity`. **One does
+not: `staging-smoke.ts`**, 428 lines, a RELEASE-profile gate.
+
+Two files mention it — `gate-wiring.test.ts` and `run-gate.test.ts` — and both check that it is **registered
+and reachable**, which is a different property from what it does when it runs.
+
+**And it can only ever run one way.** Measured: `SMOKE_API_BASE` appears in **no workflow**, and `smoke:staging`
+is invoked by **no CI job**. Its real work needs a deployed environment that nothing supplies. So the
+prerequisite-absent path is not an edge case — **it is the gate's entire observable behaviour on every machine
+and in every pipeline that exists today**, and it was the one thing untested.
+
+> **A gate whose happy path is unreachable has exactly one behaviour, and that behaviour is the fallback.**
+> Testing the unreachable path is impossible; leaving the reachable one untested means the gate has no tested
+> behaviour at all, while looking like a gate with an untested feature.
+
+### The regression it closes, mutation-proved
+
+One token: `EVIDENCE_EXIT.PREREQ_BLOCKED` → `OK`. That converts a release blocker into a green light on a gate
+whose green nobody can distinguish from a real smoke run without reading the JSON. `run-gate.ts` reads the exit
+code first.
+
+```
+expected +0 to be 2   — "a release gate with no environment must not exit 0"
+Tests  1 failed | 4 passed
+```
+
+Five assertions pin the contract: an evidence line exists at all (non-vacuity — a silent run must not satisfy
+the parse), the exit is `PREREQ_BLOCKED` and specifically not `OK`, the line reports
+`BLOCKED / executed:false / assertions:0` (*a skip may not wear a green coat*), the `detail` names
+`SMOKE_API_BASE` so the verdict is actionable, and the prose half says nothing was exercised.
+
+Spawned rather than imported, deliberately — the file exports nothing and reads its environment at module
+scope, so importing it would evaluate the inputs under test; spawning also exercises it exactly as
+`run-gate.ts` does. The child's environment has the three prerequisites **deleted, not blanked**, because an
+empty string and an unset variable are different inputs to a `??`.
+
+**STOP.** The board's gates swept for missing mutation proofs, four resolved by reading (one of them a false
+positive in my own probe), and the genuine gap — the single deploy tool without a test, whose only reachable
+path was its untested one — closed and mutation-proved.
 
