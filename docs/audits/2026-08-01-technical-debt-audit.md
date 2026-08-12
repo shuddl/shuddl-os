@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 617 | §1169 | **§1170** | **STOPPING POINT XX — FOUR SELF-CORRECTIONS, EACH FOUND BY APPLYING A RULE BACKWARDS.** Board at `2f17d87`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs measured to `REQ-289`. §1166–§1169 corrected **my own** output, not the build: §1166 struck a false I7 observation (I searched `net zero`; the test says `net to exactly 0` — the trap that phase had just named) · §1167 **deleted a gate I built** that already existed, proved by watching the pre-existing one catch my plant · §1168 finished that sweep on all three gates (2 survive) · §1169 verified the deletion across four signals. **Net enforcement this session: 2 gates**, both mutation-proved, non-duplicate, cwd-independent. |
 | 616 | §1168 | **§1169** | **POST-DELETION HYGIENE: THE REMOVAL IS CLEAN, VERIFIED RATHER THAN ASSUMED.** §1167 deleted a file; a deletion leaves dangling references that not every gate catches, so it needed checking rather than trusting. The only surviving `tenant-source` string is a **comment** in `supply-chain.test.ts:22` about *"tenant-source allowlists"* (§571) — a different concept, not a reference. Both surviving gates are **collected** by `vitest.tools.config.ts` (so they run in the unit-tests merge gate); the deleted one is **not**. Tools assertions **1271 → 1265**, exactly the six removed. `check:citations` green, so no `path:line` pointed at it either. |
 | 615 | §1167 | **§1168** | **THE DUPLICATE SWEEP FINISHED UNIFORMLY: 2 OF 3 GATES SURVIVE.** §1167 removed §1147's gate but had checked only two of my three additions — and for §1148 I had verified the *convention*, not whether a **gate** already existed, which is the same gap one level down. Completed it: `constant-time-compare.test.ts` guards **how** a secret is compared (§802 — no `===` on a secret value), `wrangler-absence-claims.test.ts` guards **where** secrets are declared; **neither** asserts a credential is compared against `""`. §1148 stands, and is complementary rather than overlapping. §1149 confirmed distinct at §1167 (`wp-blocker-staleness` checks staleness, not presence). **Final: 3 built, 1 removed, 2 kept.** |
 | 614 | §1166 | **§1167** | **§1147's GATE WAS A DUPLICATE — BUILT WITHOUT SEARCHING THE RECORD, AND NOW REMOVED.** Applying §1166's rule retroactively to my own three gates: §1148 I checked against existing practice (and found the polarity convention); **§1147 I did not**. `tools/checks/tenant-scope.test.ts:312` already asserts *"no call site sources its tenant from request input"* — and planting the exact `?? session.tenant` shape mine was built for turns **the pre-existing gate RED**, naming `board.ts:171`. It is also **broader**: `scanCorpus` with `EmptyGlobError`, three non-vacuity assertions, and §826's allowlist-membership pins. Two gates for one rule is the drift hazard this repo has a skill about, so mine is **deleted**. §1140's lesson, unlearned and re-paid. |
@@ -69305,4 +69306,43 @@ it, provided the expected delta is stated **before** looking (six tests in the r
 **STOP.** The §1167 deletion verified across four independent signals — reference search, collection
 membership, assertion count against a pre-stated delta, and the citation gate; the single surviving string
 identified as a legitimate shared-phrase collision rather than cleanup work. Zero source changed.
+
+## §1170 — PHASE GATE: STOPPING POINT XX — the arc that audited the auditor
+
+**Board at `2f17d87`** — **19 PASS · 2 FAIL · 5 BLOCKED**, unchanged across eleven stopping points; both FAILs
+measured to `REQ-289`. **Zero repo-owned reds.**
+
+### This arc corrected me, not the build
+
+| § | correction |
+|---|---|
+| §1166 | §1161's *"no test names I7"* was **false** — `gl-netting.fixture.test.ts` names it in its header and asserts it five ways. I searched `net zero`; the test says `net to exactly 0` — **the exact vocabulary trap §1161 diagnosed one paragraph earlier** |
+| §1167 | §1147's gate **already existed**. Planting the shape it was built for turned the *pre-existing* `tenant-scope.test.ts:312` RED. Deleted |
+| §1168 | that duplicate check had run on **two of three** gates; completed it — `credential-blank-guard` verified distinct from §802's comparison-method gate |
+| §1169 | the deletion verified across four signals: references, collection, assertion count against a **pre-stated** delta (1271 → 1265), citations |
+
+**Every one was found by applying a rule I had just written to work I had already shipped.** The rules were
+correct when written and applied only forwards; the corrections came from turning them around.
+
+### What this session's enforcement actually amounts to
+
+**Two gates**, not three: `credential-blank-guard.test.ts` (REQ-154) and `wp-exit-audit.test.ts` (REQ-119) —
+each mutation-proved end to end against real source, each verified non-duplicate, each cwd-independent by
+`repoRoot()` and checked from a subdirectory. A 33% duplication rate on new enforcement, discovered only
+because the check was eventually run on its own output.
+
+> **A rule applied only forwards is half a rule.** Every correction in this arc existed the moment the rule
+> was written — §1161's vocabulary trap was live in the same phase, §1147's duplicate was one `git grep` away
+> — and none surfaced until the rule was pointed backwards. The cheap habit is not "remember the rule" but
+> **"re-run the last phase's rule against the last phase's output."**
+
+### Owner-held, unchanged
+
+The two-kind rule + three product rulings · `REQ-289` · nine private fixtures + `IDENTITY_DENYLIST` ·
+REQ-267 · three demo blockers · unbounded-reads keyset (needs a REQ row, **not** a bare `LIMIT`) ·
+`routes ±10%` (register row, or strike as vestigial) · **1,190 unpushed commits**.
+
+**STOP.** Board 19/2/5 at `2f17d87` with both FAILs attributed; four self-corrections recorded in place rather
+than quietly fixed; the session's enforcement settled at two verified gates after one was removed as
+redundant; the backwards-application habit named as the mechanism that found all four.
 
