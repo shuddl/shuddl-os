@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 650 | §1202 | **§1203** | **ALL EIGHT SCHEMA INVARIANTS CLASSIFIED BY ENFORCEMENT KIND — NONE IS TEST-ONLY.** §1202's real result was that of three identical keys, the only OPEN one was the only one enforced by a TEST: a DB constraint and a runtime belt cannot be forgotten, a test can simply never have been written. That inverts into the sharpest production-readiness question available — **which constitutional invariants rest on a test alone?** Classified I1–I8 by what actually stops a violation: I1 a FOREIGN KEY · I2 a runtime gate (`assertPodSigned`) · I3 DB triggers + the append-chokepoint lint · I4 a SCHEMA refusal (it refused three of my own payloads at §1179) · I5 a schema `.min(1)` on `rate_config_ids` · I6 the lens, with 44 adversarial assertions incl. non-importing guards · I7 **construction** (`amount_cents: -o.amount_cents`) + a UNIQUE index preventing double-reversal + a fixture · I8 a lint with `TABLE_BUDGET`, which is the correct enforcement for a GOVERNANCE rule since no runtime can stop a migration. **My I7 hypothesis was wrong** — I predicted test-only and measurement found three layers. Mutation-proved the one layer never mutated: dropping the negation REDs **6 tests across 2 files**. |
 | 649 | §1201 | **§1202** | **THE COMPOSITE-KEY SWEEP CLOSES: THE OTHER TWO KEYS ARE DEFENDED, ONE OF THEM TWICE.** §1201's shape — *a key that must keep two things apart* — has three instances. The parity dedup key was the open one. The **DO address** keyed on tenant-plus-stream is what makes REQ-025 structural, and it holds **belt and braces, both mutation-proved**: dropping the tenant from the address at `routes/events.ts` fires the DO's OWN identity check in `sequencer.ts` (*"the caller-declared identity must re-derive to OUR OWN id"*, 403 FORBIDDEN), and removing that check REDs a named test. The third, the offline dedupe key, is enforced by the DATABASE — a UNIQUE INDEX `ux_events_device` over (stream_id, device_id, device_seq) — so a collapsed key is a constraint violation, not a silent merge. **Diagnosability note, not a defect:** the address mutation surfaces as *"seed iso-pub-4-shipment/booking failed: 403"* — a seed throwing, not a named isolation assertion, so the guard fires while the message does not say *tenant isolation*. And the run reported `Test Files 1 failed` with `65 passed | 2 skipped` — a file-level failure my summary pattern missed, the second such near-miss in three phases. |
 | 648 | §1200 | **§1201** | **A SECOND REAL GAP FROM THE SAME MECHANISM: PARITY'S DEDUP KEY COULD CONFLATE THE TWO SIDES IT EXISTS TO SEPARATE.** §1197's deeper lesson — *a check whose inputs share a source cannot see what that source loses* — applied to **parity**, which authorises authority flips (REQ-008/023) on the money path. Both sides come from ONE query split by the `source` column, so the question is whether the split can fail. Three metric paths, each mutated to double-attribute: `count` **2 RED**, `sum` **6 RED** — defended. The third, `latestSumBySource`, dedups on `${source}|${stream_id}` *"so a native quote and a legacy mirror quote on the SAME stream are deduped independently"* — its own comment. **Dropping `${source}|` from that key left the ENTIRE ledger suite green: 698 passed.** Every existing rating case seeds the two sides on DIFFERENT shipments (`rat-p-nat`/`rat-p-leg`), so the fold was never exercised. On a mirrored stream the collision discards one side's quote entirely and parity compares two incomplete aggregates. Pinned with a same-stream case asserted as a DELTA; the mutation now REDs naming the vanished side. |
 | 647 | §1199 | **§1200** | **THE SHARED-PROJECTION SHAPE SWEPT BEYOND THE LEDGER: THE TWO PUBLIC CAP SURFACES ARE SAFE, BY A FOURTH MECHANISM.** §1199's corrected discriminator — *one projection feeding both sides of a verification* — applies wherever a producer and a verifier exist. Outside the ledger that is the capability MACs gating the only unauthenticated endpoints: `/pub/status/:cap` (`{t,s}`) and `/pub/documents/:cap` (`{t,k}`). **The shape does not apply**: both are JWTs, so the MAC covers the ENTIRE payload and `verify` never rebuilds a projection — it checks the signature over the raw token. The live risk there is the different one this record has met (*parsed but unconsumed*), and both consumers bind every claim with **no request-supplied alternative to confuse**: status resolves the tenant DB from `claims.t` and binds `claims.s` into both queries; documents confines `claims.k` to `evidence/${claims.t}/` before the R2 read, so even a MAC-valid cap cannot leave its own tenant. **Mutation-proved**: removing that confinement REDs a test. Four mechanisms now measured across every verification-bearing projection in the build — shared+allowlist (the one gap), shared+denylist, inverse pair, and whole-payload MAC. |
@@ -71615,4 +71616,56 @@ notation, never the check. The key is now named in prose, and the citation carri
 **STOP.** The composite-key population enumerated and closed: one gap found and pinned last phase, one defended
 by a structural belt proved in both directions, one enforced by a unique index — and the observation that the
 only open instance was the only one whose enforcement was a test.
+
+## §1203 — PHASE GATE: what actually stops each of the eight
+
+**Why this phase.** §1202's finding was not "the parity key was open" — it was **why**: of three keys doing the
+same job, the open one was the only one whose enforcement was a **test**. A foreign key and a runtime assertion
+cannot be forgotten. A test can simply never have been written for the case, and nothing about the code says so.
+
+That inverts into the sharpest production-readiness question this record can ask: **which constitutional
+invariants rest on a test alone?**
+
+### I1–I8, by what actually stops a violation
+
+| | invariant | enforcement | kind |
+|---|---|---|---|
+| I1 | no money_line without event | `event_id TEXT NOT NULL REFERENCES events(id)` | **DB constraint** |
+| I2 | no invoice without pod.signed | `assertPodSigned` before the append | **runtime gate** |
+| I3 | no event edit/delete at DB level | append-only triggers + the append-chokepoint lint | **DB + lint** |
+| I4 | custody co-signed or `unwitnessed` | `EventInput` refuses to parse | **schema** |
+| I5 | every quote pins rate_config versions | `rate_config_ids: z.array(z.string()).min(1)` | **schema** |
+| I6 | visibility respected by every view | the lens, plus 44 adversarial assertions including guards that do **not** import the map under test | **runtime + adversarial** |
+| I7 | correction pairs net zero | `amount_cents: -o.amount_cents` **by construction**, a UNIQUE index (`ux_ml_corrects`) forbidding a second reversal, and a fixture | **construction + DB + fixture** |
+| I8 | any 22nd table = build failure | `TABLE_BUDGET` in `check:invariants` | **lint** |
+
+**None is test-only.** Seven are stopped by something that cannot be forgotten — a constraint, a parse, a
+runtime throw, or arithmetic that makes the violation unrepresentable. The eighth, I8, is a **governance** rule:
+no runtime can stop someone writing a migration, so a lint *is* the correct enforcement, and it carries its own
+test that the lint fires (*"fails when migrations create a 23rd table"*).
+
+### The prediction that was wrong
+
+I expected **I7** to be the test-only one — "correction pairs net zero in GL export" reads like a property only
+an export test could check, and the record's only hits were two test files. Measured, it has **three** layers,
+and the strongest is the one that never appears in a search for the invariant's words: the credit line is
+`-o.amount_cents`. **Netting is not checked; it is arithmetic.**
+
+> **The strongest enforcement is the one that makes the violation unrepresentable, and it is invisible to a
+> search for the rule's name.** I7's netting, I4's parse refusal and I1's foreign key share that property —
+> none of them would be found by grepping for the invariant, which is exactly why classifying by *mechanism*
+> rather than by *mention* changes the answer.
+
+Mutation-proved the one layer that had never been mutated in this record: dropping the negation — a "reversal"
+that adds instead of nets — **REDs 6 tests across 2 files**.
+
+### What this closes
+
+The eight invariants now have a stated enforcement *kind*, not just a verdict. That is the durable artefact:
+a future reader asking "how safe is I5?" gets **schema** rather than "green at some SHA", and the fragile class
+§1202 identified is measured empty.
+
+**STOP.** All eight schema invariants classified by what actually stops a violation; none rests on a test alone;
+one wrong prediction of my own corrected by measurement; and I7's construction layer mutation-proved for the
+first time.
 
