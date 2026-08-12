@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 598 | §1150 | **§1151** | **CHECKED MY OWN THREE GATES AGAINST THE FAILURE MODE THAT ONCE HIT SIXTEEN SCRIPTS — CLEAN.** This repo fixed **16** gates for CWD-dependence, whose worst form is *a pass over nothing* (`design-audit` once printed `clean` from the wrong directory). My three new gates resolve their corpus through `repoRoot()` → `git rev-parse --show-toplevel`, which returns the identical path from the root, `workers/api/src` and `docs/wp`; run from a subdirectory, `tenant-source` still passes **6/6 including its >25-call-site floor**. The repo enforces this **behaviourally** — `cwd-parity.test.ts` runs every package.json gate from a subdirectory and compares verdicts — which is why `repo-root.ts` may legitimately contain `process.cwd()`: it is the FIX, and a lint on the mechanism would flag it. |
 | 597 | §1149 | **§1150** | **STOPPING POINT XVII — THE READ CLASS WORKED DOWN TO WHAT CANNOT BE MECHANISED.** Board re-earned at `277cc5b` **with the three new gates in it**: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs measured to `REQ-289`; tools tests **1,255 → 1,271**. §1146 graded the session's verdicts and found the READ class right but not re-runnable; §1147–§1149 converted **three** of them into mutation-proved gates — tenant-never-from-client-input · no-blank-credential · every-WP-records-its-exit-audit. The remainder is ruled OUT on evidence, not skipped: Law 3's `input`-passing routes, R2 key derivation and the uncalled-exports classification each failed a control (§1122/§1145). **Three gates, three files, +16 tests.** |
 | 596 | §1148 | **§1149** | **THIRD READ-CLASS VERDICT HARDENED — AND THIS ONE GATES THE CLAIM THAT WAS FALSE FOR WEEKS.** §1148's test for hardenability (danger positively matchable, legitimate forms enumerable) rules R2 key-scoping OUT — the key is a variable — and Law 9's WP exit-audits **IN**. Built `tools/checks/wp-exit-audit.test.ts` (REQ-119): every `docs/wp/WP-*.md` must carry an exit-audit heading. Its **boundary test pins all THREE drifted conventions**, because matching only one produced §1142's *"4 of 16"* artifact — the shape of the false claim that stood in the checklist for weeks framed as an owner decision. A separate test rejects a passing prose MENTION, which was §1142's *first* wrong answer. Mutation-proved: renaming WP-13's heading turns it **RED**. |
 | 595 | §1147 | **§1148** | **SECOND READ-CLASS VERDICT HARDENED: A BLANK CREDENTIAL CANNOT READ AS A CONFIGURED ONE.** §1108 verified by READING that all seven credentials test `!== undefined` **and** `!== ""` — the second half being the one that matters, since an empty `wrangler secret put` satisfies a presence check and yields a LIVE client holding a blank credential. Now gated: `tools/checks/credential-blank-guard.test.ts` requires an empty-string comparison on every local bound from a `*_SECRET`/`*_KEY`/`*_TOKEN` binding. **Polarity is deliberately not prescribed** — this build uses both (`secret !== undefined && secret !== ""` and `if (token === undefined \|\| token === "")`), and a gate demanding one would red the other. Mutation-proved end to end: stripping the `!== ""` half from the real `STRIPE_WEBHOOK_SECRET` selector turned it **RED**, naming the binding. |
@@ -68329,4 +68330,46 @@ thing standing between this board and 21 PASS.
 **STOP.** Board 19/2/5 at `277cc5b` with the three new gates included and both FAILs attributed; the read
 class reduced by three verdicts, each now mutation-proved and re-runnable by anyone; the three that cannot be
 mechanised ruled out on evidence with the failing control named for each; tools coverage +16.
+
+## §1151 — PHASE GATE: checking the new gates against the defect that hit sixteen scripts
+
+**Why this phase.** §1147–§1149 added three gates. Before treating them as enforcement, they should be checked
+against this repo's best-documented gate defect — **CWD-dependence**, which `cwd-parity.test.ts` records as
+having been fixed in **sixteen** scripts one at a time, and whose worst manifestation is not a crash but:
+
+> *"a pass over nothing — `design-audit` printed `clean` and `invoice-parity` printed …"*
+
+A gate that reports OK because it read an empty corpus is the exact failure my three were built to avoid, and
+"I used `repoRoot()`" is a claim, not a check.
+
+### Verified, two ways
+
+**Mechanically:** `repoRoot()` is `execSync("git rev-parse --show-toplevel")`, which returns the identical
+path from the repo root, from `workers/api/src`, and from `docs/wp`. Cwd-independent by construction, not by
+convention.
+
+**Behaviourally:** run from `workers/api/src`, `tenant-source.test.ts` passes **6/6** — including its
+non-vacuity floor of >25 call sites, which is the assertion that would fail first if the corpus had come back
+empty. That floor doing its job from the wrong directory is the whole point of having it.
+
+### How the repo enforces this, and why it is the right shape
+
+`cwd-parity.test.ts` (REQ-118 §559) does not lint for `process.cwd()`. It **runs every gate derived from
+`package.json` from a subdirectory and asserts the same verdict, or a fail-closed one** — behaviour, not
+mechanism. Two consequences worth recording:
+
+1. **`repo-root.ts` legitimately contains `process.cwd()`** — as the default parameter of the very helper that
+   fixes the defect. A mechanism-lint would flag the fix itself; a behavioural test cannot.
+2. **My three gates are not in that corpus**, because it is derived from `package.json` scripts and they are
+   vitest-collected test files. That is not a gap: vitest sets its own root, so a test file's cwd is fixed by
+   the runner — and I verified the subdirectory case directly anyway rather than relying on that.
+
+> **The repo's answer to a defect class is a behavioural parity test, and mine should be judged the same way.**
+> Checking that a gate *uses the right helper* is checking the mechanism; running it from the wrong directory
+> and watching the floor fire is checking the behaviour. Only the second would have caught the sixteen.
+
+**STOP.** The three new gates verified cwd-independent mechanically (identical `git rev-parse` from three
+directories) and behaviourally (6/6 from a subdirectory, floor intact); the repo's enforcement identified as a
+behavioural parity test over `package.json` gates, with the reason a mechanism-lint would be wrong recorded;
+the new gates' absence from that corpus explained rather than filed. Zero source changed.
 
