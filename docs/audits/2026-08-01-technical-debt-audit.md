@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 664 | §1216 | **§1217** | **THE SIGNUP ORACLE'S CONTAINMENT RE-VERIFIED — AND THE QUESTION ITS ROW NEVER ASKED.** L431's email-existence oracle is a founder UX call, so not this session's to change; its CONTAINMENT is. All four parts hold (409 mapping at `:93`, route 404s behind the flag, EXACT `=== "true"` so no truthy value opens it, flag absent from wrangler.toml), pinned across exactly 5 test files, and the row's snippet-keyed citation correctly predicted the drift from `:94`. The row never asks whether that flag guards EVERY path — so: `provisionTenant` has **exactly one caller**, the flag is checked **twice** on it (route AND function), and there is **exactly one production INSERT INTO users**, inside it. Unreachable by CONSTRUCTION, not merely by configuration. Limit stated: a dashboard/secret-set var is outside repo evidence — part four proves this repo ships nothing on, not that no deployment has it on. |
 | 663 | §1215 | **§1216** | **I CORRECTED THAT ROW LAST PHASE AND STOPPED ONE LINE SHORT OF ITS TITLE.** §1215 rewrote L408's body — count, enumeration, `workers/api` specifier — and left the headline asserting *the older vitest major carries MOST of the tests*. Measured: **1,854 of 4,205 static sites, 44.1% — a MINORITY** (160 files v3 vs 225 v4). True at §1054 (2,018/2,421 = 83%), made false by GROWTH on the v4 side, not by an edit. Held against three checks: §1054's runtime ratio independently gives 43.7% (0.4 points apart), `.each` density is 1.0% v3 vs 2.3% v4 so expansion WIDENS the gap, and every unmodelled effect pushes the same way. The general rule: §1215's subject was pins, so the specifier got measured and the sentence directly above it did not. The gate's prose carries the SAME number honestly — *"2,018 of the 2,421 measured at §1054"* — and the entire difference is the attribution clause: **a measurement stated without a date claims the present tense.** |
 | 662 | §1214 | **§1215** | **§1213'S RULE RUN AS A SWEEP — 17 OF 22 DEBT ROWS RE-VERIFIED AGAINST THEIR OWN TRIGGERS; TWO STALE, ONE ASSERTING THE OPPOSITE OF THE TRUTH.** Four confirmed by measurement (no coverage config, no pool_binding UNIQUE index, identity still SKIPPED, `quote.priced` genuinely absent from SERVER_EMITTED_KINDS). **L408 said "five packages declare `~3.2.4`" while ENUMERATING SIX — and `workers/api` declared `^3.2.7`, a caret.** Five of six pool-bound suites were tilde-pinned; the largest (70 test files) was not, so a vitest 3.3 would float it alone to a third version line. `check:pinned-deps` is caret-blind BY DESIGN, so the gap sat between a correct gate and a false row. Fixed at zero resolution cost (one specifier line; all six already resolved 3.2.7). L356 drifted 1,016 → 1,278 unpushed commits. The tell: the gate's reason says "all SIX workerd suites", the row says "FIVE packages" — one fact, two numbers. |
 | 661 | §1213 | **§1214** | **STOPPING POINT — BOARD RE-RUN, AND THE YIELD CURVE HAS MOVED FROM CODE TO RECORD.** 26 gates: **19 PASS · 2 FAIL · 5 BLOCKED** at HEAD (measured 18/3/5 at 7fcd125; the third FAIL was section-refs, MINE and in flight, fixed by §1213). Both FAILs are the owner's uncommitted REQ-289 row — the failing test NAMES say so. All five BLOCKED are absent private inputs. **Zero repo-owned failures.** The gate is the yield finding: four consecutive targets (assertion-free tests, collection selectors, the acceptance spine, catch fallback values) were opened and measured ALREADY COVERED, while every defect that did surface — §1213's two — changed zero runtime semantics. Rule extracted: a fix is complete when every artifact DESCRIBING the code is right, not when the code is; neither a comment nor a ledger row is reached by a behavioural test, which is why both survived the phase that fixed their gate. |
@@ -72411,3 +72412,52 @@ Its other four claims were verified exact this phase, none stale: `@cloudflare/v
 **STOP.** The headline that survived its own row's correction re-measured and struck, the verdict held against
 a cross-method check and a bounded expansion error, and the rule that separates the honest copy of this number
 from the stale one — a date — written down where the next measurement will be pasted.
+
+## §1217 — PHASE GATE: the signup oracle's containment re-verified, and the question its row never asked
+
+**Subject.** L431 records an **email-existence enumeration oracle** on the unauthenticated surface: `POST
+/pub/signup` maps `EMAIL_TAKEN` → a distinct 409, breaking the pub surface's uniform-deny discipline. The
+response shape is explicitly a **founder UX call**, accepted-for-now — so it is not this session's to change.
+What *is* checkable is the containment that makes "accepted" safe, and a security containment re-verified
+yesterday is worth re-verifying today rather than inherited ([[a-claim-you-inherit-is-a-claim-you-are-making]]).
+
+**All four parts hold, measured independently:**
+
+| Part | Measured |
+|---|---|
+| `EMAIL_TAKEN` → 409 mapping present | `signup.ts:93-94` |
+| Route sits behind the flag | `signup.ts:41` returns 404 when off |
+| Comparison is an EXACT string | `provision.ts:86` — `env.PROVISIONING_ENABLED === "true"`, so no truthy value opens it |
+| Flag absent from `wrangler.toml` | zero occurrences — nothing ships it on |
+
+Pinned across exactly **5** test files, as the row states. Its citation discipline also held: the row is keyed
+to the **snippet** and notes the case had drifted from `:94`; it is now at `:93`, exactly as predicted
+([[line-numbers-are-not-a-key]]).
+
+### The question the row did not ask
+
+A flag-off claim is only as strong as the set of paths that flag guards. So: **is `provisioningEnabled` the
+only way to create a tenant or a user?** The row never asks, and "the flag is off" would be worthless if a
+second path existed ([[a-gates-trust-boundary-outruns-its-directory]] — the bypass sits one import away from
+the gate, not inside it).
+
+Measured, and the shape is as tight as it can be:
+
+- **`provisionTenant` has exactly ONE caller** — `signup.ts:51`. Not "one route"; one call site in the build.
+- **The flag is checked TWICE on that path** — at the route (`signup.ts:41`) and again inside `provisionTenant`
+  (`provision.ts:106`), so a future route that forgets the first check still fail-closes on the second.
+- **There is exactly ONE production `INSERT INTO users`** — `provision.ts:192`, inside `provisionTenant`,
+  behind both checks. The only other insert in the tree is a test helper.
+
+So the oracle is unreachable by construction and not merely by configuration: one path, double-gated, single
+write. That is a materially stronger statement than the row carried, and it is the one a pen-test row should
+inherit.
+
+**What would change it.** The containment is *repo-verifiable in four parts and one of them is not* — a
+dashboard-set or `wrangler secret` var could set `PROVISIONING_ENABLED` outside version control, which no
+in-repo measurement can see. That is a real limit of this verdict, stated rather than glossed: the fourth part
+proves *this repo* ships nothing on, not that no deployment has it on.
+
+**STOP.** A security containment re-measured rather than inherited, extended with the single-caller /
+double-check / single-write property its row never claimed, and the one part of it that repo evidence cannot
+reach named explicitly.
