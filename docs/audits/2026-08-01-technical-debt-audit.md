@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 582 | §1134 | **§1135** | **LAW 8 BY THE SAME METHOD: WHO CHOOSES THE TENANT? — 43 FILES, ZERO TAKE IT FROM A HEADER OR BODY.** §1126 asked *who chooses the kind*; the transferable question for tenant isolation (REQ-025) is *who chooses the tenant*. Enumerated every production `resolveTenantDb` site — **43 files**. Every API-reachable one takes the tenant from the **JWT session claim** or from a **MAC-verified capability** (`pub/status.ts` uses `claims.t`, MAC'd under the `STATUS_SECRET` derived at §1108); the cron paths iterate `allTenantSlugs(env)`, a server-side roster. Clause 2 is **structural**: the DO is addressed by `idFromName(tenant|streamId)`, so a mis-claimed tenant lands on a DIFFERENT instance, and `sequencer.ts:247@expected` verifies the claim re-derives to THIS id — FORBIDDEN otherwise. Two clauses verified at zero wedge risk; the R2 key-scope and isolation-suite clauses explicitly NOT covered here. |
 | 581 | §1133 | **§1134** | **STOPPING POINT XIV — THE APPEND-SURFACE ARC, CLOSED.** Board re-earned at `b3e2f0c`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs measured to `REQ-289`. Six phases (§1128–§1133) took one defect and turned it into a complete account of the append surface: **35** kinds catalogued → **27** client-appendable → **9** DO-gated → **5** with a dedicated route and no refusal → **2** confirmed money-authority holes, **3** owner judgements, and **13** route-less kinds of which **5** are gate preconditions — correctly, because there the client IS the sensor. Two instrument corrections en route: a restated number I had never run (**1,190** unpushed, not 137) and grep→catalog after the `kind` collision misled three phases running. **No unresolved defect; two decisions.** |
 | 580 | §1132 | **§1133** | **WHAT PASSING A GATE ACTUALLY MEANS — NOT A DEFECT, BUT A BOUNDARY WORTH WRITING DOWN.** The last unexamined slice: **13** kinds are client-appendable, ungated and route-less, and **5 of them are read by the gates as PRECONDITIONS** (`freight.counted` · `dims.captured` · `freight.photographed` · `seal.applied` · `document.attached`). That looked like §1130's provenance problem generalised — and it is **not**, for a reason worth stating: these kinds have no dedicated route precisely because **the client IS the legitimate sensor**. The gates check them by **presence** (`prior.some(e => e.kind === …)`); the one cryptographic check is the receiver **cosig on the INCOMING** `custody.transferred`, never on a prior. Two priors are stronger (the placed-photo binds `photo_hash === incomingPlaced`), and the money path is byte-verified downstream (REQ-170/§1102). So gate passage certifies **that an authenticated principal asserted these facts**, not that they physically occurred — which is correct, and is not what "gated" reads like. |
 | 579 | §1131 | **§1132** | **STOP GREPPING CONSTRUCTIONS; READ THE CATALOG — AND THE POPULATION BECOMES COMPUTABLE.** The two-level `kind` collision produced a wrong first answer in THREE consecutive phases, so I stopped restating it and changed instrument: `packages/contracts@EVENT_KINDS` is the authoritative list, and it is **exactly 35** — CLAUDE.md's budget, confirmed. Computing against it rather than grepping: **27 of 35 kinds are client-appendable** through `/v1/shipments/:id/events` (35 − 5 server-emitted − 2 dedicated-route refusals − 1 rejected at the DO); **9** of those carry a DO transition gate (§1129); **5** have a dedicated recording route with no refusal (§1131). Every number in this arc now derives from the catalog instead of from a pattern that cannot see nesting. |
@@ -67452,4 +67453,62 @@ Both are mine, and both are the reason the arc's numbers can be trusted now:
 end to end with every count derived from the declared catalog; two owner decisions filed with their exact
 blast radius and the rule that closes both; two self-inflicted instrument errors corrected in the record
 rather than quietly fixed.
+
+## §1135 — PHASE GATE: Law 8 by the transferable question — who chooses the tenant?
+
+**Why this phase.** §1126 answered Law 3 by enumerating the property that made its defect possible — *who
+chooses the kind*. **Law 8** (REQ-025: *a cross-tenant read anywhere is a build failure*) has the same shape,
+and the same question transfers exactly: **who chooses the tenant?** If the answer is ever "the client", the
+law is unenforceable no matter what the queries do.
+
+Its suite runs on `vitest-pool-workers`, so per §1114 the instrument is enumeration and reading, not a
+mutation loop.
+
+### Clause 1 — the tenant's source, across 43 files
+
+Every production `resolveTenantDb` / `resolveClaimedTenantDb` site: **43 files**. Categorised by where the
+tenant comes from:
+
+| source | example | verdict |
+|---|---|---|
+| **JWT session claim** | the api routes — `c.get("session").tenant`, with `export-journal.ts:46` stating it: *"REQ-025 — tenant off the claim, never client input"* | ✓ |
+| **MAC-verified capability** | `pub/status.ts:75` — `claims.t`, from a status-cap MAC'd under `STATUS_SECRET = HMAC(JWT_SECRET, DOMAIN)` (§1108), a value cryptographically disjoint from the session secret | ✓ |
+| **server-side roster** | `workers/agents` — `for (const slug of await allTenantSlugs(env))`, cron/queue only | ✓ |
+
+**Zero take the tenant from a header or a body.** The one call site my first filter flagged as suspicious
+(`export-journal.ts`) was a spelling difference — `c.get("session").tenant` rather than the literal
+`session.tenant` — which is the §1131 lesson again: a filter keyed to a *spelling* mis-reports the thing it
+is checking.
+
+### Clause 2 — structural pinning, not merely a check
+
+`sequencer.ts:246@expected` is stronger than a comparison:
+
+```
+// REQ-025 — structural tenant pinning. The caller-declared identity must re-derive to OUR OWN id.
+const expected = this.env.SHIPMENT_SEQ.idFromName(`${tenant}|${streamId}`);
+if (!expected.equals(this.ctx.id)) throw rpcError("FORBIDDEN", { reason: "sequencer identity mismatch" });
+```
+
+The DO is **addressed** by `idFromName(tenant|streamId)`. A caller claiming a different tenant therefore
+lands on a *different Durable Object instance* — the isolation is a property of the addressing, and the
+equality check is a belt over it. The file says so: *"any change to either input lands on a different DO and a
+pin mismatch is effectively unreachable."*
+
+That is the strongest form a guard can take: **not a rule the code follows, but a shape that makes the
+violation unaddressable.** Compare §1125, where the guarantee was a denylist that could omit an entry — the
+difference between the two findings in this session is exactly this.
+
+### The bound, stated
+
+Two clauses of Law 8, not the law. **Not covered here:** the R2 key-scoping clause (§1102 observed the
+`evidence/<tenant>/` prefix check in the Biller, but I have not enumerated every R2 read), and the
+isolation-suite clause (*"runs on every merge"*) — that suite is pool-workers, and the board reports it green
+as part of unit-tests rather than separately. Recording that so this section is not mistaken for a full
+verification of REQ-025.
+
+**STOP.** Law 8's decisive question transferred from §1126 and answered by enumeration: 43 tenant-resolution
+sites, every API-reachable one sourcing the tenant from an authenticated claim or a MAC-verified cap, crons
+from a server roster; the DO's pinning identified as *structural* rather than procedural; two clauses verified
+and the two not covered named explicitly. Zero source changed.
 
