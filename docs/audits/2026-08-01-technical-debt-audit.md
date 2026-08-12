@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 652 | §1204 | **§1205** | **THE MECHANICAL FIX WAS ATTEMPTED, AND FAILED FOR A REASON THAT UPGRADES THE FILED ROW: THE PROBLEM IS CIRCULAR.** §1204 filed the table-gate false negative as *"a decision about the record"*; that was over-caution — it is a gate-correctness fix like §1182/§1183/§1188, all taken unilaterally — so it was attempted. Probe controlled first (§1194): counting headers strictly as well as rows leaves the figure at **24**, so header-leniency was not the cause. Escaped all 24, tightened `cellCount` to honour only backslash-pipe, mutation-proved the gate: the row that passed at §1204 now RED. **Then two ledger gates failed** — the naive escaper had MERGED cells on three checklist rows, pairing a backtick in one cell with a backtick in the next. **That is the finding: deciding whether a pipe is inside a code span requires knowing the cell boundaries, which is the thing being computed.** Reverted to HEAD; the filed row now carries the real remedy (parse cells FIRST, then spans within each cell, verified per row). Process: `git checkout -- <path>` restores from the **INDEX**, not HEAD, when a file is staged — my "revert" silently kept the staged gate and I chased a moving target for three probes. |
 | 651 | §1203 | **§1204** | **THE TEN LAWS CLASSIFIED THE SAME WAY — AND THE SPLIT IS EXACTLY PROCESS vs BEHAVIOUR.** §1203 did I1–I8; this does CLAUDE.md's ten. Six are BEHAVIOURAL and every one is stopped by something that cannot be forgotten: law 2 by DB triggers, law 3 by the sequencer chokepoint, law 4 by three runtime guards returning a discriminated union (**12 RED** when the weight guard is dropped — measured here), law 5 by `executingShareCents` throwing, law 8 by the DO identity belt (§1202), law 10 by an exhaustive `ColumnDecision` whose unmapped values are RETAINED. Four are PROCESS laws — REQ-IDs per PR, fixtures gate merges, design CI, swarm at WP exit — and a **lint is the correct enforcement** for each, because no runtime can observe what a PR did; same shape as I8. **None is test-only.** Two probe notes: the missing-physics return appears **3 times**, so my first mutation asserted and did NOT apply — the clean 168-passed would have read as *defended* had the assert not fired (§1194's conflated identity, in my own tooling); and law 5's clause 4 was the one genuine gap in either set, found undefended and closed at §1111 earlier this session. |
 | 650 | §1202 | **§1203** | **ALL EIGHT SCHEMA INVARIANTS CLASSIFIED BY ENFORCEMENT KIND — NONE IS TEST-ONLY.** §1202's real result was that of three identical keys, the only OPEN one was the only one enforced by a TEST: a DB constraint and a runtime belt cannot be forgotten, a test can simply never have been written. That inverts into the sharpest production-readiness question available — **which constitutional invariants rest on a test alone?** Classified I1–I8 by what actually stops a violation: I1 a FOREIGN KEY · I2 a runtime gate (`assertPodSigned`) · I3 DB triggers + the append-chokepoint lint · I4 a SCHEMA refusal (it refused three of my own payloads at §1179) · I5 a schema `.min(1)` on `rate_config_ids` · I6 the lens, with 44 adversarial assertions incl. non-importing guards · I7 **construction** (`amount_cents: -o.amount_cents`) + a UNIQUE index preventing double-reversal + a fixture · I8 a lint with `TABLE_BUDGET`, which is the correct enforcement for a GOVERNANCE rule since no runtime can stop a migration. **My I7 hypothesis was wrong** — I predicted test-only and measurement found three layers. Mutation-proved the one layer never mutated: dropping the negation REDs **6 tests across 2 files**. |
 | 649 | §1201 | **§1202** | **THE COMPOSITE-KEY SWEEP CLOSES: THE OTHER TWO KEYS ARE DEFENDED, ONE OF THEM TWICE.** §1201's shape — *a key that must keep two things apart* — has three instances. The parity dedup key was the open one. The **DO address** keyed on tenant-plus-stream is what makes REQ-025 structural, and it holds **belt and braces, both mutation-proved**: dropping the tenant from the address at `routes/events.ts` fires the DO's OWN identity check in `sequencer.ts` (*"the caller-declared identity must re-derive to OUR OWN id"*, 403 FORBIDDEN), and removing that check REDs a named test. The third, the offline dedupe key, is enforced by the DATABASE — a UNIQUE INDEX `ux_events_device` over (stream_id, device_id, device_seq) — so a collapsed key is a constraint violation, not a silent merge. **Diagnosability note, not a defect:** the address mutation surfaces as *"seed iso-pub-4-shipment/booking failed: 403"* — a seed throwing, not a named isolation assertion, so the guard fires while the message does not say *tenant isolation*. And the run reported `Test Files 1 failed` with `65 passed | 2 skipped` — a file-level failure my summary pattern missed, the second such near-miss in three phases. |
@@ -71763,4 +71764,60 @@ number attached, per §1184's rule that an option's cost belongs beside it.
 **STOP.** Both constitutional sets now classified by enforcement kind: eighteen rules, none test-only, the
 four lint-enforced ones identified as *process* laws where a lint is the only possible mechanism, law 4's guard
 mutation-proved for the first time, and the single historical gap named with the phase that closed it.
+
+## §1205 — PHASE GATE: the fix that could not be mechanical
+
+**Why this phase.** §1204 filed the `check:tables` false negative rather than fixing it, on the reasoning that
+touching 24 rows was *"a decision about the record."* Re-reading that the next morning: it is a
+gate-correctness fix, the same class as §1182's corpus selector, §1183's handler resolver and §1188's reference
+corpus — all taken without asking. So it was attempted.
+
+### It went well until it did not
+
+1. **The probe was controlled first**, per §1194: my count had used a *lenient* header against *strict* rows,
+   which would inflate the figure wherever a header carried a code-span pipe. Re-run with both sides strict —
+   **still 24**. The concern was real and was not the cause.
+2. **Escaped** every bare pipe inside a code span on those rows: 20 here, 3 in the checklist, 1 in a plan.
+   Repo-wide over-wide count fell to **0**.
+3. **Tightened** `cellCount` to honour only the backslash escape, and **mutation-proved** it: the exact row
+   that passed at §1204 now REDs.
+4. **Corrected the unit test** that asserted the false premise — *"a pipe inside `code` … is not a
+   delimiter"* — which is why the gate's own suite could never have caught this: the test encoded the same
+   wrong model as the implementation.
+
+Every gate was green. Then `pnpm delta` reported two NEW failures in
+`ledger-status-vocabulary` and `evidence-expiry`.
+
+### What broke, and why it is the real result
+
+The escaper had **merged cells** on three checklist rows. Its notion of "inside a code span" was a naive
+backtick-toggle across the whole line — so a backtick closing one cell paired with a backtick opening the
+*next*, and the delimiter between them was escaped into content. Two cells became one, and a row's status cell
+swallowed its neighbour's, which is exactly what the vocabulary gate flagged.
+
+> **The fix is circular: to know whether a pipe is inside a code span you must know where the cells are, and
+> where the cells are is what the pipe determines.** A single left-to-right scan cannot answer it. The correct
+> order is cells first — split on unescaped pipes — *then* code spans **within each cell**, and verification
+> per row rather than by a repo-wide count that cannot see a merge.
+
+That is worth more than the fix would have been. §1204 filed this as *"one mechanical commit"*; it is not
+mechanical at all, and the filed row now says so, with the remedy specified.
+
+### Reverted, and the state is clean
+
+All four files restored to HEAD; `check:tables`, `check:citations`, `check:section-refs` green; `delta` back to
+the three baseline failures. The gate keeps its false negative — **documented, measured at 24 rows, with a
+correct remedy** — which is a better position than a half-applied escape that merges cells.
+
+### The process error that made this cost three extra probes
+
+`git checkout -- <path>` restores from the **index**, not from HEAD, when the path is staged. An earlier
+`git add -u` had staged the tightened gate, so my "revert" silently kept it — and I spent three measurements
+bisecting a failure whose cause I had already tried to remove. Distinct from §1177's lesson (checkout
+destroying *uncommitted* work); this is the same command failing in the opposite direction.
+
+**`git reset` first, then `git checkout`** — or `git checkout HEAD -- <path>` to name the source explicitly.
+
+**STOP.** The filed fix attempted in full, reverted on evidence, and upgraded from *"mechanical, 24 rows"* to
+*"circular, needs a cell-then-span parser"* — the kind of correction only an attempt produces.
 
