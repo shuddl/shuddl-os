@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 591 | §1143 | **§1144** | **CONTROLLED MY OWN CLEAN NEGATIVE — THE CONCLUSION HELD, THE METHOD FAILED.** §1143 warned that false confirmations go uninvestigated, so I planted a violation against §1135's *"43 sites, zero take the tenant from a header or body"*. The plant — `resolveTenantDb(c.env, c.req.header("X-Tenant") ?? session.tenant)`, i.e. a client override with the claim as FALLBACK, which is how such a bug actually looks — **was not flagged**, because §1135's filter was `grep -v "session.tenant"` and the malicious line CONTAINS that string. **A negative filter is defeated by any line carrying both tokens, and `??` is exactly that shape.** Replaced with a positive match on the DANGER, control-verified to catch the plant; re-derived across **11 distinct argument forms** — all safe (31 claim · 12 cron roster · 2 claim-by-other-spelling · 1 MAC'd cap · 1 queue trigger · 1 DO-pinned · 4 declarations). |
 | 590 | §1142 | **§1143** | **SWEEPING THE ABSENCE CLAIMS — AND A FALSE CONFIRMATION, WHICH IS WORSE THAN A FALSE ALARM.** §1142's false row was an ABSENCE claim, the kind a pattern read gets wrong, so I swept for siblings: **25** live unstamped rows assert that something does not exist. Re-derived the one whose method I had already proved unsound — *"seven of the 35 kinds have no emitter"*, traced by *literal* emitter, the method §1131 showed misses `rate.ts` entirely. Checked against the **append-seam** corpus instead: the count **survives**, with one refinement — **`credit.checked` has no SERVER emitter but IS client-appendable** (§1125), so *"no emitter"* must not read as *"cannot appear in the ledger"*. **The phase's real content:** my first probe had broken shell quoting and returned `<none>` for all five — **agreeing with the row**. Caught only because §1125 had told me otherwise. |
 | 589 | §1141 | **§1142** | **LAW 9 IS 16/16 — AND I GOT THREE DIFFERENT ANSWERS BEFORE THE RIGHT ONE.** CLAUDE.md rule 9 demands an adversarial swarm at EVERY WP exit; a note of mine said *"WP-04…WP-16 have no exit-audit section at all."* **False at HEAD: all sixteen have one.** Getting there took three passes, and the direction of the error ALTERNATED — counting *mentions* said all 16 (too generous: a mention is not a section); matching `## REQ-119 exit audit` said 4 of 16 (too harsh: a heading-format artifact); matching **both** conventions said 16. The corpus uses **three** heading forms (`## WP-exit audit swarm (REQ-119)` for WP-01–11, `## REQ-119 exit audit — CLEAR-TO-CLOSE` for 12–15, `launch audit` for 16) because it was written over months by an evolving convention. **No single pattern matches a corpus whose convention drifted.** |
 | 588 | §1140 | **§1141** | **STOPPING POINT XV — LAW 8 CLOSED 4/4, AND THE RETURN CURVE IS NOW MEASURABLE.** Board re-earned at `b764d5e`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs measured to `REQ-289`. Six phases: **Law 8 verified 4/4** (tenant source across 43 sites · structural DO pinning · R2 keys built-or-checked · the suite executes) and the short-circuit shape swept through scripts AND CI. **Yield across the six: one stale note of my own, corrected; zero new defects.** §1139 withdrew a false alarm, §1140 found the work already done. Recording the curve because it is decision-relevant: §1111 (a real hole) → §1125/§1130 (a real pair) → six phases of confirmation. The build is answering the same way from every new angle. |
@@ -67942,4 +67943,70 @@ settled it.
 against the chokepoint corpus, its count confirmed and one reading corrected in place; a false confirmation
 from broken quoting caught by prior knowledge rather than by the probe, and the asymmetry between false
 alarms and false confirmations recorded with the control that closes it. Zero source changed.
+
+## §1144 — PHASE GATE: controlling a clean negative — the conclusion held, the method did not
+
+**Why this phase.** §1143 ended on an uncomfortable asymmetry: this session's **false alarms were all caught**
+(each within minutes, because a surprising result invites a second look) while a **false confirmation** had
+slipped through and was caught only by unrelated prior knowledge. The obvious response is not to record the
+worry — it is to **control a clean negative** and see whether the method that produced it can detect the
+thing it claims is absent.
+
+§1135's is the right target: *"43 tenant-resolution sites, zero take the tenant from a header or body."* Large
+corpus, strong claim, and I already knew the filter had mis-classified one site by **spelling**
+(`c.get("session").tenant` vs `session.tenant`).
+
+### The plant, and the failure
+
+I planted the violation in the shape it would really take — not a bare header read, but a **client override
+with the claim as fallback**, which is how a "convenience" feature arrives:
+
+```
+resolveTenantDb(c.env, c.req.header("X-Tenant") ?? session.tenant)
+```
+
+§1135's method was `git grep resolveTenantDb | grep -v "session.tenant"`. The planted line **contains
+`session.tenant`**, so it was filtered out **as safe**. The probe reported the same clean result with a live
+cross-tenant injection sitting in the tree.
+
+> **A negative filter — "show me the lines that do NOT contain the safe token" — is defeated by any line
+> carrying both tokens, and `??`, `||`, `?:` and a ternary are all exactly that shape.** The safe string is
+> not evidence of safety; it is evidence that the safe string is present. **Positive-match the danger.**
+
+### The replacement, with a control that was actually run
+
+The corrected probe matches client-input sources *inside* the call — `req.header` · `req.query` · `req.param`
+· `body.` · `params.` — and I ran the control rather than reasoning about it: re-planted, and it **CAUGHT**
+the line. (§1143's own lesson applied to itself — my first draft of this section asserted "control verified"
+when the plant had already been restored and no control had run.)
+
+### Re-derived, soundly
+
+Every distinct argument form across the corpus, by count:
+
+| form | n | source |
+|---|---|---|
+| `resolveTenantDb(c.env, session.tenant)` | 31 | JWT claim |
+| `resolveTenantDb(env, slug)` | 12 | cron roster (`allTenantSlugs`) |
+| `resolveTenantDb(c.env, c.get("session")…)` | 2 | JWT claim, other spelling |
+| `resolveTenantDb(c.env, claims.t)` | 1 | MAC-verified status cap |
+| `resolveTenantDb(env, trigger.tenant)` | 1 | queue trigger — *"REQ-025 — static allowlist + server-side claimed-pool resolution, nothing else"* |
+| `resolveTenantDb(this.env, tenant)` | 1 | the DO's own pinned tenant (§1135's `:246` re-derivation) |
+| declarations | 4 | signatures, not calls |
+| **client-input sources** | **0** | — |
+
+**§1135's conclusion survives.** Zero sites take the tenant from client input. But it now rests on a probe
+that has been shown to catch the violation, rather than on one that provably could not.
+
+> **A clean negative has two claims in it, and only one of them usually gets tested.** *"There is no
+> violation"* is the visible claim; *"this probe would find one"* is the hidden claim underwriting it, and it
+> is the one a plant tests. This session controlled many probes for **vacuity** (does it read anything?) —
+> that is a weaker property than **sensitivity** (would it fire on the real shape?). §1135's filter read all
+> 43 files and would have missed the defect.
+
+**STOP.** §1143's warning acted on rather than recorded; §1135's clean negative controlled by planting the
+realistic violation shape; the original method **failed** the control and is superseded, with the negative-
+filter defeat named as a general rule; the replacement control-verified by an actually-executed plant; the
+conclusion re-derived over 11 distinct argument forms and confirmed. Zero source changed, plant restored and
+verified clean twice.
 
