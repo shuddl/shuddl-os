@@ -211,6 +211,86 @@ describe("REQ-118 §611: CLAUDE.md's hard budgets match what enforces them", () 
     ).toEqual([]);
   });
 
+  // §1175 — EVERY RESTATEMENT OF A BUDGET, NOT JUST THE ONE THAT IS LAW.
+  //
+  // §610's rule is that any summary RESTATING a computed value will drift, and §1173 proved the consequence is
+  // not hypothetical: CLAUDE.md:5's prose "**3 surfaces**" ABSORBED a planted drift on the budgets line and
+  // kept the gate green. A second copy of a number does not merely fail to help — it conceals the first going
+  // stale.
+  //
+  // MEASURED: the six budgets are restated 22 times across the three root governing documents, and exactly one
+  // of those figures — the `(N used)` table count — was checked (by DOCS above). A budget amendment therefore
+  // has to be hand-propagated to sixteen places, fifteen of which nothing verifies:
+  //
+  //   CLAUDE.md:5      3 surfaces                     README.md:2      3 surfaces
+  //   CLAUDE.md:33     12 views (report builder)      README.md:8      35 kinds
+  //   BUILD-PROMPT:13  5 tokens · 2 fonts             BUILD-PROMPT:14  ≤22 tables · 35 event kinds · 12 views · 3 surfaces
+  //   BUILD-PROMPT:85-86  ≤22 tables · 35 kinds · 12 views · 3 surfaces · 5 tokens · 2 fonts
+  //
+  // All twenty-two agree today. This LOCKS a clean state rather than repairing a defect — §486's cheap half,
+  // and the case that most needs a test because nothing is failing and nothing else would notice it starting to.
+  //
+  // WHOLE-TEXT, WHITESPACE-NORMALISED, NOT LINE-BY-LINE. BUILD-PROMPT.md wraps `12` at the end of :85 and
+  // `views` at the start of :86, so a line scan silently misses that restatement — a budget figure invisible to
+  // the gate purely because of where the paragraph wrapped.
+  //
+  // The BUDGET, never the USED figure: `≤(\d+) tables` is the ceiling; a bare "21 tables" (README.md:8) is the
+  // observation DOCS already owns. Two different properties that share a noun.
+  /** Budget label (matching BUDGETS above) → every phrasing that restates its CEILING. */
+  const RESTATEMENTS: ReadonlyArray<readonly [string, RegExp]> = [
+    ["tables", /≤(\d+)\s+tables/g],
+    ["surfaces", /(\d+)\s+surfaces/g],
+    ["canonical views", /(\d+)\s+(?:canonical\s+)?views/g],
+    ["event kinds", /(\d+)\s+(?:event\s+)?kinds/g],
+    ["color tokens", /(\d+)\s+(?:color\s+)?tokens/g],
+    ["font families", /(\d+)\s+(?:font\s+families|fonts)/g],
+  ];
+  const RESTATEMENT_DOCS = ["CLAUDE.md", "README.md", "BUILD-PROMPT.md"] as const;
+
+  /** Every stated ceiling for every budget across the given documents, wrapped lines included. */
+  function statedCeilings(docs: readonly { file: string; text: string }[]): { doc: string; label: string; stated: number }[] {
+    const out: { doc: string; label: string; stated: number }[] = [];
+    for (const { file, text } of docs) {
+      const flat = text.replace(/\s+/g, " ");
+      for (const [label, re] of RESTATEMENTS) {
+        for (const m of flat.matchAll(re)) out.push({ doc: file, label, stated: Number(m[1]) });
+      }
+    }
+    return out;
+  }
+
+  it("§1175 SENSITIVITY: a restated budget that disagrees with its ceiling is flagged", () => {
+    const planted = [{ file: "x.md", text: "respect budgets (≤22 tables / 35 kinds / 12\nviews / 4 surfaces / 5 tokens / 2 fonts)" }];
+    const found = statedCeilings(planted);
+    // The wrapped "12\nviews" must be among them — the whole reason this reads normalised text.
+    expect(found.filter((f) => f.label === "canonical views").map((f) => f.stated), "wrapped restatement missed").toEqual([12]);
+    expect(found.filter((f) => f.stated !== 3 && f.label === "surfaces")).toHaveLength(1);
+  });
+
+  it("§1175: every RESTATEMENT of a hard budget agrees with the number that enforces it", () => {
+    const enforced = new Map(BUDGETS.map((b) => [b.label, b.enforced(readFileSync(`${root}/${b.source}`, "utf8"))!]));
+    const docs = RESTATEMENT_DOCS.map((f) => ({ file: f, text: readFileSync(`${root}/${f}`, "utf8") }));
+    const found = statedCeilings(docs);
+
+    // FLOOR THE INPUT, not the findings: a pattern that stops matching would report zero disagreements, which
+    // is exactly what a clean run prints. Twenty-two restatements measured at §1175.
+    expect(found.length, "budget restatements vanished from the root documents — the scan broke, not the docs").toBeGreaterThanOrEqual(15);
+    const silent = BUDGETS.map((b) => b.label).filter((l) => !found.some((f) => f.label === l));
+    expect(silent, "a budget's restatement pattern matched NOTHING anywhere, including its own budgets line").toEqual([]);
+
+    const wrong = found
+      .filter((f) => f.stated !== enforced.get(f.label))
+      .map((f) => `${f.doc}: restates ${f.label} as ${f.stated}, enforced value is ${enforced.get(f.label)}`);
+    expect(
+      wrong,
+      "a root governing document restates a hard budget that no longer matches its enforcer. These documents " +
+        "are read as current law — CLAUDE.md's header says it overrides any default behaviour — and §1173 " +
+        "proved a stale restatement does worse than mislead: it ABSORBS the drift and keeps the gate green. " +
+        "A budget change is a register amendment; propagate it to every statement of the figure:\n  " +
+        wrong.join("\n  "),
+    ).toEqual([]);
+  });
+
   it("§1174: the used-table regex names its SUBJECT, so line order cannot change what it reads", () => {
     // CLAUDE.md's budgets line carries two "(N used)" parentheticals. Shape-matching picks whichever comes
     // first; subject-anchoring picks the table figure wherever it sits. Written with the order REVERSED,
