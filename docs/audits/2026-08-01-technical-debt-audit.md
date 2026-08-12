@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 584 | §1136 | **§1137** | **LAW 8's LAST CLAUSE CLOSED — AND A NOTE I WAS CARRYING WAS STALE.** §1136 left one bound: does the isolation suite actually RUN on every merge? `tools/checks/isolation-suite.test.ts` records that this exact claim was **FALSE WHEN WRITTEN** (§954): `pnpm test` used `&&`, short-circuited on the REQ-289 trio, and **105 of 112 isolation cases were not executing** — only the 7 roster cases were. Restored at §940/§949. My own working note still said the short-circuit persists, so the two disagreed. **Measured at HEAD:** `test` now reads `test:tools; t=$?; pnpm -r --no-bail …; p=$?; exit $(( t || p ))` — both halves run unconditionally, exit is the OR. Board artifact confirms isolation files executing among **4,564** passing tests. Law 8: 4/4 clauses. |
 | 583 | §1135 | **§1136** | **LAW 8's R2 CLAUSE CLOSED: KEYS ARE EITHER BUILT FROM THE CLAIM OR CHECKED AGAINST IT — NEVER TRUSTED RAW.** §1135 named two uncovered clauses; leaving a stated bound open is how a partial result reads as complete (§1122), so I closed the checkable one. Every client-reachable R2 site follows one of exactly **two disciplines**: **CONSTRUCT** the key from the authenticated tenant (`evidence.ts:200@evidenceKey` · `import.ts` · the anchor manifests) or **VERIFY** the prefix when the key arrives from elsewhere (`documents.ts:135@claims` checks `claims.k.startsWith('evidence/' + claims.t + '/')` as *"defense in depth"* OVER the MAC, so even a mis-minted cap cannot cross tenants; the Biller does the same for a key read from D1, §1102). Remaining bound, still open and named: the isolation SUITE itself is pool-workers and reports inside unit-tests. |
 | 582 | §1134 | **§1135** | **LAW 8 BY THE SAME METHOD: WHO CHOOSES THE TENANT? — 43 FILES, ZERO TAKE IT FROM A HEADER OR BODY.** §1126 asked *who chooses the kind*; the transferable question for tenant isolation (REQ-025) is *who chooses the tenant*. Enumerated every production `resolveTenantDb` site — **43 files**. Every API-reachable one takes the tenant from the **JWT session claim** or from a **MAC-verified capability** (`pub/status.ts` uses `claims.t`, MAC'd under the `STATUS_SECRET` derived at §1108); the cron paths iterate `allTenantSlugs(env)`, a server-side roster. Clause 2 is **structural**: the DO is addressed by `idFromName(tenant|streamId)`, so a mis-claimed tenant lands on a DIFFERENT instance, and `sequencer.ts:247@expected` verifies the claim re-derives to THIS id — FORBIDDEN otherwise. Two clauses verified at zero wedge risk; the R2 key-scope and isolation-suite clauses explicitly NOT covered here. |
 | 581 | §1133 | **§1134** | **STOPPING POINT XIV — THE APPEND-SURFACE ARC, CLOSED.** Board re-earned at `b3e2f0c`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs measured to `REQ-289`. Six phases (§1128–§1133) took one defect and turned it into a complete account of the append surface: **35** kinds catalogued → **27** client-appendable → **9** DO-gated → **5** with a dedicated route and no refusal → **2** confirmed money-authority holes, **3** owner judgements, and **13** route-less kinds of which **5** are gate preconditions — correctly, because there the client IS the sensor. Two instrument corrections en route: a restated number I had never run (**1,190** unpushed, not 137) and grep→catalog after the `kind` collision misled three phases running. **No unresolved defect; two decisions.** |
@@ -67560,4 +67561,56 @@ than quietly dropped.
 from the authenticated tenant or verifies the prefix against it, with the cap-redemption path checking even
 though a MAC already made forgery impossible; the two disciplines named and the rule for choosing between them
 stated; the one remaining clause re-named rather than allowed to lapse. Zero source changed.
+
+## §1137 — PHASE GATE: Law 8's last clause, and a stale note in my own hand
+
+**Why this phase.** §1136 closed Law 8's R2 clause and named one bound left: rule 8 says *"tenant isolation
+suite runs on every merge"*, and the board reports it inside `unit-tests` rather than as its own line — so
+whether it **runs** was asserted, not shown.
+
+Searching the repo before building anything found `tools/checks/isolation-suite.test.ts`, which already owns
+this question — and its header contains the most useful sentence in the file:
+
+> ~~*"It does run — every file below is collected by its package's vitest config and executes under the
+> `unit-tests` merge gate."*~~ **FALSE WHEN WRITTEN — corrected 2026-08-11 (audit §954).**
+
+At the commit that introduced it, `package.json` read `"test": "pnpm run test:tools && pnpm -r … run test"`.
+`test:tools` was **already failing** on the REQ-289 trio, so the `&&` short-circuited and the recursive half
+never ran: **105 of 112 isolation cases were not executing in the merge gate.** Only the 7 roster cases in
+that file ran — which catch a *deleted* member and not a cross-tenant *regression* inside one.
+
+### Two records disagreed, so I measured
+
+That header says execution was restored at §940/§949. My own working note still described the `&&`
+short-circuit as current. Rather than pick the more recent one, the script itself:
+
+```
+"test": "pnpm run test:tools; t=$?; pnpm -r --workspace-concurrency=1 --no-bail --if-present run test; p=$?; exit $(( t || p ))"
+```
+
+`;` instead of `&&`, both exit codes captured, the result their **OR**, and `--no-bail` so one package's
+failure does not stop the rest. Both halves run unconditionally. The restoration holds at HEAD, my note is
+**stale**, and the board artifact corroborates it — isolation files appear among **4,564** passing tests.
+
+**Law 8: 4 of 4 clauses verified** — tenant source (§1135, 43 sites) · structural DO pinning (§1135) · R2
+key-scoping (§1136) · the suite executes (here).
+
+### What this one is really about
+
+The defect §954 found is the most valuable kind this session has met, and it is worth naming precisely:
+
+> **A gate can be wired, green, and not running.** `&&` between two test halves turns *any* pre-existing
+> failure into a silent skip of everything after it — and the failure that did the skipping was the owner's
+> uncommitted register row, which every board since has reported as benign. A red that is *explained* is still
+> a red that *short-circuits*, and nothing in the board's output distinguishes "104 passed" from "104 passed,
+> 105 never started."
+
+That is also why my note went stale in the dangerous direction: it recorded a real defect, the defect was
+fixed, and a note describing a fixed defect reads exactly like a note describing a live one.
+[[record-holds-with-expiry-triggers]] — the note needed *"this stops being true when the `&&` becomes `;`"*,
+and one `grep` of `package.json` would have settled it at any point.
+
+**STOP.** Law 8's fourth clause closed by measuring the script rather than trusting either record; the two
+disagreeing accounts reconciled and the stale one identified as mine; §954's underlying lesson recorded — a
+short-circuit between test halves makes a suite green and absent at once. Zero source changed.
 
