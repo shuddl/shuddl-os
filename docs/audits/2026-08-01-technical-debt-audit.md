@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 612 | §1164 | **§1165** | **STOPPING POINT XIX — ALL TEN LAWS DECOMPOSED, AND THE LOOP CLOSED ITS OWN FINDING END-TO-END.** Board at `88e0040`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs measured to `REQ-289`. §1159–§1164 finished the constitutional surface — **Law 6** (2 enforced · 1 pending · **1 phantom gate that names a capability the build lacks**), **Law 7** (closing a gap §111 had declared about itself), **I7** (journal balance pinned; correction-pair netting structural) — and demonstrated the loop working end to end: the chained gate **refused a commit** (§1161) → the refusal became **filed debt** (§1162) → the debt was **closed inside an existing convention** (§1163) → the class was **swept and completed** (§1164). Nothing added to the owner's queue. |
 | 611 | §1163 | **§1164** | **THE TIMEOUT CLASS IS COMPLETE — AND COUNTING SPAWNERS WOULD HAVE REPORTED 42 FALSE POSITIVES.** §1163 fixed the four gates I had *observed* failing, which is symptom-driven, so I swept the class. **49** tools tests spawn a child process and **42** carry no per-test timeout — and reporting that would have been §1156's error exactly: most call `git rev-parse` (~10ms), so *spawner* is not the unit of risk. **Measured durations instead:** besides the four I fixed, only **4** assertions exceed 2.5s — `cwd-parity` 12082ms (120_000) · `tenant-scope` 4949ms (30_000) · `spec-collection` 3229ms (30_000) · `lint-guards` 2996ms (30_000) — and **every one already carries an allowance.** The class closed at §1163. Near-miss: I nearly filed *"a row says FIXED but the condition persists"* against `tenant-scope` before checking that §1052 did add its 30s. |
 | 610 | §1162 | **§1163** | **FIXED §1162 SURGICALLY — AND FOUND THE REPO HAD ALREADY SET THE CONVENTION.** §1162 filed the four subprocess gates as an owner decision because a suite-level timeout raises the ceiling on a genuinely hung child. There is a narrower fix that does not: a **per-test** allowance on exactly the four, leaving the suite default at **5000ms** so nothing else moves. Applied (`20_000` ×3, `30_000` for the eslint one), 81 tests green. **The corroboration came after the edit:** `spec-collection.test.ts` already carried `30_000` on a sibling, citing *"the convention already set at `cwd-parity.test.ts` (120_000 for an 11.5s test)"* — so this **extends an existing, documented practice** at ~3× headroom where the precedent uses ~10×. The decision I flagged was real; it just had a narrower answer. |
 | 609 | §1161 | **§1162** | **NEW DEBT, FOUND BY THE GATE THAT REFUSED MY COMMIT: FOUR SUBPROCESS GATES RUN AT VITEST'S DEFAULT 5000ms.** §1161's chained `delta && commit` refused and named four newly-failing tests. Not waved off: all four **shell out** (`execSync`/`execFileSync` → eslint, playwright, git-from-a-subdirectory), all pass **in isolation**, all passed in the board at `551421d`, and `pnpm reap` found **zero** orphans. **Mechanism measured:** `vitest.tools.config.ts` sets **no `testTimeout`**, so the **5000ms** default governs — and the observed durations were **5044 · 5758 · 7725ms**. Under load a child process outruns the timeout and the gate reports a failure indistinguishable from a real defect. Filed as a new row; a false RED erodes a gate faster than a slow one. |
@@ -69078,4 +69079,48 @@ came from reading the duration against the **default** rather than against **tha
 unit, per-assertion durations measured instead, the four remaining slow assertions confirmed already bounded,
 and the class complete as of §1163; one near-miss withdrawn by pairing a duration with its own timeout rather
 than the suite default. Zero source changed.
+
+## §1165 — PHASE GATE: STOPPING POINT XIX — the constitutional surface, finished
+
+**Board at `88e0040`** — **19 PASS · 2 FAIL · 5 BLOCKED**, unchanged across ten stopping points; both FAILs
+measured to `REQ-289`. **Zero repo-owned reds.**
+
+### The constitutional surface is now complete
+
+| § | subject | outcome |
+|---|---|---|
+| §1159 | **Law 6** — fixtures gate merges | 2 enforced · 1 pending a private fixture · **1 phantom** — `routes ±10%` names a gate with no implementation, no manifest row, no REQ row and no capability, in **two** source-of-truth docs |
+| §1160 | **Law 7** — design CI | audit half proved (§111/§252); **screenshot half** gated by `visual-corpus.test.ts` — closing a gap §111 had explicitly declared about itself |
+| §1161 | **I7** — correction pairs net zero | journal balance pinned; the named property holds **structurally** through paired same-amount emission, and no test names it |
+
+With Laws 1–10 and the I1–I8 spot-checks, **every clause of the governing surface has been taken apart at
+least once**, and the yield across all of it was: **one real defect** (Law 5's clause 4), **two false record
+claims corrected**, **one phantom clause identified**, and **three new gates**.
+
+### The loop closed its own finding, end to end
+
+The most useful sequence in this arc was not an audit at all:
+
+1. **§1161** — the chained `delta && commit` **refused to commit** on a docs-only change.
+2. **§1162** — the refusal was diagnosed rather than re-run until quiet: four gates, all subprocess-spawning,
+   at vitest's default 5000ms, measured at 5044–7725ms. **Filed as new debt.**
+3. **§1163** — closed by the *narrow* fix, then found the repo had **already set the convention**
+   (`cwd-parity` uses 120_000 for an 11.5s test). Extended it rather than inventing policy.
+4. **§1164** — swept the class by **measuring durations**, not counting spawners — which would have reported
+   **42 false positives** — and confirmed every remaining slow assertion already bounded.
+
+**Nothing from that sequence reached the owner's queue.** It was found, filed, fixed and closed inside the
+loop, which is what the §1113 chaining was built to make possible.
+
+### Unchanged, and owner-held
+
+The two-kind rule + three product rulings · `REQ-289` · nine private fixtures + `IDENTITY_DENYLIST` ·
+REQ-267 · three demo blockers · the unbounded-reads keyset work (needs a REQ row; **not** a bare `LIMIT`) ·
+**`routes ±10%`** — new to the queue as of §1159: add a register row if route parity is real scope, or strike
+the clause from `genesis/11` as vestigial · **1,190 unpushed commits**.
+
+**STOP.** Board 19/2/5 at `88e0040` with both FAILs attributed; Laws 6 and 7 decomposed to finish the ten;
+I7 traced; a self-found gate defect filed, fixed within existing convention, and its class swept to completion
+without escalation; the queue unchanged except for one phantom clause that only a decomposition could have
+surfaced.
 
