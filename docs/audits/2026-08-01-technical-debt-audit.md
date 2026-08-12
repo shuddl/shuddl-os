@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 608 | §1160 | **§1161** | **I7 TRACED: THE JOURNAL-BALANCE HALF IS PINNED; THE CORRECTION-PAIR HALF IS STRUCTURAL, NOT ASSERTED.** Enumerated I1–I8 from `genesis/10` rather than memory (§1160's rule) and took the one this session had never touched. **I7 — *correction pairs net zero in GL export*.** Its enforcement is real: `iif.ts@serializeJournalIIF` Guard 2 throws on `Σdebits !== Σcredits`, pinned by *"unbalanced input … throws — never emits a lopsided journal"*. But that is **journal balance**, a different claim. Correction-pair netting holds by **construction** instead: `export.ts` emits each money_line as a debit/credit PAIR of the same `amount_cents`, so a correction carrying a negated amount nets against its original — *"signed amounts carry corrections through unchanged"*. **Structural, and no test names it.** My probe also missed it twice: the code says *"nets to 0.00"*, never *"net zero"*. |
 | 607 | §1159 | **§1160** | **LAW 7 DECOMPOSED — ALL TEN LAWS NOW COMPLETE, AND §111's SELF-DECLARED GAP IS CLOSED.** I claimed after §1159 that all ten were done; **that was wrong — Law 7 was outstanding**, and correcting it is the phase. Its audit half was proved at §111/§252 (twelve rules each failing alone; a planted shadow, over-budget radius and raw hex). Its **screenshot half** is what §111 explicitly did NOT touch — *"the screenshot half runs through a different mechanism the section never touched"*. It is gated: **5 blessed PNGs** with `visual-corpus.test.ts` asserting non-vacuity, **BIDIRECTIONAL** registry↔reference matching, the five canonical WP-03 screens by name, and that **an iCloud collision copy is not mistaken for an unregistered screen** (§673). Ten of ten. |
 | 606 | §1158 | **§1159** | **LAW 6 DECOMPOSED: 2 OF 4 CLAUSES ENFORCED, 1 PENDING A FIXTURE, 1 A PHANTOM — AND I NEARLY CLOSED THE PHANTOM ON A COINCIDENCE.** The last undecomposed law. **QB penny-reconcile** (vendored, 7 tests) and **airplane soak** (in-repo, 2 tests) are real; **legacy-export replay ±2%** is a pending private fixture; **`routes ±10%` has no gate, no manifest row, no REQ row and no routing capability anywhere** — a clause naming a gate that does not exist, in TWO source-of-truth docs. **The near-miss:** I found `PARITY_TOLERANCE_BPS.rating = 1_000` — exactly 10% — and almost concluded the clause was satisfied. It is an unrelated module tolerance. **A number matching is not a claim matching**, and closing it would have removed a live owner decision from the queue on a coincidence of magnitude. |
 | 605 | §1157 | **§1158** | **STOPPING POINT XVIII — THE LEDGER IS EXHAUSTED OF WHAT I CAN REDUCE.** Board at `551421d`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs measured to `REQ-289`. §1151–§1157 did the two things §1152 distinguished: **built enforcement** (three gates, each mutation-proved end-to-end, verified cwd-independent against the defect that once hit sixteen scripts) and **reduced the ledger** — the multi-guard 403 row closed at **zero** through four measurements and no executions, and one owner signature removed. The counted-row sweep then found **no second instance**. Everything remaining needs input from outside the repo: two code decisions, three product rulings, nine fixtures, a denylist, a register row, three demo blockers, and a push. |
@@ -68864,4 +68865,64 @@ corrected** (Law 9's, and Law 6's phantom re-confirmed rather than closed), and 
 `visual-corpus.test.ts` with non-vacuity, bidirectionality, an iCloud-collision guard and the five named
 screens), closing a gap §111 had declared about itself; the overstatement in §1159's closing line corrected;
 **all ten laws now decomposed**, with the yield across them stated. Zero source changed.
+
+## §1161 — PHASE GATE: I7, and the difference between balanced and netting
+
+**Why this phase.** The ten laws are decomposed; the parallel constitutional surface is **genesis/10's eight
+invariants**. Following §1160's correction, I enumerated them **from the document** rather than from memory:
+
+> I1 no money_line without event · I2 no invoice without pod.signed · I3 no event edit/delete grants at DB
+> level · I4 every custody event co-signed or flagged `unwitnessed` · I5 every quote pins rate_config versions
+> · I6 `events.visibility` respected by every view · I7 correction pairs net zero in GL export · I8 any 22nd
+> table = build failure
+
+Most were touched incidentally this session — I3 through Law 2's thirteen shapes, I5 in `rate.ts`, I8 in the
+table budget, I4 in `assertInterline`'s receiver cosig. **I7 was not touched at all**, and it is money.
+
+### What is enforced
+
+`packages/ledger/src/gl/iif.ts@serializeJournalIIF` carries two guards, and the second is the relevant one:
+
+```
+// Guard 2 — the double entry balances, so the emitted transaction nets to 0.00 (IIF's requirement).
+if (debits !== credits) throw new Error(`serializeJournalIIF: unbalanced journal — Σdebits … !== Σcredits …`);
+```
+
+Pinned by `packages/ledger/test/iif.test.ts:117` — *"unbalanced input (Σdebit !== Σcredit) throws — never
+emits a lopsided journal"*, asserting the throw by message.
+
+### But that is a different claim from I7's
+
+**Journal balance** (Σdebits = Σcredits across the artifact) is not **correction pairs netting zero**. A
+journal can balance perfectly while a correction fails to offset its original — if the correction's amount
+differs, both entries are still internally balanced and the total still ties.
+
+I7's actual property holds **structurally**, one layer up in `export.ts`: every money_line is emitted as a
+**pair** of lines with the *same* `amount_cents` — a debit to one account and a credit to the other — so a
+correction carrying the negated amount nets against its original by arithmetic. The comment states it:
+*"Signed amounts carry corrections through unchanged."*
+
+That is a real mechanism and a good one — the same *shape that makes the violation unexpressable* this record
+praised in Law 8's DO addressing (§1135). But **no test names it**. Guard 2 would not catch a correction whose
+sign or magnitude was wrong; it would emit a perfectly balanced journal in which the pair does not net.
+
+**Filed as an observation, not a defect**: no such correction can be produced today, because the amount comes
+from the money_line and corrections are projected as signed values. The gap is evidentiary — I7's *named*
+property rests on construction, while the test pins its *sibling*.
+
+### The probe missed it twice
+
+Searching `net zero` and `netZero` returned **nothing**; the code says *"nets to exactly 0.00"* and *"nets to
+0.00"*. A second scoped search over `packages/ledger/src/gl workers` returned only `sequencer.ts` because the
+path list was wrong.
+
+> **An invariant's name is not its vocabulary.** I7 is written as *"net zero"* and implemented as *"nets to
+> 0.00"*; §1132 already replaced grep-for-a-phrase with read-the-declaration for event kinds, and the same
+> applies here — the authority is `genesis/10`'s statement plus the code that claims to implement it, never a
+> string search for the statement's wording.
+
+**STOP.** I1–I8 enumerated from source; I7 — the one untouched by this session — traced to a real, tested
+guard on **journal balance**, with its named property (**correction pairs netting**) shown to hold
+structurally through paired same-amount emission rather than by assertion; the distinction recorded as an
+evidentiary gap rather than a defect, since no mis-signed correction is producible today. Zero source changed.
 
