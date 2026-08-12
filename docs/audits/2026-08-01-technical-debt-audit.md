@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 553 | §1105 | **§1106** | **AN ALLOWLIST THAT ARGUES ONE RULE WHILE EXEMPTING TWO — CLEAN, AND HARDENED ANYWAY.** Verified the `/rate` row's mitigation (the key IS required: global mount, POST in `MUTATING`, no exemption), which made the `idemKey === undefined` fallback dead code at **5 routes** — all fail-OPEN by value (`randomUUID`), all defended by a well-shaped gate (non-vacuity floor + mount + Hono ORDER + every-mutation-under-/v1). Then the real probe: `app.use("/v1/*")` mounts **auth AND idempotency**, so the 5 sanctioned non-/v1 mutations lose both — and every stated reason argued only AUTH. Two are money doors. Measured all five: **5/5 idempotent, by five DIFFERENT mechanisms** (deterministic id + sequencer dedupe · no-op once paid · unique-slug 409 · appends nothing · not an app route). Zero behavioural gap, real justification gap — so the mechanisms are now RECORDED in the allowlist with an explicit instruction for a sixth entry. |
 | 552 | §1104 | **§1105** | **A GATE CANNOT SEE AN UNTRACKED FILE, AND I LEARNED IT BY BREAKING IT.** A too-broad `git add -A docs/` staged the owner's untracked GTM/research corpus; `pnpm delta` immediately reported **5 NEW failures**. Unstaged it, then re-measured the same way deliberately (stage → capture → unstage) because the accident had answered a real question: **the corpus reds `absolute-paths` (a `/Users/<name>` path), `citation-links`, `citation-ratchet`, `no-sync-duplicates` and the CONFIRM-GATED citation review.** All of it invisible until the instant of `git add`, because `git grep` reads TRACKED files. Removed **40** iCloud sync duplicates after verifying each byte-identical with `cmp`; 20 authored docs intact. Filed the rest as owner-held. The lesson is the staging boundary: **`delta` is a claim about the INDEX, so it must be read after `git add`, and the staged set must be read before `git commit`** — I skipped the second check, which is how the first one happened. |
 | 551 | §1103 | **§1104** | **A DEFERRAL THAT CLAIMS A REGISTER ROW, ONE CLAUSE AWAY FROM THE ROW THAT DISCLAIMS IT.** Checked the `referralBase` row's CONDITION the §1101 way — by its clause, not its noun: the URL *is* in the body, but the hazard fires only if the send's idempotency keys off it, and it keys `evidence-email/<invoice event id>`. **UNFIRED.** The defect was the comment's OTHER claim — *"tracked as its own REQ"*, naming no ID. Measured the register: the redelivery-purity rows are all CONCIERGE-scoped, REQ-129 is the referral SURFACE, and the nearest owner is **REQ-267**, whose acceptance *"same referral facts reproduce one attribution"* is exactly what a drifting re-render breaks. Comment corrected to name it. The sweep's sharpest output was about ITSELF: the original sat on the SAME LINE as `REQ-178` — the row it explicitly disclaims — so a proximity detector scores it **NAMED**. Fixing it also rotted **4 citations across 3 files**, caught by the ratchet. |
 | 550 | §1102 | **§1103** | **STOPPING POINT IX — THE RECORD WAS THE DEFECT, FOUR PHASES RUNNING.** Board re-earned at `50276d8`: **19 PASS · 2 FAIL · 5 BLOCKED**, and the 2 FAILs MEASURED (not assumed) to the owner's single uncommitted `REQ-289` row — `check:coverage` names it. Across §1100–§1102 **zero source files changed**: 1 row closed as already-fixed, 2 triggers corrected to UNFIRED, 1 blocker re-labelled, and four clean negatives with denominators (7/7 non-invoice outcomes bounded+visible · caps 3/3 claims · the POD-gate exemption inert and mutation-proved · `clientView`'s ten frozen fields). Every defect this stretch was in the RECORD, not the behaviour. |
@@ -65773,4 +65774,64 @@ than edited by me.
 **STOP.** Owner's files restored to untracked and never committed; 40 verified-identical duplicates removed;
 the four content failures filed as owner-held with a reopen trigger of *"when the corpus is staged."*
 `check:tables` OK · staged set verified by name before commit.
+
+## §1106 — PHASE GATE: an allowlist that argues one rule while exempting two
+
+**Why this phase.** §1105 left the `/rate` atomicity row, whose whole severity rests on one clause —
+*"mitigated by required Idempotency-Key."* Per §1101 the clause is what gets checked, not the noun.
+
+**It holds.** `app.use("/v1/*", idempotency)` is mounted globally, `MUTATING` is
+`{POST, PUT, PATCH, DELETE}`, and the guard throws `IDEMPOTENCY_KEY_REQUIRED` (400) with **no allowlist and
+no exemption**. So `/rate`'s three appends derive deterministic ids from the key, and a transient failure
+mid-sequence RESUMES on retry — already-committed events return their existing rows rather than appending
+twice. The row is accurate.
+
+### That makes five fallbacks dead code — and dead in the fail-OPEN direction
+
+Five routes read the header directly, and every one shares an idiom: when it is absent, fall back to
+`crypto.randomUUID()`. That fallback is **permissive** — it does not refuse, it silently makes retries
+non-idempotent. Unreachable today, so the question is what stands between "unreachable" and "live", and the
+answer is a genuinely well-built gate: `tools/checks/api-conventions.test.ts` pins a **non-vacuity floor**
+(fails if the `.post(` idiom changes and it watches nothing), both mount lines, Hono's **registration order**
+(a route mounted before the middleware is never wrapped), and *every mutation is under /v1 except a sanctioned
+few*. Three failure modes, three assertions, plus a floor. Nothing to add.
+
+### The probe: one `app.use` mounts TWO rules
+
+`app.use("/v1/*", auth)` and `app.use("/v1/*", idempotency)`. Leaving `/v1` drops **both**. And the
+allowlist's reasons — a stranger has no token; the platform door must stay off the customer-JWT surface —
+argue the **auth** half, every one of them. Nothing on that list says why it is safe to lose *retry
+protection*, and two of the five are money doors.
+
+That is the [[an-allowlist-exempts-one-rule-not-every-rule]] shape exactly, so I measured all five:
+
+| sanctioned route | idempotency it earns independently |
+|---|---|
+| `credit-append` | caller-supplied DETERMINISTIC id (`paymentEventIdFor(correlationId)`) + sequencer dedupe |
+| `credit-settle` | state transition, a no-op once paid — it never invents a paid state |
+| `/pub/signup` | unique slug + admin email → a repeat is a clean **409**, never a second tenant |
+| `/pub/quote` | appends **nothing** ("guest may QUOTE, never BOOK") — pure compute |
+| `PUT pin` | not an app route; the sequencer DO's own fetch handler |
+
+**5/5 hold, by five different mechanisms.** The `credit-append` one needed a five-link trace — route →
+`platform-ledger` (a thin transport) → `credits.ts` → `paymentEventIdFor(correlationId)` → Stripe's stable
+correlation id — because the route's own comment delegates the guarantee to its caller, and a guarantee that
+lives in the caller is only as good as the callers you enumerated.
+
+### Zero behavioural gap, real justification gap
+
+Nothing is broken. But the list records *why each is exempt from auth* and is silent on the rule that would
+actually cost money, which means the next person adding an entry has to re-derive five mechanisms to know the
+question exists. So the measured mechanisms are now written into the allowlist, ending with the line that
+makes it a rule rather than a note: **"Adding a sixth entry: state its idempotency mechanism here, or it does
+not belong on this list."**
+
+> **An exemption inherits every rule its scope carried, not the one that motivated it.** `app.use(path, …)`
+> is the natural place for this to hide, because the exemption is written as a *path* while the rules are
+> attached to it elsewhere — so the reason field records the rule the author was thinking about and silently
+> covers the rest. When exempting a path, enumerate what that path was buying.
+
+**STOP.** `/rate` mitigation verified at HEAD; 5 fail-open fallbacks confirmed unreachable behind a gate that
+needs nothing added; 5/5 sanctioned exemptions independently idempotent; the justification gap closed in the
+allowlist itself. `check:citations` OK · typecheck OK · lint OK.
 

@@ -50,7 +50,23 @@ function mutatingHandlers(root: string): Handler[] {
 }
 
 /**
- * The mutations that legitimately sit outside /v1. Each is a decision with a reason, not an oversight:
+ * The mutations that legitimately sit outside /v1. Each is a decision with a reason, not an oversight.
+ *
+ * TWO RULES ARE BEING EXEMPTED HERE, NOT ONE (audit §1106). `app.use("/v1/*", …)` mounts BOTH `auth` and
+ * `idempotency`, so leaving /v1 drops both — and every reason below argues only the AUTH half. A reader
+ * adding a sixth entry on auth grounds alone would ship a mutation with NO retry protection, which for a
+ * money door means a double-append. So the idempotency mechanism each one earns INDEPENDENTLY is recorded
+ * here; all five were measured at §1106 and all five hold, by five DIFFERENT mechanisms:
+ *
+ *  · credit-append  — the caller supplies a DETERMINISTIC event id (`paymentEventIdFor(correlationId)` /
+ *    `invoiceEventIdFor`, derived from the Stripe correlation id) and the sequencer dedupes by event id.
+ *  · credit-settle  — a state transition that is a no-op once paid; it never invents a paid state.
+ *  · /pub/signup    — the slug and admin email are unique; a repeat is a clean 409 (SLUG_TAKEN /
+ *    EMAIL_TAKEN), never a second tenant.
+ *  · /pub/quote     — appends NOTHING to the ledger ("guest may QUOTE, never BOOK"), so it is pure compute.
+ *  · PUT pin        — not an app route at all (the sequencer DO's own fetch handler).
+ *
+ * ADDING A SIXTH ENTRY: state its idempotency mechanism here, or it does not belong on this list.
  *
  *  · /pub/quote, /pub/signup — a STRANGER has no token, which is the entire point of the PLG path (demo 2:
  *    "a stranger signs up and quotes in <10 min"). They cannot sit behind `app.use("/v1/*", auth)`.
