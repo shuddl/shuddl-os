@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 537 | §1089 | **§1090** | **THE UNSWEPT TIER, OPENED — 92 ITEMS TRIAGED, AND THE TWO SHARPEST Med ONES VERIFIED EXACT.** §1089 found §3's inventory unswept; this triages it: **2 High (both EDI, both inert), 11 live Med, 73 live Low, 13 already resolved.** Verified in full at HEAD: **L228** — `actor{party}` is client-supplied → the biller's resolveInterline call → `approval.ts:126@executor` `if (leg.executor === tenantParty)`. **A client-named party still chooses which leg's share the REQ-040 floor judges** — the $222,084 guard. Fix is the stated owner decision (the biller is a queue consumer with no session). **L210** — `sent214Key` is still `edi/${tenant}/214/${key}`, tenant- not partner-scoped, safe only because §1066 proved no live transport exists. The citation gates rejected my write-up **twice**: a wrong anchor line, then an unanchored citation into a ratcheted file. |
 | 536 | §1088 | **§1089** | **STOPPING POINT VII OVERCLAIMED — MY ROW SCANNER REQUIRED 8 CELLS AND THE CHECKLIST HAS TWO SHAPES.** §1085 said *every repo-owned OPEN row read against HEAD*. True of the 55-row *Repository-owned failures & debt* table; the checklist ALSO carries **§3 Technical debt & known limitations — 92 severity-tagged items in 5-cell tables**, never touched, because every scan I wrote this session filtered `len(cells)==8`. Found by following a `recall "squint"` hit to **L185**, a row that could not exist under my own tally. The two **High** items are both EDI and both inert behind the unwired transport §1066 verified, so no verdict changes — but the CLAIM was wrong and is corrected at its source. Also: my resolution check returned **0 of 105** until I uppercased the severity token (13th shape error). |
 | 535 | §1087 | **§1088** | **ALL EIGHT SCHEMA INVARIANTS RE-VERIFIED BY LAYER — EVERY 'MISSING' LAYER IS THE WRONG LAYER FOR ITS RULE.** §1087's method applied to I1–I8. Four have a zero in some column, and **none is a gap**: **I2** (no invoice without pod.signed) has 0 migrations because a DB cannot express *no invoice unless a pod.signed exists on this stream* — it is enforced at the **chokepoint** (`invoice-gate.ts` at ledger level + `append-chokepoint` statically refusing any direct `events` write, *"bypassing the sequencer DO — and with it EVERY gate"*). **I5** has 0 source-gates because it is a **Zod parse-time refusal** (`rate_config_ids: z.array(z.string()).min(1)`), pinned by a test that plants the empty array. **I6** has 0 source-gates because genesis/10 itself designates the layer: *"tested adversarially"*. **I7** has 0 migrations because netting is an export-time property. Also: `$i[:/ ]` is ARRAY SUBSCRIPTING in zsh — my first table was all zeros. |
 | 534 | §1086 | **§1087** | **I NEARLY FILED THE APPEND-ONLY LAW AS UNENFORCED — THE PROBE TESTED ONE MECHANISM OF THREE.** §117 mutation-proved I1–I8; a proof covers only the text that existed when it ran, so I re-tested CLAUDE.md rule 2 (*no UPDATE/DELETE on `events`, ever*) in six forms. **Four came back GREEN**, including `UPDATE events SET` and `DELETE FROM events` — a spectacular-looking hole in the system's most important invariant. It is not one. UPDATE/DELETE are blocked at RUNTIME by `BEFORE` triggers that `RAISE(ABORT,'I3:…')` in a **forward-only, frozen** migration; the static scanner is REPLACE-focused **by design**, because `INSERT OR REPLACE` is precisely the form triggers CANNOT see — *"D1 runs PRAGMA recursive_triggers = 0 … SILENTLY erases the chained victim row (a history rewrite)"*. So REPLACE carries BOTH a WHEN-guarded `BEFORE INSERT` trigger and the static gate. **Three mechanisms, disjoint by construction; I tested one and read its correct scope as a gap.** |
@@ -64853,4 +64854,76 @@ equally invisible for eleven phases and produced no signal, because nothing poin
 **STOP.** Stopping Point VII's scope is corrected at its source; the unswept §3 inventory is measured (92
 severity-tagged items, 2 High, both EDI-inert behind a transport verified unwired at §1066); the shared filter
 bug is named as one instrument reused, not eleven separate mistakes. `pnpm delta` clean · `check:tables` OK.
+
+## §1090 — PHASE GATE: opening the tier §1089 found
+
+**Why this phase.** §1089 corrected a claim: **§3 Technical debt & known limitations** — ~206 rows in 5-cell
+tables — had never been swept, because every scanner I wrote filtered `len(cells)==8`. Correcting the claim is
+not the work; sweeping the tier is.
+
+### Triage of the 92 live items
+
+| severity | live | already resolved |
+|---|---|---|
+| **High** | **2** | 2 |
+| **Med** | **11** | 5 |
+| Low–Med | 6 | 1 |
+| Low | 73 | 5 |
+
+The two High are §1089's EDI pair, both inert behind the transport §1066 proved unwired. Several Med items were
+already verified incidentally this session — the iCloud duplicate hazard (739 exist, **none tracked**), staging
+evidence sending being live (§1083), dependency fragility (§1057). This phase takes the two sharpest that
+nothing had touched.
+
+### L228 — a client-supplied field selects which share the REQ-040 floor judges
+
+The chain, verified end to end at HEAD rather than inherited:
+
+```
+actor{party,user,device}          client-supplied on the generic envelope
+  → the biller's resolveInterline(legRows.results, pod.actor.party)
+    → executingShare:  if (leg.executor === tenantParty) { … }
+```
+
+So **the party named by the client decides which leg's share is compared against the interline floor** — REQ-040,
+the permanent $222,084/35-lb regression guard, and one of the few laws CLAUDE.md calls out by name.
+
+The row grades it **Med** and the grading is careful: *"internal authenticated actor, requires knowing a partner
+party id; bypasses a named permanent guard, does not move money directly."* And the fix is genuinely an owner
+decision, stated as a question rather than a task: **which server-side fact establishes the tenant's executing
+party?** The biller is a queue consumer with **no session**, so `session.party_id` is unavailable at that point
+— which is precisely why this is not a two-line patch.
+
+### L210 — the 214 dedup key is tenant-scoped, not partner-scoped
+
+`sent214Key(tenant, dedupeKey)` still returns `` edi/${tenant}/214/${dedupeKey} `` with a bare
+`edi214/<event id>`. The R2 marker is tenant-scoped; the key handed to a partner's own dedup layer is not. Safe
+**today** for exactly one reason, and it is the reason §1066 measured independently: **no live `EdiTransport`
+exists** — only the recording double and the dormant thrower. Every EDI item in this tier rests on that same
+fact, which makes it the single most load-bearing containment in the inventory.
+
+### The citation gates rejected the write-up twice
+
+Worth recording because both refusals were *correct and different*:
+
+1. an anchor naming the enclosing function — **wrong anchor**: `executingShare` is declared at line 105; line 126 is the
+   comparison inside it. The gate checks the symbol sits within ±2 lines of the cited line, so an anchor naming
+   the enclosing function fails. Re-pointed to `@executor`.
+2. A bare path-and-line pointer into the biller (no `@symbol`) — **the ratchet**: `0 → 1` unanchored citations into a high-churn target whose
+   baseline may fall and never grow. Anchored to `@resolveInterline`.
+
+Second phase running in which the citation machinery caught a defect at the staging boundary, and the two
+mechanisms are distinct: one checks that the anchor is *true*, the other that a *churny* file never gains an
+unanchored pointer.
+
+### What this phase says
+
+> **An inventory with no status column is a list nobody can finish.** §3's rows carry severity and a fix, and
+> nowhere to record that a fix landed — which is why 92 read as live and 13 only look resolved because someone
+> struck the item text by hand. The 8-cell ledger has `Status`, `Owner`, `Blocks grade` and `Evidence expires`
+> and is therefore *closeable*; §3 is a catalogue, and catalogues accumulate.
+
+**STOP.** The tier §1089 exposed is triaged (2 High / 11 Med / 73 Low live) and its two sharpest untouched Med
+items are verified exact at HEAD, both owner-held for stated reasons. `pnpm delta` clean · `check:citations` 0 ·
+`check:tables` OK.
 
