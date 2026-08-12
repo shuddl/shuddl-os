@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 559 | §1111 | **§1112** | **LAW 4 IS 5/5 DEFENDED — AND MY MUTATION HARNESS REPORTED TWO FALSE 'UNDEFENDED' FROM OPERATOR PRECEDENCE.** Carried §1111's clause-counting to REQ-004 (*no price on air*): 5 clauses (weight · dims-null · dims-measure · no_zone · no_rate_group). First run said C1 and C3 were **silent** — two untested guards on a constitutional law. False. `if (false && A || B || C)` parses as **`(false && A) || B || C`**: `&&` binds tighter, so the guard never stopped firing. Re-run with `if (false) {`: **C1 → 12 RED, C3 → 4 RED**. Worse, C2 was PARTIALLY disabled and returned a plausible RED 1 (true answer: 3) — so one broken harness produced valid, invalid AND half-valid cells at once. §1111's *"assert the mutation applied"* is necessary and **NOT sufficient**: the text changed and the guard still ran. **5/5 defended, 23 REDs.** |
 | 558 | §1110 | **§1111** | **DEFECT — LAW 5's SOLE DEFENCE AGAINST A 150% EXECUTING SHARE HAD NO TEST.** A law is not one proposition: REQ-040 has **four** falsifiable clauses, and §305 proved one (the arithmetic, RED 13) while §1109 proved another (the partial-signal refusal, RED 3). Mutating the remaining two: the 10000-total check REDs 2 — but the **per-leg range check went GREEN, 166/166**. One probe separated redundant-from-untested: with it removed, `[+15000, -5000]` (summing to exactly 10000, so the total-check is blind) yields **`shareCents: 150000` on a 100000 gross — a 150% share**, which clears any floor. That is the $222,084 DIRECTION. Test added and mutation-proved. And the second test I wrote asserted a mechanism that was **false** — the fractional shape is caught downstream by `mulDivHalfUp`'s BigInt, not by the guard — caught by mutating my own comment before commit. |
 | 557 | §1109 | **§1110** | **STOPPING POINT X — SIX PHASES, ONE HARDENING, ONE LAW PROVED, ONE ALARM WITHDRAWN.** Board re-earned at `6c672f8`: **19 PASS · 2 FAIL · 5 BLOCKED**, both FAILs attributed BY MEASUREMENT to the owner's uncommitted `REQ-289` row. §1104 named an untracked deferral to REQ-267 · §1105 learned the staging boundary by breaking it (40 verified duplicates removed) · §1106 **hardened** an allowlist that argued one rule while exempting two (5/5 measured) · §1107 **withdrew** its own alarm — the delta was my regex · §1108 swept all 7 credentials (fail-closed on two layers) · §1109 **mutation-proved CLAUDE.md Law 5** (3/3 REDs, 163 green). Two of six phases corrected ME, which is the ratio worth keeping. |
 | 556 | §1108 | **§1109** | **CLAUDE.md LAW 5 MUTATION-PROVED: 3 REDs, ALL THREE PARTIAL SHAPES.** Audited REQ-040 (*"interline floors compare the executing share, never gross"*) by the shape of its gate. Structure first: there is exactly **ONE** floor-comparison function (`evaluateApproval` — two `>=`), and **ONE** orchestrator choosing its input, so the entire law lives in the CHOICE of figure. The forbidden case is named in the code — a PARTIAL interline signal falling through to DIRECT compares the gross — and it **fails loud** rather than defaulting, which is right because there is no safe default for *which figure*. Mutated the guard to fall through: **3 RED**, every one in the `REQ-040 anti-$222K` block, covering legs-without-tenant, tenant-without-legs, and the subtle **EMPTY legs with a tenantParty**. Zero collateral; restore verified twice. |
@@ -66148,4 +66149,71 @@ falsified it inside five minutes, before commit, because the claim was written i
 **STOP.** Law 5 decomposed into 4 clauses, all four now mutation-proved (3 pre-existing RED, 1 defect found
 and closed); a 150%-share hole pinned by a test that is itself mutation-proved; one self-authored mechanism
 claim falsified and corrected before commit. 168/168 · typecheck OK · lint OK.
+
+## §1112 — PHASE GATE: Law 4 is 5/5 defended, and my harness said otherwise
+
+**Why this phase.** §1111 established that a law is not one proposition, and found REQ-040's fourth clause
+undefended. The obvious next move is to carry the method: decompose another constitutional law into clauses
+and mutate each. **REQ-004 — *"no price on air"*** — is the natural target, and `priceFreight` states its
+clauses as five distinct UNKNOWN returns.
+
+| clause | mutation | RED |
+|---|---|---|
+| C1 — weight must be a positive finite WHOLE-pound integer | disable | **12** |
+| C2 — dims must be present (`null` / `undefined`) | disable | **3** |
+| C3 — every dim + pieces must be a positive finite integer | disable | **4** |
+| C4 — the dest ZIP must match a zone | disable | **3** |
+| C5 — the zone must belong to a rate group | disable | **1** |
+
+**5/5 defended, 23 REDs.** Clean negative on the law. C3 is worth noting: audit §820 found that guard as a
+*presence-only* check (`{}`, all-zeros and negatives each returned PRICED over the public API); its
+replacement is now pinned four ways.
+
+### The section's real content: the harness lied, in the alarming direction
+
+The first run reported **C1 GREEN and C3 GREEN** — two undefended guards on the law that exists to prevent
+pricing unmeasured freight. That is a serious finding, and it was **entirely false.**
+
+The mutation conjoined `false` to the guard's first term:
+
+```
+if (false && typeof weight !== "number" || !Number.isFinite(weight) || weight <= 0 || …)
+```
+
+`&&` binds tighter than `||`, so this parses as `(false && A) || B || C || D` — **the guard still fires** on
+every remaining term. A missing weight is `undefined`, `!Number.isFinite(undefined)` is `true`, and the UNKNOWN
+returns exactly as before. The mutant was syntactically present and semantically inert.
+
+Re-run with an unambiguous total mutation (`if (false) { // MUTANT`): **C1 → 12 RED, C3 → 4 RED.**
+
+### The cell that makes this dangerous rather than merely wrong
+
+C4 and C5 are single-condition guards, so `false && X` genuinely disables them — those results were **valid**.
+C2 is two conditions (`dims === null || dims === undefined`), so the broken form disabled *half* of it: it
+still caught `undefined`, missed `null`, and returned a perfectly plausible **RED 1**. The true answer is
+**RED 3**.
+
+So one harness bug produced **valid cells, invalid cells, and a half-valid cell in the same table**, and
+nothing about the output distinguished them. A harness that is wrong in one place does not look wrong anywhere.
+
+### The refinement to §1111's own discipline
+
+§1111 insisted on *"assert the mutation applied"* — grep the file for the changed text — and I did that here.
+It passed. The text had changed; the behaviour had not.
+
+> **A mutation must be semantically TOTAL, not syntactically present.** Conjoining `false` to a compound
+> condition disables one term, not the guard. Replace the **entire** condition (`if (false) {`), and prefer a
+> mutant whose ineffectiveness is impossible rather than one whose effectiveness you have to reason about.
+> Corollary: when a mutation returns GREEN — the "undefended" direction — suspect the *mutant* before the
+> suite, because [[keep-a-fixed-point-before-scaling-a-probe]] holds here too: **harness bugs fail toward
+> alarming results**, and this is now the third time this session (§1107's `kv.put` regex, §1111's fractional
+> mechanism, this).
+
+Had the first table been trusted, it would have filed two false defects against a constitutional law and sent
+the next reader to write tests that already exist — the costliest kind of wrong, because it looks like
+diligence.
+
+**STOP.** REQ-004 decomposed into 5 clauses, all 5 mutation-proved (23 REDs); a harness defect found and
+corrected mid-phase with the invalid cells re-run rather than patched over; the mutation discipline
+strengthened from *applied* to *total*. Baseline restored, 168/168. Zero source changed.
 
