@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 616 | §1168 | **§1169** | **POST-DELETION HYGIENE: THE REMOVAL IS CLEAN, VERIFIED RATHER THAN ASSUMED.** §1167 deleted a file; a deletion leaves dangling references that not every gate catches, so it needed checking rather than trusting. The only surviving `tenant-source` string is a **comment** in `supply-chain.test.ts:22` about *"tenant-source allowlists"* (§571) — a different concept, not a reference. Both surviving gates are **collected** by `vitest.tools.config.ts` (so they run in the unit-tests merge gate); the deleted one is **not**. Tools assertions **1271 → 1265**, exactly the six removed. `check:citations` green, so no `path:line` pointed at it either. |
 | 615 | §1167 | **§1168** | **THE DUPLICATE SWEEP FINISHED UNIFORMLY: 2 OF 3 GATES SURVIVE.** §1167 removed §1147's gate but had checked only two of my three additions — and for §1148 I had verified the *convention*, not whether a **gate** already existed, which is the same gap one level down. Completed it: `constant-time-compare.test.ts` guards **how** a secret is compared (§802 — no `===` on a secret value), `wrangler-absence-claims.test.ts` guards **where** secrets are declared; **neither** asserts a credential is compared against `""`. §1148 stands, and is complementary rather than overlapping. §1149 confirmed distinct at §1167 (`wp-blocker-staleness` checks staleness, not presence). **Final: 3 built, 1 removed, 2 kept.** |
 | 614 | §1166 | **§1167** | **§1147's GATE WAS A DUPLICATE — BUILT WITHOUT SEARCHING THE RECORD, AND NOW REMOVED.** Applying §1166's rule retroactively to my own three gates: §1148 I checked against existing practice (and found the polarity convention); **§1147 I did not**. `tools/checks/tenant-scope.test.ts:312` already asserts *"no call site sources its tenant from request input"* — and planting the exact `?? session.tenant` shape mine was built for turns **the pre-existing gate RED**, naming `board.ts:171`. It is also **broader**: `scanCorpus` with `EmptyGlobError`, three non-vacuity assertions, and §826's allowlist-membership pins. Two gates for one rule is the drift hazard this repo has a skill about, so mine is **deleted**. §1140's lesson, unlearned and re-paid. |
 | 613 | §1165 | **§1166** | **§1161's OBSERVATION WAS FALSE — AND I FELL INTO THE TRAP I HAD JUST NAMED.** §1161 concluded I7's *correction pairs net zero* holds structurally with **no test naming it**. `packages/ledger/test/gl-netting.fixture.test.ts` names it exactly: header *"THE WP-02 DoD (I7): correction pairs net to zero through the REAL projection path"*, assertion (a) *"every corrected event: reversed originals + correction credits net to exactly 0"*, against a **vendored hash-pinned seed** — plus journal balance, penny-exact AR total, and zero-leakage division partitioning. I searched `net zero`/`netZero`; the test says `net to exactly 0`. **§1161's own closing line was *"an invariant's NAME is not its VOCABULARY"*** — diagnosed in the same phase, then violated in it. I7 is fully covered; the observation is struck. |
@@ -69266,4 +69267,42 @@ because §1166's rule was applied backwards onto my own output.
 verified against the two plausible pre-existing owners and found to enforce a property neither covers, sitting
 complementary to §802's comparison-method gate; the session's enforcement additions settled at three built,
 one removed, two kept. Zero source changed.
+
+## §1169 — PHASE GATE: verifying a deletion rather than assuming it
+
+**Why this phase.** §1167 removed `tools/checks/tenant-source.test.ts`. A deletion is an edit like any other,
+and this record's standing rule is that an edit's *consequences* are checked, not assumed — §1105 found that
+`git grep` reads tracked files, §1082 that a stray byte made a file binary, §1063 that a probe artifact
+survived a run. A removed file can leave a citation, a roster entry, or a config reference behind, and
+different gates catch different ones.
+
+### Three checks, three clean answers
+
+| check | result |
+|---|---|
+| surviving references to the name | one hit — `supply-chain.test.ts:22`, a **comment** about *"tenant-source allowlists"* (§571). A different concept that shares a phrase; not a reference to the file |
+| the two kept gates still collected | `credential-blank-guard.test.ts` ✓ · `wp-exit-audit.test.ts` ✓ — both under `vitest.tools.config.ts`, so both run inside the **unit-tests** merge gate |
+| the deleted gate | **not collected** ✓ |
+| assertion count | **1271 → 1265**, exactly the six removed |
+| `check:citations` | green — no `path:line` anchor pointed at the file |
+
+The `supply-chain.test.ts` hit is worth naming rather than dismissing: it is the same **shared-phrase**
+collision this session has met repeatedly — `assets`, `register`/`registry`, `kind` at two nesting levels,
+`10%` meaning two things. Here the phrase survives the deletion legitimately, and a search that treated any
+hit as a dangling reference would have manufactured cleanup work on a comment.
+
+### What the count confirms
+
+**1271 → 1265** is the tell that the removal took effect exactly and only where intended. A deletion that left
+the file collected, or removed more than it should, would show here — and a count is the cheapest place to see
+it, provided the expected delta is stated **before** looking (six tests in the removed file).
+
+> **A deletion deserves the same verification as an addition, and usually gets less.** Adding a gate invites
+> the question *does it fire?*; removing one invites no question at all, because nothing is left to inspect.
+> The check is the same shape either way: name the expected consequence, then measure whether exactly that
+> happened.
+
+**STOP.** The §1167 deletion verified across four independent signals — reference search, collection
+membership, assertion count against a pre-stated delta, and the citation gate; the single surviving string
+identified as a legitimate shared-phrase collision rather than cleanup work. Zero source changed.
 
