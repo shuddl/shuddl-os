@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 579 | §1131 | **§1132** | **STOP GREPPING CONSTRUCTIONS; READ THE CATALOG — AND THE POPULATION BECOMES COMPUTABLE.** The two-level `kind` collision produced a wrong first answer in THREE consecutive phases, so I stopped restating it and changed instrument: `packages/contracts@EVENT_KINDS` is the authoritative list, and it is **exactly 35** — CLAUDE.md's budget, confirmed. Computing against it rather than grepping: **27 of 35 kinds are client-appendable** through `/v1/shipments/:id/events` (35 − 5 server-emitted − 2 dedicated-route refusals − 1 rejected at the DO); **9** of those carry a DO transition gate (§1129); **5** have a dedicated recording route with no refusal (§1131). Every number in this arc now derives from the catalog instead of from a pattern that cannot see nesting. |
 | 578 | §1130 | **§1131** | **THE RULE ENUMERATED: 7 KINDS HAVE A DEDICATED RECORDING ROUTE, 2 ARE REFUSED, 5 ARE NOT.** §1130 said the remedy is a rule and that the rule is enumerable, so I enumerated it — the owner should get the decision CONTENT, not a principle. Refused: `approval.decided`, `authority.flipped`. **Not refused:** `quote.priced` (§1125) · `quote.accepted` (§1130) · `message.sent` (dunning) · `message.received` (portal-actions) · `agent.acted` (paired with /v1/rate). The first two are the confirmed money-authority pair; the other three need a per-kind ruling on whether the dedicated route is the ONLY legitimate producer — I do not assert that it is. Extraction hit the two-level `kind` collision a THIRD time: `rate.ts`'s only literals are `basis` payload entries, which is exactly why §1124's literal-kind sweep missed it. |
 | 577 | §1129 | **§1130** | **§1125 ESCALATES: `quote.accepted` IS APPENDABLE TOO, SO THE WHOLE AUTHORITY CHAIN IS FORGEABLE — AND THE FIX IS A RULE, NOT AN ENTRY.** Ran §1129's condition (c) on the sharpest candidate. `quote.accepted` decides WHICH quote gets billed (§1101's GUARD 2) and has a **dedicated gated route** — `/v1/shipments/:id/accept-quote`: lens gate on `:id` FIRST, then the `quote_event_id` must exist as a `quote.priced` on that stream. That is exactly the structure of `approval.decided` and `authority.flipped`, **both refused by name at the generic route for that very reason**. `quote.accepted` is not refused. Forge a `quote.priced` (§1125) + the `quote.accepted` naming it → a self-consistent chain that GUARD 2 accepts, because it verifies **consistency and existence, never provenance**. So the fix is the RULE the file already applies twice: **any kind with a dedicated recording route is refused here.** |
 | 576 | §1128 | **§1129** | **§1125's CLASS, BOUNDED EXACTLY: 9 KINDS CARRY A DO TRANSITION GATE, 26 DO NOT — BY CONSTRUCTION.** Asked which OTHER kinds could repeat §1125 (protections living OUTSIDE the append path). The sequencer answers structurally: `if (!isGatedKind(incoming.kind)) return {};` then an **exhaustive** switch over `GatedKind` whose `default:` is `assertNever` — *"a GatedKind with no case above = a Set/switch desync … never a silent fall-through to an ungated append"* (compile-time belt, runtime suspenders). The 9: `stop.departed` · `delivery.evidenced` · `custody.transferred` · `exception.raised` · `osd.captured` · `stop.arrived` · `appointment.set` · `booking.created` · `dispatch.assigned`. So **26 kinds are ungated at the DO deliberately**, and §1125's class is exactly: those 26, minus the 7 the route refuses, whose protections live elsewhere. `quote.priced` is one CONFIRMED member; the rest is per-kind work, not a grep. My first extraction said 9-of-9 and was imprecise (grouped fall-through, default bleed) — corrected by reading. |
@@ -67287,4 +67288,51 @@ can emit.
 and three explicitly left as owner judgements rather than padded into the finding; the two-level `kind`
 collision recorded as the reason a literal sweep both over- and under-reports on this exact question. Zero
 source changed.
+
+## §1132 — PHASE GATE: changing instrument, so the arc's numbers stop coming from greps
+
+**Why this phase.** The two-level `kind` collision has produced a **wrong first answer in three consecutive
+phases** — §1128 (the translator's money-line kind), §1129 (a grouped fall-through and a `default` bleed),
+§1131 (`basis[]` entries reported as `rate.ts`'s event kinds). This record's own rule for a discipline that
+fails repeatedly is to **price it, not restate it** (§1068). Warning about it a fourth time would be
+restating.
+
+The instrument change is small and was visible all along: **the kinds are not a pattern to be extracted from
+source, they are a declared catalog.** `packages/contracts@EVENT_KINDS` is the authority the sequencer's own
+`EventInput` parse is built from.
+
+### The catalog, and a constitutional budget confirmed
+
+**35 kinds**, exactly matching CLAUDE.md's hard budget (*"35 event kinds — additions = register amendment"*).
+That is a budget I had been quoting all session from the governing file without once deriving it from source.
+
+### The population, computed rather than grepped
+
+| step | count |
+|---|---|
+| catalog | **35** |
+| − refused as `SERVER_EMITTED_KINDS` | −5 (`invoice.issued`, `invoice.corrected`, `payment.received`, `settlement.executed`, `split.computed`) |
+| − refused because a dedicated route owns them | −2 (`approval.decided`, `authority.flipped`) |
+| − rejected at the DO outright | −1 (`position.updated` — *"bypasses the sequencer"*) |
+| **client-appendable via `/v1/shipments/:id/events`** | **27** |
+| …of which the DO applies a transition gate (§1129) | 9 |
+| …of which a **dedicated route** exists but no refusal (§1131) | **5** |
+
+(`credit.checked` remains appendable but is role-restricted to finance/admin, so it is inside the 27 with an
+extra guard rather than outside it.)
+
+This is the first time the arc's central number has come from the declaration rather than from a search. It
+also *changes* nothing — §1129's nine and §1131's five both survive the re-derivation — which is the point:
+the catalog method reproduces what careful reading produced, and would have produced it first.
+
+> **When a field name is ambiguous in source, find where it is DECLARED.** Three phases fought the ambiguity
+> with better regexes; the declaration was never ambiguous and never moved. A grep answers *"where does this
+> string appear"*; the question was always *"what are the kinds"*, and only one file is entitled to answer
+> that. The tell that I was using the wrong instrument was not any single wrong answer — it was that each fix
+> made the pattern more elaborate rather than the source more authoritative.
+
+**STOP.** Instrument changed from source-grep to declared catalog after three consecutive misreads; the
+35-kind constitutional budget derived from source for the first time and confirmed; the client-appendable
+population computed as **27**, with §1129's 9 gated and §1131's 5 dedicated-route kinds both surviving
+re-derivation. Zero source changed.
 
