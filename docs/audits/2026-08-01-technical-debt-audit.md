@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 779 | §1332 | **§1333** | **THIRD CORRECTION TO ONE COUNT — 2 → 4 → SIX — AND THE CAUSE IS IDENTICAL EACH TIME.** Finished §1332's enumeration: `dunning.ts:398` IS an instance and is already rostered as an unbounded READ — but the roster and its row mention **subrequests zero times**, so the loop consuming those rows (`loadInvoice` + `resolveDunningRecipient` per row) is a second failure mode that THROWS rather than degrades. Crossing *rostered read* × *per-row I/O* found **`watchtower.ts` with two unbounded instances** (`unbilledShipmentsSql`; *"every anomalous quote ever"*), never examined because §1308's candidate list was scoped by FILENAME (`*sweep*`) — a sweep not called one. Two probe failures caught by controls (an anchor matching a comment 370 lines off; 11 sites vs an asserted 9). |
 | 778 | §1331 | **§1332** | **APPLIED §1330's LESSON TO MY OWN ENUMERATION — SAME SCOPE ERROR, NEW DEFECT.** §1308 counted per-row I/O and found four instances, **all sweeps**, because the row it corrected was titled *sweeps*. The mechanism is not sweep-specific. **The probe failed its positive control first** (0 hits on routes AND 0 on `collector.ts` — a 12-line window vs a `.prepare(` 14 lines down); widened → 7 per-row-await loops across 39 handlers. **The finding:** `import.ts` caps itself at `MAX_ROWS = 5000` while `findOrCreateParty` costs 3 `prepare()` calls and `materializeShipment` 2 — **10,000–25,000 subrequests in ONE request** against 1,000 Free / 10,000 Paid. The cap and the ceiling contradict each other **inside the same module**. Structural, not reproduced. |
 | 777 | §1330 | **§1331** | **ENUMERATED THE CLASS BY MECHANISM — AND IT CLOSES.** §1330 showed a TRIGGER-titled row hides its own class, so this names the mechanism (**presence-check → effect → mark-on-success**) and sweeps both idioms (R2 `head()`, KV `get()`). **Five sites**: three are external emissions (214 sweep, webhook POST, and §1330's 990 ack) — all now on one row; `watchtower-snapshot` is **benign**; the Biller's `evidence.head` is a different class (a precondition REQUIRING presence). **The discriminator, now added to the row:** harm exists iff the guarded effect is an **un-dedupable EXTERNAL emission** — an idempotent write to a DETERMINISTIC key is harmless under the identical race, which is why the snapshot is fine and the three sends are not. No fourth instance. |
 | 776 | §1329 | **§1330** | **THE FOURTH REACH CLAIM FOUND A THIRD INSTANCE OF A HIGH-SEVERITY CLASS.** `sweep-214.ts`'s *"only path where a send can happen"* is correctly scoped to its own branch; enumerating transport sends found TWO — `send214` (cron) and `send990` (inbound ack). **The 990 ack has the filed defect**: the 990 ack in `inbound.ts` gates on `evidence.head(...) === null` (presence CHECK, not a claim), then allocates FRESH monotonic ISA/GS and marks only after success — so two concurrent 204 deliveries emit two 990s with DIFFERENT ISA13/GS06 that the partner cannot dedupe. **The standing hold is titled "CRON sweeps"**, so this path is scoped out by its own title: fixing "the two sweeps" when wiring a transport leaves it open. STRUCTURAL (read), not measured. Filed on the same row — same dormancy, same activation event. |
@@ -78316,3 +78317,56 @@ differ from the last attempt.
 inherits the scope of whatever prompted it** — and the correction is not to re-enumerate more carefully but to
 re-state the class in terms of the MECHANISM before counting, which is what §1331 did for the check-then-act
 family and what this phase did for per-row I/O.
+
+
+## §1333 — PHASE GATE: the third correction to one count, and the reason is the same every time
+
+§1332 completed only part of its own enumeration — seven per-row-await loops in request handlers, of which
+three were `import.ts` (filed) and one was `evidence.ts` (chunked by design). This phase finishes it, and the
+remaining three led somewhere better than expected.
+
+`board.ts` and `dunning.ts:141` are not instances. **`dunning.ts:398` is**, and it is already rostered — its
+query carries an in-source *"VOLUME HOLD (audit §183 + §185): no LIMIT, and `EXPLAIN QUERY PLAN` returns a bare
+SCAN"*, and it is one of the nine sites in `unbounded-reads-roster.test.ts`.
+
+**But the roster and its checklist row mention subrequests ZERO times.** They are framed as unbounded list
+*reads* — the failure is a big scan and a big response. The loop consuming those rows calls `loadInvoice` and
+`resolveDunningRecipient` per row: a second failure mode on the same code, which does not degrade but THROWS.
+
+### Intersecting the two classes found the missed instances
+
+Crossing *rostered unbounded read* with *per-row I/O* over the roster's seven distinct files: `dunning.ts` has
+one such loop, and **`workers/agents/src/watchtower.ts` has four.** Two of those four are bounded by
+construction (the agent roster; `PARITY_MODULES`). The other two are not:
+
+| loop | reads | does per row |
+|---|---|---|
+| `:185` | `unbilledShipmentsSql(...)` — the same no-LIMIT anti-join the recon sweep uses | `clearAlarm` / `raiseAlarm` |
+| `:223` | `SELECT … FROM events WHERE kind = 'quote.priced'` — this file's own rostered *"every anomalous quote ever"* | `raiseAlarm`, `UPDATE anomalies` |
+
+So the per-row-I/O count is **six**, not four. `watchtower.ts` was never examined at §1308 because that phase
+built its candidate list from files *named* `*sweep*` — and the watchtower is a sweep that is not called one.
+
+### Three corrections to one number, one cause
+
+| phase | count | why the previous one was short |
+|---|---|---|
+| original row | 2 | enumerated by I/O MECHANISM (`queue.send`/`r2.delete`/`fetch`), missing that a D1 `.run()` is a subrequest |
+| §1308 | 4 | — |
+| §1332 | (routes) | §1308 was scoped to SWEEPS because the row's title said sweeps |
+| **§1333** | **6** | §1308's candidate list was scoped by FILENAME (`*sweep*`) |
+
+Each correction has the same cause in a different costume: **the enumeration inherited a scope from something
+that was not the mechanism** — first the I/O verb, then the row's title, now the filename.
+
+**Two probe failures this phase, both caught by controls.** An anchor-based scan reported *"no per-row loop"*
+for `dunning.ts` while matching a comment 370 lines above the query, and reported ELEVEN rostered sites against
+an asserted nine. Re-run per FILE with `dunning.ts` as a known-positive control, both faults vanished.
+
+**Running tally: 208 of 208 load-bearing claims probed — 141 verified, 46 gaps closed, 21 claims corrected;
+12 operational items recorded.**
+
+**STOP.** The rule this session keeps re-earning, now stated at its most general: **before counting, write down
+the MECHANISM, and derive the candidate set from that alone** — never from a filename, a row title, or the API
+that happened to prompt the question. Every miss in this three-times-corrected count was a scope inherited from
+one of those three.
