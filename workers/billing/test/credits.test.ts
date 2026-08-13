@@ -81,6 +81,32 @@ describe("REQ-003/123 — a credit-pack sale is an invoice.issued carrying a cre
     expect(JSON.parse(row!.metered)).toEqual({ rater: 7 }); // preserved — never clobbered
     expect((JSON.parse(row!.stripe_refs) as Record<string, unknown>)["payment_intent"]).toBe("pi_sale_3");
   });
+
+  // §1240 — THE MERGE ITSELF, which the case above cannot see. It seeds `stripe_refs` as `'{}'`, and
+  // `json_patch('{}', new)` is byte-identical to a plain overwrite, so that assertion holds either way.
+  // Measured: turning the ON CONFLICT into `stripe_refs = excluded.stripe_refs` reds only a SETTLEMENT case —
+  // the merge was covered incidentally, by a test named for something else. This pins it in the shape
+  // production produces: `credits.ts` states issue and settlement EACH stamp this row, so an overwrite
+  // silently drops whichever phase ran first.
+  it("MERGES a second stamp into an existing stripe_refs — an earlier phase's ref survives (json_patch, RFC 7386)", async () => {
+    await env.CONTROL_DB
+      .prepare("INSERT OR REPLACE INTO usage_credits (id, tenant_id, period, metered, stripe_refs) VALUES (?, 'tenant-a', ?, '{}', ?)")
+      .bind(usageCreditsId("tenant-a", PERIOD), PERIOD, JSON.stringify({ invoice_phase: "in_first" }))
+      .run();
+
+    const led = new RecordingLedger();
+    const event = parse(checkoutEventBody({ eventId: "evt_sale_merge", tenant: "tenant-a", amountCents: 250_00, pi: "pi_merge", createdSec: CREATED }));
+    await emitCreditPurchase(led, env.CONTROL_DB, event);
+
+    const row = await env.CONTROL_DB.prepare("SELECT stripe_refs FROM usage_credits WHERE id = ?").bind(usageCreditsId("tenant-a", PERIOD)).first<{ stripe_refs: string }>();
+    const refs = JSON.parse(row!.stripe_refs) as Record<string, unknown>;
+    // PREMISE: the new stamp landed at all, or "the old one survived" is vacuously true of a no-op.
+    expect(refs["payment_intent"], "the new stamp did not land — this case cannot see a merge").toBe("pi_merge");
+    expect(
+      refs["invoice_phase"],
+      "the EARLIER phase's ref was dropped — an overwrite, not a merge; issue and settlement both stamp this row",
+    ).toBe("in_first");
+  });
 });
 
 describe("REQ-123 — idempotency: twice in = once out (the emitter re-derives the SAME event ids)", () => {

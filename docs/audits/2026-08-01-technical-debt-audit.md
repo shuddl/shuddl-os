@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 687 | §1239 | **§1240** | **THE IDENTITY ELEMENT HIDES THE OPERATOR — A MERGE TEST THAT COULD NOT TELL MERGE FROM OVERWRITE.** Two money guards whose failure produces no error, probed by mutation. **Rounding: clean** — turning `halfUpBig` into truncation REDs five tests including the exact half both ways and a real tariff line (*105 lb @ 4230¢/cwt = 4441.5¢ ⇒ 4442¢*). **The `stripe_refs` MERGE: half-defended.** `metered` preservation has a purpose-named test; the MERGE itself was caught only by a SETTLEMENT case. The reason is the finding — the named test seeds `stripe_refs = '{}'`, and **`json_patch('{}', new)` is byte-identical to an overwrite**. Starting from the identity element (`{}`, `0`, `1`, `[]`) makes every identity-respecting operator indistinguishable: the test asserts something LANDED, never how it COMBINED. Closed with a non-empty prior ref + a premise; the overwrite mutation now reds BY NAME. Not academic — issue and settlement each stamp this row, so an overwrite drops whichever ran first. |
 | 686 | §1238 | **§1239** | **§1232'S QUEUE WORKED TO ZERO — THE SIZE-BOUND CLASS CLOSES AT 7 OF 7.** §1232 filed four bounds as unasserted, judging each to need its own oversized-input harness. **Three closed**, each mutation-proved against the exact change that had survived: `MAX_INPUT` → MAX_SAFE_INTEGER, `ISA_SCAN_LIMIT` → 100_000, `DETAIL_SHIPMENT_CAP` → 100_000 (*expected 55 to be 50*). **The harness cost was near zero** — a `.repeat()` and a seed loop using a helper already present — so that judgement was wrong the same way its cost prediction was. The fourth, `MAX_BODY_BYTES`, was **already defended**: `inbound.test.ts:695` posts exactly `1_048_576 + 1` bytes and asserts 413 plus nothing written. **That vindicates "unexamined" as a verdict distinct from "clean"** — guessing either way would have been wrong, hiding three real gaps or inventing a fourth. Class now 7/7, each pinning VALUE as well as mechanism; the watchtower case also pins that **the count stays truthful while the list is capped**. |
 | 685 | §1237 | **§1238** | **SESSION STOPPING POINT — BOARD MEASURED, 27 PHASES ACCOUNTED FOR, AND §1237'S RULE TESTED FOR GENERALITY.** **19 PASS · 2 FAIL · 5 BLOCKED, zero repo-owned failures**; both FAILs and all five BLOCKs owner-held and unchanged. §1237's rule (*an unenforceable rule still has a violation count*) tested against the 21 sections concluding "not viable" — **§704 counted (0 defects), §844 counted (full corpus), L410 is an unmade decision. §880 was the sole instance**, now closed. The generalisation was worth testing and worth abandoning. Session yield: 15 measured defects across live code/config, guards asserted by nothing (the SOLE page bound; two on the PAID LLM path), tests that did not test (a pagination walk fetching ONE page), and records asserting the opposite of the code — plus 2 new gates. **Every predictor I proposed was falsified by its own test; every measurement held.** The four surviving rules are all about PREMISES, not categories. |
 | 684 | §1236 | **§1237** | **L426'S PATH-ONLY BLINDNESS HAS REAL INSTANCES — 18 REFERENCES TO 3 NONEXISTENT FILES, 8 OF THEM OPERATOR-FACING.** Measured 2,083 backticked repo-path references across docs + skills: **48 point at nothing**. Three are unambiguous errors whose targets exist — `docs/ops/threat-model.md` (x10; `git log --all` shows it **never existed**, so an error not staleness), `workers/agents/src/sender.ts` (x5), and a missing `/routes/` segment (x3) — and **8 of the 18 are in GO-LIVE-CHECKLIST**, where a go-live reviewer following the threat-model link finds nothing. All corrected, 48 → 45. The rest are deliberate notation (elisions, ranges, deleted probes, and paths quoted TO SAY they don't exist — including my own §1228 note). Basename matching nominated 23 as "moves" but its top hits were the elision and that negative example — §1194's collision — so **none were bulk-rewritten**. **§880 already measured detector VIABILITY (no); this measured current VIOLATIONS (18).** "Cannot be gated" had been doing duty for "nothing to find". |
@@ -73728,3 +73729,50 @@ sample, the count is the measurement, and only the sample may be cut.
 mutations that had survived, the fourth found already defended at its exact boundary, the size-bound class
 complete at 7 of 7, and "unexamined" vindicated as a verdict that guessing would have got wrong in both
 directions.
+
+## §1240 — PHASE GATE: the identity element hides the operator — a merge test that could not tell merge from overwrite
+
+**Continuing §1232's class into money semantics.** A rounding mode and a MERGE are both guards whose failure
+produces *no error* — just a different number, or a lost field. Two probed.
+
+### Rounding: thoroughly defended (clean negative, mutation-proved)
+
+`mulDivHalfUp` is the only rounding the money path uses — the two `Math.*` sites that touch money are a byte
+count and a basis-point metric. Turning `halfUpBig` into truncation REDs **five** tests, including the exact
+half in both directions (`15/10 ⇒ 2`, `5/10 ⇒ 1`), a fractional case, the 2^53 BigInt guard, and a real tariff
+line: *"105 lb @ 4230¢/cwt = 4441.5¢ ⇒ 4442¢"*. Nothing to do.
+
+### The merge: defended in one half, and the other half could not be seen
+
+`credits.ts` stamps `usage_credits` with `ON CONFLICT DO UPDATE SET stripe_refs = json_patch(…)`, and its header
+makes two claims: **`metered` survives** (the metering sweep owns it) and **`stripe_refs` MERGES** (issue and
+settlement each stamp the same row).
+
+| Claim | Mutation | Caught by |
+|---|---|---|
+| `metered` untouched | add `metered = '{}'` to the UPDATE | a test **named for it** ✓ |
+| `stripe_refs` merges | `= excluded.stripe_refs` (overwrite) | only a **settlement** test — incidental |
+
+**And the reason the named test could not see it is the finding.** It seeds the row with `stripe_refs = '{}'`:
+
+```
+json_patch('{}', new)  ===  overwrite(new)
+```
+
+**The identity element hides the operator.** Starting from `{}` — or `0` for a sum, `1` for a product, `[]` for
+a concat — makes every operator that respects identity indistinguishable. A test written from the empty state
+asserts that *something landed*, never *how it combined*. That is a general trap and it is invisible on
+reading: the assertion looks like it tests the merge, and the name says merge.
+
+**Closed** with a case that seeds a **non-empty** prior ref and asserts both survive — plus a premise that the
+new stamp landed at all, or "the old one survived" would be vacuously true of a no-op. The overwrite mutation
+now REDs it **by name**: *"the EARLIER phase's ref was dropped — an overwrite, not a merge"*, `expected undefined
+to be 'in_first'`.
+
+**Why it is not academic:** `credits.ts` states that issue and settlement each stamp this row. An overwrite
+silently drops whichever phase ran first, so a paid credit pack would carry one Stripe reference instead of
+two — with no error anywhere.
+
+**STOP.** The money path's rounding mode confirmed defended by mutation rather than by reading, the merge's two
+claims separated and the weaker one closed, and the reason it was weak — a test starting from the identity
+element cannot distinguish the operator from a replacement — named as the transferable trap.
