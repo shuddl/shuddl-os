@@ -72,6 +72,16 @@ const SWEEP_COUNT_FILES = [
 // count-matcher hits on prose: a record that preserves its history necessarily contains its own wrong numbers,
 // and no filter distinguishes a stale claim from a quoted one. A gate at a 50% false-positive rate is a gate
 // people silence (§1053), so this one is scoped to where the count is a LIVE assertion rather than a citation.
+//
+// §1341 — A DERIVED COMPLETENESS CHECK WAS TRIED HERE AND REVERTED, WITH THE RESULT.
+// `r2-before-row.test.ts` solves the same hand-kept-roster problem correctly: it DERIVES the population
+// (every R2 write), subtracts the declared subset, names each exemption with a reason, and asserts the
+// remainder is empty — so its roster cannot go stale. Applying that shape here fired immediately, on
+// `workers/translator/src/sweep-214.ts`, whose text reads *"MEASURED by driving two sweeps concurrently"*.
+// That is two INVOCATIONS, not a population of two — a semantic false positive on the first file it found.
+// The difference is the predicate: *an R2 write* is MECHANICAL, while *a file stating the sweep count* is
+// SEMANTIC, and only the mechanical one can be derived. The roster above is therefore deliberate, not an
+// oversight, and the note about a 50% false-positive rate is the measurement that justifies it.
 
 // §1313 — ONE THROUGH TWELVE, not "the words that appear today".
 //
