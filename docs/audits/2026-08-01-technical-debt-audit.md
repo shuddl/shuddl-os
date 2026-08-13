@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 790 | §1343 | **§1344** | **THE INSTRUMENT'S FIRST REAL USE — AND WHAT IT SAVED.** Used `recall` instead of `git grep` on the question likeliest to find live work: what the record admits is UNEXERCISED (27 mentions / 19 verdicts). The sharpest was §1266, *"four unexercised guards in the Gatekeeper"* — **closed, and better than I would have closed it**: 2 were real gaps, 2 are REDUNDANT because the schema refuses a wrong type first, and the discriminator is doc 10's deliberate loose/typed asymmetry, not luck. **The borrowable move is the scoping**: §1266 names 109 `typeof` guards across 42 files and §1267 refused to sweep them, re-scoping to the enumerable BOUNDARY (8 loose kinds of 35, `readField` in one file) — sweeping 109 would have been mostly redundancy, the §1053 noisy-gate outcome. Boundary still held (3/3). |
 | 789 | §1342 | **§1343** | **POINTED §1342's INSTRUMENT AT THIS SESSION'S OWN FINDINGS.** The honest way to act on "I never used `recall`" is to run it against what I claimed to find. `recall ack990Key` returns **only §1330 and the row it amended** — so the 990 double-send is genuinely new, confirmed by the record's instrument rather than by my confidence, which matters because it sits in a file with **10 prior verdicts**. And the tool already encodes the discipline: on an exact-phrase miss it prints *"the exact phrase is absent, but ITS TERMS ARE NOT. **This is not novelty**"* with term counts and owning sections — a built-in guard against the precise inference I nearly made at §1325 and did make at §1311/§1317. Reaching for it would have corrected the REASONING, not just the search. |
 | 788 | §1341 | **§1342** | **THE REPO SHIPS THE INSTRUMENT I FAILED TO USE, TWICE.** Chasing §1341's undeclared-corpus discriminator to its last instance found `recall.ts@SOURCES` — not a gate, but the repo's **`pnpm recall`**, which searches the record and returns each hit WITH THE SECTION THAT OWNS IT. **I did not use it once in 37 phases**, while failing twice at exactly its task: `recall "how many are open"` returns §945 (which §1317 re-derived), and `recall "per-tenant containment"` returns **§410** (the work §1311 duplicated). Both misses were inside its corpus; both cost a phase. A grep searches STRINGS; recall searches the RECORD and names the owning verdict. Corpus limit now stated in the tool: 3 files of ~45, kept narrow deliberately (§1053 noise). |
 | 787 | §1340 | **§1341** | **AUDITED THE FOUR GATES I BUILT THIS SESSION — ZERO DEFECTS — AND REVERTED A "FIX" THE FIRST RESULT DISPROVED.** No fixed windows in any. Their hand-kept lists are safe for a nameable reason: a list is safe as the SUBJECT of an equality assertion (drift REDs it) or as a declared subset with a **derived completeness check** (`r2-before-row` does exactly this); it is dangerous only as an undeclared CORPUS — which is what `SWEEP_COUNT_FILES` is, and why that one gate produced three defects while these four produced none. So I applied `r2-before-row`'s pattern to it — and it **fired on `sweep-214.ts`, whose text is *"driving two sweeps concurrently"***: two INVOCATIONS, not a population. Reverted; the roster's own comment had already measured this. **The transfer test is whether the predicate is MECHANICAL or SEMANTIC.** |
@@ -78799,3 +78800,44 @@ my confidence. And the more uncomfortable one: **the discipline I have been deri
 thirty-eight phases was already implemented, in a command, with the anti-novelty inference built in.** The gap
 was never knowledge — §1342 established the tool existed and I did not reach for it. This phase establishes
 that reaching for it would also have corrected the reasoning, not just the search.
+
+
+## §1344 — PHASE GATE: the instrument's first real use, and what it saved
+
+§1342/§1343 established that `pnpm recall` exists, that I never used it, and that it encodes the anti-novelty
+inference. This phase uses it as the primary instrument instead of `git grep`, on the question most likely to
+find live work: **what does the record itself admit is unexercised?**
+
+- `recall "asserted by nothing"` → 4 verdicts · `recall "pinned by nothing"` → 5 · **`recall "unexercised"` → 27
+  mentions across 19 verdicts.**
+
+The sharpest title in that list was §1266, *"four unexercised guards in the Gatekeeper, of which exactly two
+could ever fire"* — the §1309 shape on the surface that decides whether freight moves. Read first, per the
+tool's own instruction to read the owning section before tracing code.
+
+**It is closed, and closed better than I would have closed it.** Two of the four guards were real gaps (now
+RED-able); the other two are *redundant* — the schema refuses a wrong type before the guard runs — and the
+discriminator is not luck but **doc 10's deliberate asymmetry**: `exception.raised` is intentionally a loose
+`JsonObject`, `custody.transferred` and `delivery.evidenced` are strictly typed, so a caller controls the type
+on exactly the payload where the two live gaps were.
+
+### The scoping decision worth borrowing
+
+§1266 names a population of **109 `typeof` guards across 42 files**, and §1267 did NOT sweep it. It re-scoped to
+the *enumerable boundary* instead — *"hand-written type guards matter exactly where the schema stops"* — which
+is **8 loose-payload kinds of 35**, `readField` used in exactly one file, and `projection/money.ts`'s
+`asInt`/`asString` (all three unexercised, all closed). Sweeping 109 would have been mostly noise, because most
+sit behind a schema that already refuses the wrong type — the same redundancy the Gatekeeper's other two guards
+demonstrated.
+
+That boundary is still held: `loose-payload-boundary.test.ts` passes 3/3, and §1341 verified its lists are
+equality-asserted, so drift REDs it rather than passing silently.
+
+**Running tally: 241 of 241 load-bearing claims probed — 165 verified, 46 gaps closed, 23 claims corrected;
+12 operational items recorded.**
+
+**STOP.** No live gap, reached in four commands. The point is the contrast with how this session has usually
+worked: **`recall` moved me from "19 verdicts mention unexercised" to "the class is closed, on a better axis
+than the one I would have chosen" without reading a single source file first.** The axis is the saving —
+§1267 chose 8 loose kinds over 109 guards, and a grep-driven sweep would have enumerated the 109 and found
+mostly redundancy, which is exactly the noisy-gate outcome §1053 records.
