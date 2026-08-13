@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 737 | §1290 | **§1291** | **THE MODULE THE SEAM HID — A MONEY TRANSPORT WITH NO TEST FILE.** Running §1289's ownership command as a SURVEY across the billing worker's exports returned one empty row: **`platformLedgerFor` — NO TEST FILE**. `platform-ledger.ts` (105 lines) is how a credit money event actually reaches the api sequencer — over the API service binding, behind `PLATFORM_INTERNAL_SECRET`. Every webhook and credits test injects a `RecordingLedger`, which is exactly what hid it: **a well-placed injection point MOVES the untested surface, it does not remove it.** §1290 measured above the seam; this is below it. Five behaviours pinned from zero: DARK is a **loud refusal making no call** (4 RED), `""` counts as DARK (1 RED), a **non-2xx throws** so the webhook 500s (2 RED — §1290's defect one layer down), an append must return a **string id** (2 RED), the secret rides as `X-Platform-Internal` (2 RED). The first was forbidden **in prose** by the module's own comment (*a silent no-op is forbidden*) and unenforced in fact. **The lesson: ask *which tests own this symbol* of a whole PACKAGE, not just the function you are about to mutate** — the same command, run wide, is a coverage survey that names the module nobody wired. |
 | 736 | §1289 | **§1290** | **THE MONEY WEBHOOK ACKed ITS OWN FAILURES.** `handleStripeWebhook` is where money enters from outside. Pinned: verification fail-closed **2 RED**, the DARK 503 branch **2 RED**, purchase-vs-settlement dispatch **3 RED**. **The gap: a processing fault returning 500 — 60/60 GREEN.** **The status IS the retry protocol:** Stripe redelivers on 5xx and STOPS on 2xx, so ACKing a failed emit **discards the delivery permanently** — the card is charged, the credits are never issued, and nothing surfaces because the webhook *succeeded*. The handler's own comment states the contract (*return 500 so Stripe redelivers — the emitter is idempotent*), and idempotency is what makes 500 SAFE rather than merely loud. Closed by injecting a ledger that throws after verification; proved 3 ways (ACK 200 REDs, downgrade to 400 REDs, neutering the catch REDs). The raw-body rule is recorded **unconstructible** — the fixtures are already canonical JSON so a re-serialize round-trips byte-identically. **And §1289's rule applied FIRST:** the two symbols I guessed (`verifyStripeSignature`, `handleWebhook`) **do not exist** — under the old habit that was a plausible probe set and a green that meant nothing. |
 | 735 | §1288 | **§1289** | **MIDDLEWARE SWEEP COMPLETE — AND A FALSE GREEN CAUGHT BY ITS OWN TEST FILE.** `error.ts` mutated three ways: the `ApiError` branch **16 RED**, `extras` spread-first (anti-shadowing) **3 RED**, the fixed `"INTERNAL ERROR"` fallback **1 RED** — fully pinned. With §1287, §1288 and §1245's CORS parity gate, **all four middleware files are measured**. **But the third read GREEN first**: leaking `err.message` left my probe set at 31/31 — I had run `auth`, `errors`, `evidence-upload`, three plausible files chosen BY NAME. The owner is `error-envelope.test.ts`, whose header records the SAME finding at audit **§354** (*same mutation, left all 754 api tests GREEN*). Running it: **1 RED**. I was one commit from re-deriving a closed finding as a new one. **Third occurrence this stretch** (§1264 booking, §1281 `meanOrUnknown`, this) — each a green that meant nothing, each preventable by `git grep -l '<symbol>' -- '*test*'` BEFORE mutating. Rule written down twice, skipped twice. **A plausible probe set is more dangerous than an obviously wrong one, because its green looks like an answer.** |
 | 734 | §1287 | **§1288** | **ONE IDEMPOTENCY-KEY SPANNING EVERY ENDPOINT.** The KV scope is a SHA-256 of `[tenant, method, pathname, key]`. Pinned: the **2xx-only** caching rule (REQ-206/H-5) **3 RED**, `tenant` (REQ-025) **1 RED**, the key requirement **1 RED** — **both documented past defects have tests**, §1279 again. **The gap: `pathname`** — dropping it left api **74/74 GREEN**, and its absence makes one key GLOBAL to the tenant: a client minting one key per user action (what the driver PWA does per capture) gets its second call to a DIFFERENT route served the first route's response, 2xx and all — the mutation never runs and the caller is told it succeeded. Same shape as the REQ-105 cap bypass, whose fix was *the api's own dedupe folds the request pathname into its scope*. Closed; the discriminator took two tries (the obvious second route 500s unseeded, so the test asserts the route **RUNS** via a deterministic 400, not that it succeeds). **`method` and the `NUL` separator recorded UNCONSTRUCTIBLE with evidence** — no path carries two mutating verbs, and every mutating route ends in a fixed literal so `pathname+key` cannot be made to collide client-side. Inventing tests for them would be §1283's *assert nothing, read as diligence*. |
@@ -76236,3 +76237,47 @@ and the guess would have cost a false finding.
 **STOP.** The external money boundary measured element by element: three guards pinned, one real gap closed
 where a failed credit emit was being acknowledged to Stripe and lost, one rule recorded unconstructible with its
 reason. billing 61/61, typecheck 0.
+
+## §1291 — PHASE GATE: the module the seam hid — a money transport with no test file at all
+
+§1289's rule earns its keep differently here. Running `git grep -l '<symbol>' -- '*test*'` across the billing
+worker's exports as a *survey* rather than a *pre-check* returned one line that stood out:
+
+```
+platformLedgerFor            — NO TEST FILE
+```
+
+`platform-ledger.ts` (105 lines) is how a credit money event actually reaches the api sequencer — over the
+`API` service binding, behind the operator-injected `PLATFORM_INTERNAL_SECRET`. **No test referenced it.** Every
+webhook and credits test injects a `RecordingLedger` through the emitter's seam, which is exactly what hid it:
+**a well-placed injection point moves the untested surface, it does not remove it.** §1290 measured everything
+*above* the seam and found a real gap; this is everything *below* it.
+
+Five behaviours, all load-bearing on the money path, all previously unobserved — now pinned:
+
+| behaviour | mutated → |
+|---|---|
+| DARK (no secret) is a **loud refusal**, and makes no call at all | **4 RED** |
+| `""` counts as DARK — an unset secret often arrives empty, not `undefined` | **1 RED** |
+| a **non-2xx** from the api **throws** (so the webhook 500s and Stripe redelivers) | **2 RED** |
+| an append must return a **string** event id — present is not valid | **2 RED** |
+| the secret rides as `X-Platform-Internal` | **2 RED** |
+
+The third is §1290's defect one layer down: swallowing a non-2xx there would ACK a delivery whose credit event
+never landed — the same permanent loss, reached through a different door. The first is the one the module's own
+comment forbids in words: *"A silent no-op is forbidden (an operator must never believe a credit was recorded
+when nothing was wired)."* It was forbidden in prose and unenforced in fact.
+
+### What made it findable
+
+Not reading — I had already read `webhook.ts` and `credits.ts` without noticing what they *delegated to*. The
+ownership map made it structural: eleven exports across five modules, each with its owning suites listed, and
+one row empty. **"Which tests own this symbol" is a question worth asking of a whole package, not just of the
+function you are about to mutate** — the same command, run wide, is a coverage survey that names the module
+nobody wired.
+
+**Running tally: 113 of 113 load-bearing claims probed — 75 verified, 32 gaps closed, 5 claims corrected.**
+
+**STOP.** The billing worker is swept end to end — the webhook above the seam (§1290, one gap closed) and the
+transport below it (here, an entire module from zero tests to eleven, five mutations RED). billing 72/72,
+typecheck 0.
