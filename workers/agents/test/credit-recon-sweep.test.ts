@@ -20,10 +20,13 @@ import { applyAll, seedEvent } from "./helpers.js";
 // §777 pinned `reconcileCreditForParty` (the reconciler this calls). This pins the SWEEP: that it FINDS the
 // gap, applies the decision, and does not close a gap it could not fix.
 //
-// STILL UNEXERCISED, stated rather than implied: the per-party `catch`. `reconcileCreditForParty`
-// fail-closed-RETURNS instead of throwing, so no fixture of real rows can reach it — measured, by making the
-// catch rethrow and watching these three stay green. Reaching it needs an injected db that throws, and this
-// suite has no seam for one. The third test below pins the weaker true statement, and says so.
+// ~~STILL UNEXERCISED, stated rather than implied: the per-party `catch`.~~ **CLOSED 2026-08-13 (§1309).**
+// `reconcileCreditForParty` fail-closed-RETURNS instead of throwing, so no fixture of real rows can reach the
+// catch — that measurement stands, and it is why the third test below pins only the LOOP's continuation. What
+// was missing was the seam, not the intent: the fourth test injects a db that REJECTS for one party (the
+// `faultSeam` idiom from `packages/ledger/test/anchor.test.ts`), which is the only way to reach a THROWN
+// per-party fault. That catch is what every "contained + logged so one tenant never stalls the rest" claim in
+// `index.ts` rests on, and audit §1308 leaned on it while it was pinned by nothing.
 
 const PARTY = "party-791-gap";
 const OTHER = "party-791-other";
@@ -59,6 +62,38 @@ async function creditStatusOf(partyId: string): Promise<string | null> {
 async function anomalyStatusOf(id: string): Promise<string | null> {
   const r = await env.TENANT_A_DB.prepare("SELECT status FROM anomalies WHERE id = ?").bind(id).first<{ status: string }>();
   return r?.status ?? null;
+}
+
+/**
+ * §1309 — a D1 that REJECTS every statement bound to `poison`, and delegates everything else to the real one.
+ *
+ * Argument-scoped rather than SQL-scoped, following `packages/ledger/test/anchor.test.ts`'s faultSeam: the
+ * discriminator has to be the PARTY, because reconcileCreditForParty and the sweep's own candidate SELECT hit
+ * overlapping tables. The sweep's SELECT binds the RULE (never a party id), so it always reaches the real db
+ * and still returns every seeded gap — which is what makes "the others still reconcile" observable.
+ */
+function dbRejectingFor(real: D1Database, poison: string): { db: D1Database; faults: () => number } {
+  let faults = 0;
+  const reject = (): Promise<never> => {
+    faults += 1;
+    return Promise.reject(new Error("D1_DOWN"));
+  };
+  const faulty = (): D1PreparedStatement =>
+    ({ bind: () => faulty(), first: reject, all: reject, run: reject, raw: reject }) as unknown as D1PreparedStatement;
+  const db = {
+    prepare: (sql: string): D1PreparedStatement => {
+      const stmt = real.prepare(sql);
+      return {
+        ...stmt,
+        bind: (...args: unknown[]) => (args.includes(poison) ? faulty() : stmt.bind(...args)),
+        first: () => stmt.first(),
+        all: () => stmt.all(),
+        run: () => stmt.run(),
+      } as unknown as D1PreparedStatement;
+    },
+    batch: (stmts: D1PreparedStatement[]) => real.batch(stmts),
+  } as unknown as D1Database;
+  return { db, faults: () => faults };
 }
 
 beforeAll(async () => {
@@ -111,5 +146,41 @@ describe("REQ-042/183 §791 — the credit-gap sweep against a REAL gap", () => 
     expect(await creditStatusOf(OTHER), "the reachable party was never reconciled — the sweep stopped early").toBe("clear");
     expect(await anomalyStatusOf("credit-projection-gap:791-zzz-good")).toBe("resolved");
     expect(await anomalyStatusOf("credit-projection-gap:791-aaa-bad"), "the unreconcilable gap must stay open").toBe("open");
+  });
+
+  // §1309 — THE PER-PARTY CATCH, REACHED. The source says "a per-party fault is contained + logged, never fatal
+  // to the rest", and `runCreditReconSweep` repeats the claim one level up ("a per-tenant fault is contained").
+  // Audit §1308 reasoned from that containment; nothing asserted it. A THROWN fault needs an injected db, since
+  // reconcileCreditForParty returns rather than throws for every real-row shape (§777).
+  it("a party whose reconcile THROWS is contained — the sweep completes and the others still reconcile", async () => {
+    const POISON = "party-1309-poison";
+    const BEFORE = "party-1309-aaa"; // brackets the poison on BOTH sides of any id ordering (see below)
+    const AFTER = "party-1309-zzz";
+    for (const p of [POISON, BEFORE, AFTER]) await seedParty(p);
+    await seedCreditDecision("shp-1309-p", POISON, "hold");
+    await seedCreditDecision("shp-1309-b", BEFORE, "clear");
+    await seedCreditDecision("shp-1309-a", AFTER, "clear");
+    await seedGap("credit-projection-gap:1309-poison", POISON);
+    await seedGap("credit-projection-gap:1309-before", BEFORE);
+    await seedGap("credit-projection-gap:1309-after", AFTER);
+
+    const seam = dbRejectingFor(env.TENANT_A_DB, POISON);
+    // THE claim the catch makes, and the only order-independent one: the sweep RESOLVES rather than rejects.
+    const res = await sweepTenantCreditGaps(seam.db);
+
+    // NON-VACUITY, and it is the whole test: a seam that never fired would make everything below pass while
+    // exercising nothing. This is the `assertions: 0 over an empty corpus` shape the header warns about.
+    expect(seam.faults(), "the injected fault never fired — this test proves nothing about the catch").toBeGreaterThan(0);
+    expect(res.scanned, "the sweep's SELECT ran through the seam and found no gaps").toBeGreaterThanOrEqual(3);
+
+    // CONTINUATION, stated with its mechanism rather than assumed: the sweep's SELECT carries NO `ORDER BY`, so
+    // the iteration order is SQLite's incidental one (a DISTINCT temp B-tree today — an implementation detail,
+    // not a guarantee). Seeding a reconcilable gap whose party sorts BEFORE and one that sorts AFTER the poison
+    // means an abort at the fault leaves at least one of them unreconciled under EITHER ordering.
+    expect(await creditStatusOf(BEFORE), "a reconcilable party was skipped — the fault aborted the loop").toBe("clear");
+    expect(await creditStatusOf(AFTER), "a reconcilable party was skipped — the fault aborted the loop").toBe("clear");
+    // The faulted party is left exactly as a fail-closed sweep must leave it: gap OPEN, nothing applied.
+    expect(await anomalyStatusOf("credit-projection-gap:1309-poison"), "a gap was closed by a run that FAULTED on it").toBe("open");
+    expect(await creditStatusOf(POISON), "a credit decision was applied despite the reconcile throwing").toBeNull();
   });
 });
