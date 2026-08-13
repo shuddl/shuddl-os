@@ -255,7 +255,12 @@ function evidenceSender(env: AgentsEnv): EvidenceSender {
 // (secret) and a model id bound ⇒ ClaudeParser; anything less ⇒ NotConfiguredParser, which rejects LOUDLY
 // (retriable) so an unconfigured environment can never silently swallow an inbound parse. Mirrors
 // evidenceSender()'s composition-root discipline. Going live is a CONFIRM-gated config flip, not code.
-function conciergeParser(env: AgentsEnv): ConciergeParser {
+// Exported for `test/parser-selection.test.ts` (audit §1363) — the NINTH composition root that can return a
+// dark stub, and the last one no test could reach. Its sibling `selectCopilot` already had exactly this test
+// (`packages/agents/test/copilot.test.ts`); this one had none, for the same structural reason `feedReaderFor`
+// had none: not exported. §1362's own sweep missed it — its regex allowed one level of brace nesting, and the
+// `new ClaudeParser({ … })` inside the `if` block is two.
+export function conciergeParser(env: AgentsEnv): ConciergeParser {
   const apiKey = env.ANTHROPIC_API_KEY;
   const model = env.ANTHROPIC_MODEL;
   if (apiKey !== undefined && apiKey !== "" && model !== undefined && model !== "") {

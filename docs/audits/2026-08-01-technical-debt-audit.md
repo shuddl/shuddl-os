@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 809 | §1362 | **§1363** | **§1362's OWN COUNT WAS WRONG, AND THE NINTH ROOT WAS THE ONE IT WAS LOOKING FOR.** It said *seven roots, six pinned*; there are **nine**, and the missed one — `conciergeParser` — is a second instance of the very defect it closed (unexported → unreachable → zero test mentions). **Why:** §1362's scan extracted bodies with a regex allowing ONE level of brace nesting, and `new ClaudeParser({ … })` inside an `if` is two — so the discipline this repo already fixed twice (§1338) was applied to the phase's TEST files while the phase's SURVEY used a nesting-limited regex. A gate built from a blind survey inherits its blind spot. Second correction, safe direction: a global name match credited the agents `evidenceSender` with the API worker's identically-named pin; checking found it genuinely pinned behaviourally (`test-send` gates 4/5). `conciergeParser` selects the live Anthropic path per inbound message — the arrival trigger for the standing cost-metering row. Fixed + **mutation-proved twice, both isolating**. **Near-miss:** mutation 2 first read GREEN because a 6-space replacement string missed a 4-space line — a no-op replace is indistinguishable from a vacuous test, so every mutation now asserts its own application count first |
 | 808 | §1361 | **§1362** | **THE DARK-DEPENDENCY CLASS SWEPT — §380 CLOSED IT TWICE WITHOUT COUNTING.** §1361 fixed two dark-bounded loops with PROSE; the repo already ships the mechanism — a **dormancy test**, which REDs at the config flip. Two existed. Sweeping: **11** `NotConfigured*` stubs by name vs **4** by my mechanism probe (64% miss — most stubs are async or throw, so the naming convention was the MORE complete instrument here; a mechanism enumeration is only as good as the mechanism specified). Class health is good — 8 of 11 have exercised live siblings, the 3 without are documented go-live rows and fail-closed. **The defect: 7 composition roots can return a dark stub, 6 are pinned.** `feedReaderFor` was neither exported nor named by any test — and it is the one §1361 showed un-bounds a whole-export loop. §380 stated this finding verbatim (*"the BEHAVIOUR of each default was pinned, the CHOICE of them was not"*) and fixed two roots instead of counting them. Fixed: exported + `feed-dormancy.test.ts` (4 cases), **mutation-proved isolating** — a live reader REDs both selector assertions while `read()→null` stays green, proving the behaviour half could never have caught a wiring. Also struck a false **BOUNDED** in `runMirrorSweep`'s header, justified by its own no-op clause |
 | 807 | §1360 | **§1361** | **FINISHED THE LOOP WORK-LIST — AND TWO LOOPS ARE BOUNDED BY NOTHING BUT A DARK DEPENDENCY.** Applied §1360's rule to §1338's 26-loop set. The 15 the regex called bounded are recorded UNREAD (the same heuristic already misclassified four the other way). Of the 11 read: 6 already filed, `sla-sweep:186` is **no longer an instance** (post-§471 the append fires per BREACH, not per candidate), `index.ts:579` is bounded by `max_batch_size = 10` — and **`mirror-sweep.ts:225` and `webhooks.ts:356` are inert only because their sources are `NotConfigured*` stubs**. Each is un-darkened by a named go-live row (168, 146) that mentions no loop, no row count and no ceiling; mirror-sweep's watermark bounds STEADY STATE, while the FIRST sweep after wiring iterates the whole legacy export with a D1 read + append per row. **"Returns nothing today" is not a bound** — it is an unconnected dependency, and the hazard's ARRIVAL trigger was written in two rows that did not know they were it. Both rows cross-linked; the page bound left to the register owner |
 | 806 | §1359 | **§1360** | **TRIAGED §1359's POPULATION — AND DE-ESCALATED MY OWN FINDING.** §1359 measured *8 of 16 exemption lists lack a staleness assertion* and promised triage. **Four cannot go stale by construction** (marker STRINGS, build dirs, a mapping). **Two were false positives of my own heuristic**, which flagged anything containing a `/`: `test-collection`'s IGNORED is build globs, and `design`'s `ALLOWED_HEX` is **DERIVED** from `tokens.css` — the §1341 GOOD shape, misread as a roster. **The last is alive and correctly exempt** (`"21 used"`/`"11 used"` are RUNTIME figures other gates re-derive; both subjects verified present). Both remaining kinds fail SAFE; the narrow residual is a path-prefix later re-occupied by a different file — which is why the assertion belongs in `r2-before-row` and nowhere else. **"8 of 16" counted a SHAPE, not a risk.** |
@@ -79631,7 +79632,11 @@ documented go-live rows, fail-closed (`NotConfiguredWebhookTransport.send` throw
 covered by injected fakes. `EdiTransport`'s only non-stub is `RecordingTransport`, an in-memory recorder, and
 `transportFor` returns the stub **unconditionally** — the documented CONFIRM-gated EDI hold, correct as designed.
 
-**The defect: seven composition roots can return a dark stub, and six are pinned.**
+**The defect: ~~seven~~ composition roots can return a dark stub, and ~~six~~ are pinned.**
+**COUNT CORRECTED ONE SECTION LATER — §1363: there are NINE, and the missed one (`conciergeParser`) was a second
+instance of this very defect.** The scan below extracted function bodies with a regex allowing one level of brace
+nesting; `new ClaudeParser({ … })` inside an `if` is two. The table that follows is left as measured, because the
+*shape* of the finding survives the correction and the miss is the more instructive half.
 
 | selector | pinned by a test? |
 |---|---|
@@ -79684,3 +79689,56 @@ Verification: agents worker 23 files / 136 tests green, typecheck Done, lint exi
 frozen baseline, so nothing this phase wrote grew a ratcheted count. The tools suite is **120/120 files and
 1,340/1,340 tests**: the single failure that stood through §1354–§1361 was that `coverage.ts` citation rot, and
 `--fix` repaired it, so the repo-owned failure set is empty on this measure.
+
+## §1363 — PHASE GATE: §1362's own count was wrong, and the ninth root was the one it was looking for
+
+**CORRECTION TO §1362, published one section ago.** It reported *"seven composition roots can return a dark stub,
+six are pinned"*. Both numbers are wrong. There are **nine**, and the one it missed — `conciergeParser` — is a
+second instance of the exact defect that section was written to close: unexported, therefore unreachable,
+therefore named in **zero** test files.
+
+**Why it was missed, precisely.** §1362's sweep extracted function bodies with the regex
+`function (\w+)\([^)]*\)[^{]*\{((?:[^{}]|\{[^{}]*\})*)\}` — whose body group allows exactly **one** level of brace
+nesting. `conciergeParser` returns `new ClaudeParser({ apiKey, model })` from inside an `if` block, which is two.
+The scan silently truncated at the inner brace and never saw `new NotConfiguredParser`. This repo has recorded
+the fix for this twice — §1338 replaced a fixed 30-line window with brace matching, and the tests written in
+§1351/§1352 use a proper brace matcher — so the discipline existed and I applied it to the TEST files while
+using a nesting-limited regex for the SCAN in the same phase. **The instrument has to be the same on both sides
+of the phase**; a gate built by brace matching, from a survey built by regex, inherits the survey's blind spot.
+
+**The other correction, in the safe direction.** A naive global name match also credited the agents worker's
+`evidenceSender` with a pin that belongs to the API worker's function of the SAME NAME (`dunning.test.ts:136`).
+Checking rather than publishing found the agents one IS pinned — behaviourally, by `test-send.test.ts`'s gate 4
+(NotConfiguredSender when nothing is bound) and gate 5 (a configured ResendSender send), which is stronger
+coverage than a `toBeInstanceOf`. So the honest count is **nine roots, one genuinely unpinned**, and the
+near-miss is worth recording: two functions sharing a name across workers is enough to make a global text
+measure meaningless in either direction ([[a-gates-green-certifies-less-than-its-name]]).
+
+**What `conciergeParser` decides.** `ClaudeParser` when `ANTHROPIC_API_KEY` and `ANTHROPIC_MODEL` are both bound
+and non-empty, else `NotConfiguredParser`. Selecting the live one is the single change that turns the Concierge
+from deterministic into a path that reaches the Anthropic API per inbound message — the agent named by the
+standing row *"The one agent with variable cost has no COST/LATENCY metering"*. So this selector is that row's
+arrival trigger, and nothing was watching it.
+
+**Fixed.** Exported, and `workers/agents/test/parser-selection.test.ts` pins it in both directions, modelled on
+the sibling `selectCopilot` test that has existed all along in `packages/agents/test/copilot.test.ts`. Four cases;
+the empty-string ones are the point rather than padding, because a bound-but-empty secret (`wrangler secret put`
+with an empty value, a blank `[vars]` entry) is the realistic misconfiguration and a presence-only test cannot
+reach it ([[presence-tests-cannot-reach-value-constraints]]).
+
+**Mutation-proved, twice, and both isolating:**
+
+| mutation | result |
+|---|---|
+| drop the `!== ""` half of the guard | ONLY the empty-string case REDs — the other three stay green |
+| hard-wire the live branch to the stub | ONLY the positive case REDs |
+
+**A near-miss inside that proof.** The second mutation first came back **GREEN**, which reads exactly like a
+vacuous positive assertion — and I nearly recorded it as one. The replacement string carried six leading spaces
+against a four-space line, so `str.replace` matched nothing and rewrote the file unchanged. A mutation that does
+not apply is indistinguishable from a test that catches nothing, and it fails toward the alarming conclusion
+([[keep-a-fixed-point-before-scaling-a-probe]]). Re-run with an indentation-insensitive `re.subn` and an
+`assert n == 1` positive control, it RED the right case. **Every mutation from here asserts its own application
+count before the verdict is read** — the check costs one line and the alternative is publishing a false vacuity.
+
+Verification: agents worker **24 files / 140 tests** green, typecheck 0, lint 0, `check:citations` 0.
