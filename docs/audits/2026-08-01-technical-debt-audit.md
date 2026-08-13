@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 814 | §1367 | **§1368** | **A GATE'S ROSTER MIRRORED A CONFIG NOTHING COMPARED IT TO.** §1367's shape swept further: 15 rosters match by substring, most are safe non-vacuity FLOORS. The risky one is `DETERMINISM_GLOBS` in `lint-guards.test.ts`, which decides whether a module's PURE/no-clock header claim is BACKED by an actual ESLint ban. It is a **hand-kept mirror of eslint.config.mjs appearing in exactly two places** — its definition and its consumer — so the mirror could call a path covered while ESLint bans nothing there, certifying a claim nothing enforces (§1226 exactly). **Diffing the artifacts found `packages/edi/` banned in ESLint and absent from the mirror.** Characterised honestly as **LATENT** — zero edi modules use the narrow claim phrasing today — but `build-214`/`build-990`/`envelope` are pure serialisers, and the day one says so the gate would report UNENFORCED and the tempting fix is a `SCOPED_CLAIMS` entry recording a falsehood. **A latent drift's cost is the wrong record someone writes to make it green.** Fixed + `eslintDeterminismScopes()` now DERIVES the enforced set (the §1341 shape), mutation-proved both directions on distinct keys (`missingHere` noisy / `missingThere` dangerous), with the parser carrying its own floor and anchor. **Whitespace-anchoring slip, third time in two sections** — the durable form is locate-by-line, insert, read back, assert |
 | 813 | §1366 | **§1367** | **A GATE THAT SUPPRESSED FINDINGS BY FIRST WORD, AND THE PLANT THAT PROVED IT.** §1366's defect generalised: sweeping every gate for *"is this mentioned anywhere"* yields **25 sites**, triaged to **one** — twenty-four are gates asserting their OWN violation messages. The real one guards CLAUDE.md **rule 6** (LAW): `known.some((k) => f.includes(k.split(" ")[0]))` accepted any fragment containing a known gate's FIRST WORD (`QB`, `routes`, `legacy-export`, `airplane-mode`), so a new fixture gate could enter rule 6, never be mapped to a manifest fixture, and read as coverage that does not exist — the `routes ±10%` defect the block exists to prevent. **Planted `QB payroll export ±1%`: 15/15 GREEN.** Fixed to match the whole key; identical plant now REDs. Swept the idiom — 7 other `split(…)[0]` uses, all legitimate. **§1363's mutation-application rule paid off TWICE one section after being written:** a `\xb1` bad-escape aborted the first plant (suite "passed" on unmodified input) and a 6-vs-4-space mismatch silently no-opped the fix. Durable form: anchor on code not whitespace, and read the file back to prove it landed |
 | 812 | §1365 | **§1366** | **THE GAP §1365 NAMED, CLOSED — AND THE GATE FOUND A FALSE PIN IN ITS FIRST MINUTE.** §1365 named "a tenth composition root is caught by no standing check" rather than hiding it; four manual sweeps had given four answers, which argues for a gate not a fifth sweep. Built `tools/checks/dark-stub-roster.test.ts` — brace-depth extraction, and a **same-package** rule requiring a test that names the selector AND asserts `toBeInstanceOf` its stub. That rule immediately exposed `secretResolverFor` (workers/mcp) as **falsely pinned by every prior sweep**: the assertion they matched is in workers/TRANSLATOR's suite on a same-named function, and zero mcp tests named it. It decides whether **MCP client authentication is live** (REQ-154) — `oauth.test.ts` INJECTS its resolvers and never reaches the production assembler, so behaviour was pinned and choice was not, in the worker behind acceptance demo #4. **Not a tenth root — the ninth root's pin being false**, which indicts the method rather than the count. The gate also corrected my floor (I wrote `>= 10` from narrative; it failed at 9). Mutation-proved three ways, all isolating: a live resolver REDs only the new case (21 OAuth tests stay green); a planted root and a weakened pin each RED the gate by name |
 | **811** | §1364 | **§1365** | **STOPPING POINT — THE PATTERN-DERIVED POPULATIONS ARE EXHAUSTED, AND THE BOARD IS CLEAN.** Measured at `bf84a41`, not inherited: `pnpm verify:merge` gives **26 gates — 21 PASS · 0 FAIL · 5 BLOCKED**, **4,750 tests passed, zero suites failing**. All five BLOCKs are owner-held (absent `IDENTITY_DENYLIST` + four unvendored private fixture sets); the repo-owned failure set is EMPTY, with 13 files dirty from the concurrent author and the board clean anyway. §1355–§1364 closed four pattern-measured populations — loops (26 → 2 real), exemptions (8 → 1), composition roots (7 claimed → 9 actual, 1 unpinned), copy-sets (5 claimed → 21 actual, 0 defects). Two gates built, both mutation-proved isolating; two false claims struck from source. **Phase gate: five reopen triggers, three of them MECHANISMS that RED rather than prose that reminds.** Known gap named rather than hidden: a tenth composition root would be caught by no standing check |
@@ -79959,3 +79960,59 @@ rule 6 and the Ten Laws survived — a restore is a write.
 
 Verification: `claude-md-budgets` 15/15 with CLAUDE.md clean; the fix RED on the replanted defect and GREEN
 without it.
+
+## §1368 — PHASE GATE: a gate's roster mirrored a config nothing compared it to
+
+§1367 fixed a suppression rule looser than the check it fed. Sweeping every gate for roster membership decided
+by SUBSTRING rather than equality yields **15 sites**, and triage cuts them to a handful: most are non-vacuity
+FLOORS (`expect(files.some((f) => f.startsWith("apps/")))` — asserting something WAS scanned), which fail in the
+safe direction. The suppressions are the risky ones, and the highest-consequence is `DETERMINISM_GLOBS` in
+`lint-guards.test.ts`.
+
+**What it guards.** §835's rule: every module whose header claims it is PURE / has no clock must sit under a
+path where ESLint actually bans `Date` and `Math.random`. Otherwise the claim is a sentence, and the next edit
+can quietly add an ambient clock. The gate is well-built — a non-vacuity floor, a staleness check on its
+`SCOPED_CLAIMS` exemptions, and an error message that explains the remedy.
+
+**The defect is one level up: `DETERMINISM_GLOBS` is a hand-kept MIRROR of `eslint.config.mjs`, and nothing
+compared them.** The constant appears in exactly two places — its definition and the filter that consumes it. So
+the mirror can claim a path is covered when ESLint bans nothing there, and the gate certifies a purity claim
+that nothing enforces. §1226's rule, precisely: a duplicated claim is debt exactly when no mechanism would
+notice it diverging.
+
+**Diffing the two artifacts rather than reading either** ([[compare-artifacts-dont-reason-about-them]]) found a
+real drift: **`packages/edi/**/*.ts` carries a determinism ban in ESLint and was absent from the mirror.**
+
+**Characterised honestly: LATENT.** `purityClaimants` matches a narrow phrase set (`PURE and DETERMINISTIC`,
+`no Date, no random`, `no clock`), and zero `packages/edi` modules currently use it — measured, not assumed. So
+nothing fires today. It would not have stayed latent: `build-214.ts`, `build-990.ts` and `envelope.ts` are pure
+serialisers, and the day one says so in its header this gate would have reported it as UNENFORCED. The tempting
+fix at that moment is a `SCOPED_CLAIMS` entry — an exemption recording something false, since ESLint does
+enforce that path. **A latent drift's cost is not the wrong answer it gives; it is the wrong record someone
+writes to make it green.**
+
+The dangerous direction was clean today (every mirror entry IS banned in ESLint), which is worth stating because
+it is the half that fails SILENT rather than noisily.
+
+**Fixed both ways:** `packages/edi/` added, and `eslintDeterminismScopes()` now DERIVES the enforced set from
+the config so the two cannot drift again — the §1341 good shape (a declared list plus a derived completeness
+check), the same one `design.test.ts` uses for `ALLOWED_HEX`. The assertion reports two named halves and says
+which is which: `missingThere` is dangerous, `missingHere` is noisy.
+
+**Mutation-proved in both directions, each hitting its own key:**
+
+| mutation | result |
+|---|---|
+| drop `packages/edi/` from the mirror | REDs with `missingHere: ["packages/edi/"]` |
+| add `workers/api/src/routes/`, which ESLint does not ban | REDs with `missingThere: ["workers/api/src/routes/"]` |
+
+The parser carries its own positive control — a floor of 8 scopes and a `toContain("packages/rater/")` — so a
+config reshape breaks the gate loudly instead of silently emptying the derived set and passing everything.
+
+**The whitespace-anchoring slip happened a THIRD time in two sections** (an `it(` at two-space indent against a
+four-space anchor). §1367 recorded the fix as "anchor on code, not whitespace"; the form that actually worked
+here is stronger and worth stating as the rule: **locate by line index, insert, then read the file back and
+assert the inserted text is present.** Three occurrences in one session is the definition of an idiom worth
+mechanising rather than remembering ([[n-instances-usually-share-one-idiom]]).
+
+Verification: `lint-guards` **18/18** (was 17), tools suite 121 files, typecheck 0, lint 0.

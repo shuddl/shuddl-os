@@ -264,7 +264,39 @@ const DETERMINISM_GLOBS = [
   "workers/translator/src/core/build-214.ts",
   "workers/translator/src/core/quarantine.ts",
   "packages/ledger/src/gl/iif.ts",
+  // §1368 — ADDED. `packages/edi/**/*.ts` carries a determinism ban in eslint.config.mjs and was missing here,
+  // found by DIFFING the two lists rather than reading either (compare artifacts, never reason about them).
+  // Latent when found: no edi module used the exact claim phrasing `purityClaimants` matches. It would not have
+  // stayed latent — build-214.ts, build-990.ts and envelope.ts are pure serializers, and the day one says so in
+  // its header this gate would have flagged it as UNENFORCED. The natural fix would then be a SCOPED_CLAIMS
+  // entry recording something false, because eslint enforces that path today.
+  "packages/edi/",
 ] as const;
+
+/**
+ * The determinism scopes ESLint actually enforces, DERIVED from the config rather than remembered.
+ * `DETERMINISM_GLOBS` above is a mirror, and §1226's rule applies: duplicated claims are debt exactly when no
+ * mechanism would notice them diverging. This is that mechanism.
+ */
+function eslintDeterminismScopes(root: string): string[] {
+  const lines = readFileSync(`${root}/eslint.config.mjs`, "utf8").split("\n");
+  const out = new Set<string>();
+  for (let i = 0; i < lines.length; i++) {
+    const m = /files:\s*\[(.*)/.exec(lines[i]!);
+    if (!m) continue;
+    let buf = m[1]!;
+    for (let j = i + 1; !buf.includes("]") && j < lines.length; j++) buf += lines[j]!;
+    // A block counts only if its RULES ban a clock or randomness — not merely if it restricts something.
+    const window = lines.slice(i, i + 22).join("\n");
+    if (!/\bDate\b|Math\.random/.test(window)) continue;
+    for (const raw of buf.split("]")[0]!.split(",")) {
+      const g = raw.trim().replace(/^["']|["']$/g, "");
+      if (g.length === 0) continue;
+      out.add(g.replace(/\*\*\/\*\.tsx?$/, "")); // packages/rater/**/*.ts → packages/rater/
+    }
+  }
+  return [...out].sort();
+}
 
 /**
  * Files whose purity sentence describes something OTHER than the module. Each carries what it actually
@@ -308,6 +340,31 @@ describe("§835: every module claiming PURE/deterministic is under a determinism
         novel.join("\n  "),
     ).toEqual([]);
   });
+
+  it("§1368: DETERMINISM_GLOBS matches the scopes ESLint actually enforces", () => {
+    // WHY THIS EXISTS. `DETERMINISM_GLOBS` is a hand-kept mirror of eslint.config.mjs, and the case above uses
+    // it to decide whether a purity claim is BACKED. Nothing tied the two together — the constant appeared in
+    // exactly two places, its definition and that filter — so the mirror could say "covered" about a path
+    // ESLint no longer bans, and this gate would certify a claim nothing enforces.
+    //
+    // MEASURED at §1368 by DIFFING the lists rather than reading either: `packages/edi/` was banned in ESLint
+    // and absent here. That direction fails safe (a claimant there is over-reported), but the reverse is one
+    // edit away and fails SILENT, which is the direction that matters.
+    const derived = eslintDeterminismScopes(root);
+    expect(derived.length, "no determinism scopes parsed from eslint.config.mjs — the parser broke, not the config").toBeGreaterThanOrEqual(8);
+    expect(derived, "the parser no longer sees the rater ban — the config's shape changed").toContain("packages/rater/");
+
+    const missingHere = derived.filter((g) => !(DETERMINISM_GLOBS as readonly string[]).includes(g));
+    const missingThere = (DETERMINISM_GLOBS as readonly string[]).filter((g) => !derived.includes(g));
+    expect(
+      { missingHere, missingThere },
+      "DETERMINISM_GLOBS and eslint.config.mjs disagree about where a clock is banned. `missingThere` is the " +
+        "DANGEROUS half: this gate would treat a purity claim under that path as ENFORCED while ESLint bans " +
+        "nothing there. `missingHere` is the noisy half: a real claimant is reported unenforced, and the " +
+        "tempting fix is a SCOPED_CLAIMS entry recording something false. Re-sync the two.",
+    ).toEqual({ missingHere: [], missingThere: [] });
+  });
+
 
   it("every SCOPED_CLAIMS entry still exists and still claims something (no stale exemption)", () => {
     const claiming = new Set(purityClaimants(root));
