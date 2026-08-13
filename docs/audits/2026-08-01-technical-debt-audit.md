@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 707 | §1259 | **§1260** | **THE CLASS HAS TEN MEMBERS; FIVE MEASURED, FIVE UNEXERCISED.** Run as a search, §1258's rule enumerated every multi-column `ORDER BY` in shipped source. Measured each in THE SUITE THAT OWNS ITS CONSEQUENCE: `lens.ts` ts_desc (both tiebreaks deleted → ledger 706/706 AND api exceptions **7/7 GREEN**, in the suite whose comment says *this proves ts_desc keeps the freshest*), `credit.ts` (seq flipped → **3/3 + 13/13 GREEN**), `gl/export.ts` (reversed → **23/23 GREEN**). Equal `ts` is a PLATFORM property — `Date.now()` returns the time of the last I/O and does not advance during execution — and under a LIMIT an unstable order changes WHICH ROWS SURVIVE, resurfacing the REQ-197 vanishing-exception trap at the tie. **§1258's rule gets a second half:** the test written to close this carried the defect — varying every component is NECESSARY, not SUFFICIENT; the fixture must also beat the INCIDENTAL order (SQLite serves `ts DESC` from a BACKWARD index scan, so within a tie it returns reverse-insertion order, which imitated the intended order exactly), **per clause**, since a whole-order mutation can red while one component stays undefended. Insertion order derived from the constraints, proved 5 ways. |
 | 706 | §1258 | **§1259** | **THE RULE FROM §1258 FOUND ITS SIBLING ON THE FIRST TRY.** §1258's rule — *vary every component of a composite key or the orders collapse* — applied to the nearest candidate, in the same file: `anchor.ts` orders POSITION leaves by `(shipment_id, device_id, ts)` under the identical *any instability makes the root worthless* claim. **Reversing it left packages/ledger 705/705 GREEN.** Cause starker than §1258's: the positions case seeds **ONE row**, and a single leaf cannot distinguish ANY ordering. **So both halves of the anchor's leaf-order guarantee were unpinned** — events at §1258, positions here — and together they are the whole of it, with REQ-014's tamper evidence resting on a reproducible root. Closed with three rows exercising BOTH tiebreaks (a two-row fixture would not), root computed independently, leafCount pinned, both premises asserted. 706/706. **A finding closes one hole; a named mechanism is a search.** |
 | 705 | §1257 | **§1258** | **THE ANCHOR'S LEAF ORDER WAS LOAD-BEARING, STATED, AND UNEXERCISED.** `anchor.ts`: *any instability makes the root non-reproducible and the anchor worthless* (REQ-014 tamper evidence). **Swapping to `ORDER BY seq, stream_id` left packages/ledger 704/704 GREEN.** Not because no test exists — `runDailyAnchor` is tested across 22 seeded streams — but because **no fixture distinguishes the two orderings**: one stream (seqs 0..n) and several streams (all seq 0) both collapse them. Only *two streams with DIFFERING seqs* separates a0,a1,b0 from a0,b0,a1. **A fixture that cannot distinguish two implementations tests neither**, and for a COMPOSITE key that means varying every component. Third instance of §1233's shape this session. Closed with that shape, the expected root computed **independently** (§1197), and two premises — one of which caught my first draft using a day beyond the anchor window. Mutation now reds; 705/705. |
 | 704 | §1256 | **§1257** | **THE LARGEST REMAINING REPO-OWNED ROW, VERIFIED RATHER THAN BUILT.** L415 (*no line/branch coverage is measured anywhere*) is the biggest open repo-owned row, and the loop's *resolve all debt* points opposite to *do not stray from the documented build*. Read to its own conclusion: it is **correctly filed as recorded-not-actionable** — its own text says *nothing in CLAUDE.md or genesis asks for it*, no `@vitest/coverage-*` is installed so building it means a **dependency + scope decision**, and §1101 already found its trigger UNFIRED on a **name collision** (`check:coverage` is REQUIREMENT coverage). What IS in scope is the dated claim it rests on: §275's *280 files, ZERO orphans*. Re-measured — **277 files, and the 7 unimported are all Vite entrypoints or ambient `.d.ts`**, so no new orphan class. Probe limit disclosed (basename matching under-reports; a tripwire, not a re-establishment). Recorded so the untouched row reads as a **judgement, not an omission**. |
@@ -74662,3 +74663,60 @@ the same file, on the first look.** A finding closes one hole; a named mechanism
 one-row fixture identified as unable to distinguish any ordering whatever, both anchor leaf orders now pinned
 with both tiebreaks exercised and the root computed independently, and the difference between closing a hole and
 naming a search recorded.
+
+## §1260 — PHASE GATE: the class had five members, and §1258's rule was necessary but NOT sufficient
+
+§1259 said a named mechanism is a search. Run as a search, it found the class is not two sites but **ten** —
+every multi-column `ORDER BY` in shipped source — of which five are load-bearing enough to mutate. Measured,
+each in **the suite that owns its consequence**, not the one that happens to be fast:
+
+| site | ordering | mutation | verdict |
+|---|---|---|---|
+| `packages/ledger/src/anchor.ts:109@dayLeaves` | `stream_id, seq` | reversed | pinned at §1258 |
+| `packages/ledger/src/anchor.ts:114@positions` | `shipment_id, device_id, ts` | reversed | pinned at §1259 |
+| `lens.ts:187` | `ts DESC, stream_id DESC, seq DESC` | **both tiebreaks deleted** | ledger 706/706 + api exceptions **7/7 GREEN** |
+| `reconcile/credit.ts:57` | `recorded_at DESC, seq DESC` | seq flipped to ASC | agents **3/3** + api **13/13 GREEN** |
+| `gl/export.ts:58` | `created_ts, event_id, line_no` | reversed | api export-journal + export **23/23 GREEN** |
+
+Five measured, five unexercised. The `lens` one is the sharpest: the test whose comment reads *"this proves
+ts_desc keeps the freshest"* passes with the entire tiebreak deleted, because every row it seeds carries a
+DISTINCT `ts` and the tiebreak never engages.
+
+**Equal `ts` is not a curiosity.** `recorded_at` is `Date.now()`, and the Workers runtime returns *the time of
+the last I/O* and does not advance it during execution — a documented Spectre mitigation, so identical stamps
+are a platform property. And the consequence is not cosmetic: with a `LIMIT`, an unstable order changes **which
+rows survive**. A fresh OPEN exception tied with the rows at the cap boundary can vanish from the queue on one
+read and return on the next — the exact REQ-197 trap, resurfacing at the tie.
+
+### The refinement: a fixture must beat the INCIDENTAL order, not just the alternative implementation
+
+The test written to close this carried the very defect it closes, and the probe caught it. First draft: three
+rows, all components varied — §1258's rule satisfied — and **deleting both tiebreak clauses left it GREEN**.
+Cause: with a kind filter SQLite serves `ts DESC` from `ix_events_kind_ts` scanned BACKWARDS, so within a tie
+it returns rows in reverse insertion order. I had inserted `a#0, a#1, b#0`, whose reverse **is** the intended
+`(stream_id DESC, seq DESC)` order. The incidental order imitated the real one perfectly.
+
+Second draft fixed the whole-order case and still left the `seq` clause imitated — because **the constraint is
+per-clause, not per-order**. Dropping `seq` alone hands the a-pair back to the incidental order, so the a-pair's
+insertion must ALSO be adversarial. The final order was derived rather than guessed:
+
+```
+E = [b#0, a#1, a#0]                      the intended order
+P = [a#1, a#0, b#0]   satisfies:  E ≠ P              (no forward scan can imitate it)
+                                  E ≠ reverse(P)     (nor a backward one)
+                                  reverse(a-pair) ≠ [a#1, a#0]   (so `seq` is individually load-bearing)
+```
+
+**Mutation-proved five ways** — both clauses dropped, each clause dropped alone, each direction flipped — all
+RED. Clean 41/41.
+
+**So §1258's rule gets a second half.** *Vary every component* is necessary; it is not sufficient. The fixture
+must also be arranged so that no incidental order the engine might produce coincides with the intended one —
+and that must hold **for each clause separately**, because a whole-order mutation can go red while an individual
+component stays defended by nothing.
+
+**Running tally: 13 of 40 load-bearing claims probed — 7 verified, 5 gaps closed, 1 claim corrected.**
+
+**STOP.** The ordering class enumerated at ten sites and measured at five, three gaps confirmed each in its
+owning suite, the `lens` tiebreak closed and proved five ways, and §1258's rule corrected by the test that
+failed to obey it. Two gaps — `credit` and `gl/export` — are confirmed and remain open, carried forward to the next section.

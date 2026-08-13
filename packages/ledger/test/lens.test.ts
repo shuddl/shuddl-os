@@ -402,6 +402,58 @@ describe("readEvents: lens-scoped reads (I6, adversarial visibility)", () => {
       expect(res.map((e) => e.stream_id)).toEqual(["s:tsd-a", "s:tsd-b", "s:tsd-c", "s:tsd-d"]);
       expect(res.map((e) => e.ts)).toEqual([1000, 2000, 3000, 4000]);
     });
+
+    // §1260 — THE TIEBREAK ITSELF. Everything above seeds DISTINCT ts values, so `e.ts DESC` alone satisfies
+    // every assertion in this block and the two further clauses the source calls a "stable tiebreak" are
+    // exercised by nothing. Measured: deleting BOTH left packages/ledger 706/706 AND the api exceptions suite
+    // — the one whose comment says "this proves ts_desc keeps the freshest" — 7/7 GREEN.
+    //
+    // Equal `ts` is not a curiosity here. `ts` is actor-claimed epoch ms, and `recorded_at` comes from
+    // `Date.now()`, which in the Workers runtime returns THE TIME OF THE LAST I/O and does not advance during
+    // execution (Cloudflare security model, the Spectre mitigation) — so identical stamps are a property of
+    // the platform, not a coincidence to be waved away.
+    //
+    // The consequence is not cosmetic ordering. With a LIMIT, an unstable order changes WHICH ROWS SURVIVE:
+    // a fresh OPEN exception sharing its ts with the rows at the cap boundary could vanish from the queue on
+    // one read and reappear on the next — the exact REQ-197 trap, resurfacing at the tie.
+    describe("the stable tiebreak under EQUAL ts (§1260)", () => {
+      // One kind, unused elsewhere in this file, so these rows perturb no count asserted above.
+      const at = (stream_id: string, seq: number) =>
+        seed("seal.applied", { stream_id, shipment_id: stream_id.slice(2), seq, ts: 5000, visibility: "internal", party_refs: [] });
+
+      beforeAll(async () => {
+        // INSERTION ORDER IS PART OF THE FIXTURE, and choosing it badly is how this test first shipped unable
+        // to fail. Varying every component (§1258's rule) is NECESSARY but NOT SUFFICIENT: with a kind filter
+        // SQLite serves `ts DESC` from ix_events_kind_ts scanned BACKWARDS, so within a tie it returns rows in
+        // reverse insertion order. The first draft inserted a#0, a#1, b#0 — whose reverse IS the intended
+        // (stream_id DESC, seq DESC) order — so dropping BOTH tiebreak clauses left this test GREEN.
+        //
+        // Expected order E = [b#0, a#1, a#0]. The constraint is per-CLAUSE, not just whole-order: dropping the
+        // `seq` clause alone leaves the a-pair to the incidental order, so the a-pair must ALSO be inserted so
+        // that its reverse is not [a#1, a#0]. P = [a#1, a#0, b#0] satisfies all three at once —
+        //   E ≠ P (a forward scan cannot imitate it), E ≠ reverse(P) (nor a backward one),
+        //   and reverse(a-pair) = [a#0, a#1] ≠ [a#1, a#0] (so the `seq` clause is individually load-bearing).
+        // Chosen by working the constraints, not by trying orders until they went red.
+        await at("s:tie-a", 1);
+        await at("s:tie-a", 0);
+        await at("s:tie-b", 0);
+      });
+
+      const key = (e: { stream_id: string; seq: number }) => `${e.stream_id}#${e.seq}`;
+
+      it("ties break on (stream_id DESC, seq DESC) — both clauses, not just the first", async () => {
+        const res = await readEvents(B, { scope: "tenant" }, { kind: "seal.applied", order: "ts_desc" });
+        // PREMISE: every row really does share one ts, or the tiebreak is not what is being measured.
+        expect(new Set(res.map((e) => e.ts)), "the fixture must tie on ts").toEqual(new Set([5000]));
+        // s:tie-b before s:tie-a (stream_id DESC); within s:tie-a, seq 1 before seq 0 (seq DESC).
+        expect(res.map(key)).toEqual(["s:tie-b#0", "s:tie-a#1", "s:tie-a#0"]);
+      });
+
+      it("a LIMIT at the tie keeps a DETERMINISTIC prefix — the row that survives is not luck", async () => {
+        const res = await readEvents(B, { scope: "tenant" }, { kind: "seal.applied", order: "ts_desc", limit: 2 });
+        expect(res.map(key)).toEqual(["s:tie-b#0", "s:tie-a#1"]);
+      });
+    });
   });
 });
 
