@@ -122,6 +122,33 @@ describe("hardening: a malformed signature rejects cleanly, never throws", () =>
     const e = eventFixture("pod.signed");
     await expect(verifyEventSig({ ...e, sig: "" }, await pubJwkOf(pair))).resolves.toBe(false);
   });
+  // §1281 — THE FAIL-CLOSED CATCH ITSELF. The two cases above (non-base64url garbage, wrong-length signature)
+  // assert the OUTCOME `false`, and BOTH the charset guard and the catch produce `false` — so neither case can
+  // tell them apart. Measured: dropping the charset guard, dropping the `return await`, and flipping the catch
+  // to `return true` (a total AUTH BYPASS) each left every owning suite GREEN — packages/ledger 17/17,
+  // workers/api 27/27, driver-core 14/14.
+  //
+  // The reason is that no input in the suite ever FAULTS. Garbage is stopped by the charset guard before the
+  // try; a wrong-length signature makes WebCrypto's verify resolve false rather than throw here. The one
+  // reachable fault is a MALFORMED PUBLIC KEY — a corrupted `device_keys` entry — where `importKey` rejects.
+  // That is the input that reaches the catch, and it is the input that distinguishes fail-closed from
+  // fail-open: with `catch { return true }`, a device whose stored key is corrupt verifies EVERY signature.
+  it("§1281: a MALFORMED public JWK → false, never a throw and never true (the catch is fail-CLOSED)", async () => {
+    const pair = await p256();
+    const e = eventFixture("pod.signed");
+    const sig = await signEvent(e, pair.privateKey); // a genuine signature…
+    const brokenJwk = { kty: "EC", crv: "P-256", x: "not-a-coordinate", y: "also-not" } as JsonWebKey;
+    // …against a key that cannot be imported. The only honest answer is false.
+    await expect(verifyEventSig({ ...e, sig }, brokenJwk)).resolves.toBe(false);
+  });
+
+  it("§1281: an EMPTY JWK object → false (importKey rejects; still no throw, still not true)", async () => {
+    const pair = await p256();
+    const e = eventFixture("pod.signed");
+    const sig = await signEvent(e, pair.privateKey);
+    await expect(verifyEventSig({ ...e, sig }, {} as JsonWebKey)).resolves.toBe(false);
+  });
+
   it("a genuine signature still verifies true (happy path preserved)", async () => {
     const pair = await p256();
     const e = eventFixture("pod.signed");
