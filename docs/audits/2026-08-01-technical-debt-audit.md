@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 736 | §1289 | **§1290** | **THE MONEY WEBHOOK ACKed ITS OWN FAILURES.** `handleStripeWebhook` is where money enters from outside. Pinned: verification fail-closed **2 RED**, the DARK 503 branch **2 RED**, purchase-vs-settlement dispatch **3 RED**. **The gap: a processing fault returning 500 — 60/60 GREEN.** **The status IS the retry protocol:** Stripe redelivers on 5xx and STOPS on 2xx, so ACKing a failed emit **discards the delivery permanently** — the card is charged, the credits are never issued, and nothing surfaces because the webhook *succeeded*. The handler's own comment states the contract (*return 500 so Stripe redelivers — the emitter is idempotent*), and idempotency is what makes 500 SAFE rather than merely loud. Closed by injecting a ledger that throws after verification; proved 3 ways (ACK 200 REDs, downgrade to 400 REDs, neutering the catch REDs). The raw-body rule is recorded **unconstructible** — the fixtures are already canonical JSON so a re-serialize round-trips byte-identically. **And §1289's rule applied FIRST:** the two symbols I guessed (`verifyStripeSignature`, `handleWebhook`) **do not exist** — under the old habit that was a plausible probe set and a green that meant nothing. |
 | 735 | §1288 | **§1289** | **MIDDLEWARE SWEEP COMPLETE — AND A FALSE GREEN CAUGHT BY ITS OWN TEST FILE.** `error.ts` mutated three ways: the `ApiError` branch **16 RED**, `extras` spread-first (anti-shadowing) **3 RED**, the fixed `"INTERNAL ERROR"` fallback **1 RED** — fully pinned. With §1287, §1288 and §1245's CORS parity gate, **all four middleware files are measured**. **But the third read GREEN first**: leaking `err.message` left my probe set at 31/31 — I had run `auth`, `errors`, `evidence-upload`, three plausible files chosen BY NAME. The owner is `error-envelope.test.ts`, whose header records the SAME finding at audit **§354** (*same mutation, left all 754 api tests GREEN*). Running it: **1 RED**. I was one commit from re-deriving a closed finding as a new one. **Third occurrence this stretch** (§1264 booking, §1281 `meanOrUnknown`, this) — each a green that meant nothing, each preventable by `git grep -l '<symbol>' -- '*test*'` BEFORE mutating. Rule written down twice, skipped twice. **A plausible probe set is more dangerous than an obviously wrong one, because its green looks like an answer.** |
 | 734 | §1287 | **§1288** | **ONE IDEMPOTENCY-KEY SPANNING EVERY ENDPOINT.** The KV scope is a SHA-256 of `[tenant, method, pathname, key]`. Pinned: the **2xx-only** caching rule (REQ-206/H-5) **3 RED**, `tenant` (REQ-025) **1 RED**, the key requirement **1 RED** — **both documented past defects have tests**, §1279 again. **The gap: `pathname`** — dropping it left api **74/74 GREEN**, and its absence makes one key GLOBAL to the tenant: a client minting one key per user action (what the driver PWA does per capture) gets its second call to a DIFFERENT route served the first route's response, 2xx and all — the mutation never runs and the caller is told it succeeded. Same shape as the REQ-105 cap bypass, whose fix was *the api's own dedupe folds the request pathname into its scope*. Closed; the discriminator took two tries (the obvious second route 500s unseeded, so the test asserts the route **RUNS** via a deterministic 400, not that it succeeds). **`method` and the `NUL` separator recorded UNCONSTRUCTIBLE with evidence** — no path carries two mutating verbs, and every mutating route ends in a fixed literal so `pathname+key` cannot be made to collide client-side. Inventing tests for them would be §1283's *assert nothing, read as diligence*. |
 | 733 | §1286 | **§1287** | **THE AUTHZ BOUNDARY IS 4-FOR-4, AND THE FIFTH GUARD IS A LIBRARY CONTRACT.** `middleware/auth.ts` decides who every caller is. Mutated: client-supplied tenant rejection (REQ-156) **1 RED**, `Bearer ` prefix **6 RED**, `SessionClaims.safeParse` **2 RED**, `requireRole` **3 RED** — all pinned, zero source changes. **The fifth is not what it looks like:** I labelled removing `"HS256"` an *alg-confusion* defence and got 6 REDs, which fits perfectly. Reading hono's source: `verify(token, key, algOrOptions)` **throws `JwtAlgorithmRequired` when the third argument is absent** — so dropping it widens nothing, it makes every token unverifiable, and the 6 failures are ordinary requests becoming 401s. **The hole I named cannot exist in this version.** Six REDs prove the argument is REQUIRED, not that it DEFENDS. That is the **fourth** framing of mine this stretch corrected by reading the mechanism rather than the result (§1280 heuristic, §1282 HMAC-forgery, §1285 reachability, this) — every one a plausible story the red/green pattern appeared to confirm, which is when a story is most dangerous. |
@@ -76187,3 +76188,51 @@ an answer. Choosing test files by name is guessing; the symbol tells you who own
 **STOP.** The middleware layer is swept end to end — four files, twelve guards, one gap closed (§1288's
 pathname scope), one library contract identified (§1287), and one near-miss false finding caught by the test
 file that had already closed it at §354. api 840/840.
+
+## §1290 — PHASE GATE: the money webhook ACKed its own failures
+
+`handleStripeWebhook` is where money enters the system from outside. Five elements, mutated — with the owning
+suite established by symbol **before** probing (§1289's rule, applied first for once):
+
+| element | result |
+|---|---|
+| verification fail-closed (a forged signature → 400) | **2 RED** |
+| the DARK branch (no secret bound → 503, never 2xx) | **2 RED** |
+| dispatch: `checkout.session.completed` → purchase, not settlement | **3 RED** |
+| **a processing fault returning 500** | **60/60 GREEN** |
+| reading the raw body once (no re-serialize before verify) | 60/60 green — see below |
+
+### The status IS the retry protocol
+
+Stripe redelivers on 5xx and **stops on 2xx**. So returning 200 when the emitter throws does not merely lose an
+error message — it **discards the delivery permanently**: the customer's card is charged, the credits are never
+issued, and nothing surfaces anywhere because the webhook "succeeded". The handler's own comment states the
+contract — *"Return 500 so Stripe redelivers — the emitter is idempotent, so re-driving is safe end to end"* —
+and idempotency is precisely what makes 500 the **safe** answer rather than merely the loud one.
+
+Closed by injecting a ledger that throws after verification succeeds, asserting **500** and the
+`processing failed` body (so the case cannot pass through the 400 verification path instead). **Mutation-proved
+three ways**: ACK as 200 REDs, downgrade to 400 REDs (Stripe would not retry that either), and neutering the
+whole catch REDs.
+
+### The raw-body rule is real but not distinguishable here
+
+*"Read the RAW body ONCE — the signature is over the exact bytes; never re-serialize before verifying."*
+Re-serializing (`JSON.stringify(await request.json())`) left the suite green, because the fixture bodies are
+already canonical JSON and survive a round-trip byte-identically. Against a real Stripe payload it would not —
+but the failure would be *every* webhook rejected, which is an availability break visible in minutes, not a
+silent one. Recorded as unconstructible with this fixture rather than pinned with a contrived non-canonical
+body, per §1288's precedent.
+
+### §1289's rule, applied first
+
+The owning suite was found with `git grep -l '<symbol>' -- '*test*'` before any mutation — and the first two
+symbols I guessed (`verifyStripeSignature`, `handleWebhook`) **do not exist**. Under the old habit those would
+have become a probe set of plausible-looking files and a green that meant nothing. The rule cost two seconds
+and the guess would have cost a false finding.
+
+**Running tally: 108 of 108 load-bearing claims probed — 75 verified, 27 gaps closed, 5 claims corrected.**
+
+**STOP.** The external money boundary measured element by element: three guards pinned, one real gap closed
+where a failed credit emit was being acknowledged to Stripe and lost, one rule recorded unconstructible with its
+reason. billing 61/61, typecheck 0.
