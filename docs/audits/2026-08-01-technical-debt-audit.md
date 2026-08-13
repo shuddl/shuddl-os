@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 772 | §1325 | **§1326** | **SWEPT THE REOPEN TRIGGERS, PRIORITISED BY WHICH ONES FIRED.** Of the OPEN rows, **17 carry a locally-runnable expiry**; the rest name decisions. The refinement that makes the sweep nearly free: don't run all of them — **find the ones whose CONDITION fired**, decidable in one `git status`. Two name `genesis/09`, which IS modified by the concurrent workstream, so their conditions had fired unrun. Both clean: `check:coverage` exit 0 with **100%, 292 of 292 register rows**, and **11 status-drift rows — identical to 2026-08-12**. Two more checked and NOT fired (no denylist file, `identity-leak.ts` untouched since 08-08; `captures.ts` not among the concurrent edits though its siblings are). The prose's *"288 rows"* is correct dated history, not drift — no LIVE claim states a register count. |
 | 771 | §1324 | **§1325** | **RAN A FILED ROW'S OWN REOPEN TRIGGER.** External claims that leave a LOCAL trace are decidable here even when their external half is not. Converted three INHERITED claims to measured ones: `ci.yml`'s triggers (**§1316 argued FROM this and had it from a row, not the file**), L355's *"no `permissions:` block"* (still true), and §594's SHA-pinning (all five `uses:` 40-hex, zero mutable tags — nearly published as NEW until searching the record). **The non-re-verification part:** L355's expiry names a LOCAL condition never run — *"whenever a workflow gains a step that writes to the repo"*. Run: **zero** write-shaped steps; the only artifact steps are SHA-pinned `upload-artifact`, needing no repo write scope. The row's "safe today" now measured. |
 | 770 | §1323 | **§1324** | **RE-MEASURED §895's DESIGN CORPUS — UNCHANGED, AND THE FOURTH CONSECUTIVE NEGATIVE.** §895's count (**apps 62 · packages 16 · docs 2**) is the kind that silently drifts, and two new untracked directories appeared this session. It has NOT moved: 62/16/2/0 today, identical. The one untracked style-bearing file (`docs/gtm/mission-control-board.html`) is outside the law twice over — concurrent GTM workstream, and §895's documented `docs` exemption. The exemption is NAMED with a reason and guarded by *"no EXEMPT row outlives its subject"* (the shrink direction). Residual, narrow and recorded not gated: the exemption is keyed by DIRECTORY while its justification is a CATEGORY, so a product file under `docs/` would be exempt by path while failing the reason. §1321–§1324 all sound. |
 | 769 | §1322 | **§1323** | **THE BUNDLE RATCHET — AND THREE CONSECUTIVE CLEAN NEGATIVES ON BOARD GATES.** Suspected a stale-high baseline (a ceiling that cannot catch growth); wrong twice. It **cannot pass over an unbuilt tree** — `readBundles` skips an unbuilt app and delegates, and the caller decides FIRST THING: *"a ratchet that reads no bundles reports clean. Every declared app must be built"*, so an unbuilt app is a VIOLATION (the same hole `playwright-guard` closes for "0 tests ran", closed independently). And the baselines are TIGHT: actual 382/94/377 kB against ~380/93/375 kB — each ~2 kB ABOVE baseline, riding mid-band with ~17/5/16 kB of headroom, the opposite of slack. Gzip is ratcheted (raw moves with minifier releases) and the baseline is exported so the test pins BY VALUE. §1321/§1322/§1323 all sound. |
@@ -78008,3 +78009,38 @@ the token and broken something. Recorded because it is the kind of reason that l
 
 **STOP.** No new defects. Three inherited claims now rest on primary sources, one filed reopen trigger has
 actually been executed, and one near-miss novelty claim was caught by searching the record before writing.
+
+
+## §1326 — PHASE GATE: sweeping the reopen triggers, prioritised by which ones actually FIRED
+
+§1325 ran one filed row's local reopen condition and found it holds. This generalises that into a sweep, with
+one refinement that makes it cheap: **do not run every trigger — find the ones whose CONDITION has fired.**
+That is decidable in a single `git status`, and it is the difference between re-measuring 33 rows and
+re-measuring the two that could have changed.
+
+Of the OPEN rows, **17 carry a locally-runnable expiry condition** (a file path, a command, a count); the rest
+name a decision, which no command evaluates. Two of the seventeen name `genesis/09-REQUIREMENTS-REGISTER.csv`,
+and that file **is** modified in the working tree by the concurrent workstream — so their conditions have
+fired and nobody had re-run them.
+
+| trigger | condition fired? | result |
+|---|---|---|
+| *"re-run `pnpm check:coverage`"* (REQ-289 row) | **yes** — `genesis/09` modified | exit 0 · **100%, all 292 register rows accounted for, 0 unaccounted** |
+| *"when `genesis/09` … changes"* (status-drift row) | **yes** | **11 status-drift rows — identical to the 2026-08-12 re-measurement.** No drift |
+| *"on binding `IDENTITY_DENYLIST` or creating `.identity-denylist.local`, or when `identity-leak.ts` changes"* | no | file absent; scanner untouched since 2026-08-08 |
+| *"when `apps/driver/src/flow/captures.ts` … changes"* | no | not among the files the concurrent workstream modified, though its siblings are |
+
+All four hold. The register count is worth one extra note: `check:coverage` reports **292**, and the CSV
+carries exactly 292 data rows — the gate and its subject agree. The audit prose states *"288 register rows"* in
+several places and *"289"* in one, and those are **correct as dated history**, not drift: this record is
+append-only and §945 established that a record preserving its own history necessarily contains its own
+superseded numbers. No LIVE claim anywhere states a register count, which is why none of them is wrong.
+
+**Running tally: 187 of 187 load-bearing claims probed — 127 verified, 46 gaps closed, 20 claims corrected;
+10 operational items recorded.**
+
+**STOP.** No defects. The transferable part is the prioritisation: this audit's standing finding is that reopen
+triggers are *"the one sentence never measured"*, and the reason they go unmeasured is that re-running all of
+them is expensive. **Sorting by whether the condition fired makes the sweep nearly free** — two commands
+identified the only two rows in the file that could have gone stale since their last measurement, and both had
+not.
