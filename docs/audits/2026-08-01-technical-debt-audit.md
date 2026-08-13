@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 807 | §1360 | **§1361** | **FINISHED THE LOOP WORK-LIST — AND TWO LOOPS ARE BOUNDED BY NOTHING BUT A DARK DEPENDENCY.** Applied §1360's rule to §1338's 26-loop set. The 15 the regex called bounded are recorded UNREAD (the same heuristic already misclassified four the other way). Of the 11 read: 6 already filed, `sla-sweep:186` is **no longer an instance** (post-§471 the append fires per BREACH, not per candidate), `index.ts:579` is bounded by `max_batch_size = 10` — and **`mirror-sweep.ts:225` and `webhooks.ts:356` are inert only because their sources are `NotConfigured*` stubs**. Each is un-darkened by a named go-live row (168, 146) that mentions no loop, no row count and no ceiling; mirror-sweep's watermark bounds STEADY STATE, while the FIRST sweep after wiring iterates the whole legacy export with a D1 read + append per row. **"Returns nothing today" is not a bound** — it is an unconnected dependency, and the hazard's ARRIVAL trigger was written in two rows that did not know they were it. Both rows cross-linked; the page bound left to the register owner |
 | 806 | §1359 | **§1360** | **TRIAGED §1359's POPULATION — AND DE-ESCALATED MY OWN FINDING.** §1359 measured *8 of 16 exemption lists lack a staleness assertion* and promised triage. **Four cannot go stale by construction** (marker STRINGS, build dirs, a mapping). **Two were false positives of my own heuristic**, which flagged anything containing a `/`: `test-collection`'s IGNORED is build globs, and `design`'s `ALLOWED_HEX` is **DERIVED** from `tokens.css` — the §1341 GOOD shape, misread as a roster. **The last is alive and correctly exempt** (`"21 used"`/`"11 used"` are RUNTIME figures other gates re-derive; both subjects verified present). Both remaining kinds fail SAFE; the narrow residual is a path-prefix later re-occupied by a different file — which is why the assertion belongs in `r2-before-row` and nowhere else. **"8 of 16" counted a SHAPE, not a risk.** |
 | 805 | §1358 | **§1359** | **EXEMPTIONS THAT OUTLIVE THEIR SUBJECTS — CLASS SWEPT, AND MY OWN GATE WAS IN IT.** §1357 selects by failure mode and an exemption has the purest: when its subject disappears it keeps excusing a site that no longer exists and **nothing fails**. `recall` → §672 established the rule; §835/§842/§1324 applied it. **Swept: 16 gates carry an exemption list, 8 assert its subject still exists, 8 do not** — not 8 defects (a design palette cannot go stale), but one was **`r2-before-row`, which I wrote this session**. Added the §672 assertion and mutation-proved it (an exemption pointed at a nonexistent path REDs: *"a standing excuse"*). Two self-inflicted errors on the way, both from anchoring on text that appears three times — **an anchor is only as good as its uniqueness**; reading 40 lines fixed it in one attempt. |
 | 804 | §1357 | **§1358** | **THE COLLECTION-SURFACE CLASS — ALL THREE RE-PROVED, PLUS A FALSE CLEAN OF MY OWN.** §1357's criterion (re-prove when the failure mode is SILENCE) picks §729's two named siblings: one finding per runner that COLLECTS. **TypeScript** (§729) → planted type errors exit 1; **vitest** (§728) → a planted `.test.ts` is collected; **playwright** (§727) → a planted unclaimed spec fails the gate by name. What §727 built is the interesting part: the e2e selector is **still an allowlist**, and that is fine because the gate asserts *"every spec file would actually RUN under some config"* — §1341's derived-completeness shape, arrived at independently: **don't forbid the roster, detect what it omits.** **My first probe was a FALSE CLEAN** — untracked, so the `git ls-files` corpus could not see it. §1315's lesson, re-learned in the session that recorded it. |
@@ -79535,3 +79536,75 @@ count of a syntactic shape, not of a risk.** Triage turned it into one narrow ca
 correctly-exempt list — and two of the eight were my heuristic misreading a derived set and a build glob as
 hand-kept rosters. A population measured by pattern needs triage before it becomes a work-list, and saying so
 costs less than the phase someone would spend closing six non-gaps.
+
+## §1361 — PHASE GATE: finishing the loop work-list, and two loops bounded by nothing but a dark dependency
+
+§1360 concluded that *a population measured by pattern needs triage before it becomes a work-list*. The last such
+population I own is §1338's: **26 per-row-I/O loops across 14 files**, which §1334 published with the scope
+deliberately closed and the count deliberately open, calling the list *"the owner's work-list"*. That is the same
+shape §1360 just de-escalated, so it gets the same treatment.
+
+**What I did NOT do.** A regex marked 15 of the 26 bounded by their iterand — tenant rosters, module constants,
+`chunk`, `page.objects`. Those 15 are recorded here as **UNREAD**, not as bounded. §1334 already measured this
+exact heuristic misclassifying four loops in the opposite direction; a heuristic that is known wrong in one
+direction cannot be trusted to produce a clean in the other ([[a-false-clean-invites-no-follow-up]]).
+
+**The 11 I read.** Every verdict below is from opening the file, not from the pattern:
+
+| loop | verdict |
+|---|---|
+| `retention.ts:127` | CONFIRMED instance — already filed, this row |
+| `collector.ts:72` | CONFIRMED — filed §1308 (starvation, not merely throughput) |
+| `watchtower.ts:210@sweepPricingAnomaly` (its loop at `:223`) | CONFIRMED — filed §1333 |
+| `import.ts:133`, `:145` | CONFIRMED — filed §1332 (`MAX_ROWS = 5000` over the ceiling) |
+| `dunning.ts:398` | CONFIRMED — carries its **own** `VOLUME HOLD (audit §183 + §185)` comment at `:383` |
+| `sweep-214.ts:173` | filed under the idempotency-markers row |
+| `sla-sweep.ts:186` | **NOT an instance.** Post-§471 the answered-check is a chunked pre-pass into a Set; answered rows `continue`, so the `seq.append` fires per **BREACH**, not per candidate |
+| `index.ts:579` | **NOT an instance.** Iterates `batch.messages`; the toml sets `max_batch_size = 10` |
+| `mirror-sweep.ts:225` | **new subclass — see below** |
+| `webhooks.ts:356` | **new subclass — see below** |
+
+So of the eleven, six were already filed, one was fixed two hundred sections ago and never reclassified, one is
+bounded by the platform — and **two are bounded by nothing at all except that their data source is not wired.**
+
+**THE SUBCLASS: a loop whose source is DARK measures as bounded and is not.**
+
+- `mirror-sweep.ts:225` — `for (const rec of fresh)` does a D1 `anchorStream` read plus an append per record.
+  `fresh` is `records.filter(isNew)`, and `records` is the whole parsed legacy export. The watermark comment says
+  *"process ONLY records beyond the stored cursor (O(changed))"* — true in STEADY STATE. On the **first** sweep
+  the watermark is at its initial value, so `isNew` is true for every row and `fresh` is the entire export. There
+  is no `LIMIT`, no page size, no `slice`. It is inert today only because the sole shipped `FeedReader` is
+  `NotConfiguredFeedReader.read() → null`.
+- `webhooks.ts:356` — `for (... of events)`, where `events` comes from `recentTerminalEvents()`. The sole shipped
+  implementation is `NotConfiguredEventSource → []`.
+
+Each is un-darkened by a **specific, named go-live row**: row 168 *Live legacy-feed provisioning* (status
+`DARK / no-op`) and row 146 *Webhook delivery activation* (status `Scaffolded / fail-closed`). Both rows describe
+their work as pure activation. **Neither mentions a loop, a row count or a subrequest ceiling** — so whoever
+completes row 168 is also, silently, completing this row's hazard, on a first sweep whose size is set by a file
+this repo does not control.
+
+**The lesson, and it generalises past this row.** Every survey in this class — §1308's, §1333's, §1334's,
+§1338's, and this one — measures the code **as it runs at HEAD**. Two of the twenty-six return zero rows for a
+reason that is *scheduled to stop being true*, and the schedule lives in a different document. "Returns nothing
+today" is not a bound; it is a dependency that has not been connected yet. A bound that rests on a component's
+DARK status expires the day someone ticks a checklist item — which is the [[record-holds-with-expiry-triggers]]
+shape pointed the other way: the hazard has an ARRIVAL trigger, and it was written in two rows that did not know
+they were the trigger. Fixed here by writing the coupling into both.
+
+**A process note, because it is the third consecutive slip of the same kind.** Ten `path:line` citations went
+into this section, and one of them — `watchtower.ts` — points into a file on the citation ratchet's hand-curated
+high-churn list, where a BARE citation grows the frozen count. Two things made that nearly invisible. First, the
+ratchet **does not run while any citation is rotted** (`citation-links.ts:653`), and the tree carries one rot
+that is not mine, so a green-looking `check:citations` would have said nothing about it either way — a gate
+masked by an unrelated failure ([[when-a-gate-looks-wrong-suspect-the-measurement]]). Second, my first attempt to
+fix it FAILED, and usefully: I wrote `:223@sweepPricingAnomaly` assuming `@symbol` names the **enclosing**
+function. It does not. The checker requires the anchor text to appear within **±2 lines of the cited line**, so
+an anchor on a loop thirteen lines inside its function rots immediately. The correct form cites the declaration
+(`:210@sweepPricingAnomaly`) and mentions the interesting line in prose. An anchor is a re-derivable ADDRESS,
+not a scope label.
+
+**Not built, deliberately.** A page bound on either loop is a code change to a dark path, and this row already
+says *"needs a REQ row first (a page size changes sweep semantics)"*. That holds doubly for `mirror-sweep`, where
+the page size interacts with the watermark's monotonicity. Documented, cross-linked, and left for the register
+owner.
