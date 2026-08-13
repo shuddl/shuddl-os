@@ -15,6 +15,7 @@ import { mintStatusCap, verifyStatusCap, deriveStatusSecret, CAP_TYP } from "../
 //   PS-4    positive allowlist (REQ-167) — assigned_driver / party names NEVER leak; keys ⊆ the 4 allowed.
 //   PS-5    geo ALWAYS city-coarse (REQ-188) — coarse EVEN at OFD (the public cap is forwardable).
 //   PS-6    lens-bypass fail-closed — status_cache is the ONLY source; events never surface.
+//   PS-7    honest degradation — a corrupt/partial status_cache degrades to `unknown`, never a fabricated state.
 //   PS-8    lifetime + headers — expired => 401; a 200 carries Referrer-Policy + Cache-Control.
 
 const JWT_SECRET = "test-secret-do-not-use-in-prod"; // === vitest.config.ts miniflare bindings.JWT_SECRET
@@ -238,6 +239,62 @@ describe("PS-6: lens-bypass / status_cache is the only source", () => {
     }
     // it IS the booked shipment (status_cache read), just without any event detail
     expect(res.json?.state).toBe("booked");
+  });
+});
+
+// PS-7 — HONEST DEGRADATION (§1265). `parseStatusCache` returns `{}` on unparseable bytes, and the body then
+// reads `state: typeof sc.state === "string" ? sc.state : "unknown"`. That fallback is the honest-instrument law
+// applied to a corrupt projection — and nothing exercised it: replacing `"unknown"` with a fabricated
+// `"in_transit"` left this file at 13/13 GREEN. The law is NAMED two lines above it in the source (the `eta`
+// field is omitted in v1 precisely because "a fabricated number violates the honest-instrument law"), so the
+// principle was written down and its one live application was undefended — §1252's correct-but-unpinned shape,
+// on the surface a customer forwards to their own customer.
+//
+// `out_for_delivery` is pinned here at its CURRENT behaviour (`=== true` ⇒ false when absent), which is a
+// weaker kind of honest: a boolean has no "unknown", so a missing value is reported as a definite `false`.
+// Recorded rather than changed — widening it is an API-shape question, and this suite's job is to make the
+// present answer deliberate.
+describe("PS-7: honest degradation — a corrupt or partial status_cache never fabricates a state", () => {
+  const SHP_CORRUPT = "pub-shp-corrupt";
+  const SHP_NOSTATE = "pub-shp-nostate";
+
+  beforeAll(async () => {
+    // RAW, deliberately not JSON — seedShipmentCache stringifies, so it cannot express this case.
+    await env.TENANT_A_DB.prepare(
+      "INSERT OR IGNORE INTO shipments (id, shipper_party_id, consignee_party_id, bill_to_party_id, status_cache, created_ts) VALUES (?,?,?,?,?,0)",
+    )
+      .bind(SHP_CORRUPT, "party-shipper", "party-consignee", "party-bill-to", "{not json at all")
+      .run();
+    // Valid JSON, no `state` key — the partial-projection case, which a schema change could produce.
+    await seedShipmentCache(SHP_NOSTATE, { out_for_delivery: false, some_other_field: 1 });
+  });
+
+  it("unparseable status_cache → 200 with state 'unknown' (never a fabricated state, never a 500)", async () => {
+    const res = await getStatus(await validCap(TENANT_SLUG, SHP_CORRUPT));
+    expect(res.status, "a corrupt projection must not 500 or 401 — the shipment is real").toBe(200);
+    expect(res.json?.state, "a fabricated state on a corrupt cache violates the honest-instrument law").toBe("unknown");
+    expect(res.json?.out_for_delivery).toBe(false);
+    // The allowlist still holds on the degraded path — degradation must not widen the surface.
+    for (const k of Object.keys(res.json ?? {})) expect(ALLOWED_KEYS.has(k), `unexpected key ${k}`).toBe(true);
+  });
+
+  it("valid JSON with NO state key → 'unknown' too (the partial-projection case, not just the corrupt one)", async () => {
+    const res = await getStatus(await validCap(TENANT_SLUG, SHP_NOSTATE));
+    expect(res.status).toBe(200);
+    expect(res.json?.state).toBe("unknown");
+  });
+
+  // The two cases above both have `state` ABSENT, so they cannot tell the `typeof … === "string"` test apart
+  // from a bare `?? "unknown"` — measured: dropping the type check left them GREEN. The discriminating case is
+  // `state` PRESENT with the wrong TYPE, which is what a projection-shape change actually produces. Without the
+  // check the non-string reaches `PublicStatus.parse` (a `z.string()`), which throws into the outer catch and
+  // answers 401 — a real shipment made indistinguishable from a forged cap by one bad projection field.
+  it("state present but NOT a string → still 'unknown' and still 200 (absent ≠ wrong-type)", async () => {
+    const shp = "pub-shp-badtype";
+    await seedShipmentCache(shp, { state: 42, out_for_delivery: false });
+    const res = await getStatus(await validCap(TENANT_SLUG, shp));
+    expect(res.status, "a wrong-typed state must degrade, not turn a real shipment into a 401").toBe(200);
+    expect(res.json?.state).toBe("unknown");
   });
 });
 

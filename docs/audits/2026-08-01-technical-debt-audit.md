@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 711 | §1264 | **§1265** | **TWO CLEAN NEGATIVES AT THE UNTRUSTED BOUNDARIES — AND A LAW UNDEFENDED IN THE ONE PLACE IT APPLIED.** MCP (demo #4) returns **5 mutations, 5 REDs**: `kind='mcp'`, **revocation** (`status !== active`), the lane allow-list, the `caps_unconfigured` refusal, and — the one worth naming — the **REQ-105 cap bypass fix REVERTED to its pre-fix form**, which REDs, so *mutate the pin, not just the fix* answers clean. On `pub/status.ts`, REQ-188's always-coarse geo is solid, but two lines above it `state: … : "unknown"` swapped for a fabricated `"in_transit"` left the file **13/13 GREEN** — and the same file states the honest-instrument law explicitly for `eta`, **a field that does not exist yet**, while the one field that actually degrades was defended by nothing. Closed as **PS-7** (an unused slot in the suite's own numbering). **It took two tries:** the first two cases both have `state` ABSENT, so dropping the `typeof === "string"` check stayed GREEN; the discriminating input is `state` present with the WRONG TYPE, whose consequence is a `z.string()` throw into the outer catch → **401**, one bad projection field making a real shipment look like a forged cap. §1258 one level down: **absent ≠ present-but-wrong.** 4 mutations RED, api 839/839. Also corrects this record's own arithmetic: §1264's tally summed to 19, not 17. |
 | 710 | §1263 | **§1264** | **ONE RULE WRITTEN TWICE, DEFENDED IN NEITHER COPY.** §1258's family generalised from orderings to multi-condition `WHERE` clauses: 13 queries carry 3+ AND-ed conditions; the 4 sharpest were mutated condition by condition. **Two fully defended** (the invoice-settle amount cap REDs 3, `status='issued'` REDs 1 — clean negative). **The gap:** `kind = 'quote.priced'` in BOTH `portal-actions.ts` and `booking.ts` GUARD 2 — deleting it left the full api suite at **834/834** and **835/835** respectively, while each side's `stream_id`/`id` clauses RED 3–8. Both suites already had a test that READS as though it covers this; both name a `crypto.randomUUID()`, an id that exists NOWHERE, so `id = ?` refuses it and the `kind` clause never runs — **the fixture cannot distinguish DANGLING from WRONG-KIND**, which both guards' comments name as separate faults. **Damage:** an UNTRUSTED portal party gets **201** and writes a `quote.accepted` naming a non-quote onto an **append-only** ledger (I3/I7 — never removable), and the freight then silently never books. Closed both sides, 6 mutations RED, api 836/836. **And a recorded measurement error:** the first booking probe ran `workers/agents`, where the file LIVES → **130/130 false green**; it is owned by `workers/api/test/booking.test.ts` across a package boundary. Stopping there would have recorded *the mirror defends it* — a wrong finding that made the gap look survivable. |
 | 709 | §1262 | **§1263** | **THE BOARD CAUGHT TWO DEFECTS OF MINE THAT EVERY SUITE I RAN HAD PASSED.** Re-earned at `7ef7d34`: **18 PASS · 3 FAIL · 5 BLOCKED**, all three attributed. **(1) typecheck — MINE:** §1262's fixture destructures a sorted array, which is `string \| undefined` under `noUncheckedIndexedAccess`; 11 errors in the file I had just proved five ways, while `vitest` reported **16/16 GREEN on that exact file** — vitest does not typecheck. The companion to *run the suite that owns the file*: the owning suite is NECESSARY, not SUFFICIENT. **(2) phase-index — MINE:** the §4 index lists phase gates ONLY and I indexed §1261, a finding section; unindexed. **(3) evidence-expiry — MINE BY TRIGGER:** §1259 changed `anchor.test.ts`, expiring a row dated 2026-08-11; re-verified, substance HOLDS — and the clearance shape is the finding: the prior note anchored the two CONSTRUCTORS `path:line@symbol` and left the two CONSUMPTION sites bare, and **those are exactly the citations that rotted, by +32**, same file, same note, same day. **(4) coverage — NOT MINE, proved by EXIT CODE:** HEAD's register → **exit 0**; owner's working register → **exit 1**. That swap also demoted the **status-drift list to ADVISORY** (all 11 rows print at exit 0), so L423's 8 → 10 → 11 history has been tracking an advisory signal; the new row REQ-267 is a **deferral marker, not an implementation**. Plus a re-derivation logged as one: I re-proved Law 5, which the record already held **three times**. |
 | 708 | §1260 | **§1262** | **THE JOURNAL'S LINE ORDER + A SECOND AUTHOR IN THE WORKING COPY.** Reversing `created_ts, event_id, line_no` left 23/23 GREEN; the suite's *serializes byte-identically* case cannot see it, since one query run twice on the same rows is answered identically with or without an ORDER BY — a stable ENGINE, not an ORDERED query. Closed with 4 lines varying all three components, 5 mutations RED. **Class closed: 5 sites, 13 mutations, ledger 711/711 + api 834/834.** And reconciling the count found something bigger: 3 of the new tests are **NOT MINE** — a REQ-290 dated today, plus **seven modified files I never touched**. A delta here is not attributable to one author (I nearly recorded a fabricated *the suite mutates its own source*), and `git add -A` is unsafe regardless of exclusions — staging is **explicit paths** now. |
@@ -74921,3 +74922,70 @@ blind, the booking mirror defends it" — a *wrong* finding that would have made
 as a clean negative), two gaps that are one rule written twice and defended in neither copy, both closed and
 proved six ways. The trust-boundary consequence — an untrusted caller writing a permanent malformed event and
 receiving 201 — is the reason this one mattered more than its test count suggests.
+
+## §1265 — PHASE GATE: two clean negatives at the untrusted boundaries, and a law named two lines above the one place it was undefended
+
+Applied §1264's lens — *a negative test that passes for the wrong reason* — to the two surfaces reachable by
+someone outside the trust boundary: the MCP worker (acceptance demo #4, "a booking placed from Claude via MCP")
+and the public status page (a URL customers forward).
+
+### MCP: a clean negative, stated as one
+
+Five mutations, five REDs, no source changed:
+
+| guard | mutation | result |
+|---|---|---|
+| `principal.ts` `kind = 'mcp'` | dropped — an `api`/`edi` pairing authenticates as MCP | **1 RED** |
+| `principal.ts` `status !== "active"` | dropped — **a revoked pairing keeps working** | **1 RED** |
+| `caps.ts` idemKey composition | **reverted to the pre-fix form** (the REQ-105 cap bypass) | **1 RED** |
+| `caps.ts` lane allow-list | skipped entirely | **2 RED** |
+| `caps.ts` `caps_unconfigured` | fail-closed refusal removed | **3 RED** |
+
+The third is the one worth naming: a known, previously-exploitable bypass — a client-supplied idempotency key
+that discarded the arguments, letting two different shipments share one replay marker and clear unlimited
+bookings under a velocity cap of 1 — and **the fix is pinned**, not merely present. *Mutate the pin, not just
+the fix* returns a clean answer here.
+
+### The public status page: the law was written down, and its one live application was undefended
+
+`REQ-188`'s always-coarse geo is solid: making `generalizePosition` honour OFD instead of passing `false`
+unconditionally REDs. But two lines above it sits `state: typeof sc.state === "string" ? sc.state : "unknown"`,
+and **replacing `"unknown"` with a fabricated `"in_transit"` left the file at 13/13 GREEN.**
+
+What makes this more than a missing test is where the law is written. The same file omits `eta` in v1 with the
+comment *"a fabricated number violates the honest-instrument law"* — the principle stated explicitly, for a
+field that does not exist yet, while the **one field that actually degrades** was defended by nothing. This is
+the adjacency shape (*check what a discipline stops one line short of*) at its sharpest: not a principle
+forgotten, a principle applied to the hypothetical case and skipped on the live one — on the surface a customer
+forwards to their own customer.
+
+**Closed as PS-7** (the suite's numbering had PS-1…PS-6 and PS-8; the gap was the right home) with three cases:
+unparseable bytes, valid JSON missing `state`, and — the one that took two tries — `state` present with the
+**wrong type**.
+
+**The first two could not distinguish the guard from a bare `?? "unknown"`.** Both have `state` ABSENT, so
+dropping `typeof … === "string"` left them green. The discriminating input is a projection-shape change that
+yields a non-string, and its consequence is specific: the value reaches `PublicStatus.parse` (a `z.string()`),
+throws into the outer catch, and answers **401** — one bad projection field making a real shipment
+indistinguishable from a forged cap. §1258's rule, one level down from ordering: **absent ≠ present-but-wrong,
+and a fixture that only omits cannot speak for the type check.**
+
+`out_for_delivery` is pinned at its current behaviour and the asymmetry recorded rather than fixed: a boolean
+has no "unknown", so an absent value is reported as a definite `false`. Widening it is an API-shape question,
+which is a register decision, not an audit one.
+
+**Mutation-proved 4 ways** — fabricated fallback, type check dropped, `parseStatusCache` fabricating on corrupt
+bytes, OFD truthiness inverted — all RED. api **839/839**.
+
+### Correcting this record's own arithmetic
+
+§1264 closed with *"17 of 40 — 9 verified, 9 gaps closed, 1 claim corrected"*, which sums to **19**, not 17.
+§1260 and §1262 both summed correctly, so this is a slip in one line rather than a drifting count. The true
+figure at §1264 was **19 of 40**.
+
+**Running tally: 23 of 40 load-bearing claims probed — 12 verified, 10 gaps closed, 1 claim corrected.**
+
+**STOP.** Both untrusted boundaries probed: MCP returns a five-mutation clean negative including a
+previously-exploitable bypass whose fix is genuinely pinned; the public status page gave up one gap where the
+honest-instrument law was stated for a hypothetical field and undefended on the live one, now closed with the
+wrong-type case that the first fixture could not see. Own tally corrected.
