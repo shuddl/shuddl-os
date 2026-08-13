@@ -543,7 +543,14 @@ describe("§842: every fixture gate CLAUDE.md rule 6 names is real", () => {
       .map((f) => f.replace(/\(.*?\)/g, "").trim())
       .filter((f) => f.length > 0);
     const known = [...Object.keys(NAMED_FIXTURE_GATES), ...Object.keys(NAMED_BUT_ABSENT)];
-    const novel = fragments.filter((f) => !known.some((k) => f.includes(k.split(" ")[0]!)));
+    // §1367 — MATCH THE WHOLE KEY, NOT ITS FIRST WORD. This read `k.split(" ")[0]`, so a fragment counted as
+    // known if it merely contained a known gate's FIRST WORD — `QB`, `routes`, `legacy-export`,
+    // `airplane-mode`. MEASURED by planting `QB payroll export ±1%` into rule 6: this suite stayed 15/15 GREEN,
+    // so a genuinely new fixture gate could be added to CLAUDE.md LAW, never mapped to a manifest fixture, and
+    // read as coverage that does not exist — the `routes ±10%` defect the sibling case above exists to prevent.
+    // All four keys are proper substrings of their own fragments (`QB export` \u2282 `QB export reconciles to the
+    // penny`), so the weakening bought nothing and cost the check its teeth.
+    const novel = fragments.filter((f) => !known.some((k) => f.includes(k)));
     expect(
       novel,
       "rule 6 names a fixture gate this check does not know. Map it to its manifest fixture in " +
