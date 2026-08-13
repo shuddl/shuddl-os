@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 768 | §1321 | **§1322** | **THE GATES §1315 DID NOT MEASURE — AND THEY ARE FLOORED HARDER THAN THE ONES IT DID.** §1315's *"all 119 gate files"* corpus was `tools/**/*.test.ts`, which is NOT the merge board's gate set: the four BROWSER gates run through `playwright-guard.ts` and were outside it. Scope corrected in place. Measured now: the guard reads **machine-readable JSON stats** (Playwright exits 0 for both "42 passed" and "0 tests ran"); `MIN_ASSERTIONS` floors each at **exactly** the §1314 board's observed counts (5/4/6/1 — zero headroom); the floor is boundary-tested BOTH sides including a partial-skip case; and the completeness check **derives** its labels from `package.json` so a new browser gate cannot ship unfloored. Nothing to fix — the defect was my unstated corpus. |
 | 767 | §1320 | **§1321** | **STOPPING POINT — THE FIVE ACCEPTANCE DEMOS AUDITED LINK BY LINK.** `demos.ts` carries five and they match CLAUDE.md verbatim; 7 spine files, 4 packages. The chain holds at all three links: **EXIST** (`missingSpineFiles`, fail-closed — closing a measured hole where one renamed file among four dropped out at exit 0), **cannot be SKIPPED** (`no-focused-tests` scans repo-wide `*.test.ts`/`*.test.tsx`, covering all seven including the `.tsx`), **actually RUN** (per-package vitest configs, since the pools differ). The middle link is the one I expected missing — it holds only because a DIFFERENT gate bans skips repo-wide. Boundary stated honestly: the FILMED half (<5s, <10min, real driver, real Claude, visual dim) is the manifest's job and is never claimed from a test run. |
 | 766 | §1319 | **§1320** | **SWEPT THE CURATED-VOCABULARY CLASS REPO-WIDE — 9 CLOSED, 2 OPEN, 1 RESIDUAL.** After three curated lists in one file, counted the class across all gates: **12 carry a word alternation**, and the discriminator is CLOSED-by-contract vs OPEN-to-rewording. Nine are closed (HTTP verbs, vitest modifiers, the event `source` enum, file extensions, storage APIs). `motion.ts` bans animation NAMES but is safe by design — its real detectors are STRUCTURAL (`isSpringBezier`, `hasNonZeroRotate`), so a rename still trips it. The residual is `gate-wiring`'s script-PREFIX filter: **widening it was measured and REJECTED** (`pnpm backup` is a defined script and an operational job — pure noise). Bounds written into the source: 16 prefixes exist, 5 recognised, and **4 of 30 merge scripts are bare-named**; the convention is enforced nowhere. |
 | 765 | §1318 | **§1319** | **THE THIRD CURATED LIST IN ONE FILE — AND A PROBE THAT NEARLY LIED.** Applied §1318's rule to the sibling matcher: `statedSweepCounts` hard-coded a six-to-ten alternation (escaped out of this cell — a regex alternation's pipes split a markdown row, which is now twice in three phases) beside the `WORD` table its own `.map` already used. Blind to **`eleven` AND `five`** — so it could not see growth past ten OR a shrink below six. Now built from `Object.keys(WORD)`. **The first probe reported all three plants GREEN**, which reads as "the gate is broken" — but `sla-sweep.ts` states NO count, so the substitution matched nothing; re-aimed at `sequencer.ts` (which states `eight sweeps`) both wrong counts RED. A uniform 3-for-3 result was the tell. Also found: of the roster's 2 files only **1** carries a live claim. |
@@ -77470,7 +77471,9 @@ fails. The next actionable items are all owner-scope: vendor the nine fixtures (
 ## §1315 — PHASE GATE: the gate population audited by §1313's own lesson — a clean negative
 
 §1313 proved one gate blind by planting a violation in it. The obvious question is how many others are
-hypotheses. Measured across all **119** gate files under `tools/`.
+hypotheses. Measured across all **119** gate files under `tools/` — **and that corpus is not the merge
+board's gate set (scope corrected §1322): the four BROWSER gates run through a harness and were outside
+this sweep entirely.**
 
 ### Every gate has a floor or a control
 
@@ -77841,3 +77844,35 @@ What remains is not mine to close: nine `pending` engagement fixtures (5 BLOCKED
 `IDENTITY_DENYLIST`, register rows for ten filed operational items, and one API-contract decision. The
 repo-owned failure set is empty, and the top-level claim is gated as far as a repository can gate it — the rest
 is a camera and a human.
+
+
+## §1322 — PHASE GATE: the gates §1315 did not measure, and they are floored harder than the ones it did
+
+§1315 reported *"all 119 gate files under `tools/` have a floor or a positive control."* True of what it
+measured — and its corpus was `tools/**/*.test.ts`, which is **not** the merge board's gate set. Four board
+gates run Playwright through `tools/harness/playwright-guard.ts`, and their specs live in `tests/e2e/` and
+`packages/map/perf/`. They were outside the sweep. The claim was accurate; its scope was unstated, which is the
+same defect as §1316's unstated counting method.
+
+Measured now, and they are the best-constructed gates examined this session.
+
+| property | mechanism |
+|---|---|
+| exit code cannot be trusted | the guard reads Playwright's **machine-readable JSON stats**, because *"Playwright exits 0 both for '42 passed' and for '0 tests ran' / '4 skipped'"* |
+| suite cannot silently shrink | `MIN_ASSERTIONS` — `visual: 5 · a11y: 4 · e2e: 6 · perf: 1`, which **exactly match** the counts the §1314 board observed. Zero headroom: losing one browser test trips the floor |
+| the floor is proven to fire | boundary-tested both sides — *"e2e at its floor passes"*, *"e2e one test below its floor FAILS, even with nothing red"*, *"a partial skip below the floor FAILS — a skip is not a pass, at any scale"*, *"a suite ABOVE its floor passes — the ratchet may rise freely"* |
+| a NEW gate cannot ship unfloored | the completeness check **derives** its labels from `package.json` (*"a hand-kept list here would not [catch it]"*), carries its own non-vacuity floor on that derivation, and names its one exemption — `surfaces`, release-only, BLOCKED before any count exists — with the reason |
+| local runs cannot fake proof | advisory locally by design (the browsers are deliberately out of the default install), inverting to FAIL/BLOCKED under `--mode merge\|release`, exactly as CLAUDE.md rule 7 states |
+
+Nothing to fix. The one thing worth carrying forward is that this gate answers, in five separate mechanisms,
+every question this session has had to ask of other gates one at a time: is the exit code meaningful, can the
+corpus shrink, has the floor ever fired, can a new member skip enrolment, and does mode change the verdict.
+
+**Running tally: 174 of 174 load-bearing claims probed — 114 verified, 46 gaps closed, 20 claims corrected;
+10 operational items recorded.**
+
+**STOP.** The correction is mine and it is small but real: **a sweep's headline number is only as good as its
+stated corpus.** "All 119 gates" invited the reading "every gate on the board", and the four it excluded were
+the ones whose vacuity would be hardest to notice by eye — a browser suite that renders nothing still exits 0.
+They turned out to be the most rigorously floored gates in the repo, which does not make the unstated scope
+less of a defect.
