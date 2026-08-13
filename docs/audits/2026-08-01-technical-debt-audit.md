@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 715 | §1268 | **§1269** | **A LIVE DEFECT IN A DRIVER-FACING NUMBER — the first SOURCE defect since §1258.** `syncOnce`'s `parked` count (shown on a driver's screen via `useSync`) was incremented at **two sites whose cases are not disjoint**: once for an already-parked item, once for one that parks during the pass. An item parked → re-probed → **re-parked** hits both: **`parked === 2` for ONE stop**, 2N for N. Second instance, same shape: an item that was parked and then **DRAINED** is still counted, because the top site fires before the outcome is known. **Neither was covered and the reason is instructive** — one existing test keeps the item inside its backoff window (bottom site never runs), the other lets the refusal CLEAR (it drains); **the uncovered middle is the ORDINARY case**, a refusal that persists. Fixed by REMOVING a site: `advanceItem` mutates `item.sync` in place, so post-pass state IS the answer — **the old code guessed the outcome from pre-pass state; the new code looks.** Honest-instrument law arriving at a NUMBER. Mutation-proved by restoring the two-site shape (both RED), 47/47. **And I wiped my own uncommitted fix** restoring with `git checkout --` mid-proof — snapshot to scratchpad, never checkout, when the file carries uncommitted work. |
 | 714 | §1267 | **§1268** | **THE LOOSE-PAYLOAD BOUNDARY SWEPT TO COMPLETION — AND MADE A TRIPWIRE.** All **8** loose kinds given a verdict per reader: `exception.raised` (2 gaps closed, §1266) · `payment.received` + `settlement.executed` (2 gaps closed, §1267 — one helper pair, not two copies) · `approval.*` **PINNED** (1 RED) · `document.attached` **no exposure** (a `safeParse`, not a hand-guard) · `call.transcribed`/`quote.expired` **no exposure** (exhaustive `return []`). **The completeness is STRUCTURAL:** `readField` has exactly ONE call-site file, and both projections switch exhaustively over all 35 kinds, so *does anything read a field off X* is answered by READING THE BRANCH, not by trusting a grep. **Three ways to handle a loose payload and only one produced defects** — schema-parse (nothing to get wrong), exhaustive-ignore (compiler proves it), and **guarded hand-read, where every defect lived**, because the guard is ordinary code no test forces and it *looks* careful. Sweep converted to `loose-payload-boundary.test.ts`: the set must stay exactly 8 / 27 / one readField site, with the re-sweep instruction in the failure message. Planted both violations — a 9th loose kind → **2 RED**, a second readField site → **1 RED**. |
 | 713 | §1266 | **§1267** | **THE LOOSE BOUNDARY WALKED TO ITS END — AND "LOOSE" HAS A FLOOR.** Enumerated it: **8 of 35 kinds carry a loose `JsonObject`**, 27 are typed, and `readField` has **exactly one call site** (closed at §1266). Sharpest remaining reader is `projection/money.ts`, which turns `payment.received` into money — and **all its guards were unexercised** (dropping `asInt`'s checks and `asString`'s typeof each left the suite GREEN). Split by REACHABILITY: a **string** `amount_cents` settles an invoice, because `Math.abs("120000") >= 120000` is TRUE (**gap, closed**); a **numeric** `party_id` lands on a money_line (**gap, closed**); a **float** amount is UNREACHABLE — `JsonValue` types every number as `SafeInt`, so **loose is loose in TYPE, not in numeric PRECISION** (precondition pinned instead). **And a false alarm caught by measuring the UNION:** `SafeInt.int()` mutated away left contracts **331/331 GREEN**, reading exactly like an unpinned constitutional law — but `.int()` and the `isSafeInteger` refine each fully cover the other; **both dropped → 18 RED**, the `-0` clause → 2 RED. The law is defended; neither half is. When two mechanisms enforce one law, mutate the **union**, never a member. ledger 717/717. |
 | 712 | §1265 | **§1266** | **FOUR UNEXERCISED GUARDS IN THE GATEKEEPER — EXACTLY TWO COULD EVER FIRE.** 109 `typeof` guards across 42 files; swept the sharpest surface, `transition-gates.ts`. All four string guards were unexercised — dropping each `typeof` left **56/56 GREEN** (the suite varies every field's VALUE, including *a photo_hash that is not 64-hex*, and never its TYPE). **A green mutation has two explanations and BOTH were true here, in different guards:** the two on `exception.raised` — doc 10's deliberately LOOSE payload — were real gaps; the two on `custody.transferred`/`delivery.evidenced` are **redundant**, because those payloads are strictly typed and Zod refuses the bad type first (measured, not argued). **Cost of the two live ones:** `photo_hash` as an ARRAY holding a valid hash PASSES `HASH64.test()` by coercion — REQ-050's evidence pillar clears carrying no hash at all; `reason_code` as a NUMBER makes `.trim()` throw a **TypeError instead of blocking** — a gate that 500s is not a gate that refuses (REQ-030). The redundant pair got a gate on their **PRECONDITION** rather than a prose note: both typed payloads asserted to REJECT the bad type, the loose one to ACCEPT it, so the test dies the day the assumption does. **Hand-written type guards matter exactly where the schema stops** — and that boundary is documented, so it can be swept. ledger 714/714. |
@@ -75161,3 +75162,58 @@ adding a second `readField` call site → **1 RED**. Restored, tree clean.
 **STOP.** The loose-payload boundary is closed end to end — 8 kinds, every reader given a verdict, 4 reachable
 gaps closed across §1266–§1267, the redundant guards' preconditions gated, and the completeness now enforced by
 a mutation-proved tripwire instead of resting on this section being read. Reopen trigger: the gate itself.
+
+## §1269 — PHASE GATE: a live defect in a driver-facing number, and a counter that guessed instead of looking
+
+The first genuine SOURCE defect in this stretch — everything since §1258 has been undefended-but-correct code.
+`syncOnce`'s `parked` count, which `apps/driver`'s `useSync` puts on a driver's screen, was **incremented at two
+sites whose cases are not disjoint**:
+
+```
+for (const item of items) {
+  if (state?.blocked?.kind === "operator") parked += 1;   // already parked
+  …
+  else if (step.kind === "operatorBlock") parked += 1;    // parked THIS pass
+```
+
+An item that was already parked, re-probed, and **parked again** hits both. Measured: `parked === 2` for **one**
+parked stop. With N such stops it reports 2N. A second instance falls out of the same shape — an item that was
+parked and whose re-probe **drained** is still counted, because the top site fires before the outcome is known.
+
+**Neither case was covered, and the reason is instructive.** The suite has two park tests: one keeps the item
+inside its backoff window (so the bottom site never runs), the other lets the refusal CLEAR (so it drains and
+the assertion is about `synced`). **The uncovered middle is the ordinary case** — a refusal that simply
+persists, which is what an operator block usually is. The fixture space was split either side of the defect.
+
+### The fix removes a site rather than adding a condition
+
+`advanceItem` mutates `item.sync` in place before returning, so after the pass the item's own state IS the
+answer. Counting once, from that, is both correct and smaller than the code it replaces:
+
+```
+if (item.sync?.blocked?.kind === "operator") parked += 1;   // post-pass truth, one site
+```
+
+It reads the same for every path: drained → not parked; re-parked → parked once; fell back to ordinary retry
+backoff → not parked (it is waiting, not blocked); still inside its window → parked, counted in the skip
+branch. **The old code guessed the outcome from the pre-pass state; the new code looks.**
+
+This is the honest-instrument law (§1265) arriving at a number rather than a string: a count that reports 2 for
+1 is as dishonest as a fabricated status, and it reaches the same place — a person deciding what to do next.
+
+**Mutation-proved by restoring the two-site shape: both new cases RED.** driver-core **47/47**, typecheck 0.
+
+### And I destroyed my own uncommitted fix proving it
+
+To run that mutation I edited `sync.ts` — which already held the uncommitted fix — and restored with
+`git checkout --`. That is HEAD, not my working state, so the fix was wiped; the "restored" run reported the
+same 2 failures and briefly looked like the fix had not worked at all. This repo's own rule says it in one
+line: **never restore an edited file with `git checkout --` when it carries uncommitted work — snapshot it to
+scratchpad and copy back.** The proof was valid; the recovery was luck, because the change was small enough to
+re-derive. It is snapshotted now.
+
+**Running tally: 32 of 40 load-bearing claims probed — 17 verified, 14 gaps closed, 1 claim corrected.**
+
+**STOP.** A live driver-facing miscount found and fixed at its root (one counting site reading post-pass state,
+not two guessing from pre-pass state), both instances covered, mutation-proved by restoring the old shape — and
+the fixture gap that hid it named: the suite tested either side of the ordinary case.

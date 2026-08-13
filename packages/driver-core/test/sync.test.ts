@@ -362,6 +362,40 @@ describe("drain order + park recovery — a signed capture can never be silently
     expect(seen).toEqual(ids); // capture order, NOT the store's reversed order
   });
 
+  // §1269 — `parked` reaches a DRIVER'S SCREEN (apps/driver useSync), so it is an honest-instrument number:
+  // it must be the count of stops actually parked, not a tally of park-ish events seen while looping.
+  //
+  // It was incremented at TWO sites — once at the top for an item already parked, once at the bottom for one
+  // that parked during the pass — and the two cases are not disjoint. Both defects below were live and neither
+  // was covered: every existing case either kept the item backing off (so the bottom site never ran) or let
+  // the refusal CLEAR (so it drained). The uncovered middle is the ordinary one: a refusal that persists.
+  it("§1269: a parked item whose RE-PROBE FAILS AGAIN counts ONCE, not twice", async () => {
+    const store = new MemStore();
+    const q = new OfflineQueue(store);
+    await enqueue(q);
+    let clock = 1_000;
+    const sendEvent = recorder([403, 403]);
+    const first = await syncOnce(ports({ queue: q, sendEvent, now: () => clock }));
+    expect(first.parked).toBe(1);
+    clock += OPERATOR_REPROBE_MS + 1;
+    const second = await syncOnce(ports({ queue: q, sendEvent, now: () => clock }));
+    expect(sendEvent.calls, "the window elapsed, so it really did re-probe").toHaveLength(2);
+    expect(second.parked, "ONE parked stop must report as one, not two").toBe(1);
+  });
+
+  it("§1269: a parked item that DRAINS on its re-probe stops being counted as parked", async () => {
+    const store = new MemStore();
+    const q = new OfflineQueue(store);
+    const id = await enqueue(q);
+    let clock = 1_000;
+    const sendEvent = recorder([403, 202]);
+    expect((await syncOnce(ports({ queue: q, sendEvent, now: () => clock }))).parked).toBe(1);
+    clock += OPERATOR_REPROBE_MS + 1;
+    const later = await syncOnce(ports({ queue: q, sendEvent, now: () => clock }));
+    expect(later.synced, "the re-probe was accepted").toContain(id);
+    expect(later.parked, "a stop that just drained is not a parked stop").toBe(0);
+  });
+
   it("a parked item RE-PROBES after its window and drains when the refusal clears (an ordering race self-heals)", async () => {
     const store = new MemStore();
     const q = new OfflineQueue(store);

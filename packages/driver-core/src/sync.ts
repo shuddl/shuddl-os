@@ -186,12 +186,18 @@ export async function syncOnce(ports: SyncPorts): Promise<SyncPass> {
   let parked = 0;
   for (const item of items) {
     const state = item.sync;
-    if (state?.blocked?.kind === "operator") parked += 1; // visible, whether or not it re-probes this pass
+    // §1269 — `parked` is counted ONCE per item, from its state AFTER the pass. It used to be incremented in
+    // two places (here for an already-parked item, and below for one that parked during the pass), which
+    // double-counted the item that was parked AND re-parked, and kept counting one that had just DRAINED.
+    // `advanceItem` mutates `item.sync` in place before returning, so the post-pass state is the honest
+    // answer to "is this item parked now?" — and it is the only thing this counter should be reporting,
+    // because it reaches a driver's screen (apps/driver useSync).
     // A parked item is no longer skipped forever: it waits out OPERATOR_REPROBE_MS like any backoff and
     // is then re-tried (the append is idempotent by event id, so re-probing is safe). This is what lets
     // an ordering race or a transient dispatcher-side refusal self-heal instead of stranding evidence.
     if (state && state.nextAttemptAt > ports.now()) {
       noteWake(state.nextAttemptAt); // still backing off (or parked, awaiting its re-probe)
+      if (state.blocked?.kind === "operator") parked += 1;
       continue;
     }
 
@@ -203,9 +209,11 @@ export async function syncOnce(ports: SyncPorts): Promise<SyncPass> {
       if (step.kind === "synced") synced.push(step.id);
       else if (step.kind === "waiting") noteWake(step.at);
       else if (step.kind === "authBlock") authBlocked = true;
-      else if (step.kind === "operatorBlock") parked += 1; // parked THIS pass — counted here, not at the top
       break;
     }
+    // Post-pass truth: parked if and only if the item is operator-blocked NOW. A re-probe that drained it,
+    // or that fell back to ordinary retry backoff, is not a parked stop.
+    if (item.sync?.blocked?.kind === "operator") parked += 1;
     if (authBlocked) break; // a 401 stops the whole loop — do not attempt further items
   }
 
