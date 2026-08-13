@@ -11,7 +11,7 @@ import {
   runWatchtower,
 } from "../src/index.js";
 import { runWatchtowerSnapshots } from "../src/watchtower-snapshot.js";
-import type { AgentsEnv } from "../src/tenants.js";
+import { TENANT_SLUGS, type AgentsEnv } from "../src/tenants.js";
 import { applyAll } from "./helpers.js";
 
 // REQ-025 / REQ-278 — ONE TENANT'S FAILURE MUST NOT KILL THE TICK (audit §409).
@@ -58,15 +58,20 @@ describe("REQ-278: every agents sweep contains a per-tenant failure (audit §409
   // Each entry is a sweep and how it is invoked. Signatures differ (`now` is a Date for runAllTenants, a
   // number elsewhere, absent on runCreditReconSweep), so the call is written per row rather than inferred —
   // an it.each over a shared caller would silently skip a sweep whose signature drifted.
-  const SWEEPS: ReadonlyArray<readonly [string, (e: AgentsEnv) => Promise<void>]> = [
-    ["runAllTenants", (e) => runAllTenants(e, () => new Date(FIRE_MS))],
-    ["runSlaSweep", (e) => runSlaSweep(e, () => FIRE_MS)],
-    ["runReconSweep", (e) => runReconSweep(e, () => FIRE_MS)],
-    ["runCreditReconSweep", (e) => runCreditReconSweep(e)],
-    ["runCollectorSweep", (e) => runCollectorSweep(e, () => FIRE_MS)],
-    ["runWatchtower", (e) => runWatchtower(e, () => FIRE_MS)],
-    ["runRetentionSweep", (e) => runRetentionSweep(e, () => FIRE_MS)],
-    ["runMirrorSweep", (e) => runMirrorSweep(e, () => FIRE_MS)],
+  // §1311 — the third column is the HEALTHY tenant's success log, the continuation half §409 deferred (see
+  // the CONTINUATION note above). `null` where a sweep emits no per-tenant success line.
+  const SWEEPS: ReadonlyArray<readonly [string, (e: AgentsEnv) => Promise<void>, string | null]> = [
+    // The anchor logs ONLY on failure — no per-tenant success line exists to observe, so continuation is
+    // unobservable through logs here (measured §1310; its fault surfaces as `[REQ-014] anchor run (tenant …)`
+    // from runDailyAnchor, which contains its own faults and RETURNS rather than throwing).
+    ["runAllTenants", (e) => runAllTenants(e, () => new Date(FIRE_MS)), null],
+    ["runSlaSweep", (e) => runSlaSweep(e, () => FIRE_MS), "concierge sla-sweep: tenant tenant-b"],
+    ["runReconSweep", (e) => runReconSweep(e, () => FIRE_MS), "recon-sweep: tenant tenant-b"],
+    ["runCreditReconSweep", (e) => runCreditReconSweep(e), "credit-recon-sweep: tenant tenant-b"],
+    ["runCollectorSweep", (e) => runCollectorSweep(e, () => FIRE_MS), "collector dunning-sweep: tenant tenant-b"],
+    ["runWatchtower", (e) => runWatchtower(e, () => FIRE_MS), "watchtower: tenant tenant-b"],
+    ["runRetentionSweep", (e) => runRetentionSweep(e, () => FIRE_MS), "retention-sweep: tenant tenant-b"],
+    ["runMirrorSweep", (e) => runMirrorSweep(e, () => FIRE_MS), "legacy-mirror: tenant tenant-b"],
     // Not in index.ts — its own module, same shape. Included here rather than in a second file because the
     // property and the harness are identical; the bound §408 filed counts sweeps, not files.
     //
@@ -75,12 +80,12 @@ describe("REQ-278: every agents sweep contains a per-tenant failure (audit §409
     // BEFORE the loop, so nothing is swept and nothing is logged. The first version of this row did exactly
     // that and the non-vacuity assertion below caught it: the sweep "resolved", and no tenant had failed
     // because no tenant had been visited (audit §410). SNAPSHOT_MS is a Monday, so the loop actually runs.
-    ["runWatchtowerSnapshots", (e) => runWatchtowerSnapshots(e, () => SNAPSHOT_MS)],
+    ["runWatchtowerSnapshots", (e) => runWatchtowerSnapshots(e, () => SNAPSHOT_MS), "watchtower-snapshot: tenant tenant-b"],
   ];
 
-  it.each(SWEEPS)("%s RESOLVES when one tenant's D1 throws — the tick survives", async (_name, run) => {
+  it.each(SWEEPS)("%s RESOLVES when one tenant's D1 throws — the tick survives", async (_name, run, okLog) => {
     const errors = vi.spyOn(console, "error").mockImplementation(() => {});
-    vi.spyOn(console, "log").mockImplementation(() => {});
+    const logs = vi.spyOn(console, "log").mockImplementation(() => {});
 
     await expect(run(poisonOneTenant()), "an uncontained per-tenant failure would reject here").resolves.toBeUndefined();
 
@@ -88,6 +93,25 @@ describe("REQ-278: every agents sweep contains a per-tenant failure (audit §409
     // an early return. Without this the test would pass against a sweep that iterated nothing at all.
     expect(errors.mock.calls.some((c) => String(c[0]).includes("tenant-a")), "the failing tenant must be named in a loud log").toBe(true);
 
+    // §1311 — CONTINUATION, the half §409 named as "the property we want" and deferred as entangled. It is
+    // only observable because the POISONED tenant is iterated FIRST (`TENANT_SLUGS[0]`, pinned below): poison
+    // the LAST tenant instead and this assertion passes with the containment DELETED, since the throw would
+    // land after the healthy tenant was already swept. That is why the premise gets its own test.
+    if (okLog !== null) {
+      expect(
+        logs.mock.calls.some((c) => c.some((a) => typeof a === "string" && a.includes(okLog))),
+        "the healthy tenant was never swept — the first tenant's fault aborted the loop",
+      ).toBe(true);
+    }
+
     vi.restoreAllMocks();
+  });
+
+  it("the poisoned tenant is iterated FIRST — the premise every continuation assertion rests on", () => {
+    // Reordering TENANT_BINDINGS would not fail any assertion above; it would quietly turn each of them into
+    // "the last tenant threw", which a deleted containment also satisfies. Pinning the premise keeps that
+    // degradation loud (§1281 shared-outcome blindness).
+    expect(TENANT_SLUGS[0], "poisonOneTenant() breaks TENANT_A_DB, which is no longer swept first").toBe("tenant-a");
+    expect(TENANT_SLUGS.length, "a single-tenant roster makes continuation unobservable").toBeGreaterThanOrEqual(2);
   });
 });

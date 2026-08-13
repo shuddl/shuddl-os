@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 757 | §1310 | **§1311** | **A DOCUMENTED GAP CAN ALSO BE ALREADY CLOSED — §1309 AND §1310 WERE BOTH WRONG.** `sweep-containment.test.ts` has poisoned a tenant across NINE sweeps since §409, with a non-vacuity errSpy check materially identical to §1310's. The absence claim came from a grep scoped to `*cron*.test.ts`; the owning file has no "cron" in its name — **scoping the corpus by FILENAME is the same error as scoping it by MECHANISM (§1308)**. What WAS missing is the CONTINUATION half, which §409 deferred on the record (*"the property we want … entangled with slug order and log spies"*). Closed in the owning file; my duplicate DELETED. **Isolating mutation:** `continue → break` leaves containment intact — old assertion GREEN, only the new line reds. 131→132 (not 140: 8 were duplicates), 8 of 9 sweeps now assert continuation. |
 | 756 | §1309 | **§1310** | **THE NON-VACUITY ASSERTION IS WHAT FOUND THE ARCHITECTURE.** Closed §1309's open sibling: 8 cron wrappers × *"one tenant never stalls the rest"*, now 9 table-driven tests (131 → 140 green). The decision that makes it mean anything: break **tenant-a (FIRST)**, since breaking the LAST tenant passes with the catch DELETED (§1281 shared-outcome blindness) — plus a 9th test pinning `TENANT_SLUGS[0]` so a reorder cannot silently make the other 8 tautologies. **The errSpy non-vacuity check fired on the anchor and corrected ME, not the code**: `runDailyAnchor` contains its own faults and RETURNS, logging `[REQ-014] … NOTHING was anchored` + a correlated-fault line when the failure-record write also fails; the wrapper's catch covers a narrower class. **Mutation: 7 catches → exactly 7 REDs, one per wrapper**, anchor stayed green. Zero source changed. |
 | 755 | §1308 | **§1309** | **THE CONTAINMENT THREE PHASES REASONED FROM, FINALLY PINNED.** §1306–§1308 all leaned on *"a per-party fault is contained + logged, never fatal to the rest"*; nothing asserted it, and the test file SAID SO in a §791 header (*"STILL UNEXERCISED … this suite has no seam for one"*) — an honest dated gap that survived because it reads as resolved. Built the seam (argument-scoped `faultSeam` from `anchor.test.ts`; the sweep's SELECT binds the RULE not a party, so it still returns every gap and *"the others reconcile"* is observable). **Mutation-proved:** `throw err` after the log reds ONLY the new test. Continuation asserted with its weakness stated — no `ORDER BY`, so the poison is bracketed by reconcilable parties on both sides. The per-TENANT catch in 7 wrappers is still unpinned (technique exists in `watchtower-cron.test.ts`). 131/131 green, source unchanged. **A documented gap is still a gap.** |
 | 754 | §1307 | **§1308** | **"SELF-HEALING BUT CAPPED" IS A PROPERTY OF THE CANDIDATE SET, NOT THE SWEEP.** Re-measured L430's BOUNDED COUNT: the population is **four, not two** — the original probe enumerated by MECHANISM (`queue.send`/`r2.delete`/`fetch`) and missed that a plain D1 `.run()` is a subrequest too. The new deciding property: **does a processed row LEAVE the candidate set?** retention (tombstone) and recon (invoice/marker) YES, so a truncated tick advances; **collector NO** — it writes to `messages` and never touches the invoice, so every open overdue invoice costs 2 subrequests EVERY tick and a truncated tick re-spends on the same prefix: **the tail never gets a draft, permanently.** Budget is per INVOCATION while every tenant loops inside one, so one tenant's book starves later slugs — silently, because the per-tenant catch reports success. 1 row filed, L430 corrected twice (count + verdict). |
@@ -77147,7 +77148,9 @@ of them under either ordering.
 
 `runSlaSweep` · `runReconSweep` · `runCreditReconSweep` · `runCollectorSweep` · `runMirrorSweep` ·
 `runRetentionSweep` · `runAllTenants` each wrap their per-tenant body in the identical catch, with the identical
-comment. No cron test injects a failing TENANT. The technique already exists in this repo —
+comment. ~~No cron test injects a failing TENANT.~~ **FALSE — corrected 2026-08-13, §1311.**
+`workers/agents/test/sweep-containment.test.ts` has pinned exactly this since §409, across NINE sweeps. This
+sentence came from a grep scoped to `*cron*.test.ts`, and the owning file has no "cron" in its name. The technique already exists in this repo —
 `watchtower-cron.test.ts` pins a per-MODULE catch with an `errSpy` and asserts the error was contained — so
 this is a gap in application, not in method. ~~Recorded rather than built out across seven wrappers in one
 phase.~~ **CLOSED the next phase — §1310.**
@@ -77164,8 +77167,11 @@ had not been closed — and three later phases then reasoned *from the behaviour
 ## §1310 — PHASE GATE: the non-vacuity assertion is what found the architecture
 
 §1309 closed the per-PARTY containment and left its sibling open: eight cron wrappers carrying the identical
-*"a per-tenant fault is contained + logged so one tenant never stalls the rest"*, with no test injecting a
-failing tenant. Closed here — nine tests, table-driven over every wrapper, `workers/agents` 131 → 140 green.
+*"a per-tenant fault is contained + logged so one tenant never stalls the rest"*, ~~with no test injecting a
+failing tenant~~ — **that premise was FALSE (corrected 2026-08-13, §1311): `sweep-containment.test.ts` has
+poisoned a tenant across nine sweeps since §409.** What was genuinely missing is the CONTINUATION half, which
+§409 deliberately deferred. The two new assertions below are real; the framing around them was not, and the
+work has been merged into the file that owns the property rather than left as a second copy.
 
 ### The design decision that makes it mean anything
 
@@ -77217,3 +77223,59 @@ that catch. The roster-premise test stayed green too. `index.ts` restored byte-i
 test design rather than this code: **a containment test's non-vacuity check is not paperwork — it is the part
 that can discover you are wrong about the system.** Both real findings this phase came from it, and neither
 would have appeared in a suite that asserted only the happy outcome.
+
+
+## §1311 — PHASE GATE: a documented gap can also be already CLOSED
+
+§1309's lesson was *a documented gap is still a gap*. This phase found its twin, the harder direction, by
+making the mistake: **§1309 and §1310 both asserted the per-tenant containment was unpinned, and it was not.**
+
+`workers/agents/test/sweep-containment.test.ts` has poisoned one tenant's D1 across NINE sweeps since §409 —
+including a non-vacuity `errSpy` check materially identical to the one §1310 congratulated itself on, and a
+§410 note recording that the check had already caught the same class of bug (a weekly gate returning before the
+loop). The absence claim came from `git grep … -- 'workers/agents/test/*cron*.test.ts'`. The file that owns
+this property has no "cron" in its name. **A grep proves presence, never absence — and scoping the CORPUS by
+filename is the same error as scoping it by mechanism, which §1308 made two phases earlier.**
+
+### What was actually missing, and it was documented too
+
+§409 shipped the WEAK assertion on purpose and said so:
+
+> *"THE ASSERTION IS DELIBERATELY THE WEAK ONE. 'Later tenants are still swept' is the property we want; it is
+> also entangled with slug order and log spies … What discriminates containment from its absence is simpler and
+> total: an uncontained loop REJECTS, a contained one RESOLVES."*
+
+So the real gap was the CONTINUATION half — named as wanted, deferred with a reason, and still open. That is
+what this phase closes, in the file that owns it.
+
+### The isolating mutation — the proof the new half is not a restatement
+
+Deleting the containment makes a sweep REJECT, which reds the old assertion and the new one together; that
+proves nothing about which is doing the work. The discriminating mutation is `continue → break` in
+`runSlaSweep`'s catch: containment stays intact, the sweep still RESOLVES, and the pre-existing assertion stays
+**GREEN**. Exactly one test went red, on exactly the new line — *"the healthy tenant was never swept."*
+
+A second new test pins the premise the continuation rests on (`TENANT_SLUGS[0] === "tenant-a"`), because
+poisoning the LAST tenant would satisfy continuation with the containment deleted — §1281's shared-outcome
+blindness, which is precisely why §409 called this half "entangled with slug order".
+
+### Net effect on the tree
+
+| | before | after |
+|---|---|---|
+| files asserting per-tenant containment | 1 (§409) + my duplicate | **1** |
+| sweeps with a continuation assertion | 0 | **8 of 9** (the anchor logs no per-tenant success line) |
+| `workers/agents` tests | 131 → 140 (8 of them duplicates) | **132** |
+
+My separate file was deleted and its two genuinely-new assertions merged into `sweep-containment.test.ts`.
+Carrying two overlapping containment files would have been debt created by an audit phase, which is the worst
+provenance debt can have.
+
+**Running tally: 141 of 141 load-bearing claims probed — 92 verified, 39 gaps closed, 14 claims corrected;
+9 operational items recorded.**
+
+**STOP.** 132/132 green in `workers/agents`, source byte-identical, one duplicate file removed and two audit
+sections corrected in place. **The failure mode to keep: I searched, found nothing, and believed it — twice in
+two phases — because the search LOOKED thorough.** §1310's own probe had already printed the pre-existing
+harness's fingerprint (`claimed-tenant enumeration failed`) and I read past it. Before recording any gap,
+enumerate the corpus the grep actually covered, and name the file you would expect the coverage to live in.
