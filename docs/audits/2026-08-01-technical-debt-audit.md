@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 744 | §1297 | **§1298** | **247 STATUS-ONLY ASSERTIONS, AND WHY THAT IS NOT 247 DEFECTS.** Measured the whole suite against §1297's shape-2: **309** 4xx/5xx assertions, **62** paired with a `code`/`reason`, **247** bare. That looks like a to-do list and is not. **Uniformity is the POINT on two surfaces** — `pub-status` (*bad MAC, unknown tenant, missing shipment ⇒ IDENTICAL 401*) and `isolation` (*no existence oracle*) hold **44 of the 247**, and there a distinguishing assertion would **contradict the law under test**: a test that pinned the difference would be pinning the oracle. So the population splits — bare-is-correct where the law is indistinguishability, bare-is-blind where two guards share a status — and **no reading of the assertions can tell them apart**; both are `expect(res.status).toBe(401)`. The distinguishing question is *how many guards produce this status here*, answered only by deleting one. This stretch ran that on four such paths and found **four blind spots**. **A 247-site `.code` retrofit would be §1283's exact mistake** — tests asserting what is already true, reading as diligence, and actively damaging the two uniformity suites. |
 | 743 | §1296 | **§1297** | **FOUR SURFACES MEASURED, FOUR CLEAN — AND WHAT A RUN OF CLEAN NEGATIVES MEANS.** `edi/writer.ts` byte-stability (`new Date(sentAt)` → `new Date()`) **3 RED** — and the package is clock-free **by construction**, the date being a converted INPUT, so the property is code shape rather than remembered discipline. `rater/price.ts` **I5 version pinning**: dropping `accessorials`/`fsc`/`zone_tariff` REDs **2/2/3** — a recorded price stays re-derivable. `ledger/visibility.ts` frozen 35-pair table: `credit.checked` → counterparty **8 RED (+5 api)**, `agent.acted` → counterparty **5 RED**. Zero source changes. **Nine of the last twelve surfaces measured clean, and that is information:** the stated invariants are in the main enforced, and this stretch's gaps clustered in three STRUCTURAL shapes, none of them carelessness — **tiebreaks that only fire on boring data**, **guards sharing an outcome** (a result-assertion cannot say which produced it), and **code below a seam every test replaces**. No amount of care while writing a test closes those: the test that exists looks complete and the guard that is missed looks tested. |
 | 742 | §1295 | **§1296** | **STOPPING POINT — 19 PASS · 2 FAIL · 5 BLOCKED at `e89d45b`, and BOTH FAILs were MINE.** Same own-goal three times this stretch: **prose about a citation, written in citation form, IS a citation.** §1268 named it; §1284 did it twice more — in the section (quoting a bad anchor I had planted as a probe, in full form, so the gate correctly called it rotted) and in the **index row**, which describes the ratchet catching a bare path-and-line **and contains one while doing so**. The row about the defect reproduced the defect. Fixed by breaking the form (*the sequencer's line 471*), which reads identically and parses as nothing: links back to the one other-author citation, ratchet 16/16, unanchored count back to its frozen baseline of 3. **Repo-owned failure set empty.** §1285–§1295: **6 gaps closed** (chain seq check · idempotency pathname · signature fail-open · webhook ACK · platform transport ×5), **one module from 0 tests to 11**, **3 operational items filed**, and **5 framings of my own corrected**. |
 | 741 | §1294 | **§1295** | **STORAGE THAT IS DEAD BY CONSTRUCTION — AND THE TAXONOMY THAT SEPARATES IT FROM §1293's.** Third form of the growth axis: **DO storage**. Both cap meters write `applied:PERIOD:id` per metered action, and the lookup key is always built from `currentPeriod(now)` = the UTC month — so when a month turns, every prior key is **unreachable by construction**. Neither DO has an `alarm`, `delete` or `deleteAll` (measured: zero `alarm` occurrences). One key per booking, forever, readable never. **Permanent by DESIGN vs by OMISSION:** §1293's markers are permanent because a *delivered* record that expires re-delivers — still readable, and a reaper would be UNSAFE. These are permanent because nothing removes them — **not readable**, and a reaper is **provably safe**, since a lookup for a past period is unconstructible. The usual objection to reaping an idempotency marker cannot apply. **Three forms, one instrument:** R2/KV list (§1293), D1 scan (§1294), DO storage (§1295) — none findable by a test, all found by **reading the write and asking what removes it; reading the query and asking what bounds it**. |
@@ -76551,3 +76552,52 @@ routine rather than as an audit technique — it is the only instrument that dis
 version pinning across all four configs, and the visibility default table at its two most sensitive kinds. The
 run of clean negatives is recorded as a finding in itself, with the three structural shapes that account for
 every gap this stretch did find.
+
+## §1298 — PHASE GATE: 247 status-only assertions, and why that is not 247 defects
+
+§1297 named three structural shapes; the second — **guards sharing an outcome** — has a one-line remedy from
+§1286: assert the *reason*, not the result. So the suite was measured against it.
+
+Across the worker suites: **309** assertions of a 4xx/5xx status. **62** pair it with a `code`, `reason` or
+`required_evidence` check. **247 assert the status alone.**
+
+That number looks like a to-do list. It is not, and the reason is a law this repo enforces deliberately.
+
+### Uniformity is the point on two surfaces
+
+`pub-status.test.ts` states it in its header: *"PS-1/2 no enumeration/existence oracle — bad MAC, unknown
+tenant, missing shipment ⇒ **IDENTICAL 401**"*. `isolation.test.ts` does the same for cross-tenant reads:
+*"tenant-b's D1 is simply not found here. No signed URL, no bytes, no existence oracle."* Those two files carry
+**44 of the 247** bare assertions, and for them a status-only assertion is not a weakness — **asserting a
+distinguishing code would contradict the law under test.** A prober must not be able to tell *why* it was
+refused; a test that pinned the difference would be pinning the oracle.
+
+So the population splits, and only one half is a hazard:
+
+| | bare status assertion is… |
+|---|---|
+| a surface whose law is **indistinguishability** (public cap, tenant isolation) | **correct — required, even** |
+| a path with **two or more distinct guards** at the same status | a blind spot (§1281–§1285's class) |
+
+### Which is why the remedy is mutation, not a retrofit
+
+There is no way to tell those two apart by reading assertions — both look like `expect(res.status).toBe(401)`.
+The distinguishing question is *how many guards can produce this status here*, and the instrument that answers
+it is deleting one and seeing whether anything notices. This stretch ran that on four such paths and found
+**four blind spots** (`verifyEventSig`, `authenticate`, `verifyChain`, the idempotency scope); it also ran it on
+paths where the status was the whole contract and correctly found nothing.
+
+**Retrofitting `.code` assertions across 247 sites would be the exact mistake §1283 named** — work that
+produces tests asserting what is already true, reads as diligence, and would actively *damage* the two
+uniformity suites. Recorded as a measurement with its rule instead:
+
+> **When adding a negative test, assert the discriminator if the surface has one — unless the surface's law is
+> that no discriminator exists.**
+
+**Running tally: 124 of 124 load-bearing claims probed — 87 verified, 32 gaps closed, 5 claims corrected;
+3 operational items recorded.**
+
+**STOP.** The shared-outcome shape measured across the whole suite rather than sampled: 309 negative
+assertions, 247 status-only, 44 of those correct *because* their surface's law is that failures must be
+indistinguishable — and the remedy left as mutation on multi-guard paths rather than a 247-site retrofit that
+would break the two suites it touched.
