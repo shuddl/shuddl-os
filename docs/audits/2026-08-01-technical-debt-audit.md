@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 778 | §1331 | **§1332** | **APPLIED §1330's LESSON TO MY OWN ENUMERATION — SAME SCOPE ERROR, NEW DEFECT.** §1308 counted per-row I/O and found four instances, **all sweeps**, because the row it corrected was titled *sweeps*. The mechanism is not sweep-specific. **The probe failed its positive control first** (0 hits on routes AND 0 on `collector.ts` — a 12-line window vs a `.prepare(` 14 lines down); widened → 7 per-row-await loops across 39 handlers. **The finding:** `import.ts` caps itself at `MAX_ROWS = 5000` while `findOrCreateParty` costs 3 `prepare()` calls and `materializeShipment` 2 — **10,000–25,000 subrequests in ONE request** against 1,000 Free / 10,000 Paid. The cap and the ceiling contradict each other **inside the same module**. Structural, not reproduced. |
 | 777 | §1330 | **§1331** | **ENUMERATED THE CLASS BY MECHANISM — AND IT CLOSES.** §1330 showed a TRIGGER-titled row hides its own class, so this names the mechanism (**presence-check → effect → mark-on-success**) and sweeps both idioms (R2 `head()`, KV `get()`). **Five sites**: three are external emissions (214 sweep, webhook POST, and §1330's 990 ack) — all now on one row; `watchtower-snapshot` is **benign**; the Biller's `evidence.head` is a different class (a precondition REQUIRING presence). **The discriminator, now added to the row:** harm exists iff the guarded effect is an **un-dedupable EXTERNAL emission** — an idempotent write to a DETERMINISTIC key is harmless under the identical race, which is why the snapshot is fine and the three sends are not. No fourth instance. |
 | 776 | §1329 | **§1330** | **THE FOURTH REACH CLAIM FOUND A THIRD INSTANCE OF A HIGH-SEVERITY CLASS.** `sweep-214.ts`'s *"only path where a send can happen"* is correctly scoped to its own branch; enumerating transport sends found TWO — `send214` (cron) and `send990` (inbound ack). **The 990 ack has the filed defect**: the 990 ack in `inbound.ts` gates on `evidence.head(...) === null` (presence CHECK, not a claim), then allocates FRESH monotonic ISA/GS and marks only after success — so two concurrent 204 deliveries emit two 990s with DIFFERENT ISA13/GS06 that the partner cannot dedupe. **The standing hold is titled "CRON sweeps"**, so this path is scoped out by its own title: fixing "the two sweeps" when wiring a transport leaves it open. STRUCTURAL (read), not measured. Filed on the same row — same dormancy, same activation event. |
 | 775 | §1328 | **§1329** | **THE THIRD REACH CLAIM — AND THE SHAPE THE ENUMERATION SURFACED NEXT DOOR.** `money.ts` claims narrowing `total_cents >= 0` *"removes the only path by which a negative could reach `allocateCents`"*. Verified: **exactly ONE non-test call site** (`projection/money.ts:192`), consuming a parsed `SplitComputedPayload`, so the refine stands between every real input and the allocator. **The yield was the neighbourhood**: reading that call site exposed `mapMoneyProjectionError`, which classifies failures by REGEX over the error message (`allocateCents` → 4xx not 500) — the lockstep-rot shape. It is pinned properly: the tests drive **REAL throws** (not synthesised messages), plus a negative control and §919's kind-gate precision case, so a rename or reword reds them. |
@@ -78270,3 +78271,48 @@ new site without re-deriving it.
 **STOP.** The class is closed: three external-emission instances, all filed on one row; one benign; one
 different class. **A defect found by a method is worth less than the enumeration that follows it** — §1330
 found the third instance, and only this phase can say there is no fourth.
+
+
+## §1332 — PHASE GATE: applying §1330's lesson to MY OWN enumeration, and finding the same scope error
+
+§1330's lesson — *a row titled for a trigger scopes its own class out of view* — indicts §1308 directly. That
+phase enumerated "per-row I/O over an unbounded row set" and found four instances, **all sweeps**, because the
+row it was correcting was titled *"sweeps make ONE subrequest per row"*. The mechanism is not sweep-specific: a
+request handler can do the same, and its ceiling is the same.
+
+### The probe failed its positive control first
+
+The first route scan returned **zero** hits, which would have read as "handlers are clean". Running the same
+probe against `collector.ts` — a file I had already proved does per-row D1 writes — also returned zero. The
+window was 12 lines and the `.prepare(` sits 14 below its `for`. Widened and re-controlled: 1 hit on the
+control, **7** per-row-await loops across 39 request handlers.
+
+### The finding: a route whose own cap exceeds the platform ceiling
+
+`evidence.ts` chunks deliberately. `import.ts` does not, and it is the one where the arithmetic is decisive:
+
+| fact | value |
+|---|---|
+| the route's own cap on uploaded rows | `MAX_ROWS = 5000` |
+| D1 `prepare()` calls in `findOrCreateParty` | **3** |
+| D1 `prepare()` calls in `materializeShipment` | **2** |
+| platform ceiling, one invocation | **1,000 Free / 10,000 Paid default**, and no worker sets `[limits] subrequests` |
+
+A full-size import issues on the order of **10,000–25,000 subrequests in a single request**. On Free the ceiling
+arrives at roughly 200 rows. **The cap and the ceiling contradict each other inside the same module**, and
+`sha256Hex` — the other per-row await — is WebCrypto and costs nothing, so the D1 calls really are the budget.
+
+**Stated honestly:** structural, read rather than reproduced against a live limit. And the mitigating unknown is
+recorded with it — ids are deterministic (`shp_<sha256(migrate:shipment:importId:rowIndex)>`), so a retry is
+idempotent and MAY progress if `findOrCreateParty` takes a cheaper found-path on rows already created. But
+nothing BOUNDS the loop to fit the budget, which is the same shape as §1308's Collector: a retry that does not
+differ from the last attempt.
+
+**Running tally: 205 of 205 load-bearing claims probed — 141 verified, 46 gaps closed, 20 claims corrected;
+12 operational items recorded.**
+
+**STOP.** Two defects in three phases, both from the same instrument, and this one was in **my own** work:
+§1308 answered the question the row's title asked instead of the question its mechanism posed. **An enumeration
+inherits the scope of whatever prompted it** — and the correction is not to re-enumerate more carefully but to
+re-state the class in terms of the MECHANISM before counting, which is what §1331 did for the check-then-act
+family and what this phase did for per-row I/O.
