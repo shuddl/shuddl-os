@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 782 | §1335 | **§1336** | **MY OWN FIX TO "NO ROW OWNS THE CLASS" WAS ITSELF INCOMPLETE.** §1335 cross-linked three rows filing one mechanism; it **missed a fourth** — *"Unbounded list reads — 9 sites"*, which mentions subrequests **0** times and "per-row" **0** times — because I enumerated rows naming a LOOP and that one names a READ. **A framing, which is the exact error §1335 diagnosed.** The relationship is COMPOUNDING, not identity: the read costs a big scan, the loop costs a per-invocation ceiling that THROWS — but on **2 files they are the same code** (`watchtower.ts`, `dunning.ts`), where each failure arrives sooner than either row predicts and a `LIMIT` on the read also shrinks the loop. Linked with that stated rather than merged. **A cross-reference is itself an enumeration and inherits a scope the same way a count does.** |
 | 781 | §1334 | **§1335** | **WHY THE COUNT WAS WRONG FOUR TIMES — NO ROW OWNED THE CLASS.** Traced all ~30–35 loops to their sources. The bounded ones are genuinely bounded (4/3/1-element constants, a literal `parts`, a PAGED `r2.list`, and maps keyed by AGENT → the 13-agent roster). **The unbounded ones were already filed — across THREE different rows**: subrequests-per-row, *"every KPI scans the WHOLE event history"*, and *"markers are permanent"*. Measured: the subrequest row mentions KPI **0** times and the KPI row mentions subrequests **0** times. They are three FRAMINGS of one mechanism, differing only in which consequence they name. **No row owned the class, so no enumeration prompted by one could be complete.** All three now cross-reference each other. |
 | 780 | §1333 | **§1334** | **CLOSED THE SCOPE INSTEAD OF GUESSING THE COUNT A FOURTH TIME.** Mechanism-derived scan of **all 212 shipped source files**, no filename/directory/title scoping: **35 per-row-I/O loops across 18 files**, controls present. The count stays a BOUND because membership needs a second predicate — is the row set unbounded — which a pattern cannot decide: the heuristic misclassified 4 sites, three from one matcher bug (`\bMODULES\b` can't match after `_`) and one that is the real reason (**`page.objects` is bounded by its CALLER's paging, not by anything at the `for` line**). Row now reads **six CONFIRMED out of a scope-complete 35-loop candidate set** — the previous three counts were each too small by a narrowed scope; this one can only be refined downward. |
 | 779 | §1332 | **§1333** | **THIRD CORRECTION TO ONE COUNT — 2 → 4 → SIX — AND THE CAUSE IS IDENTICAL EACH TIME.** Finished §1332's enumeration: `dunning.ts:398` IS an instance and is already rostered as an unbounded READ — but the roster and its row mention **subrequests zero times**, so the loop consuming those rows (`loadInvoice` + `resolveDunningRecipient` per row) is a second failure mode that THROWS rather than degrades. Crossing *rostered read* × *per-row I/O* found **`watchtower.ts` with two unbounded instances** (`unbilledShipmentsSql`; *"every anomalous quote ever"*), never examined because §1308's candidate list was scoped by FILENAME (`*sweep*`) — a sweep not called one. Two probe failures caught by controls (an anchor matching a comment 370 lines off; 11 sites vs an asserted 9). |
@@ -78456,3 +78457,44 @@ so whoever fixes one framing reads all three.
 mechanism is filed under several consequences, the register has no place that states its extent** — and every
 count taken from it will be short, repeatedly, in a way that looks like carelessness and is actually a missing
 cross-reference. The fix is not a better enumeration; it is a row that owns the mechanism.
+
+
+## §1336 — PHASE GATE: my own fix to "no row owns the class" was itself incomplete
+
+§1335 diagnosed four short counts as a record-structure problem — one mechanism filed under three consequences,
+with no row pointing at the others — and fixed it by cross-linking the three. **That fix missed a fourth row,
+in exactly the way it had just diagnosed.**
+
+`"Unbounded list reads — 9 sites, no LIMIT and no cursor"` is a separate row with its own roster test, and it
+mentions subrequests **zero** times and "per-row" **zero** times. It was not in the §1335 link because I was
+enumerating rows that name a per-row LOOP, and this one names a READ.
+
+### The relationship is compounding, not identity — which is why the wording matters
+
+These are genuinely different mechanisms and it would be wrong to merge them:
+
+| | mechanism | cost | failure |
+|---|---|---|---|
+| the READ row | a query with no `LIMIT`/cursor | one big scan, one big response | slow, large |
+| the LOOP rows | per-row I/O over those results | one subrequest per row | **throws** at the ceiling |
+
+But on **two files they land on the same code** — `watchtower.ts` and `dunning.ts`, where an unbounded read
+feeds a per-row loop. There each failure arrives sooner than either row predicts alone, and the fixes interact:
+adding a `LIMIT` on the read side also shrinks the loop, while fixing the loop alone leaves the scan. Linked
+with that stated, rather than merged.
+
+### What this says about the §1335 lesson
+
+§1335 concluded that the fix for a split class *"is not a better enumeration; it is a row that owns the
+mechanism."* One phase later, my own cross-link demonstrates the harder half: **linking rows requires knowing
+the class boundary, and I drew it at "rows naming a loop" — which is a framing, the exact error §1335 named.**
+The register now has four linked rows and one stated compounding relationship; whether that is the whole cluster
+is not something this phase can assert, having just been wrong about it once.
+
+**Running tally: 217 of 217 load-bearing claims probed — 144 verified, 46 gaps closed, 22 claims corrected;
+12 operational items recorded.**
+
+**STOP.** The correction is small and the lesson is not: **a cross-reference is itself an enumeration, and it
+inherits a scope the same way a count does.** §1335 fixed the symptom it could see from the row that prompted
+it, which is precisely the behaviour it had spent the phase explaining. Recorded plainly because the alternative
+— quietly adding the fourth link — would have left the record claiming a completeness it had already failed once.
