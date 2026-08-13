@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 705 | §1257 | **§1258** | **THE ANCHOR'S LEAF ORDER WAS LOAD-BEARING, STATED, AND UNEXERCISED.** `anchor.ts`: *any instability makes the root non-reproducible and the anchor worthless* (REQ-014 tamper evidence). **Swapping to `ORDER BY seq, stream_id` left packages/ledger 704/704 GREEN.** Not because no test exists — `runDailyAnchor` is tested across 22 seeded streams — but because **no fixture distinguishes the two orderings**: one stream (seqs 0..n) and several streams (all seq 0) both collapse them. Only *two streams with DIFFERING seqs* separates a0,a1,b0 from a0,b0,a1. **A fixture that cannot distinguish two implementations tests neither**, and for a COMPOSITE key that means varying every component. Third instance of §1233's shape this session. Closed with that shape, the expected root computed **independently** (§1197), and two premises — one of which caught my first draft using a day beyond the anchor window. Mutation now reds; 705/705. |
 | 704 | §1256 | **§1257** | **THE LARGEST REMAINING REPO-OWNED ROW, VERIFIED RATHER THAN BUILT.** L415 (*no line/branch coverage is measured anywhere*) is the biggest open repo-owned row, and the loop's *resolve all debt* points opposite to *do not stray from the documented build*. Read to its own conclusion: it is **correctly filed as recorded-not-actionable** — its own text says *nothing in CLAUDE.md or genesis asks for it*, no `@vitest/coverage-*` is installed so building it means a **dependency + scope decision**, and §1101 already found its trigger UNFIRED on a **name collision** (`check:coverage` is REQUIREMENT coverage). What IS in scope is the dated claim it rests on: §275's *280 files, ZERO orphans*. Re-measured — **277 files, and the 7 unimported are all Vite entrypoints or ambient `.d.ts`**, so no new orphan class. Probe limit disclosed (basename matching under-reports; a tripwire, not a re-establishment). Recorded so the untouched row reads as a **judgement, not an omission**. |
 | 703 | §1255 | **§1256** | **TWO MORE LOAD-BEARING CLAIMS — ONE EXEMPLARY, ONE THAT STOPPED BEING TRUE.** The geofence accuracy band (*the ± band that decides `ambiguous`*) is exemplary: zeroing it REDs five tests, two of which pin **both sides** of the boundary (197 m inside-and-ambiguous, 205 m outside-and-ambiguous) — a threshold tested one side only would miss half its definition. `platform-tenant.ts`'s *Array.isArray is load-bearing* is **no longer true**: deleting it leaves contracts 331/331, and one probe separated the two explanations — `parseTenantPolicy("[1,2]")` returns **null** anyway, because the Zod `safeParse` added AFTER it rejects arrays. The green was correct, not a gap. **The defect is the word**: a guard whose removal is silent gets deleted by whoever mutates it and concludes the comment lied. Comment corrected with the measurement and the **precondition** that would restore it. Tally: 9 of 40 probed, 7 verified, 1 gap, 1 claim corrected. |
 | 702 | §1254 | **§1255** | **THE COPILOT'S ANTI-FABRICATION PROPERTY — THREE LAYERS, AND THE STRONGEST ONE HAS NO TEST.** The highest-stakes cluster in §1253's queue: a break here is a **fabricated citation** on a REQ-038 surface. Layer 1, the contract, makes a claim-with-no-citation **unrepresentable** (tested). Layer 2, `groundOrAbstain`, abstains the WHOLE answer on any id outside the retrieved set — **mutation-proved both ways**: turning the guard into a silent `continue` (the plausible refactor) and allowing zero citations each red a test named for it. Layer 3, provenance, has **no assertion and needs none**: the model's schema reads only `event_id` while `EventRef` is `.strict()` and REQUIRES `kind`, a field the model is never asked for — so the only way to build a valid ref is to copy it off the retrieved row. **Enforcement by construction: the bad state is inexpressible rather than detected**, and a required field cannot be forgotten without a type error. Tally: 7 of 40 probed, 6 verified, 1 gap. |
@@ -74565,3 +74566,54 @@ is exactly the case the rule exists for.
 against the register rather than assumed, the dated claim it rests on re-measured with no regression, the
 re-measure's weaker instrument disclosed, and the decision not to build it recorded so it reads as a judgement
 rather than an omission.
+
+## §1258 — PHASE GATE: the anchor's leaf order was load-bearing, stated, and unexercised — a fixture that cannot distinguish two implementations tests neither
+
+**`anchor.ts` states it plainly:** *"LEAF ORDER is total and stable (Decision 7): events by (stream_id, seq) …
+Any instability makes the root non-reproducible and the anchor worthless."* That is REQ-014 tamper evidence —
+the property that makes a TSA-stamped root mean anything.
+
+**Measured: swapping the query to `ORDER BY seq, stream_id` left `packages/ledger` 704/704 GREEN.**
+
+### Why, precisely — and it is not "no test exists"
+
+`runDailyAnchor` **is** tested, in a file with 22 seeded streams. The two orderings simply never disagree on any
+fixture in it:
+
+| Fixture shape | `(stream_id, seq)` | `(seq, stream_id)` | distinguishes? |
+|---|---|---|---|
+| one stream, seqs 0..n | s0, s1, s2 | s0, s1, s2 | **no** |
+| several streams, all seq 0 | a0, b0, c0 | a0, b0, c0 | **no** |
+| **two streams, differing seqs** | a0, a1, b0 | a0, **b0, a1** | **yes** |
+
+Every existing fixture is one of the first two. **A fixture that cannot distinguish two implementations tests
+neither** — and for an ordering over a **composite key**, that means the fixture must vary *both* components
+independently. Holding either one constant collapses the orders onto each other.
+
+This is the third instance of §1233's shape this session — a test present, correctly named, and structurally
+unable to exercise what it names: the pagination walk that fetched one page (§1233), the SLA coupling proved at
+one of four sites (§1253), and now this.
+
+### Closed
+
+A case using the distinguishing shape — stream A at seq **0 and 1**, stream B at seq **0**, seeded deliberately
+out of leaf order so insertion order cannot be what the root depends on. The expected root is computed
+**independently** from the intended ordering rather than read back from the implementation (§1197: a check whose
+two inputs come from one source cannot detect what that source loses).
+
+**Two premise assertions, and the first one earned its place immediately:**
+
+- *the day must actually anchor* — my first draft used a day **beyond `FIRE`'s window**, so nothing anchored and
+  the root comparison would have been vacuous. The premise failed loudly instead.
+- *this day's tree holds exactly 3 leaves* — otherwise a root mismatch is ambiguous between "wrong order" and
+  "a sibling test's events joined this day's tree".
+
+**Mutation-proved:** the swap now REDs with a root mismatch. Clean suite **705/705** (was 704).
+
+**Running tally: 10 of 40 load-bearing claims probed — 7 verified, 2 gaps closed (§1253, here), 1 claim
+corrected (§1256).**
+
+**STOP.** The anchor's stated leaf-order guarantee found unexercised despite 22 seeded streams, the exact
+fixture shape that distinguishes the two orderings identified and built, the expected root computed
+independently rather than read back, both premises asserted with one of them catching the first draft, and the
+composite-key rule — vary every component or the orders collapse — recorded.

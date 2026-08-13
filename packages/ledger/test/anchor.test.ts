@@ -212,6 +212,38 @@ describe("REQ-014 — determinism, bucketing, gaps, failures, positions", () => 
     expect(await anchorHash(day)).toBe(root1); // unchanged
   });
 
+  // §1258 — THE LEAF ORDER ITSELF. anchor.ts calls it load-bearing — "any instability makes the root
+  // non-reproducible and the anchor worthless" — and NOTHING exercised it. Measured: swapping the query to
+  // `ORDER BY seq, stream_id` left this package 704/704 GREEN, because no anchor run in the suite spanned two
+  // streams with DIFFERING seq values, which is the only shape the two orderings disagree on. Every other
+  // fixture is one stream, or several streams all at seq 0 — where both orders coincide.
+  //
+  // This is the shape that separates them: stream A carries seq 0 AND 1, stream B carries seq 0.
+  //   (stream_id, seq) → a0, a1, b0        (seq, stream_id) → a0, b0, a1
+  // The root is then computed INDEPENDENTLY here from the intended order, so the assertion reads one side and
+  // COMPUTES the other rather than comparing the implementation to itself.
+  it("REQ-014: leaf order is (stream_id, seq) — a run spanning two streams with differing seqs pins it", async () => {
+    const day = "2026-07-08"; // anchorable at FIRE (which reaches 2026-07-09) and used by no other case
+    // Seeded out of leaf order on purpose: insertion order must not be what the root depends on.
+    const b0 = await seed("stop.arrived", { stream_id: "s:ord-b", shipment_id: "ord-b", seq: 0, recorded_at: noon(day) });
+    const a1 = await seed("freight.counted", { stream_id: "s:ord-a", shipment_id: "ord-a", seq: 1, recorded_at: noon(day) });
+    const a0 = await seed("stop.arrived", { stream_id: "s:ord-a", shipment_id: "ord-a", seq: 0, recorded_at: noon(day) });
+
+    const res = await runDailyAnchor({ db: DB, r2: R2, tsa: new FakeTsaClient(), tenant: TENANT, now: FIRE });
+    expect(res.anchored, "the day must actually anchor, or the root below is vacuous").toContain(day);
+
+    // PREMISE: the three leaves really do distinguish the two orderings — a1.seq !== b0.seq and the streams
+    // differ. Without this the case could pass on a fixture where both orders coincide, which is exactly how
+    // the property went unexercised.
+    expect(a1.seq).not.toBe(b0.seq);
+    // The leaf SET must be exactly these three, or a root mismatch below would be ambiguous between "wrong
+    // order" and "a sibling test's events joined this day's tree".
+    const proof = await anchorProof(DB, day, a0.hash!);
+    expect(proof.leafCount, "this day's tree must hold exactly the three seeded leaves").toBe(3);
+    const expected = bytesToHex(await merkleRoot([a0.hash!, a1.hash!, b0.hash!].map((h) => hexToBytes(h))));
+    expect(await anchorHash(day), "the root must be built from leaves in (stream_id, seq) order").toBe(expected);
+  });
+
   it("late upload: yesterday's ts but today's recorded_at lands in TODAY's tree; yesterday's root excludes it", async () => {
     const inDay = await seed("stop.arrived", { stream_id: "s:late-in", shipment_id: "late-in", seq: 0, recorded_at: noon("2026-07-09"), ts: Date.parse("2026-07-09T09:00:00Z") });
     // a late/airplane-mode upload: physical ts on 07-09, but recorded_at (server clock) is 07-10 (today)
