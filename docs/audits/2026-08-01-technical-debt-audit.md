@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 714 | §1267 | **§1268** | **THE LOOSE-PAYLOAD BOUNDARY SWEPT TO COMPLETION — AND MADE A TRIPWIRE.** All **8** loose kinds given a verdict per reader: `exception.raised` (2 gaps closed, §1266) · `payment.received` + `settlement.executed` (2 gaps closed, §1267 — one helper pair, not two copies) · `approval.*` **PINNED** (1 RED) · `document.attached` **no exposure** (a `safeParse`, not a hand-guard) · `call.transcribed`/`quote.expired` **no exposure** (exhaustive `return []`). **The completeness is STRUCTURAL:** `readField` has exactly ONE call-site file, and both projections switch exhaustively over all 35 kinds, so *does anything read a field off X* is answered by READING THE BRANCH, not by trusting a grep. **Three ways to handle a loose payload and only one produced defects** — schema-parse (nothing to get wrong), exhaustive-ignore (compiler proves it), and **guarded hand-read, where every defect lived**, because the guard is ordinary code no test forces and it *looks* careful. Sweep converted to `loose-payload-boundary.test.ts`: the set must stay exactly 8 / 27 / one readField site, with the re-sweep instruction in the failure message. Planted both violations — a 9th loose kind → **2 RED**, a second readField site → **1 RED**. |
 | 713 | §1266 | **§1267** | **THE LOOSE BOUNDARY WALKED TO ITS END — AND "LOOSE" HAS A FLOOR.** Enumerated it: **8 of 35 kinds carry a loose `JsonObject`**, 27 are typed, and `readField` has **exactly one call site** (closed at §1266). Sharpest remaining reader is `projection/money.ts`, which turns `payment.received` into money — and **all its guards were unexercised** (dropping `asInt`'s checks and `asString`'s typeof each left the suite GREEN). Split by REACHABILITY: a **string** `amount_cents` settles an invoice, because `Math.abs("120000") >= 120000` is TRUE (**gap, closed**); a **numeric** `party_id` lands on a money_line (**gap, closed**); a **float** amount is UNREACHABLE — `JsonValue` types every number as `SafeInt`, so **loose is loose in TYPE, not in numeric PRECISION** (precondition pinned instead). **And a false alarm caught by measuring the UNION:** `SafeInt.int()` mutated away left contracts **331/331 GREEN**, reading exactly like an unpinned constitutional law — but `.int()` and the `isSafeInteger` refine each fully cover the other; **both dropped → 18 RED**, the `-0` clause → 2 RED. The law is defended; neither half is. When two mechanisms enforce one law, mutate the **union**, never a member. ledger 717/717. |
 | 712 | §1265 | **§1266** | **FOUR UNEXERCISED GUARDS IN THE GATEKEEPER — EXACTLY TWO COULD EVER FIRE.** 109 `typeof` guards across 42 files; swept the sharpest surface, `transition-gates.ts`. All four string guards were unexercised — dropping each `typeof` left **56/56 GREEN** (the suite varies every field's VALUE, including *a photo_hash that is not 64-hex*, and never its TYPE). **A green mutation has two explanations and BOTH were true here, in different guards:** the two on `exception.raised` — doc 10's deliberately LOOSE payload — were real gaps; the two on `custody.transferred`/`delivery.evidenced` are **redundant**, because those payloads are strictly typed and Zod refuses the bad type first (measured, not argued). **Cost of the two live ones:** `photo_hash` as an ARRAY holding a valid hash PASSES `HASH64.test()` by coercion — REQ-050's evidence pillar clears carrying no hash at all; `reason_code` as a NUMBER makes `.trim()` throw a **TypeError instead of blocking** — a gate that 500s is not a gate that refuses (REQ-030). The redundant pair got a gate on their **PRECONDITION** rather than a prose note: both typed payloads asserted to REJECT the bad type, the loose one to ACCEPT it, so the test dies the day the assumption does. **Hand-written type guards matter exactly where the schema stops** — and that boundary is documented, so it can be swept. ledger 714/714. |
 | 711 | §1264 | **§1265** | **TWO CLEAN NEGATIVES AT THE UNTRUSTED BOUNDARIES — AND A LAW UNDEFENDED IN THE ONE PLACE IT APPLIED.** MCP (demo #4) returns **5 mutations, 5 REDs**: `kind='mcp'`, **revocation** (`status !== active`), the lane allow-list, the `caps_unconfigured` refusal, and — the one worth naming — the **REQ-105 cap bypass fix REVERTED to its pre-fix form**, which REDs, so *mutate the pin, not just the fix* answers clean. On `pub/status.ts`, REQ-188's always-coarse geo is solid, but two lines above it `state: … : "unknown"` swapped for a fabricated `"in_transit"` left the file **13/13 GREEN** — and the same file states the honest-instrument law explicitly for `eta`, **a field that does not exist yet**, while the one field that actually degrades was defended by nothing. Closed as **PS-7** (an unused slot in the suite's own numbering). **It took two tries:** the first two cases both have `state` ABSENT, so dropping the `typeof === "string"` check stayed GREEN; the discriminating input is `state` present with the WRONG TYPE, whose consequence is a `z.string()` throw into the outer catch → **401**, one bad projection field making a real shipment look like a forged cap. §1258 one level down: **absent ≠ present-but-wrong.** 4 mutations RED, api 839/839. Also corrects this record's own arithmetic: §1264's tally summed to 19, not 17. |
@@ -74855,7 +74856,7 @@ because the mutation was cheap; the lesson is that the cheapness is exactly why 
 
 ### A gate failing on a citation that is CORRECT
 
-Closing this section, `check:citations` went red on one of its own: `coverage.ts:201@scanRecordedHomes`, *anchor not found in lines 199-203*. **The citation is right.** At `HEAD` the symbol is at **:201** exactly; it sits at **:209** only in the other author's UNCOMMITTED edit, which appeared mid-section — that file was clean twenty minutes earlier. Repointing to `:209` would make the record wrong about the committed tree in order to satisfy a gate reading a tree nobody has.
+Closing this section, `check:citations` went red on one of its own — the §993 citation naming `scanRecordedHomes` in the coverage gate — with *anchor not found in lines 199-203*. (Quoted WITHOUT its `path:line@symbol` form on purpose: writing it out here would create a SECOND live citation to the same moving target, so a record discussing a rotted citation would rot alongside it. Measured — the first draft of this sentence did exactly that, and `check:citations` reported **2** rotted where there is one defect.) **The citation is right.** At `HEAD` the symbol is at **:201** exactly; it sits at **:209** only in the other author's UNCOMMITTED edit, which appeared mid-section — that file was clean twenty minutes earlier. Repointing to `:209` would make the record wrong about the committed tree in order to satisfy a gate reading a tree nobody has.
 
 So it stays, and this section is the recorded home for why. It is the sharper form of §1262's concurrency note: a shared working copy does not merely make a gate verdict *racy* — it can make a gate **fail on something correct**, and the repair its message suggests is the wrong move. `path:line@symbol` anchoring did not prevent this and was never meant to: it bounds rot from edits ELSEWHERE in a file, not from another author moving the target under you. What separates *my record is stale* from *someone else is mid-edit* is `git show HEAD:<path>` — two lines, and the only thing that answers it.
 
@@ -75107,3 +75108,56 @@ on the record**. ledger **717/717**, contracts 331/331.
 two real gaps (closed) and one schema-forbidden state (precondition pinned). The generalisation earned here is
 that a documented looseness boundary still has a floor underneath it — `JsonValue`'s `SafeInt` — and that floor
 is defended as a union even though neither of its halves is.
+
+## §1268 — PHASE GATE: the loose-payload boundary swept to completion, and turned into a tripwire
+
+§1266 and §1267 each closed gaps at the boundary where the schema stops. This finishes it: **all 8 loose kinds
+accounted for**, with a verdict per reader rather than a sample.
+
+| loose kind | who reads its fields | verdict |
+|---|---|---|
+| `exception.raised` | `readField` ×4 in `transition-gates.ts` | 2 reachable gaps **closed** (§1266), 2 redundant + precondition gated |
+| `payment.received` | `asInt`/`asString` in `projection/money.ts` | 2 reachable gaps **closed** (§1267), 1 schema-forbidden + precondition gated |
+| `settlement.executed` | the **same two helpers** | covered by the same pins — one function, not a second copy |
+| `approval.requested` / `approval.decided` | `asString` in `projection/approvals.ts` | **PINNED** — mutating the guard REDs 1 |
+| `document.attached` | `ConsentAck.safeParse(e.payload)` in the consent gate | **no exposure** — a schema parse, not a hand-guard |
+| `call.transcribed` / `quote.expired` | nothing | **no exposure** — exhaustive `return []` branches; no field is read |
+
+### The completeness is structural, not a grep
+
+Two properties make this a closed sweep rather than a diligent search:
+
+1. **`readField` has exactly one call-site file.** The defensive reader that exists precisely for untyped
+   payloads is used in one place, so §1266 covered that entire pattern.
+2. **Both projections switch exhaustively over all 35 kinds**, with the untouched ones listed by name in a
+   `return []` branch. So "does anything read a field off `quote.expired`?" is answered by *reading the branch*,
+   not by trusting that a grep found every access path — the shape the compiler enforces answers it.
+
+### Three ways to handle a loose payload — and only one produced defects
+
+- **Parse it with a schema** (`ConsentAck.safeParse`) — nothing to get wrong; the type error becomes a parse
+  failure at the boundary.
+- **Read it by hand behind guards** (`readField`, `asInt`, `asString`) — correct in every instance measured, and
+  **every defect this sweep found lived here**, because the guard is ordinary code that no test was forcing.
+- **Ignore it exhaustively** (`return []`) — nothing to get wrong, and the compiler proves the coverage.
+
+That is a useful thing to know when the ninth loose kind arrives: the middle pattern is the one that needs the
+mutation sweep, and it is the one a reviewer is least likely to flag, because guarded hand-parsing *looks*
+careful.
+
+### The sweep is now a gate, not a memory
+
+A sweep is a claim about a moment. `tools/checks/loose-payload-boundary.test.ts` keeps it from decaying:
+the loose set must remain **exactly these 8**, the typed remainder exactly **27**, and `readField` must still
+have **one** call-site file. Its failure message carries the instruction — *find the new kind's readers, mutate
+each guard away, keep the ones that RED and gate the precondition of the ones that don't* — because a tripwire
+that fires without telling the next reader what to do just gets its list updated.
+
+**Mutation-proved by planting both violations:** flipping `pod.signed` to a `JsonObject` payload → **2 RED**;
+adding a second `readField` call site → **1 RED**. Restored, tree clean.
+
+**Running tally: 31 of 40 load-bearing claims probed — 17 verified, 13 gaps closed, 1 claim corrected.**
+
+**STOP.** The loose-payload boundary is closed end to end — 8 kinds, every reader given a verdict, 4 reachable
+gaps closed across §1266–§1267, the redundant guards' preconditions gated, and the completeness now enforced by
+a mutation-proved tripwire instead of resting on this section being read. Reopen trigger: the gate itself.
