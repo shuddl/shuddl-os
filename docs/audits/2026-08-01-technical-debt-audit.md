@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 702 | §1254 | **§1255** | **THE COPILOT'S ANTI-FABRICATION PROPERTY — THREE LAYERS, AND THE STRONGEST ONE HAS NO TEST.** The highest-stakes cluster in §1253's queue: a break here is a **fabricated citation** on a REQ-038 surface. Layer 1, the contract, makes a claim-with-no-citation **unrepresentable** (tested). Layer 2, `groundOrAbstain`, abstains the WHOLE answer on any id outside the retrieved set — **mutation-proved both ways**: turning the guard into a silent `continue` (the plausible refactor) and allowing zero citations each red a test named for it. Layer 3, provenance, has **no assertion and needs none**: the model's schema reads only `event_id` while `EventRef` is `.strict()` and REQUIRES `kind`, a field the model is never asked for — so the only way to build a valid ref is to copy it off the retrieved row. **Enforcement by construction: the bad state is inexpressible rather than detected**, and a required field cannot be forgotten without a type error. Tally: 7 of 40 probed, 6 verified, 1 gap. |
 | 701 | §1253 | **§1254** | **TWO MORE LOAD-BEARING CLAIMS — A COMMENT THAT RE-RUNS, AND A GATE ON A PRECONDITION.** The sequencer mutex does not assert it matters, it **reports the measurement** (*deleting it reds the 100-concurrent test with SQLITE_CONSTRAINT*) — re-run, and it reds **exactly the named test** with exactly the predicted symptom. A comment recording a reproducible experiment is the strongest documentation form here: falsifiable, self-naming, one command to check. The meter DOs' mutexes are **redundant today** and become load-bearing the instant a non-storage await enters; §318's gate checks **the PRECONDITION, not the property**, and fires when one is planted. Two instrument errors of my own: `invariants.test.ts` gave 202/202 GREEN because the check lives in the **script**; and `git grep -l` for the class matched `invariants.ts` itself, which BUILDS that regex as a string. Tally: 4 of 40 probed, 3 verified, 1 gap (closed at §1253). |
 | 700 | §1252 | **§1253** | **"LOAD-BEARING" AS A SEARCH TERM — THE PROPERTY PROVED ONCE AND ASSUMED THREE MORE TIMES.** §1252 named the correct-but-unpinned class; this codebase supplies the handle — authors write *load-bearing* on exactly the properties whose breakage is silent. **40** such claims; two ORDERING ones probed. `status-cache.ts`'s FK order (parent before children) REDs five tests — genuinely enforced, clean. `concierge.ts`'s SLA coupling is correct and **cites its own test**, which exists — but (1) the count read *three call sites* where there are **four**, and (2) that crash test exercises ONE branch: moving the stamp after the append at the FIRST site leaves it **25/25 green**. Proved once, assumed three times, and a fifth site covered by nothing. Closed by a source-shape gate, mutation-proved on the real file (names the site AND its offending predecessor) with both controls plus the comment-between case. §1251's coverage question asked of a CODE PATTERN. |
 | 699 | §1251 | **§1252** | **SECOND STOPPING POINT — BOARD RE-MEASURED, AND THE RESIDUE WAS CORRECT-BUT-UNPINNED.** All 26 gates at `0c9b87f`: **19 PASS · 2 FAIL · 5 BLOCKED, 4,647 tests passing, zero repo-owned failures**; `lint` PASS confirms §1249's config change holds under the full gate. §1238 predicted the yield had moved from code to record — **half right**. Thirteen phases (§1239–§1251) found a THIRD category: behaviour that is **right today, stated in a comment, and defended by nothing**. Three of the five gates added this session pin properties that were already CORRECT (IDB commit-durability, CORS↔route parity, lint coverage); two closed real gaps (secrets in 4 unscanned configs, workflow commands in a CI that has never run). The sharpest case is §1248, where a test is **structurally incapable** — the driver's suite stays 101/101 under the mutation because resolving on the request still writes the row. **A comment is not a gate, and "it works" is not evidence it will keep working.** |
@@ -74434,3 +74435,46 @@ prose** and a naive scan would flag the documentation.
 **STOP.** The sequencer's recorded experiment re-run and reproducing, the meter tripwire proved to fire by
 planting the precondition it watches, the precondition-gate shape named as a forward-looking instrument, and two
 of my own mis-aimed probes recorded with what caught them.
+
+## §1255 — PHASE GATE: the copilot's anti-fabrication property — three layers, and the strongest one has no test
+
+**Continuing §1253's queue** with the highest-stakes cluster in it: three "load-bearing" claims guarding the one
+place an LLM's output reaches a user as fact. A break here is a **fabricated citation** on a REQ-038 surface —
+the copilot claiming the ledger says something it does not.
+
+The property is defended three ways, and they are not redundant:
+
+| Layer | Mechanism | Verified how |
+|---|---|---|
+| **1. Contract floor** | `AnswerResult` makes a claim-with-no-citation **unrepresentable**: non-abstained ⇒ ≥1 citation; abstention ⇒ exactly zero | tested — `copilot.test.ts` "cite-or-abstain enforced by the contract", incl. the citationless non-abstention |
+| **2. Membership** | `groundOrAbstain` abstains the WHOLE answer if any cited id is outside the retrieved set | **mutation-proved both ways** |
+| **3. Provenance** | the `EventRef` is rebuilt from the retrieved row, never from the model's claim | **by construction — see below** |
+
+**Layer 2, mutation-proved rather than read:**
+
+- turning the hallucination guard into a silent `continue` (drop the invented id, keep the answer — the
+  *plausible* refactor) REDs *"a model answer citing an event NOT in the retrieved set → REJECTED → ABSTAIN
+  (no fabricated citation)"*
+- allowing zero citations REDs *"a model answer with ZERO citations (abstained:false) → ABSTAIN"*
+
+### The strongest layer is the one with no test, and that is the point
+
+Layer 3 has no assertion anywhere, and does not need one. The model's citation schema reads **only**
+`event_id`; `EventRef` is `.strict()` and **requires `kind`** — a field the model is never asked for and could
+not supply. So a citation chip cannot carry a model-claimed kind or shipment: the only way to produce a
+well-formed `EventRef` is to copy it off the retrieved row.
+
+**That is enforcement by construction, not by test** — the bad state is inexpressible rather than detected. It
+is the strongest kind on the §1203 enforcement-kind ladder, and the one that needs no maintenance: a test can be
+deleted or go vacuous, whereas a required field cannot be forgotten without a type error.
+
+Worth noting what makes the layers non-redundant: the contract cannot check *membership* (it never sees the
+retrieved set), the membership guard cannot check *shape* (it runs after parsing), and neither can stop a
+composer inventing a `kind` — only the required field does. **Three different failure modes, three different
+instruments.**
+
+**Running tally: 7 of 40 load-bearing claims probed — 6 verified, 1 gap (§1253's, closed).**
+
+**STOP.** The anti-fabrication property traced through all three of its layers, the membership guard
+mutation-proved in both directions, the contract floor confirmed tested, and the provenance layer identified as
+enforced by construction — with the reason that makes an untested guarantee the strongest one here.
