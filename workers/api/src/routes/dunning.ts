@@ -41,7 +41,7 @@ import type { Env, Vars } from "../index.js";
 //     the FAST PATH — re-send from committed bytes under the same idempotency key (no second event, no double
 //     email). It rides a party/invoice-scoped `q:` stream with NO shipment_id (the projected row mirrors the
 //     draft: shipment_id NULL — the widened, party-scoped send, sender.ts BASE_FIELDS).
-//   · HONEST HOLD (the pattern at workers/agents/src/biller.ts:613@resolveRecipient ): a recipient with no billing email HOLDS with NOTHING
+//   · HONEST HOLD (the pattern at workers/agents/src/biller.ts:625@resolveRecipient ): a recipient with no billing email HOLDS with NOTHING
 //     appended (a message.sent with no to_ref would falsely claim a send); a permanent SendError HOLDS with the
 //     event standing (surfaced honestly as `held`, never a false `sent`); a retriable SendError THROWS (a 5xx
 //     the idempotency middleware does not cache, so a retry re-sends via the fast path — never a DLQ loop).
@@ -120,7 +120,7 @@ function parseDunningRef(bodyRef: string): { invoiceId: string; bucket: DunningB
 
 // ---- recipient resolution (a MIRROR of the Biller's, pinned to the SHARED predicate — anti-drift) -----------
 // A `kind:"billing"` contact wins over the first plausible one; `plausibleEmail` (@shuddl/ledger/contacts) is the
-// SAME per-entry predicate the Biller's resolveRecipient (`workers/agents/src/biller.ts:231@resolveRecipient`
+// SAME per-entry predicate the Biller's resolveRecipient (`workers/agents/src/biller.ts:242@resolveRecipient`
 // — repointed 2026-07-28 by the citation gate: `:153` had rotted onto `formatUtc`) and the Collector
 // sweep apply — re-implemented here (the api worker does not import the agents worker's internals) but pinned to
 // that one predicate, so the SEND reaches EXACTLY the address the sweep validated before drafting (no drift).

@@ -112,9 +112,19 @@ async function invoiceIdFor(podEventId: string): Promise<string> {
 
 // ---- the terminal-hold marker (REQ-169) --------------------------------------------------------------
 // A PERMANENT hold (below_floor / no_quote / interline_unresolved / anomaly) used to append NOTHING — just a
-// returned outcome + log line. That left two gaps: (1) the hold was INVISIBLE on the ledger (nothing to surface
-// on the exceptions queue, REQ-036), and (2) the REQ-169 reconciliation sweep's pod-without-invoice anti-join
-// would re-enqueue a permanently-held POD every cron tick, forever. This durable, idempotent MARKER closes both:
+// returned outcome + log line. That left two gaps: (1) the hold was INVISIBLE on the ledger ~~(nothing to
+// surface on the exceptions queue, REQ-036)~~, and (2) the REQ-169 reconciliation sweep's pod-without-invoice
+// anti-join would re-enqueue a permanently-held POD every cron tick, forever. This durable, idempotent MARKER
+// closes (2) OUTRIGHT and (1) ON THE LEDGER ONLY:
+//
+// CORRECTED 2026-08-13 (audit §1307) — THE MARKER DOES NOT REACH THE EXCEPTIONS QUEUE. That surface is
+// `GET /v1/exceptions` (REQ-082, WP-10), a durable read over `EXCEPTION_KINDS` = exception.raised + osd.captured
+// (contracts events.ts). This marker's kind is `UNBILLED_HOLD_MARKER_KIND` = "message.received", which that
+// filter excludes — and `requested_visibility: "internal"` narrows it further. So a permanently-held POD is
+// durable and queryable, and the sweep correctly excludes it, but NO ops surface lists it today. Struck rather
+// than deleted because the original parenthetical would lead a reader to conclude ops can already see these
+// holds — the opposite of what the kind filter does — and that conclusion is what would stop someone building
+// the surface. The sibling gap is worse: `interline-split.ts` appends no marker at all (audit §1307).
 // an INTERNAL message.received{channel:note} note (the sla-sweep.ts internal-note idiom — NO new event kind, the
 // 35-catalog is frozen) recording the hold (shipment + reason), appended THROUGH the sequencer. Its id is
 // DETERMINISTIC per (shipment, reason), so the DO dedupes a re-drive to a no-op; its body_ref
@@ -507,8 +517,10 @@ export async function handlePodSigned(message: PodSignedMessage, deps: BillerDep
 
   if (composed.status === "hold") {
     // NO invoice, NO send — a below-floor executing share or an anomalous ($222k/35-lb) recorded quote is a
-    // PERMANENT hold (REQ-040). Append the durable, idempotent marker (REQ-169): it makes the hold visible on
-    // the exceptions queue (REQ-036) AND lets the reconciliation sweep EXCLUDE it (bounded re-enqueue).
+    // PERMANENT hold (REQ-040). Append the durable, idempotent marker (REQ-169): it makes the hold visible
+    // ~~on the exceptions queue (REQ-036)~~ ON THE LEDGER (corrected 2026-08-13, §1307 — the exceptions read
+    // filters to exception.raised + osd.captured, so this "message.received" marker never appears there; see
+    // emitTerminalHoldMarker's note) AND lets the reconciliation sweep EXCLUDE it (bounded re-enqueue).
     await emitTerminalHoldMarker(seq, msg, streamId, pod.recorded_at, composed.reason);
     return { status: "held", reason: composed.reason, detail: composed.detail };
   }
