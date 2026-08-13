@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 739 | §1292 | **§1293** | **THE SEAM SURVEY NARROWED — AND WHAT IT FOUND WAS NOT A MISSING TEST.** Narrowed to §1291's exact shape (a production impl behind an injectable seam, tests only building the double): of **28** `class X implements Y` pairs, **26 are referenced** (incl. `SequencerPlatformLedger`, now covered by §1291's suite). The two that are not — `NotConfiguredFeedReader`, `KvDeliveryMarkers` — are **4–8 line adapters**, where the method stops paying: testing `async read() { return null; }` asserts the language (§1283's rule). **But reading the second produced a real finding:** `mark` is `kv.put(key, "1")` with **no TTL**, and nothing anywhere deletes either marker store (measured — `expirationTtl` in neither file, no `delete` call). Permanence is CORRECT (a *delivered* record that expires would re-deliver) — but `run214Sweep` calls `listSentMarkerKeys`, which **pages EVERY sent marker into a Set on EVERY tick**, so per-tick cost grows with **lifetime transmissions**, not with outstanding work. Filed as a GO-LIVE row with two candidate shapes; **not built — both are register decisions.** The section's shape is the lesson: the survey pointed at a module whose tests were not worth writing, and READING it because the survey pointed there found a cost no test would catch, because nothing is *wrong* — the system is correct and gets slower forever. |
 | 738 | §1291 | **§1292** | **THE SURVEY RUN REPO-WIDE — 24 CANDIDATES, 0 REAL, AND THE RULE THAT SAYS WHY.** §1291's method applied to every package: which modules have NO export referenced by any test? **Twenty-four**, ≥40 LOC each. **All twenty-four are FALSE POSITIVES** — re-run against what tests actually name (the route PATH, the tool NAME), every one is present and spot-checks confirm they are DRIVEN inside `SELF.fetch`, not merely mentioned. **The rule both runs give together: the ownership survey is valid exactly when dispatch is BY SYMBOL, and blind when dispatch is by STRING.** `platformLedgerFor` is called by symbol from `webhook.ts`, so its empty row was a true signal; `mountBoardRoutes` is called once at composition and thereafter reached by PATH, so its absent symbol says nothing. This is *find the dispatch, not the string* from the other direction — there, concluding *unreferenced* from an absent literal; here, *untested* from an absent symbol. **Same mistake: measuring a name when the call is made some other way.** Cost stated honestly: two commands, one real module (11 tests), 24 leads worth zero — a good trade AND a bad hit rate, and chasing them one at a time would be a day that finds nothing. |
 | 737 | §1290 | **§1291** | **THE MODULE THE SEAM HID — A MONEY TRANSPORT WITH NO TEST FILE.** Running §1289's ownership command as a SURVEY across the billing worker's exports returned one empty row: **`platformLedgerFor` — NO TEST FILE**. `platform-ledger.ts` (105 lines) is how a credit money event actually reaches the api sequencer — over the API service binding, behind `PLATFORM_INTERNAL_SECRET`. Every webhook and credits test injects a `RecordingLedger`, which is exactly what hid it: **a well-placed injection point MOVES the untested surface, it does not remove it.** §1290 measured above the seam; this is below it. Five behaviours pinned from zero: DARK is a **loud refusal making no call** (4 RED), `""` counts as DARK (1 RED), a **non-2xx throws** so the webhook 500s (2 RED — §1290's defect one layer down), an append must return a **string id** (2 RED), the secret rides as `X-Platform-Internal` (2 RED). The first was forbidden **in prose** by the module's own comment (*a silent no-op is forbidden*) and unenforced in fact. **The lesson: ask *which tests own this symbol* of a whole PACKAGE, not just the function you are about to mutate** — the same command, run wide, is a coverage survey that names the module nobody wired. |
 | 736 | §1289 | **§1290** | **THE MONEY WEBHOOK ACKed ITS OWN FAILURES.** `handleStripeWebhook` is where money enters from outside. Pinned: verification fail-closed **2 RED**, the DARK 503 branch **2 RED**, purchase-vs-settlement dispatch **3 RED**. **The gap: a processing fault returning 500 — 60/60 GREEN.** **The status IS the retry protocol:** Stripe redelivers on 5xx and STOPS on 2xx, so ACKing a failed emit **discards the delivery permanently** — the card is charged, the credits are never issued, and nothing surfaces because the webhook *succeeded*. The handler's own comment states the contract (*return 500 so Stripe redelivers — the emitter is idempotent*), and idempotency is what makes 500 SAFE rather than merely loud. Closed by injecting a ledger that throws after verification; proved 3 ways (ACK 200 REDs, downgrade to 400 REDs, neutering the catch REDs). The raw-body rule is recorded **unconstructible** — the fixtures are already canonical JSON so a re-serialize round-trips byte-identically. **And §1289's rule applied FIRST:** the two symbols I guessed (`verifyStripeSignature`, `handleWebhook`) **do not exist** — under the old habit that was a plausible probe set and a green that meant nothing. |
@@ -76321,3 +76322,51 @@ ownership row as a finding, ask how the module is CALLED.**
 **STOP.** The ownership survey generalised, run repo-wide, and bounded by measurement: 24 candidates, 24
 refuted, and the discriminator — symbol-dispatch versus string-dispatch — established from the one true
 positive and the twenty-four false ones together. Zero source changes.
+
+## §1293 — PHASE GATE: the seam survey narrowed, and what it found was not a missing test
+
+§1292 bounded the ownership survey to symbol-dispatched code. Narrowed further to §1291's exact shape — **a
+production implementation behind an injectable seam, where tests only ever construct the double** — it returns
+a short, honest list: of 28 `class X implements Y` pairs in shipped source, **26 are referenced by tests** (and
+`SequencerPlatformLedger` now reads referenced, because §1291 wrote its suite). Two are not:
+
+| class | seam | test double used instead |
+|---|---|---|
+| `NotConfiguredFeedReader` | `FeedReader` | `StaticFeed` |
+| `KvDeliveryMarkers` | `DeliveryMarkers` | — |
+
+Both are **4–8 line adapters**, and this is where the method stops paying in tests: writing cases for
+`async read() { return null; }` asserts the language, not the system. §1283's rule applies — an unpinnable or
+trivial branch is not a coverage gap.
+
+### But reading the second one produced a real finding
+
+`KvDeliveryMarkers.mark` is `kv.put(key, "1")` — **no TTL**. That is correct on its own terms and the module
+says why: a *delivered* record that expires would re-deliver the event. The translator's R2 sent-marker is the
+same pattern. Neither has an expiry; **nothing anywhere deletes either store** (measured: `expirationTtl`
+appears in neither file, and no `delete` call touches them).
+
+Permanence is the right call. What follows from it was not recorded anywhere: `run214Sweep` calls
+`listSentMarkerKeys`, which **pages through every sent marker for the tenant and holds them in a `Set` — on
+every tick**. So the sweep's per-tick subrequests and memory grow with **lifetime transmissions**, not with
+work outstanding. Audit §472 already improved this once (one `list` replaced N `head`s); the list itself still
+grows without bound.
+
+Filed as a GO-LIVE row with its measurement, its two candidate shapes (a TTL longer than any plausible
+redelivery window, or a watermark so the sweep lists only markers newer than the last completed tick), and the
+reason neither is chosen here: **both are register decisions.** Not built — CLAUDE.md's first rule.
+
+### The shape of this section
+
+The survey pointed at a module; the module's tests were not worth writing; **reading it because the survey
+pointed there** found an unbounded per-tick cost that no test would ever have caught, because nothing is
+*wrong* — the system is correct and gets slower forever. A coverage tool cannot see that. It is the second time
+this stretch a technique's real value was somewhere other than where it aimed (§1277's botched plant was the
+first).
+
+**Running tally: 115 of 115 load-bearing claims probed — 78 verified, 32 gaps closed, 5 claims corrected;
+1 operational item recorded.**
+
+**STOP.** The seam survey narrowed to its valid form and exhausted: 28 implementations, 26 covered, 2 trivial
+adapters left untested on purpose — and one unbounded-growth item found by reading where it pointed, measured,
+and handed to the register rather than built.
