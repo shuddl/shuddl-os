@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| **817** | §1370 | **§1371** | **STOPPING POINT — THE INSTRUMENTS WERE THE DEBT, AND THE BOARD SURVIVED WIDENING THEM.** Re-measured at `a5f3296` after §1369 widened the constitutional scanners by 150 files: **21 PASS · 0 FAIL · 5 BLOCKED**, identical to §1365, **4,761 tests** (was 4,750), zero failing suites. **The material result is the null one** — `append-chokepoint`, `credential-blank-guard` and `event-source-producers` now read 335 files instead of 185, `no-audio-capture` 186 instead of 108, and **zero new violations**: the scanners were blind to 45% of the source and that blind spot was clean anyway. **Seven of this block's eight fixes were defects in the INSTRUMENTS, not the product** (only §1361's dark-bounded loops were product, and those are latent + documented). That ratio IS the finding: after 27 phase blocks the apparatus is now the larger source of untruth, and an apparatus defect is worse than an equal product defect because it converts into a false clean that stops anyone looking — every one of the seven was reporting success when found. Phase gate: 6 reopen triggers, 4 of them tests that RED; trigger 5 CLOSED by §1366, trigger 6 NEW from §1370. **Four of ten phases corrected a number I published 1–3 sections earlier, every time by re-running with a better instrument rather than thinking harder** |
 | 816 | §1369 | **§1370** | **THE PATHSPEC CLASS CLOSED BY A MECHANISM — AND THE SAFE SITES WERE SAFE BY ACCIDENT.** Counting §1369's class: **84 `git ls-files` sites, 10 passing a `**` pathspec.** The precise rule, measured: `A/**/*.ext` drops files sitting DIRECTLY under `A` and so bites only when `A` has direct children — `packages/**/*.ts` 221 vs 221 (0 dropped), `workers/mcp/src/**/*.ts` 7 vs 17 (**10 dropped**). **Four sites already paired both forms**, i.e. someone hit this before and fixed it locally without telling anyone. The remaining six are clean **by accident**: `packages/**/*.ts` misses nothing only because no `.ts` sits directly in `packages/` today, and the day one does it goes invisible with no failure anywhere. So: built as a gate, not a third sweep. `git-glob-toplevel.test.ts` requires every `A/**/*.ext` to be paired OR to have nothing to drop — **the second condition re-measured every run**, which is the difference between an exemption and a derivation. Carries its own positive control (a detector returning `[]` would be vacuous — §1369's exact failure). Mutation-proved with a message naming file, line, pattern, count and example. **instance → class → mechanism is the only progression that ends** |
 | **815** | §1368 | **§1369** | **ONE GLOB ROSTER, TWO ENGINES, AND 150 FILES NOBODY WAS SCANNING.** Counting §1368's class gives 36 rosters; four lack any discovery mechanism, and pulling one thread found this block's largest defect. **The tell was an asymmetry** — `no-audio-capture` listed BOTH glob forms for `.tsx` and only the `**` form for `.ts`. **A glob is not semantics; it is semantics PLUS an engine.** `node:fs globSync` lets `**` match zero directories; `git ls-files` pathspec has `*` crossing `/`, so `src/**/` demands a real directory and every TOP-LEVEL file is invisible. Both engines read the same shared `SOURCE_SCAN_GLOBS` and nobody compared their output: **globSync 335 files, git ls-files 185**. The 150 missing include `workers/api/src/intake-core.ts` — **an append surface** — plus `anchor.ts` and `agents/src/index.ts`, and the git side is what **`append-chokepoint`** reads. The append-only law's own scanner could not see the intake surface. Per-glob non-vacuity cannot detect an ABSENT glob, and the floors were calibrated against the broken number (80 against 108, true 186): **a floor bounds the corpus you HAVE, never the one you SHOULD have.** Bitterest detail: `source-corpus.test.ts` exists from §493 to make these gates "see the SAME files" — it compared the LISTS, never the CORPORA. Fixed; both engines now return an identical 335, asserted both directions with the three files pinned. **The exposure was real; the violation was not** — 150 newly-visible files, zero findings |
 | 814 | §1367 | **§1368** | **A GATE'S ROSTER MIRRORED A CONFIG NOTHING COMPARED IT TO.** §1367's shape swept further: 15 rosters match by substring, most are safe non-vacuity FLOORS. The risky one is `DETERMINISM_GLOBS` in `lint-guards.test.ts`, which decides whether a module's PURE/no-clock header claim is BACKED by an actual ESLint ban. It is a **hand-kept mirror of eslint.config.mjs appearing in exactly two places** — its definition and its consumer — so the mirror could call a path covered while ESLint bans nothing there, certifying a claim nothing enforces (§1226 exactly). **Diffing the artifacts found `packages/edi/` banned in ESLint and absent from the mirror.** Characterised honestly as **LATENT** — zero edi modules use the narrow claim phrasing today — but `build-214`/`build-990`/`envelope` are pure serialisers, and the day one says so the gate would report UNENFORCED and the tempting fix is a `SCOPED_CLAIMS` entry recording a falsehood. **A latent drift's cost is the wrong record someone writes to make it green.** Fixed + `eslintDeterminismScopes()` now DERIVES the enforced set (the §1341 shape), mutation-proved both directions on distinct keys (`missingHere` noisy / `missingThere` dangerous), with the parser carrying its own floor and anchor. **Whitespace-anchoring slip, third time in two sections** — the durable form is locate-by-line, insert, read back, assert |
@@ -80108,3 +80109,63 @@ files, and that every dropped path is genuinely top-level.
 instance, class, mechanism — is the only one that ends.
 
 Verification: tools suite **122 files / 1,349 tests** green; the new gate 3/3 including its positive control.
+
+## §1371 — PHASE GATE / STOPPING POINT: the instruments were the debt, and the board survived widening them
+
+**Re-measured at `a5f3296`, after the change that made re-measuring necessary.** §1369 widened what the
+constitutional scanners see by **150 files** — including an append surface — and §1366/§1370 added gates. A board
+measured before that says nothing about the tree after it ([[measure-against-a-known-tree-state]]).
+
+| | §1365 (`bf84a41`) | §1371 (`a5f3296`) |
+|---|---|---|
+| PASS | 21 | **21** |
+| FAIL | 0 | **0** |
+| BLOCKED | 5 | **5** (the same owner-held five) |
+| tests passed | 4,750 | **4,761** |
+| suites failing | 0 | **0** |
+
+**The material result is the null one.** `append-chokepoint`, `credential-blank-guard` and
+`event-source-producers` now read 335 files instead of 185, `invariants` is unchanged at 335, and
+`no-audio-capture` reads 186 instead of 108. **Zero new violations.** The scanners were blind to 45% of the
+source and the code in that blind spot was clean anyway.
+
+**WHAT THIS BLOCK ACTUALLY FOUND, stated without flattery.** §1361–§1370 produced eight fixes, and **seven of
+them were defects in the INSTRUMENTS rather than in the product**:
+
+| § | defect | in |
+|---|---|---|
+| 1361 | two loops bounded only by an unwired source | product (latent, documented) |
+| 1362 | `feedReaderFor` unpinned — a live wiring would RED nothing | instrument |
+| 1363 | §1362's own count wrong; `conciergeParser` unpinned | instrument |
+| 1364 | §1351 undercounted copy-sets 5 → 21 | instrument |
+| 1366 | `secretResolverFor` FALSELY pinned across a package boundary | instrument |
+| 1367 | rule-6 gate suppressed findings by first word | instrument |
+| 1368 | `DETERMINISM_GLOBS` mirrored a config nothing compared it to | instrument |
+| 1369 | shared corpus missed 150 files incl. the intake surface | instrument |
+
+That ratio is the finding. After twenty-seven prior phase blocks the product's own defect rate has fallen far
+enough that **the measurement apparatus is now the larger source of untruth** — and an apparatus defect is worse
+than a product defect of equal size, because it converts into a *false clean* that stops anyone looking. Every
+one of the seven above was reporting success at the moment it was found.
+
+**THE PHASE GATE — what reopens this block.** Unchanged from §1365 except where noted:
+
+1. **Wiring the legacy feed** REDs `feed-dormancy.test.ts` (names the unbounded first sweep).
+2. **Wiring the webhook source or transport** REDs `webhook-dormancy.test.ts`.
+3. **Binding `ANTHROPIC_API_KEY` + `ANTHROPIC_MODEL`** flips `conciergeParser`; pinned both ways by
+   `parser-selection.test.ts`, and the cost/latency-metering row's arrival trigger.
+4. **Vendoring the private fixtures or the denylist** clears the five BLOCKs — still the only path to PROMOTABLE.
+5. ~~A tenth composition root is caught by nothing~~ **CLOSED (§1366)** — `dark-stub-roster.test.ts` owns the
+   count, and it found a false pin in its first minute.
+6. **NEW (§1370):** a `git ls-files` pathspec dropping its tree's top level is caught by
+   `git-glob-toplevel.test.ts`, which re-measures the "nothing to drop" excuse on every run rather than trusting it.
+
+**The one thing I would tell the next reader.** Four of this block's ten phases corrected a number I had
+published one to three sections earlier, and in every case the correction came from re-running the measurement
+with a better instrument rather than from thinking harder about it. The audit's own numbers are the least
+reliable thing in it, and they are reliable only for as long as the thing that produced them is.
+
+**CARRY-FORWARD (owner-held, unchanged):** vendor the nine private fixtures + `IDENTITY_DENYLIST` · commit the
+`genesis/09` rows · REQ rows for the filed operational items (interline-split marker, split backstop, collector
+page bound, import bound, mirror-sweep page size) · the `quote.priced` / `SERVER_EMITTED_KINDS` decision. The
+merge run also reports **11 status-drift rows** from `coverage`, advisory and in the concurrent author's file.
