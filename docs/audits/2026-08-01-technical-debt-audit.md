@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 780 | §1333 | **§1334** | **CLOSED THE SCOPE INSTEAD OF GUESSING THE COUNT A FOURTH TIME.** Mechanism-derived scan of **all 212 shipped source files**, no filename/directory/title scoping: **35 per-row-I/O loops across 18 files**, controls present. The count stays a BOUND because membership needs a second predicate — is the row set unbounded — which a pattern cannot decide: the heuristic misclassified 4 sites, three from one matcher bug (`\bMODULES\b` can't match after `_`) and one that is the real reason (**`page.objects` is bounded by its CALLER's paging, not by anything at the `for` line**). Row now reads **six CONFIRMED out of a scope-complete 35-loop candidate set** — the previous three counts were each too small by a narrowed scope; this one can only be refined downward. |
 | 779 | §1332 | **§1333** | **THIRD CORRECTION TO ONE COUNT — 2 → 4 → SIX — AND THE CAUSE IS IDENTICAL EACH TIME.** Finished §1332's enumeration: `dunning.ts:398` IS an instance and is already rostered as an unbounded READ — but the roster and its row mention **subrequests zero times**, so the loop consuming those rows (`loadInvoice` + `resolveDunningRecipient` per row) is a second failure mode that THROWS rather than degrades. Crossing *rostered read* × *per-row I/O* found **`watchtower.ts` with two unbounded instances** (`unbilledShipmentsSql`; *"every anomalous quote ever"*), never examined because §1308's candidate list was scoped by FILENAME (`*sweep*`) — a sweep not called one. Two probe failures caught by controls (an anchor matching a comment 370 lines off; 11 sites vs an asserted 9). |
 | 778 | §1331 | **§1332** | **APPLIED §1330's LESSON TO MY OWN ENUMERATION — SAME SCOPE ERROR, NEW DEFECT.** §1308 counted per-row I/O and found four instances, **all sweeps**, because the row it corrected was titled *sweeps*. The mechanism is not sweep-specific. **The probe failed its positive control first** (0 hits on routes AND 0 on `collector.ts` — a 12-line window vs a `.prepare(` 14 lines down); widened → 7 per-row-await loops across 39 handlers. **The finding:** `import.ts` caps itself at `MAX_ROWS = 5000` while `findOrCreateParty` costs 3 `prepare()` calls and `materializeShipment` 2 — **10,000–25,000 subrequests in ONE request** against 1,000 Free / 10,000 Paid. The cap and the ceiling contradict each other **inside the same module**. Structural, not reproduced. |
 | 777 | §1330 | **§1331** | **ENUMERATED THE CLASS BY MECHANISM — AND IT CLOSES.** §1330 showed a TRIGGER-titled row hides its own class, so this names the mechanism (**presence-check → effect → mark-on-success**) and sweeps both idioms (R2 `head()`, KV `get()`). **Five sites**: three are external emissions (214 sweep, webhook POST, and §1330's 990 ack) — all now on one row; `watchtower-snapshot` is **benign**; the Biller's `evidence.head` is a different class (a precondition REQUIRING presence). **The discriminator, now added to the row:** harm exists iff the guarded effect is an **un-dedupable EXTERNAL emission** — an idempotent write to a DETERMINISTIC key is harmless under the identical race, which is why the snapshot is fine and the three sends are not. No fourth instance. |
@@ -78370,3 +78371,45 @@ an asserted nine. Re-run per FILE with `dunning.ts` as a known-positive control,
 the MECHANISM, and derive the candidate set from that alone** — never from a filename, a row title, or the API
 that happened to prompt the question. Every miss in this three-times-corrected count was a scope inherited from
 one of those three.
+
+
+## §1334 — PHASE GATE: closing the SCOPE instead of guessing the count a fourth time
+
+§1333 ended with the rule that produced three corrections: derive the candidate set from the MECHANISM alone.
+This phase does exactly that and then declines to publish the number.
+
+**The scan, with no scoping of any kind:** all 212 shipped source files under `packages/*/src` and
+`workers/*/src`, looking only for the mechanism — a `for … of` loop whose body performs I/O. Result: **35
+per-row-I/O loops across 18 files.** Controls present (collector, dunning, watchtower all appear), so the
+scan sees what the previous three enumerations saw plus everything they missed.
+
+### Why the count stays a bound
+
+Membership needs a second predicate — is the row set UNBOUNDED — and that one cannot be decided by pattern. The
+heuristic attempted here misclassified at least four sites, and the failures are instructive rather than
+sloppy:
+
+| flagged unbounded | actually | why the pattern failed |
+|---|---|---|
+| `PARITY_MODULES` | a 4-element constant | `\bMODULES\b` cannot match after `_`, which is a word character |
+| `LOAD_UNIQUE_REF_KEYS` | `["SID","BM","PRO"]` | same boundary failure |
+| `ORDER_LEVEL_REF_KEYS` | `["PO"]` | same |
+| `page.objects` | a PAGED `r2.list` | bounded per page; boundedness lives in the CALLER, not the loop |
+
+The first three are one bug in my matcher. **The fourth is the real reason a pattern cannot close this**: a
+loop's boundedness is a property of where its rows came from, sometimes several frames away, and no expression
+at the `for` line carries it.
+
+So the row now records **six CONFIRMED instances out of a scope-complete 35-loop candidate set**. That is
+strictly more useful than a fourth precise number: the previous three were each wrong in the same direction —
+too small — because the scope was narrowed by something that was not the mechanism. This one cannot be wrong
+in that direction, because there is nothing left to widen; it can only be refined downward as sites are read
+and found bounded.
+
+**Running tally: 211 of 211 load-bearing claims probed — 141 verified, 46 gaps closed, 21 claims corrected;
+12 operational items recorded.**
+
+**STOP.** The transferable judgement is about when to stop counting: **a count corrected three times by
+widening should be replaced by a scope-complete candidate set and a floor**, not by a fourth attempt at
+precision. The scope is the part an audit can close in one pass; the classification is per-site work, and
+publishing it as a number invites a fifth correction while a work-list invites completion.
