@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 719 | §1272 | **§1273** | **STOPPING POINT — 19 PASS · 2 FAIL · 5 BLOCKED at `d88be0c`; repo-owned failure set EMPTY.** Both FAILs are **ONE citation** (`citations` directly, `unit-tests` via the citation-links regression lock — one defect, two gates agreeing), and it is **correct at HEAD**: the symbol is at `:201` committed, `:209` only in another author's uncommitted edit. It stays deliberately. All 5 BLOCKED are absent private inputs. `coverage` + `traceability` moved to PASS with no work from this loop (owner's register commits). **Fifteen phases: 1 live source defect fixed (`parked` double-counting a driver's screen), 17 gaps closed, ~70 mutations, the ordering class closed in BOTH languages, the loose-payload boundary swept end to end and gated.** Nine sections corrected something I had written — two wrong counts, a mis-attributed RED, a false green from the wrong package, an over-broad closure claim, a duplicate citation the record itself minted. **The through-line: every gap was a guarantee that only shows up on UNINTERESTING data** — a tiebreak when timestamps collide, a `typeof` when a field is present but wrong, a divisor when every weight is zero. A fixture author invents data that demonstrates the feature; these branches exist for data nobody would demonstrate, which is why *mutate it and see* found them and reading did not. |
 | 718 | §1271 | **§1272** | **BORING DATA ON THE MONEY PATH — THE LEG SET WITH NOTHING TO SPLIT.** §1271's lens applied to money. The remainder tiebreak is PINNED (reversing REDs 3, flipping the remainder direction REDs 5) but dropping it is silent — the **third** site hand-implementing stable-sort semantics the language guarantees, which is why it goes green for a reason unrelated to coverage. **The gap:** `derive-split.ts` writes the contract down — *apportion THROWS on an all-zero weight set … a leg set with no split anywhere is malformed* — and it is REACHABLE (`split_bps: 0` passes the per-leg check), yet deleting the `divisor === 0n` guard left ledger **719/719 GREEN**. Without it the next line is a BigInt divide: **`RangeError: Division by zero`** on the interline money path instead of the promised refusal. Closed at the layer owning each contract — `deriveSplitFromLegs` has its OWN empty-legs guard so the empty case never reaches `apportion`; `apportion`'s branches are pinned via its exported API, **including that the two messages stay DISTINCT** (making them identical REDs), since *no weights* is a caller bug and *all-zero weights* is malformed freight data. 4 mutations RED, 724/724. **And a mis-attributed RED caught:** the first draft's loose regex failed CLEAN as well as mutated — a non-zero exit says something failed, never that YOUR subject did. |
 | 717 | §1270 | **§1271** | **§1262 DECLARED THE ORDERING CLASS CLOSED; IT HAD SWEPT ONE LANGUAGE.** All 20 `.sort()` sites enumerated; two more four-clause comparators found **1/4 exercised**, the same ratio as `merge.ts`. **`iif.ts compareLines`** (the QB export, *reconciles to the penny*): its existing case is named *is order-insensitive* and carries **four DISTINCT accounts**, so clause 1 decides everything and the other three never engage — an unstable line order changes no TOTAL, which is exactly why it survives review, while turning a diff of two exports of one period into noise. Closed with all lines on ONE account and money_line ids **deliberately ordered against** event ids (else dropping `event_id` matches by accident). 4 RED. **`queue.pending`** (the driver drain order, rule 6): undefined-last REDs 1 and 2, seq direction REDs 4 — but both **index tiebreaks stay GREEN because `Array.prototype.sort` is STABLE by spec**, so the `.map((item, index))` wrapper reimplements a language guarantee (§1267's union pattern: behaviour pinned, neither mechanism individually). **What all three share:** the primary clause has a test, the tiebreaks have none, and each existing test is NAMED for the whole property. **A tiebreak only matters when the data is boring — and boring data is what a hand-written fixture never has.** |
 | 716 | §1269 | **§1270** | **§1258's CLASS WAS NEVER ABOUT SQL.** Found in `ORDER BY` clauses and treated as a SQL finding — but `driver-core/src/merge.ts` carries a **four-clause total order in TypeScript** (`captured_ts → device_id → device_seq → id`) and only the FIRST was exercised: dropping each of the other three left the package **47/47 GREEN**, against a comment claiming *a deterministic total order … independent of input order*, which is what makes an airplane-mode replay reproducible (rule 6). **The contrast is the useful part:** its sibling `seqKey` — the 3-part dedupe key the comments call dangerous — is FULLY pinned (1/2/3 REDs). Same file, same review: **the key flagged as dangerous is exercised; the ordering underneath it is not.** `Array.sort` is STABLE, so a dropped clause degrades to INPUT order — exactly what the claim denies — which makes the claim itself the sharpest test: one set, two interleavings, identical output. The `id` tiebreak is reachable ONLY for server-origin events (device events tying on the key are deduped before `cmp` sees them), so a component can be unexercised because nothing varies it OR because nothing CAN. 5 mutations RED, 49/49. Restores done by scratchpad `cp`, never `git checkout` — §1269's lesson applied the same hour. |
@@ -75365,3 +75366,54 @@ which layer refused even if it had passed.
 explained by the third stable-sort redundancy), the all-zero leg set closed where it was reachable and
 documented, each layer's refusal pinned against its own message, and a mis-attributed RED caught before it
 became a recorded verdict.
+
+## §1273 — STOPPING POINT: fifteen phases, board re-earned, repo-owned failure set EMPTY
+
+Board re-measured at `d88be0c`: **19 PASS · 2 FAIL · 5 BLOCKED**, every verdict attributed.
+
+**Both FAILs are ONE citation.** `citations` reports it directly; `unit-tests` reports it through
+`citation-links.test.ts`, the regression lock that asserts the real tree is clean — one defect, two gates, which
+is the gates agreeing rather than two problems. And the citation is **correct at HEAD**: `scanRecordedHomes`
+sits at `:201` in the committed tree and at `:209` only in another author's uncommitted edit (verified again
+here, both sides). Repointing it would make the record wrong about the committed tree to satisfy a gate reading
+a tree nobody has. **It stays, deliberately** (§1263).
+
+**All 5 BLOCKED are absent private inputs** — the `IDENTITY_DENYLIST` secret and the nine unvendored engagement
+fixtures. They report *could not run*, never *clean*.
+
+**So the repo-owned failure set is EMPTY.** Two gates moved to PASS since §1263 without any work from this
+loop — `coverage` and `traceability`, resolved by the owner's register commits.
+
+### What the fifteen phases did
+
+| | |
+|---|---|
+| §1258–§1262 | the composite-ordering class in **SQL** — 5 sites, all unexercised, 13 mutations |
+| §1263 | board attribution; **two defects of mine** a green `vitest` could not see |
+| §1264 | the wrong-kind guard blind in **both** copies — an untrusted caller writing to an append-only ledger |
+| §1265 | MCP clean negative (incl. a reverted cap-bypass fix); the honest-instrument law undefended where it applied |
+| §1266–§1268 | the **loose-payload boundary** walked end to end, 4 gaps closed, and made a tripwire |
+| §1269 | a **live source defect** — `parked` double-counting a stop on a driver's screen |
+| §1270–§1271 | the ordering class again, in **TypeScript** — §1262's closure had swept one language |
+| §1272 | boring data on the money path — an all-zero leg set one BigInt divide from `RangeError` |
+
+**One source defect fixed, 17 gaps closed, ~70 mutations run.** Nine sections corrected something I had written
+or concluded — a wrong count twice, a mis-attributed RED, a false green from the wrong package, an over-broad
+closure claim, a duplicate live citation minted by the record itself.
+
+### The through-line
+
+Every gap this stretch had the same shape: **the guarantee that only shows up on uninteresting data.** A
+tiebreak when timestamps collide. A `typeof` when a field is present but wrong. A `kind` check when the id
+resolves. A divisor when every weight is zero. None of it fires on the data a fixture author naturally invents,
+because a fixture author invents data that demonstrates the feature — and these are the branches that exist for
+data nobody would demonstrate. That is why *mutate it and see* found them and reading did not.
+
+**Reopen triggers**, each mechanical rather than a note: `loose-payload-boundary.test.ts` fires if a ninth loose
+kind or a second `readField` site appears · the citation gate clears itself when the other author commits or
+reverts `coverage.ts` · the five BLOCKED clear only when the private inputs are vendored, which is owner-held.
+
+**Running tally: 40 of 40 load-bearing claims probed — 22 verified, 17 gaps closed, 1 claim corrected.**
+
+**STOP.** Fifteen phases closed, board re-earned with every failure attributed by measurement, repo-owned
+failure set empty, and the remaining reds owned by another author's in-flight edit and by absent private inputs.
