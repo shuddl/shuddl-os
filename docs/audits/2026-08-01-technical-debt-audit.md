@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 730 | §1283 | **§1284** | **STOPPING POINT — 19 PASS · 2 FAIL · 5 BLOCKED at `ea5519c`, and one red was MINE.** Same shape as §1273, different attribution — which is why the board is re-earned rather than assumed. `citation-ratchet` reported *GREW … sequencer.ts: 3 → 4 unanchored*: §1275 cited `sequencer.ts:471` as a bare path:line into the repo's highest-churn file, exactly what the ratchet exists to stop. Anchored to `:471@projectStatusCache`, 16/16. The other FAIL is the citation **correct at HEAD** (another author's uncommitted `coverage.ts`). **Repo-owned failure set empty again — after a fix, not by default.** **And a blind spot I nearly invented:** two more 'anchors' I added had no PATH, so they were prose the gate never saw; planting a properly-formed bad anchor takes it **1 FAIL → 2**, so the gate is fine and my probe was not — the third time this stretch a suspicion about a gate dissolved on measurement. **§1274–§1283: 6 gaps closed** (evidence ordering · commented-assertion floor · sweep counter · **signature fail-OPEN** · **EDI revocation** · **EDI kind-separation**), 2 gates built, ~45 mutations, and **4 claims of my own corrected**. |
 | 729 | §1282 | **§1283** | **THE THIRD FAIL-CLOSED CHAIN, AND THE RULE THAT ENDS THE SWEEP.** `resolveRecipient` decides **who receives an invoice and its evidence photos** — a wrong answer is a privacy breach. Five elements: the **billing-contact preference**, the `kind === "billing"` predicate, and the non-array guard each **RED 1**; the missing-party guard and the unparseable-JSON catch stay green because they are **redundant for a MEASURED reason** — deleting the guard makes `row.contacts` throw INSIDE the try, and neutering the catch reaches the same `undefined` via an empty find. (One reading was void first: my initial mutation was `return undefined as never` — still undefined, a **no-op** that read as *unpinned*.) **Three chains, one rule:** §1281 `verifyEventSig`, §1282 `authenticate`, §1283 `resolveRecipient` partition identically — **the guards that change the ANSWER get pinned; the guards that only change the PATH to the same answer cannot be, by construction.** That is the stopping rule: **an unpinnable branch is not a coverage gap.** Chasing every `return null` to a red test would have produced tests that assert nothing and read as diligence. 3 of 4, 3 of 5, 3 of 5 pinned; five redundancies recorded with their mechanisms. |
 | 728 | §1281 | **§1282** | **FIVE REFUSALS THAT ALL RETURN `null`, ONE PINNED.** §1281's mechanism swept: 17 functions carry 3+ identical fail-closed returns; the sharpest is `authenticate()` on the inbound EDI seam — **five exits, all `return null`**, all surfacing as 401, so no outcome test can attribute a refusal. Measured one at a time: dropping **`p.kind = 'edi'`** (an mcp/api pairing authenticates), dropping **`p.status = 'active'`** (**a REVOKED partner authenticates**), and allowing an **empty secret** each left translator **124/124 GREEN**; only the HMAC was defended. **Those two predicates are the same two §1265 found PINNED on the MCP boundary** — one rule, two trust boundaries, defended at one. Closed with fixtures differing from the passing request in EXACTLY ONE COLUMN (same body, same secret_ref, same HMAC), so a 401 can only come from the predicate under test. **And the runtime corrected me:** I predicted an empty secret was a forgeable shared secret; WebCrypto **refuses a zero-length HMAC key**, so nothing can sign with it — the guard's real job is turning a throw into a clean 401. The draft failed CLEAN as well as mutated, which is the tell (§1272, 2nd occurrence), and the corrected verdict is SMALLER than the one I set out to write. |
 | 727 | §1280 | **§1281** | **A FAIL-OPEN SIGNATURE CHECK WAS INVISIBLE IN EVERY SUITE THAT OWNS IT.** Prioritising by consequence (§1280 killed the predictor), the highest-stakes unmutated function was `verifyEventSig`. Flipping `catch { return false }` to **`return true` — a total auth bypass** left **ledger 17/17, api 27/27, driver-core 14/14 GREEN**. With it, a device whose stored public key is corrupt verifies EVERY signature. **The suite had the right cases and still could not see it:** it already tests *non-base64url garbage → false* and *wrong-length signature → false*, but both assert the OUTCOME `false`, which the charset guard AND the catch both produce — and neither input ever FAULTS (garbage stops at the guard; wrong-length makes WebCrypto **resolve false, not throw** — measured). So the catch was never entered. The one reachable fault is a **malformed public JWK** (a corrupt `device_keys` entry, `importKey` rejects); closed with two cases on exactly that, and the fail-open mutation now **REDs 2**. Two elements stay green with reasons, not shrugs: the charset guard is **redundant for the outcome** (both paths return false), and `return await` is defensive against a rejection I could not construct — recorded as a limit of the probe. |
@@ -75493,8 +75494,8 @@ Four shapes, each measured rather than reasoned about:
 
 That last one was the most interesting to chase, because the code looks alarming in isolation: `BOOKING_SQL`'s
 conflict clause **does** reset `status_cache` to `'booked'`, so re-running it on a delivered shipment would
-rewind the board. It cannot run twice. The projection has **one** call site (`sequencer.ts:471`), the DO's
-device-replay check returns at `:312`, and the file's own comment at `:333` says the gate is *"reached AFTER the
+rewind the board. It cannot run twice. The projection has **one** call site (`sequencer.ts:471@projectStatusCache`), the DO's
+device-replay check returns at `:312@byDevice`, and the file's own comment at `:335@credit.checked` says the gate is *"reached AFTER the
 idempotency checks"*. Reading the dispatch answered what reading the SQL could not — and the SQL's reset is
 correct for the case it exists for: a shipments row created by the Concierge's intake, which `booking.created`
 then legitimately marks booked.
@@ -75893,3 +75894,53 @@ with the mechanism that covers each.
 **STOP.** The shared-fallback class closed at its three highest-consequence sites with a rule that bounds it:
 pin the branches that change the answer, record the ones that cannot, and stop — the remaining fourteen members
 of the class are ordinary resolvers whose fallbacks are outcome-equivalent by the same argument.
+
+## §1284 — PHASE GATE: STOPPING POINT — ten more phases, board re-earned, and a red of my own found by it
+
+Board re-measured at `ea5519c`: **19 PASS · 2 FAIL · 5 BLOCKED** — the same shape as §1273, but the attribution
+is not the same, and that is the point of re-earning it rather than assuming it.
+
+**One of the two FAILs was MINE.** `citation-ratchet` reported *GREW … sequencer.ts: 3 → 4 unanchored
+citations* — §1275 had cited `sequencer.ts:471` as a bare `path:line` into the repo's highest-churn file, which
+is exactly what the ratchet exists to stop. Anchored to `:471@projectStatusCache`; ratchet back to 16/16. The
+other FAIL is the citation that is **correct at HEAD** and rots only against another author's uncommitted
+`coverage.ts` (§1263), so it stays. **The repo-owned failure set is empty again — after a fix, not by default.**
+
+All five BLOCKED remain absent private inputs.
+
+### And a blind spot I nearly invented
+
+Fixing the ratchet, I "anchored" two more references — `` `:312@byDevice` ``, `` `:333@enforceBooking` `` — and
+then checked whether the symbols really sat within ±2 lines. One did not, and `check:citations` had not
+complained, which reads immediately like a gate blind spot. **It is not.** Those strings carry no PATH, so they
+are prose, not citations, and the gate never saw them. Verified rather than recorded: planting a properly-formed
+`workers/api/src/do/sequencer.ts:333@enforceBooking` takes the gate from **1 FAIL to 2**. The prose was still
+wrong, so it was corrected to `:335@credit.checked` — a real symbol in the real window.
+
+That is the third time this stretch a suspicion about a gate dissolved on measurement (§1263's coverage swap,
+§1280's citation-count heuristic, this). **A gate that looks blind is more often a probe that missed.**
+
+### §1274–§1283 in one line each
+
+| | |
+|---|---|
+| §1274 | R2-before-row ordering — 3 sites, 1 unheld, closed by a static gate (no test can watch a crash between two awaits) |
+| §1275 | the crash axis closed — 3 hazard classes measured **absent**, an alarming re-projection proved unreachable by its dispatch |
+| §1276 | three mutexes, **three different right answers** — one pinned, two redundant with the platform, precondition already gated |
+| §1277 | the acceptance floor counted **commented-out** assertions — found by a botched plant |
+| §1278 | that blind spot swept as a class — 82 gates triaged, 4 vulnerable, 2 blind, and the anchoring rule that separates them |
+| §1279 | redaction fully pinned — and the pattern: **what has a test is what once broke** |
+| §1280 | that pattern turned into a search heuristic and **falsified on both samples** |
+| §1281 | a **fail-OPEN signature catch** invisible in all three owning suites |
+| §1282 | five refusals that all `return null`; **revocation and kind-separation unpinned** on the EDI seam |
+| §1283 | the rule that ends the sweep: pin what changes the ANSWER; an unpinnable branch is not a gap |
+
+**Six gaps closed** (evidence ordering · commented-assertion floor · sweep counter · signature fail-open ·
+EDI revocation · EDI kind-separation), **two gates built**, **~45 mutations**, and **four claims of my own
+corrected** — a heuristic, a hypothesis about HMAC forgery, a no-op mutation, and this section's gate blind spot.
+
+**Running tally: 79 of 79 load-bearing claims probed — 53 verified, 24 gaps closed, 3 claims corrected.**
+
+**STOP.** Board re-earned with every verdict attributed, the one repo-owned red found and fixed by the gate that
+owns it, and the ten phases since §1273 summarised. Owner-held and unchanged: the private fixtures, the two
+lost-trigger REQ rows, and the first push.
