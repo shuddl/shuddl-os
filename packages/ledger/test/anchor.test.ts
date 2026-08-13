@@ -591,6 +591,42 @@ describe("REQ-014 — determinism, bucketing, gaps, failures, positions", () => 
     expect(await verifyInclusion(canonicalPositionBytes(row), proof.steps, hexToBytes(proof.root))).toBe(true);
   });
 
+  // §1259 — THE POSITIONS LEAF ORDER, the sibling §1258 predicted. `anchor.ts` orders position leaves by
+  // (shipment_id, device_id, ts) under the same "any instability makes the root worthless" rule. The positions
+  // case above seeds ONE row, and a single leaf cannot distinguish any ordering — measured: reversing the
+  // clause to (ts, device_id, shipment_id) left this package 705/705 GREEN.
+  //
+  // Three rows chosen so BOTH tiebreaks are exercised, per §1258's composite-key rule (vary every component or
+  // the orders collapse):
+  //   by (shipment,device,ts) → s-a/d-1/200, s-a/d-2/300, s-b/d-1/100   ← device breaks the s-a tie
+  //   by (ts,device,shipment) → s-b/d-1/100, s-a/d-1/200, s-a/d-2/300   ← a different sequence entirely
+  it("REQ-014: position leaf order is (shipment_id, device_id, ts) — both tiebreaks exercised", async () => {
+    const day = "2026-07-07";
+    const mk = (shipment_id: string, device_id: string, ts: number): PositionRow => ({
+      shipment_id, device_id, ts, lat_e6: 37_421_000, lon_e6: -122_084_000, accuracy_m: 5, speed_cms: 0,
+    });
+    const pA2 = mk("s-a", "d-2", 300);
+    const pA1 = mk("s-a", "d-1", 200);
+    const pB1 = mk("s-b", "d-1", 100);
+    // Inserted out of leaf order on purpose: insertion order must not be what the root depends on.
+    for (const r of [pA2, pB1, pA1]) await insertPosition(r, noon(day));
+
+    const res = await runDailyAnchor({ db: DB, r2: R2, tsa: new FakeTsaClient(), tenant: TENANT, now: FIRE });
+    expect(res.anchored, "the day must actually anchor, or the root below is vacuous").toContain(day);
+
+    // PREMISE: the rows really do distinguish the two orderings — the ts sequence disagrees with the
+    // (shipment, device) sequence, and the s-a pair forces the device tiebreak.
+    expect(pB1.ts).toBeLessThan(pA1.ts);
+    expect(pA1.shipment_id === pA2.shipment_id && pA1.device_id < pA2.device_id).toBe(true);
+
+    const leaves = [pA1, pA2, pB1].map((r) => canonicalPositionBytes(r)); // the INTENDED order, built here
+    const proof = await anchorProof(DB, day, bytesToHex(leaves[0]!));
+    expect(proof.leafCount, "this day's tree must hold exactly the three seeded positions").toBe(3);
+    expect(await anchorHash(day), "the root must be built from leaves in (shipment_id, device_id, ts) order").toBe(
+      bytesToHex(await merkleRoot(leaves)),
+    );
+  });
+
   it("dayOf buckets on the UTC calendar day", () => {
     expect(dayOf(Date.parse("2026-07-09T23:59:59.999Z"))).toBe("2026-07-09");
     expect(dayOf(Date.parse("2026-07-10T00:00:00.000Z"))).toBe("2026-07-10");
