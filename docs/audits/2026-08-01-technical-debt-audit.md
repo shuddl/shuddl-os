@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 794 | §1347 | **§1348** | **THE OUTPUT BOUNDARY RE-WALKED WITH §1347's HEURISTIC — COMPLETE, AND THE ASYMMETRY HOLDS TWICE MORE.** §785 audited 1 of 7 outputs; §787 closes the phase with **every emitter enumerated** (recipient-decider + verdict): 2 gaps found, 4 already pinned. **The strong form:** the recipient rule is implemented TWICE, and in BOTH copies the party-scoping (unrecoverable cross-party leak) was covered while the billing preference (right party, recoverable) was pinned in NEITHER — two independent implementations, attention landing on the same side of the same line. Not a choice, a tendency. Closed at HEAD by `recipient-parity.test.ts`, which extracts both bodies by **brace matching** — §1338's technique, already in the repo. |
 | 793 | §1346 | **§1347** | **§1346's CLAIM TESTED ONE LEVEL DOWN — IT HOLDS INSIDE A SINGLE FUNCTION.** Tested "unrecoverable designed out, recoverable deferred" where it could most easily fail: an output that cannot be withdrawn. `recall "resolveRecipient"` → 15 verdicts, owned by §785 (the address receiving a customer's POD **and** invoice). Its TWO rules split exactly on recoverability: *read only the named party's contacts* (**cross-party leak, unrecoverable**) was **4 REDs — covered**; *prefer the billing contact* (right party, wrong contact — recoverable) was **SILENT in both suites** — the gap. Nobody chose that per-rule, so it shows where design attention went. Gap closed at HEAD (`recipient-parity.test.ts:75`). **Three granularities now: ledger design, register, single function.** |
 | 792 | §1345 | **§1346** | **THE FRAMING PATTERN USED AS A SEARCH — AND THE ASYMMETRY IT EXPOSED.** Applied §1345's rule generatively: for a consequence-titled item, ask the SIBLING consequence. Thin on §-headings (nearly all are methodological), so applied to the domain-framed ROWS: the register carries two *"a lost trigger has no backstop"* rows, whose sibling is a DUPLICATED trigger (the queue is at-least-once). `recall "already_booked"` → **§476**, a clean negative in three steps: an alarming unpinned `ORDER BY seq LIMIT 1`, but a second booking is **unreachable** (REQ-191, rejected server-side), and that guard is pinned. **The asymmetry is the finding**: the UNRECOVERABLE direction was made impossible, the RECOVERABLE one left to a backstop — so open items cluster on the recoverable side BY CONSTRUCTION. |
 | 791 | §1344 | **§1345** | **AUDITED MY OWN FILED ROWS WITH THE RECORD'S INSTRUMENT — 4 OF 4 NOVEL.** A filed row that duplicates an existing one is debt the AUDIT added, and it looks exactly like a finding. `recall` on each row's distinguishing symbol: `ack990Key`, `OVERDUE_INVOICES_SQL`, `MAX_ROWS` all return only my own sections. `emitTerminalHoldMarker` returns **7 mentions / 5 verdicts, two PRIOR** — so §1102 (*"seven ways a delivered load does not bill"*) had to be READ: across 56 lines it mentions `split` **0** times and AP **0** times. It is an AR section end to end, so §1307's AP finding sits outside it. **The reason it was findable is the framing pattern, now at three instances** — §1330 titled for a TRIGGER, §1335 split across CONSEQUENCES, §1345 AR vs AP. |
@@ -78962,3 +78963,46 @@ booking impossible), the register's open set (§1346), and a single function's t
 enough to use predictively: **when auditing a new surface, the unrecoverable half is likely already defended,
 and the recoverable half is where to look.** That is the opposite of the instinct that says to start with the
 worst consequence, and it is what the evidence in this repo supports.
+
+
+## §1348 — PHASE GATE: the output boundary, re-walked with §1347's heuristic — complete, and the asymmetry holds twice more
+
+§1347 produced a predictive heuristic: **the unrecoverable half of a surface is likely already defended; the
+recoverable half is where to look.** §785 audited one of seven outputs, so the obvious question is whether the
+other six were swept — §1331's rule that the enumeration matters more than the finding.
+
+**They were, and completely.** §787 closes the phase with every emitter enumerated, its recipient-decider named,
+and a verdict:
+
+| emitter | recipient decided by | verdict |
+|---|---|---|
+| Biller evidence email | `resolveRecipient(bill_to_party_id)` | 1 of 2 rules unpinned → §785 |
+| Dunning notice | `resolveDunningRecipient` — a **duplicate** of the above | unpinned + no parity → §786 |
+| Concierge auto-reply | the ENVELOPE sender, never the model's | pinned — the spoof-relay mutation REDs 4 |
+| booking evidence-recipient gate | `hasDeliverableContact` | pinned (§778) |
+| EDI 214 / 990 | partner SCAC from the R2 marker | pinned (§783) |
+| MCP webhook | subscription URL | pinned (§775) |
+
+### The asymmetry holds in BOTH copies, which is the strong form
+
+The recipient rule is implemented twice, and **both gaps were the same half**: the party-scoping (*read only
+this party's contacts* — the unrecoverable cross-party leak) was covered in each, while the preference (*prefer
+the `billing` contact* — right party, recoverable by resending) was pinned in neither. Two independent
+implementations, written at different times, with the attention landing on the same side of the same line. That
+is a much stronger confirmation of §1347 than one function could give: it is not a choice, it is a tendency.
+
+**Closed at HEAD**, verified: `recipient-parity.test.ts` extracts BOTH function bodies, asserts they are
+logically identical, and pins the preference in each — with a non-vacuity case stating that *"an empty
+extraction must not read as agreement."*
+
+And one detail worth noting for its own sake: that test extracts each body by **brace matching**, not a line
+window. It is the technique §1338 arrived at by making the fixed-window mistake in both directions — already
+in the repo, correctly, in the test whose subject is two functions that must not drift.
+
+**Running tally: 253 of 253 load-bearing claims probed — 177 verified, 46 gaps closed, 23 claims corrected;
+12 operational items recorded.**
+
+**STOP.** No gap. §1347's heuristic now has **four** confirmations, two of them independent implementations of
+one rule — and the practical form is worth stating plainly: **on any surface where something leaves the
+building, check the detail that is merely wrong before the detail that is catastrophic.** The catastrophic one
+has usually already frightened someone into pinning it.
