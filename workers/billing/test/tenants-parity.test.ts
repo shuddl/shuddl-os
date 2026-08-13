@@ -18,6 +18,16 @@ function slugSet(src: string): Set<string> {
   return new Set([...src.matchAll(/"(tenant-[a-z0-9-]+)"/g)].map((m) => m[1]!));
 }
 
+// §1353 — THIS GATE ASSERTS IDENTITY ONLY, AND THAT IS NOT THE WHOLE GUARANTEE.
+// Two rosters that BOTH dropped a tenant are in perfect parity, so the assertion below stays green while a
+// tenant silently stops being served everywhere at once — §786's warning ("a parity test alone would happily
+// certify two copies that are identically WRONG"), demonstrated concretely at §1352 M2 on the TSA factories.
+// The missing PROPERTY is pinned elsewhere and deliberately recorded here because nothing links them:
+//   · `tenant-resolution.test.ts` — `TENANT_SLUGS.length > 1` (pre-existing)
+//   · `sweep-containment.test.ts` / `claimed-tenants.test.ts` — `TENANT_SLUGS[0] === "tenant-a"` and length ≥ 2,
+//     added at §1311/§1312 for the containment premise, which is a DIFFERENT purpose that happens to cover this.
+// Incidental coverage is real coverage, but it can be deleted by someone editing a containment test who has no
+// idea this gate leans on it. If those go, this file needs its own length/order assertion.
 describe("REQ-014/REQ-025 — billing tenant allowlist parity with the API", () => {
   it("billing TENANT_SLUGS equals the slugs declared in workers/api/src/tenants.ts", () => {
     const apiSlugs = slugSet(apiTenantsSrc);

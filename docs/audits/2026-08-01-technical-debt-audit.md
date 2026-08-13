@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 799 | §1352 | **§1353** | **APPLIED §1352's LESSON TO THE PRE-EXISTING PARITY GATES.** Swept every parity-shaped gate for a PROPERTY beyond identity. **My detector was wrong on the first file it flagged**: `stream-id-parity` scored 0 yet asserts *"the pattern admits the three real stream shapes and nothing else"* — a property written with `.toBe(true/false)`, invisible to a `toMatch`/`toContain` counter (slash, not a pipe — 5th pipe-split this session). **An assertion's SYNTAX cannot tell you whether it is a property**; they had to be read. `gl-accounts-parity` is fine (four *"only canonical accounts"* cases). **`tenants-parity` is pure identity in all three workers** — two rosters that both drop a tenant stay green. It IS caught, but by `tenant-resolution.test.ts` and by the premise assertions I added at §1311/§1312 for a different purpose. §1335's split-property shape; all three annotated. |
 | 798 | §1351 | **§1352** | **THE LAST COPY-SET — AND A MUTATION SHOWING WHY PARITY ALONE IS NOT ENOUGH.** Read `tsaFor`/`tsaClientFor` rather than assuming §1351's verdict transferred: byte-identical factories choosing the REQ-014 timestamping authority, gated on `ENVIRONMENT !== "prod"` → `FakeTsaClient`. **Opposite failure direction from §1351**: that one fails CLOSED (an abstention); this can fail **OPEN** — prod gets a fake timestamper and the anchor emits receipts that are not timestamps, every gate green. §1066 covered a different question (doubles absorbing duplicates); **0 test files named either factory**. Gate built with identity + a property. **M1** drift one copy → identity REDs. **M2** invert the gate in BOTH → identity stays **GREEN**, only the PROPERTY REDs — §786's warning made concrete. Enumeration complete: 5 sets, all held. |
 | 797 | §1350 | **§1351** | **SEARCHED FOR COPIED LOGIC — 5 COPY-SETS, AND CLOSED THE ONE HELD BY NOTHING.** §1350's refinement (SHARED vs COPIED) makes "find the copies" mechanical, and it had never been run: normalising every shipped function body and grouping across files yields **five copy-sets**. Three are already held (`uuidFromSeed`/`deterministicUuid` ×7 by `id-determinism`, the recipient pair by §786's parity test). **`readModelText` is byte-identical in ALL THREE LLM consumers — 476 chars, zero tests naming it.** A drift fails CLOSED (every copy returns `undefined`, callers abstain), which is exactly why it would go unnoticed: the symptom is an abstention RATE, not an error. Closed with §786's own pattern + its two guards (non-vacuity ≥120 chars; the fail-closed property). **Mutation-proved.** `tsaFor`/`tsaClientFor` left recorded, not assumed. |
 | 796 | §1349 | **§1350** | **§1349's METHOD RUN AS A SEARCH — LOWEST-ATTENTION MONEY SYMBOL, AND WHY ITS SILENCE IS FINE.** Ranked money-path symbols by record verdicts vs code references: `composeInvoice` 14, `allocateCents` 12, `apportion` 11 … **`decideSplit` 1** — an order-of-magnitude outlier implementing CLAUDE.md rule 5 ($222,084 regression, REQ-040). The LAW has 36 verdicts, but they audit the **Biller/AR** path; `decideSplit` is the **AP** sibling. Both halves check out: `executingShare` is **single-sourced** in `@shuddl/rater` and imported by both (the AP path calls the law rather than re-implementing it), AND the split is independently pinned (*"HOLDS below-floor on the EXECUTING SHARE, never the gross"*). **Refinement: rank by attention, then ask whether the logic is SHARED or COPIED** — §1348's recipient rule was copied, and both copies needed pinning. |
@@ -79191,3 +79192,45 @@ says nothing about whether what they agree on is right.** Every duplicate-body g
 assertion aimed at the property whose failure direction actually matters — fail-closed for §1351's envelope
 reader, fail-OPEN for this one — and picking that property requires knowing which way the code breaks, which a
 diff cannot tell you.
+
+
+## §1353 — PHASE GATE: applying §1352's lesson to the parity gates that already existed
+
+§1352 proved that a parity test alone is defeated by a mutation changing BOTH copies consistently, and that the
+fix is a PROPERTY assertion aimed at the failure direction. That indicts every pre-existing parity gate that
+asserts identity and nothing else. Swept them — and the sweep's first result was against my own detector.
+
+**`stream-id-parity` scored zero on my property-heuristic and is fine.** Its second case is
+*"that pattern still admits the three real stream shapes and nothing else"* — `s:shp-1` ✓, `q:quote-1` ✓,
+`t:root` ✓, `x:rogue` ✗, `s:bad id` ✗. A behavioural property, written with `.toBe(true)`/`.toBe(false)`, which
+my `toMatch|toContain` counter could not see. Same class as §1334's misclassification: **a heuristic over
+assertion SYNTAX cannot decide whether an assertion is a property.** These had to be read.
+
+Read: `gl-accounts-parity` asserts *"emits only canonical accounts"* at four sites — property, fine.
+**`tenants-parity` is one test in each of three workers, and it is pure identity:** *"agents TENANT_SLUGS equals
+the slugs declared in workers/api/src/tenants.ts."*
+
+### The M2 mutation on that gate, and where it is actually caught
+
+Two rosters that BOTH dropped a tenant are in perfect parity — the assertion stays green while that tenant
+stops being served everywhere at once. **It is caught, but nowhere near this gate:**
+
+- `tenant-resolution.test.ts` — `TENANT_SLUGS.length > 1` (pre-existing)
+- `sweep-containment.test.ts` / `claimed-tenants.test.ts` — `TENANT_SLUGS[0] === "tenant-a"` and length ≥ 2,
+  which **I added at §1311/§1312 as the premise for the continuation assertions** — a different purpose that
+  happens to cover this one.
+
+That is §1335's shape again: **a property split across files with nothing linking them.** Incidental coverage
+is real coverage, and it is fragile in a specific way — someone editing a containment test has no reason to
+know a roster-parity gate leans on their premise assertion.
+
+Annotated all three copies with where the missing property lives and what to do if those assertions go.
+Comment-only; no behaviour changed.
+
+**Running tally: 268 of 268 load-bearing claims probed — 186 verified, 48 gaps closed, 23 claims corrected;
+12 operational items recorded.**
+
+**STOP.** No gap, one dependency made visible. Two things worth carrying: **an assertion's syntax does not tell
+you whether it is a property** (my detector was wrong on the first file it flagged), and **a gate that relies on
+a property pinned in another file should say so**, because the mutation that defeats it is invisible from
+either side alone.
