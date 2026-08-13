@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 765 | §1318 | **§1319** | **THE THIRD CURATED LIST IN ONE FILE — AND A PROBE THAT NEARLY LIED.** Applied §1318's rule to the sibling matcher: `statedSweepCounts` hard-coded a six-to-ten alternation (escaped out of this cell — a regex alternation's pipes split a markdown row, which is now twice in three phases) beside the `WORD` table its own `.map` already used. Blind to **`eleven` AND `five`** — so it could not see growth past ten OR a shrink below six. Now built from `Object.keys(WORD)`. **The first probe reported all three plants GREEN**, which reads as "the gate is broken" — but `sla-sweep.ts` states NO count, so the substitution matched nothing; re-aimed at `sequencer.ts` (which states `eight sweeps`) both wrong counts RED. A uniform 3-for-3 result was the tell. Also found: of the roster's 2 files only **1** carries a live claim. |
 | 764 | §1317 | **§1318** | **ADVERSARIALLY PROBED MY OWN §1313 GATE — BLIND ON TWO OF NINE REWORDINGS.** Started from the riskiest thing ADDED rather than hunting new debt. The worker-count matcher survived digits, capitals, a comma and a struck number, and went blind on `spanning four workers` and `in four workers`: it hard-coded the preposition `across`. **That is §1077's curated-vocabulary bug one level down** — §1313 curated the NUMBER WORDS and its fix curated the PREPOSITION, in the same edit. Fixed by REMOVING the dependency (a window already names the population, so `<N> workers` is the claim), not by extending a list: all three wordings now RED, real tree 9/9 with no FP. Residual written into the source: both readers still anchor on the literal phrase `per-tenant sweep`. |
 | 763 | §1316 | **§1317** | **I RE-DERIVED §945 — AND FOUND ONE THING THAT WAS ACTUALLY NEW.** Three counting rules returned **32 / 28 / 34**; §945 had already answered this four times with four wrong answers, and the gate born from it (`ledger-status-vocabulary`) already requires a canonical token so counting cannot drift. I hit 3 of its 4 recorded failure modes, including the naive `\|` split (escaped here — writing it bare split THIS row, which is the same failure the row describes). **The genuinely new part:** that gate enforces one live verdict WITHIN the status cell — L436 satisfied it while its ITEM cell said CLOSED and its STATUS said OPEN. A cross-CELL contradiction is outside its scope, and it kept the row miscounted under a green gate. Reconciled; no second instance; one FP (*"fails CLOSED"*, which is §945's failure mode #1 inside my detector for it). |
 | 762 | §1315 | **§1316** | **RE-RAN THE REGISTER'S OWN CLAIMS — THE BIGGEST ONE HAD INVERTED.** 32 OPEN rows, only 3 with a command-decidable expiry, so re-measured the FACTS instead. **The remote-divergence row had reversed**: it recorded 1,278 unpushed and GROWING; `origin/main` is now `2c47440` (2026-08-12), local 62 ahead, origin 0 ahead — **the owner pushed**, so its consequence (*"CI has evaluated none of this work"*) is no longer categorically true. Whether that run PASSED is UNKNOWN from this machine (no network) and is recorded as such; the sibling GitHub-API rows were NOT re-measured and stand untouched. Also re-verified: `quote.priced` still absent from `SERVER_EMITTED_KINDS` (5 members), no coverage config in 12 vitest configs. **The security row now UNDERSTATES**: §1307 made the interline split a SECOND consumer of the forged quote's floors + anomaly, and both treat ABSENT as "no flag". |
@@ -77690,3 +77691,54 @@ The lesson generalises past this gate: **when a pattern is found blind on one di
 dimensions of the same pattern before declaring it fixed.** §1313 found the number vocabulary curated and fixed
 exactly that; the preposition beside it was curated the same way, by the same hand, in the same edit, and
 survived because the fix was verified only against the failure that prompted it.
+
+
+## §1319 — PHASE GATE: the third curated list in one file, and the probe that nearly lied
+
+§1318's rule — *when a pattern is found blind on one dimension, check the neighbouring dimensions* — has an
+obvious next target: the OTHER matcher in the same file. `statedSweepCounts` guards the §1077 population (the
+8 `contain(…)` sweeps riding the agents cron) and carried its own alternation, `(six|seven|eight|nine|ten|\d+)`,
+written BESIDE the `WORD` table its own `.map` already used for lookup. Two copies of one list, so extending
+the table at §1313 did not extend the pattern.
+
+**Measured, both directions:**
+
+| stated | old pattern | new |
+|---|---|---|
+| `eleven sweeps` | **blind** | caught |
+| `five sweeps` | **blind** | caught |
+| `eight sweeps` / `11 sweeps` | caught | caught |
+
+So the gate could see a drift only *within* six–ten spelled as a word: not a growth past ten, and **not a
+shrink below six either** — the direction that matters if sweeps are ever consolidated. The alternation is now
+built from `Object.keys(WORD)`, which is the same fix §1318 applied to the preposition and §1313 to the number
+words. **Three curated lists in one file, found one at a time, each by a probe rather than by reading.**
+
+### The probe that nearly lied
+
+The first run planted `eleven`, `five` and `eight` into `sla-sweep.ts` and reported **all three GREEN** — which
+reads as "the gate cannot catch a wrong count at all". It was the probe that was broken: **`sla-sweep.ts`
+states no count in any form**, so the substitution matched nothing, the file was rewritten unchanged, and the
+gate correctly found no claim to contradict. Re-aimed at `do/sequencer.ts` — the file that does carry
+`eight sweeps` — both wrong counts turn it RED.
+
+That is the recorded failure mode *"a probe that produces nothing looks exactly like a probe that finds
+nothing"*, met again, and caught only because a THREE-for-three green was too clean to believe: the
+`eight`-stated case should have been green and the other two red, so a uniform result was the tell.
+
+### What that revealed about the roster
+
+`SWEEP_COUNT_FILES` names two files; only **one** carries a live stated count today. `sla-sweep.ts` mentions
+sweeps and crons in prose but states no number, so it contributes zero claims. Not a defect — the roster's
+stated purpose is *"every file that STATES the sweep count"*, and a file that stops stating one simply stops
+contributing — but it means **the check guards exactly one live claim**, which is worth knowing before reading
+its green as broad coverage. Recorded rather than changed: removing the entry would delete forward coverage for
+the day that file states a count again.
+
+**Running tally: 165 of 165 load-bearing claims probed — 105 verified, 46 gaps closed, 19 claims corrected;
+9 operational items recorded.**
+
+**STOP.** tools 118/119, both probed sources restored byte-identical. The lesson compounds §1318's rather than
+repeating it: **a file that contains one curated list usually contains another, and the second one is found by
+probing, never by reading** — three lists in this file, all three invisible to inspection, all three caught by
+planting a value the list did not contain.

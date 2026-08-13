@@ -208,10 +208,15 @@ function perTenantWorkerClaims(root: string): { file: string; stated: number }[]
 
 /** Stated counts of the form "EIGHT sweeps" / "seven crons" / "8 contained sweeps". */
 function statedSweepCounts(root: string, rel: string): number[] {
-  const text = readFileSync(`${root}/${rel}`, "utf8");
-  return [...text.matchAll(/\b(six|seven|eight|nine|ten|\d+)\s+(?:contained\s+)?(?:sweeps|crons)\b/gi)]
-    .map((m) => WORD[(m[1] as string).toLowerCase()] ?? Number(m[1]))
-    .filter((n) => Number.isFinite(n));
+  // §1319 — the alternation is BUILT FROM `WORD`, not written beside it. It read
+  // `(six|seven|eight|nine|ten|\d+)` while its own `.map` already looked the match up in `WORD` — so the table
+  // and the pattern were two copies of one list, and extending the table at §1313 did not extend this. The
+  // count it guards is 8 today; the day a ninth, tenth and eleventh sweep land, a file stating "eleven sweeps"
+  // becomes INVISIBLE here, which is precisely the defect §1313 was written to close, surviving one function
+  // away in the same file. Struck text is stripped for the same reason it is everywhere else in this file.
+  const text = stripStruck(readFileSync(`${root}/${rel}`, "utf8"));
+  const re = new RegExp(`\\b(${Object.keys(WORD).join("|")}|\\d+)\\s+(?:contained\\s+)?(?:sweeps|crons)\\b`, "gi");
+  return [...text.matchAll(re)].map((m) => WORD[(m[1] as string).toLowerCase()] ?? Number(m[1])).filter((n) => Number.isFinite(n));
 }
 
 /** Count `CONFIRM-GATED` rows in the register — the authority, not a copy of it. */
