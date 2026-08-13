@@ -71,13 +71,14 @@ interface MoneyLineSeed {
   division: string;
   gl_map: string;
   created_ts: number;
+  line_no?: number; // §1262 — settable so the third ORDER BY component can be exercised (default 1)
 }
 async function insertMoneyLine(db: D1Database, ml: MoneyLineSeed): Promise<void> {
   await db
     .prepare(
-      "INSERT OR IGNORE INTO money_lines (id, shipment_id, event_id, line_no, direction, kind, amount_cents, currency, party_id, division, gl_map, created_ts) VALUES (?,?,?,1,?,?,?,?,?,?,?,?)",
+      "INSERT OR IGNORE INTO money_lines (id, shipment_id, event_id, line_no, direction, kind, amount_cents, currency, party_id, division, gl_map, created_ts) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
     )
-    .bind(ml.id, ml.shipment_id, ml.event_id, ml.direction, ml.kind, ml.amount_cents, "USD", "exj-party", ml.division, ml.gl_map, ml.created_ts)
+    .bind(ml.id, ml.shipment_id, ml.event_id, ml.line_no ?? 1, ml.direction, ml.kind, ml.amount_cents, "USD", "exj-party", ml.division, ml.gl_map, ml.created_ts)
     .run();
 }
 
@@ -212,5 +213,76 @@ describe("GET /v1/export/journal — role gating (admin/ops/finance only)", () =
   });
   it("a portal party is forbidden (403)", async () => {
     expect((await fetchExport(await portalTok(), `?from=${FROM}&to=${TO}`)).status).toBe(403);
+  });
+});
+
+// ─── §1262 — THE JOURNAL'S LINE ORDER (REQ-057/118) ────────────────────────────────────────────────────────
+//
+// `exportJournal` orders by `created_ts, event_id, line_no`. Every fixture above varies created_ts ALONE, so
+// the first clause satisfies them all and the other two are exercised by nothing. Measured: reversing the whole
+// clause to `line_no, event_id, created_ts` left export-journal + export at **23/23 GREEN**.
+//
+// The suite's "is deterministic: the same range serializes byte-identically" case cannot see this. It issues
+// the same query twice against the same rows in one process, which SQLite answers identically whether or not
+// an ORDER BY is present — it distinguishes a stable engine from an unstable one, never an ORDERED query from
+// an incidentally-stable one. Determinism ACROSS runs, schema changes and index choices is what the clause
+// buys, and only a fixture that ties can show it.
+//
+// Ordering matters here beyond aesthetics: this is the accountant-facing journal (CLAUDE.md fixture rule — the
+// QB export reconciles to the penny). Lines that reshuffle between exports of the SAME period turn a diff of
+// two closes into noise, which is how a real discrepancy gets skipped.
+describe("§1262 the journal's ORDER BY is exercised on all three components", () => {
+  // A private created_ts window, well past TO and short of OUT_OF_RANGE, so these rows perturb no assertion
+  // above and none of theirs perturb these.
+  const TIE_T = T0 + 200 * 86_400_000;
+  const W_FROM = TIE_T - 5_000;
+  const W_TO = TIE_T + 5_000;
+  // event_id is the SECOND clause, so the test must know which id sorts first — and ids are UUIDs (the schema
+  // requires it), so they are sorted here rather than assumed.
+  const [EVT_LO, EVT_MID, EVT_HI] = [crypto.randomUUID(), crypto.randomUUID(), crypto.randomUUID()].sort();
+
+  // Expected order E = [m0, m3, m2, m1]:
+  //   m0  created_ts EARLIER            → first, by clause 1 (its event_id is the LAST — so dropping clause 1
+  //                                       cannot leave it in front by accident)
+  //   m3  TIE_T, EVT_LO, line_no 0      → clause 2 puts the LO group next, clause 3 orders within it
+  //   m2  TIE_T, EVT_LO, line_no 1
+  //   m1  TIE_T, EVT_MID, line_no 0
+  //
+  // INSERTION ORDER P = [m1, m2, m0, m3] is chosen, not stumbled on (§1260). The query is ASC, so SQLite scans
+  // FORWARD and an incidental within-tie order is insertion order. P therefore satisfies:
+  //   E ≠ P and E ≠ reverse(P)                        → no whole-scan can imitate the clause
+  //   m2 inserted BEFORE m3                           → dropping `line_no` alone reorders the LO group
+  //   m1 inserted BEFORE m3                           → dropping `event_id` alone reorders the TIE_T group
+  beforeAll(async () => {
+    // Each event is inserted EXACTLY once — a repeat trips the I3 append-only BEFORE INSERT guard, which is
+    // the guard doing its job. m2 and m3 therefore share one event and one shipment, which is the realistic
+    // shape anyway: two money_lines off a single money event is precisely what `line_no` exists to order.
+    await insertEvent(env.TENANT_A_DB, EVT_LO, "exj-tie-lo");
+    await insertEvent(env.TENANT_A_DB, EVT_MID, "exj-tie-mid");
+    await insertEvent(env.TENANT_A_DB, EVT_HI, "exj-tie-hi");
+    const mk = async (id: string, event_id: string, shipment_id: string, created_ts: number, line_no: number) =>
+      insertMoneyLine(env.TENANT_A_DB, {
+        id, shipment_id, event_id, direction: "ar", kind: "freight",
+        amount_cents: 1000, division: "west", gl_map: GL_FREIGHT_AR, created_ts, line_no,
+      });
+    await mk("exj-tie-m1", EVT_MID, "exj-tie-mid", TIE_T, 0);
+    await mk("exj-tie-m2", EVT_LO, "exj-tie-lo", TIE_T, 1);
+    await mk("exj-tie-m0", EVT_HI, "exj-tie-hi", TIE_T - 500, 9);
+    await mk("exj-tie-m3", EVT_LO, "exj-tie-lo", TIE_T, 0);
+  });
+
+  it("orders by created_ts, then event_id, then line_no — each clause load-bearing", async () => {
+    const r = await fetchExport(await opsTok(), `?from=${W_FROM}&to=${W_TO}&format=json`);
+    expect(r.status).toBe(200);
+    const lines = JSON.parse(r.body) as JournalLine[];
+    // Two journal lines per money_line (debit then credit); collapse to the money_line sequence.
+    const seq = lines.map((l) => l.money_line_id).filter((id, i, a) => id !== a[i - 1]);
+    // PREMISES: the window really holds exactly these four, and the tie really is a tie — without both, the
+    // assertion below could pass over a corpus that never exercises a tiebreak.
+    expect(new Set(seq), "the private window must hold exactly the four seeded lines").toEqual(
+      new Set(["exj-tie-m0", "exj-tie-m1", "exj-tie-m2", "exj-tie-m3"]),
+    );
+    expect(EVT_LO < EVT_MID && EVT_MID < EVT_HI, "the sorted ids must actually be ordered").toBe(true);
+    expect(seq).toEqual(["exj-tie-m0", "exj-tie-m3", "exj-tie-m2", "exj-tie-m1"]);
   });
 });

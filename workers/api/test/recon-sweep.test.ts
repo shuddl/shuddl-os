@@ -371,12 +371,12 @@ describe("Task 6 — credit projection-gap reconciliation (shared ledger fn, REQ
   }
   // Direct-seed a committed credit.checked on a shipment stream (bypasses the sequencer, mirrors seedPodEvent) —
   // simulating a historical/imported decision. Distinct recorded_at controls the latest-wins ordering.
-  async function seedCredit(db: D1Database, sid: string, partyId: string, status: string, recordedAt: number): Promise<string> {
+  async function seedCredit(db: D1Database, sid: string, partyId: string, status: string, recordedAt: number, seq = 0): Promise<string> {
     const e = eventFixture("credit.checked", {
       id: crypto.randomUUID(),
       stream_id: `s:${sid}`,
       shipment_id: sid,
-      seq: 0,
+      seq,
       ts: recordedAt,
       recorded_at: recordedAt,
       visibility: "internal",
@@ -494,6 +494,43 @@ describe("Task 6 — credit projection-gap reconciliation (shared ledger fn, REQ
     const res = await reconcileCreditForParty(env.TENANT_A_DB, P);
     expect(res.applied_status).toBe("clear");
     expect(await partyCredit(env.TENANT_A_DB, P)).toBe("clear");
+    expect(await gapStatus(env.TENANT_A_DB, gapId)).toBe("resolved");
+  });
+
+  // §1261 — THE TIEBREAK UNDER AN EQUAL recorded_at. The case above varies recorded_at only, so `ORDER BY
+  // recorded_at DESC` alone satisfies it and the `, seq DESC` clause is exercised by nothing. Measured:
+  // flipping it to `seq ASC` left workers/agents 3/3 AND workers/api 13/13 GREEN.
+  //
+  // Ties are reachable by construction, not by luck: `recorded_at` is `Date.now()`, and the Workers runtime
+  // returns THE TIME OF THE LAST I/O and does not advance it during execution (the documented Spectre
+  // mitigation), so two decisions stamped without intervening I/O carry the same millisecond exactly.
+  //
+  // WHAT IS PINNED HERE IS DETERMINISM, not that seq picks the "right" decision. `seq` is a PER-STREAM counter,
+  // so comparing it across two shipment streams is an arbitrary total order — deliberately so, since `id` is
+  // random and there is nothing better to break the tie with. Arbitrary is fine; UNSTABLE is not. Without the
+  // clause the engine is free to return either row, and this same suite asserts one line up that re-running the
+  // reconciler is IDEMPOTENT — a flapping pick would move a party between hold and clear on successive sweeps,
+  // and the REQ-042 booking gate reads exactly that value.
+  it("§1261 REQ-042: an equal recorded_at breaks on seq DETERMINISTICALLY — the sweep cannot flap", async () => {
+    const P = "party-t6-tie";
+    const gapId = "credit-projection-gap:t6-tie-1";
+    const TIE = 7_000; // one instant, three decisions
+    await seedParty(env.TENANT_A_DB, P);
+    // INSERTION ORDER IS PART OF THE FIXTURE (§1260): the winner sits in the MIDDLE, so neither a forward nor
+    // a backward incidental scan can imitate the clause. Both incidental picks are "hold"; the answer is
+    // "clear", so dropping OR flipping `seq DESC` cannot land on the expected value by accident.
+    await seedCredit(env.TENANT_A_DB, "t6cr-tie-a", P, "hold", TIE, 0);
+    await seedCredit(env.TENANT_A_DB, "t6cr-tie-c", P, "clear", TIE, 2); // highest seq — the winner
+    await seedCredit(env.TENANT_A_DB, "t6cr-tie-b", P, "hold", TIE, 1);
+    await seedGap(env.TENANT_A_DB, gapId, P);
+
+    const res = await reconcileCreditForParty(env.TENANT_A_DB, P);
+    expect(res.applied_status, "the highest seq at the tied instant must win").toBe("clear");
+    expect(await partyCredit(env.TENANT_A_DB, P)).toBe("clear");
+
+    // The idempotency this suite claims, asserted ACROSS the tie: the same row must win every time.
+    await reconcileCreditForParty(env.TENANT_A_DB, P);
+    expect(await partyCredit(env.TENANT_A_DB, P), "a tie must not flap the value the booking gate reads").toBe("clear");
     expect(await gapStatus(env.TENANT_A_DB, gapId)).toBe("resolved");
   });
 

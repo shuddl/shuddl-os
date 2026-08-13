@@ -632,6 +632,8 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 708 | §1260 | **§1261** | **THE CREDIT TIEBREAK PINS DETERMINISM, NOT CORRECTNESS.** `recon-sweep` already held *a later CLEAR supersedes an earlier HOLD*, but varies `recorded_at` ALONE — flipping `, seq DESC` to ASC left agents 3/3 + api 13/13 GREEN. `seq` is a PER-STREAM counter, so comparing it across streams is an arbitrary total order — fine; UNSTABLE is not, because the same suite asserts the reconciler is IDEMPOTENT and a flapping pick moves a party between hold and clear, which is the value the REQ-042 booking gate reads. Winner placed MID-insertion, both incidental picks `hold` against an expected `clear`. 3 mutations RED. |
+| 709 | §1261 | **§1262** | **THE JOURNAL'S LINE ORDER + A SECOND AUTHOR IN THE WORKING COPY.** Reversing `created_ts, event_id, line_no` left 23/23 GREEN; the suite's *serializes byte-identically* case cannot see it, since one query run twice on the same rows is answered identically with or without an ORDER BY — a stable ENGINE, not an ORDERED query. Closed with 4 lines varying all three components, 5 mutations RED. **Class closed: 5 sites, 13 mutations, ledger 711/711 + api 834/834.** And reconciling the count found something bigger: 3 of the new tests are **NOT MINE** — a REQ-290 dated today, plus **seven modified files I never touched**. A delta here is not attributable to one author (I nearly recorded a fabricated *the suite mutates its own source*), and `git add -A` is unsafe regardless of exclusions — staging is **explicit paths** now. |
 | 707 | §1259 | **§1260** | **THE CLASS HAS TEN MEMBERS; FIVE MEASURED, FIVE UNEXERCISED.** Run as a search, §1258's rule enumerated every multi-column `ORDER BY` in shipped source. Measured each in THE SUITE THAT OWNS ITS CONSEQUENCE: `lens.ts` ts_desc (both tiebreaks deleted → ledger 706/706 AND api exceptions **7/7 GREEN**, in the suite whose comment says *this proves ts_desc keeps the freshest*), `credit.ts` (seq flipped → **3/3 + 13/13 GREEN**), `gl/export.ts` (reversed → **23/23 GREEN**). Equal `ts` is a PLATFORM property — `Date.now()` returns the time of the last I/O and does not advance during execution — and under a LIMIT an unstable order changes WHICH ROWS SURVIVE, resurfacing the REQ-197 vanishing-exception trap at the tie. **§1258's rule gets a second half:** the test written to close this carried the defect — varying every component is NECESSARY, not SUFFICIENT; the fixture must also beat the INCIDENTAL order (SQLite serves `ts DESC` from a BACKWARD index scan, so within a tie it returns reverse-insertion order, which imitated the intended order exactly), **per clause**, since a whole-order mutation can red while one component stays undefended. Insertion order derived from the constraints, proved 5 ways. |
 | 706 | §1258 | **§1259** | **THE RULE FROM §1258 FOUND ITS SIBLING ON THE FIRST TRY.** §1258's rule — *vary every component of a composite key or the orders collapse* — applied to the nearest candidate, in the same file: `anchor.ts` orders POSITION leaves by `(shipment_id, device_id, ts)` under the identical *any instability makes the root worthless* claim. **Reversing it left packages/ledger 705/705 GREEN.** Cause starker than §1258's: the positions case seeds **ONE row**, and a single leaf cannot distinguish ANY ordering. **So both halves of the anchor's leaf-order guarantee were unpinned** — events at §1258, positions here — and together they are the whole of it, with REQ-014's tamper evidence resting on a reproducible root. Closed with three rows exercising BOTH tiebreaks (a two-row fixture would not), root computed independently, leafCount pinned, both premises asserted. 706/706. **A finding closes one hole; a named mechanism is a search.** |
 | 705 | §1257 | **§1258** | **THE ANCHOR'S LEAF ORDER WAS LOAD-BEARING, STATED, AND UNEXERCISED.** `anchor.ts`: *any instability makes the root non-reproducible and the anchor worthless* (REQ-014 tamper evidence). **Swapping to `ORDER BY seq, stream_id` left packages/ledger 704/704 GREEN.** Not because no test exists — `runDailyAnchor` is tested across 22 seeded streams — but because **no fixture distinguishes the two orderings**: one stream (seqs 0..n) and several streams (all seq 0) both collapse them. Only *two streams with DIFFERING seqs* separates a0,a1,b0 from a0,b0,a1. **A fixture that cannot distinguish two implementations tests neither**, and for a COMPOSITE key that means varying every component. Third instance of §1233's shape this session. Closed with that shape, the expected root computed **independently** (§1197), and two premises — one of which caught my first draft using a day beyond the anchor window. Mutation now reds; 705/705. |
@@ -74720,3 +74722,79 @@ component stays defended by nothing.
 **STOP.** The ordering class enumerated at ten sites and measured at five, three gaps confirmed each in its
 owning suite, the `lens` tiebreak closed and proved five ways, and §1258's rule corrected by the test that
 failed to obey it. Two gaps — `credit` and `gl/export` — are confirmed and remain open, carried forward to the next section.
+
+## §1261 — the credit tiebreak: what is pinned is DETERMINISM, not correctness of the choice
+
+`reconcileCreditForParty` picks the latest `credit.checked` for a party with `ORDER BY recorded_at DESC, seq
+DESC LIMIT 1`. `recon-sweep.test.ts` already holds *"a later CLEAR supersedes an earlier HOLD"* — but it varies
+`recorded_at` alone, so the first clause satisfies it and `, seq DESC` is exercised by nothing. Flipping it to
+`seq ASC` left workers/agents **3/3** and workers/api **13/13** GREEN.
+
+**What the new case pins is not that `seq` picks the *right* decision.** `seq` is a PER-STREAM counter, so
+comparing it across two shipment streams is an arbitrary total order — deliberately so, since `id` is random and
+there is nothing better to break a tie with. Arbitrary is fine. **Unstable is not.** Without the clause the
+engine may return either row, and this same suite asserts one line up that re-running the reconciler is
+IDEMPOTENT: a flapping pick moves a party between `hold` and `clear` on successive sweeps, and the REQ-042
+booking gate reads exactly that value. So the test asserts the winner AND asserts it again after a second run.
+
+Fixture per §1260: three decisions at one instant, the winner in the MIDDLE of the insertion order, and both
+incidental picks deliberately `hold` against an expected `clear` — so neither a forward nor a backward scan can
+land on the answer by luck. `seedCredit` gained an optional `seq` (default 0; every existing caller unchanged).
+
+**Mutation-proved three ways** — clause dropped, `seq` flipped, `recorded_at` flipped — all RED. 14/14 clean.
+
+## §1262 — PHASE GATE: the journal's line order, and a working copy with a SECOND AUTHOR in it
+
+`exportJournal` orders by `created_ts, event_id, line_no`; every fixture varied `created_ts` alone. Reversing
+the whole clause left export-journal + export at **23/23 GREEN**.
+
+The suite's own *"is deterministic: the same range serializes byte-identically"* case cannot see this — it
+issues one query twice against the same rows in one process, which SQLite answers identically whether or not an
+`ORDER BY` is present. It distinguishes a stable engine from an unstable one, never an ORDERED query from an
+incidentally-stable one. This is the §1252 shape once more: correct today, stated in a test name, defended by
+nothing. And the stake is the accountant-facing journal — lines that reshuffle between exports of the SAME
+period turn a diff of two closes into noise, which is how a real discrepancy gets skipped.
+
+Closed with four money_lines varying all three components, insertion order derived from the per-clause
+constraints, and the two lines that share an event sharing its shipment — which is the realistic shape anyway,
+since two money_lines off one money event is precisely what `line_no` exists to order. (The first draft
+re-inserted a shared event and tripped `I3: append-only` at the BEFORE INSERT guard — the guard doing its job.)
+**Mutation-proved five ways** — whole clause reversed, each of the three clauses dropped alone, primary
+direction flipped — all RED. 16/16 clean.
+
+### The class, closed
+
+| site | ordering | proved by |
+|---|---|---|
+| `packages/ledger/src/anchor.ts:109@dayLeaves` | `stream_id, seq` | §1258 |
+| `packages/ledger/src/anchor.ts:114@positions` | `shipment_id, device_id, ts` | §1259 |
+| `lens.ts` `ts_desc` | `ts DESC, stream_id DESC, seq DESC` | §1260, 5 mutations |
+| `reconcile/credit.ts` | `recorded_at DESC, seq DESC` | §1261, 3 mutations |
+| `gl/export.ts` | `created_ts, event_id, line_no` | §1262, 5 mutations |
+
+Five load-bearing multi-column orderings; five were unexercised; five are now pinned per clause. Suites at
+HEAD: ledger **711/711**, api **834/834**.
+
+### A working copy with a second author in it
+
+Reconciling a test count exposed something more useful than the count. Ledger went 706 → 711 while I had added
+only 2 tests. The missing 3 are **not mine**: `packages/ledger/test/seed-load.test.ts` gained three cases for a
+**REQ-290 dated today**, and a wider sweep found **seven modified files I never touched** — `apps/command`,
+`apps/driver`, `tools/seed`, `tools/traceability` — with `genesis/09` now carrying a second uncommitted row.
+
+Two consequences, both operational:
+
+1. **A test-count or gate delta in this working copy is not attributable to one author.** The existing rule
+   (*measure against a known tree state*) was written for `genesis/09`; it now extends to source and test files.
+   The honest reflex is `git status` BEFORE attributing any delta — I nearly recorded "the suite mutates its own
+   source", which would have been a fabricated defect.
+2. **`git add -A` is unsafe here, exclusion list or not.** My staging pattern excluded four owner-held paths by
+   name; it would have swept all seven of these into my commit. Staging is now **explicit paths only** — the
+   files I authored, named one by one. The two commits before this one were checked and are clean.
+
+**Running tally: 15 of 40 load-bearing claims probed — 7 verified, 7 gaps closed, 1 claim corrected.**
+
+**STOP.** The multi-column ordering class is closed: five sites, each pinned per clause and mutation-proved
+(13 mutations, all RED), ledger 711/711 and api 834/834. A second author is active in this working copy;
+staging is explicit-path from here, and the known-tree-state rule now covers source and tests, not just the
+register.
