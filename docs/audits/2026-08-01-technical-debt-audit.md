@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 694 | §1246 | **§1247** | **THE DRIVER'S OFFLINE DURABILITY CONTRACT — STATED AT AN INTERFACE, HONOURED ON BOTH SIDES.** An unaudited surface, and the one where a defect strands real work: a `device_seq` that resets on reboot re-emits `(device_id, seq)` with DIFFERENT content, so first-wins merge and the sequencer's unique index **silently drop the later signed capture** — CLAUDE.md rule 6 territory. The port is SYNCHRONOUS while IndexedDB is async, so `durable-seq.ts` persists a **reservation block** and mints from inside it; what makes that sound is one guard — `next >= ceiling` throws, and a failing refill leaves the ceiling PUT, so capture() fails LOUD rather than minting an unreserved seq a restart would reuse. **Both obligations are pinned in their owning packages**: driver-core proves a rejected capture does not burn a seq (next valid still gets seq 0); apps/driver's ceiling guard is **mutation-proved** — `>=` → `>` reds it. §1243's chain lesson applied to an INTERFACE: a test on one side proves nothing about the other. |
 | 693 | §1245 | **§1246** | **§1235'S LESSON APPLIED BEFORE THE FAILURE — AND WHY 70 FILES SHARE ONE D1 WITHOUT CHAOS.** §1239 added a **55-shipment seed** to `watchtower.test.ts`, which writes the SHARED tenant D1; I had verified that file alone (21/21) and not the suite around it — §1235's shape in reverse, a test GROWING a corpus siblings measure. Checked before assuming: **70 files, 832 tests, zero failures.** Safe because every consumer is **scoped** (`{ scope }` on each sweep, alarm ids derived from it), so 55 shipments land in a partition nothing else reads. The transferable rule: **the shared D1 is safe for tests that SCOPE and unsafe for tests that MEASURE.** Every §1235 failure was in the second category; §1234's sweep found only 7 measuring sites and the two asserting an ABSENCE now carry premises. Narrows §1236's config warning from *file order is part of the fixture* to *scope your reads and ordering cannot reach you*. |
 | 692 | §1244 | **§1245** | **§1244'S CLASS SWEPT — 25 DEPLOYMENT CLAIMS IN SOURCE, AND THE ONE REAL GAP WAS A CORS ALLOWLIST BOUND BY PROSE.** A source comment asserting a DEPLOYMENT fact can be falsified by an edit no TypeScript gate reads; 25 exist. Verified the checkable ones against the configs: `workers_dev = false` holds for all five workers in every scope, and §1218's absent-flag claims re-confirmed. **The gap:** `CORS_ALLOWED_ORIGINS` and the apps' `custom_domain` routes are two copies of *which hostnames a browser loads a surface from* — they agree exactly (command, driver, portal, and `track`, a SECOND custom domain on the portal worker, which is why 4 origins fit doc 00's 3 surfaces) and **nothing compared them**. Failure is one-way: a new origin missing from the list boots the surface then fails every API read with a causeless CORS error. New gate is an **inclusion** check, never equality — the list deliberately keeps RFC 2606 placeholders. Mutation-proved both ways plus a positive control on its own parser. |
 | 691 | §1243 | **§1244** | **§1243'S RULE ON THE CONSTITUTIONAL CHOKEPOINT — AND IT REACHED OUT OF THE CODE.** REQ-025 says *the tenant resolves from the JWT claim ONLY*, which is a chokepoint claim, so all **49** tenant-db resolutions were classified by SLUG SOURCE rather than by call shape: **33** JWT `session.tenant`, **12** server-side cron enumeration, 2 host-map/DO-self, 1 server-authored queue trigger, 1 MAC-verified capability claim — **0 client-supplied**. The one unauthenticated selection (`pub/quote.ts`) uses a server-side host map whose comment claims *never the client-forgeable Host header* — **an assertion about the DEPLOYMENT, not the file**. Verifying it meant leaving TypeScript for `wrangler.toml`: exact zone-bound routes and `workers_dev = false`, so a forged Host cannot route here. **The least-controlled input to this chokepoint is a routing rule.** Consequence stated: `HOST_TENANTS` holds only synthetic placeholders (REQ-167), so the route 404s by construction in prod until onboarding provisions the host — the recorded design (genesis/13). |
@@ -74031,3 +74032,49 @@ the hazard; this is the discipline that makes the hazard almost never bite.
 **STOP.** The suite-scale check run before committing rather than after a red board, the new fixture confirmed
 inert against 70 sibling files, and the property that makes a shared database workable — scoping, not ordering
 luck — stated as the rule that predicts which tests the hazard can actually reach.
+
+## §1247 — PHASE GATE: the driver's offline durability contract — stated at an interface, honoured on both sides
+
+**A surface this session had not audited.** The Driver PWA is where a defect strands real work: freight
+evidence captured in airplane mode, signed on-device, and lost with no error. The load-bearing invariant is
+`device_seq`, and `capture.ts` states it as an explicit **DURABILITY CONTRACT** on the port:
+
+> *MONOTONIC ACROSS APP RESTARTS: the counter must be persisted durably BEFORE this returns… A counter that
+> resets to 0 on reboot RE-EMITS `(device_id, seq)` pairs with DIFFERENT content; first-wins merge and the
+> sequencer's unique index then SILENTLY DROP the later one — signed airplane-mode data lost, with no error.*
+
+That is the whole hazard in one sentence, and it is exactly CLAUDE.md rule 6's territory.
+
+### The sync/async mismatch, and the guard that makes the reservation real
+
+The port is **synchronous** (`nextSeq(): number`) while IndexedDB is async — so `durable-seq.ts` persists a
+**reservation block** first and mints synchronously from inside it. What makes that sound rather than
+optimistic is one guard:
+
+```ts
+if (this.next >= this.ceiling) throw new Error("DurableSeq: reservation exhausted …");
+```
+
+A failing background refill leaves the ceiling **put**, so the guard fires and `capture()` throws — rather than
+minting an unreserved seq that a restart would reuse. **Fail loud, not fail quiet**, on the one path where quiet
+means lost freight evidence.
+
+### Both halves of the contract are tested, in the two packages that own them
+
+| Obligation | Owner | Pinned by |
+|---|---|---|
+| a rejected capture must not burn a seq | `driver-core` (the consumer) | *"rejects a kind/payload/field mismatch AND does not burn a device_seq (I-2b)"* — and asserts the next valid capture still gets **seq 0** |
+| never mint at or beyond the persisted ceiling | `apps/driver` (the implementer) | mutation-proved: `>=` → `>` REDs *"refuses to mint an UNRESERVED seq when the durable refill fails (no silent reuse)"* |
+
+**The off-by-one is the one that matters**, because `>` versus `>=` hands out the ceiling value itself — a
+number nothing reserved — and that is precisely the boundary §1230 showed usually goes untested. Here it does
+not.
+
+**What generalises:** this is §1243's chain lesson applied to an **interface** rather than a data path. A
+contract written at a port has two obligations, and they live in different packages — the consumer's (validate
+before you burn) and the implementer's (persist before you return). **A test on one side proves nothing about
+the other**, and here each side is pinned where it is owned.
+
+**STOP.** The driver's offline durability contract read as stated, the reservation-block design confirmed sound
+by the guard that makes it non-optimistic, both cross-package obligations found pinned in their owning packages,
+and the boundary case mutation-proved rather than taken on the strength of a test name.
