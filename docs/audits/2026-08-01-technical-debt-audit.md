@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 810 | §1363 | **§1364** | **THE SAME UNDERCOUNT IN §1351, AND A POPULATION THAT TRIAGES TO ZERO.** §1363's lesson applied to the other survey built the same way: §1351's duplicate-body sweep reported **five** copy-sets; brace-depth extraction finds **21**. Same 4x-class undercount, same cause — §1351 saw only the flattest bodies. **But zero new defects.** The security-critical family (6 copies of constant-time compare) is pinned by a gate STRONGER than parity — it asserts the property per copy plus a discovery half for any new `===` on a secret. The 7 `deterministicUuid`/`uuidFromSeed` copies are two textual forms of one semantics (the second inlines `sha256Hex`) and share no id space. The rest are small helpers whose drift is loud and local. **Two triage errors caught pre-publication:** I ranked the best-defended thing in the repo as the top risk, and credited a pin to `parity.test.ts` on FILENAME when that file is about ledger MODULE parity — the §1362 name-collision repeated inside the phase correcting it. **Meta, now twice-held (§1360, §1364): a pattern-derived population here is dominated by CORRECT uses, so the triage is not the tax on the phase, it IS the phase** |
 | 809 | §1362 | **§1363** | **§1362's OWN COUNT WAS WRONG, AND THE NINTH ROOT WAS THE ONE IT WAS LOOKING FOR.** It said *seven roots, six pinned*; there are **nine**, and the missed one — `conciergeParser` — is a second instance of the very defect it closed (unexported → unreachable → zero test mentions). **Why:** §1362's scan extracted bodies with a regex allowing ONE level of brace nesting, and `new ClaudeParser({ … })` inside an `if` is two — so the discipline this repo already fixed twice (§1338) was applied to the phase's TEST files while the phase's SURVEY used a nesting-limited regex. A gate built from a blind survey inherits its blind spot. Second correction, safe direction: a global name match credited the agents `evidenceSender` with the API worker's identically-named pin; checking found it genuinely pinned behaviourally (`test-send` gates 4/5). `conciergeParser` selects the live Anthropic path per inbound message — the arrival trigger for the standing cost-metering row. Fixed + **mutation-proved twice, both isolating**. **Near-miss:** mutation 2 first read GREEN because a 6-space replacement string missed a 4-space line — a no-op replace is indistinguishable from a vacuous test, so every mutation now asserts its own application count first |
 | 808 | §1361 | **§1362** | **THE DARK-DEPENDENCY CLASS SWEPT — §380 CLOSED IT TWICE WITHOUT COUNTING.** §1361 fixed two dark-bounded loops with PROSE; the repo already ships the mechanism — a **dormancy test**, which REDs at the config flip. Two existed. Sweeping: **11** `NotConfigured*` stubs by name vs **4** by my mechanism probe (64% miss — most stubs are async or throw, so the naming convention was the MORE complete instrument here; a mechanism enumeration is only as good as the mechanism specified). Class health is good — 8 of 11 have exercised live siblings, the 3 without are documented go-live rows and fail-closed. **The defect: 7 composition roots can return a dark stub, 6 are pinned.** `feedReaderFor` was neither exported nor named by any test — and it is the one §1361 showed un-bounds a whole-export loop. §380 stated this finding verbatim (*"the BEHAVIOUR of each default was pinned, the CHOICE of them was not"*) and fixed two roots instead of counting them. Fixed: exported + `feed-dormancy.test.ts` (4 cases), **mutation-proved isolating** — a live reader REDs both selector assertions while `read()→null` stays green, proving the behaviour half could never have caught a wiring. Also struck a false **BOUNDED** in `runMirrorSweep`'s header, justified by its own no-op clause |
 | 807 | §1360 | **§1361** | **FINISHED THE LOOP WORK-LIST — AND TWO LOOPS ARE BOUNDED BY NOTHING BUT A DARK DEPENDENCY.** Applied §1360's rule to §1338's 26-loop set. The 15 the regex called bounded are recorded UNREAD (the same heuristic already misclassified four the other way). Of the 11 read: 6 already filed, `sla-sweep:186` is **no longer an instance** (post-§471 the append fires per BREACH, not per candidate), `index.ts:579` is bounded by `max_batch_size = 10` — and **`mirror-sweep.ts:225` and `webhooks.ts:356` are inert only because their sources are `NotConfigured*` stubs**. Each is un-darkened by a named go-live row (168, 146) that mentions no loop, no row count and no ceiling; mirror-sweep's watermark bounds STEADY STATE, while the FIRST sweep after wiring iterates the whole legacy export with a D1 read + append per row. **"Returns nothing today" is not a bound** — it is an unconnected dependency, and the hazard's ARRIVAL trigger was written in two rows that did not know they were it. Both rows cross-linked; the page bound left to the register owner |
@@ -79115,7 +79116,11 @@ tell those apart, and this session has now seen one of each.
 low-attention symbol that CALLS a proven helper is fine, while one that RE-IMPLEMENTS it is where §1348's shape
 lives. That makes "find the copies" a mechanical search, and it had never been run.
 
-Normalising every function body in the shipped tree and grouping duplicates across FILES yields **five copy-sets**:
+Normalising every function body in the shipped tree and grouping duplicates across FILES yields ~~**five copy-sets**~~:
+**COUNT CORRECTED 2026-08-13 — §1364: there are TWENTY-ONE.** Same cause as §1362's undercount, found by the same
+re-measurement: this sweep's body extraction could not span nested braces, so it saw only the flattest bodies.
+The five below are real and the conclusions about them stand; the missing sixteen are triaged in §1364 and none
+is a defect, which is why this section's *verdict* survives its own arithmetic.
 
 | copies | function | held by |
 |---|---|---|
@@ -79742,3 +79747,44 @@ not apply is indistinguishable from a test that catches nothing, and it fails to
 count before the verdict is read** — the check costs one line and the alternative is publishing a false vacuity.
 
 Verification: agents worker **24 files / 140 tests** green, typecheck 0, lint 0, `check:citations` 0.
+
+## §1364 — PHASE GATE: the same undercount in §1351, and a population that triages to zero
+
+§1363 found that §1362's survey used a brace-nesting-limited regex and undercounted. That indicts every other
+survey built the same way in this stretch. The one most at risk was **§1351's duplicate-body sweep**, because an
+undetected copy-set is an unpinned duplicate implementation — exactly the debt that phase existed to find.
+
+Re-run with brace-depth extraction: **21 duplicate-body sets, not five.** The undercount is 4x and has the
+identical cause. §1351's five were the flattest bodies in the tree.
+
+**But the count is not the finding, and this is the second consecutive phase where that is true.** Triaging all
+21 by *what breaks if this drifts*:
+
+| set | copies | verdict |
+|---|---|---|
+| `timingSafeEqual` / `tokensEqual` / `constantTimeEqual` / `bytesEqual` | 6 | **PINNED, and better than by parity** — `constant-time-compare.test.ts` asserts the PROPERTY per copy (length check, `^` accumulation, `\|=` fold, no short-circuit), plus a §802 discovery half for any NEW `===` on a secret, plus a non-vacuity floor |
+| `deterministicUuid` / `uuidFromSeed` | 7 | **Not a defect.** Two textual forms, semantically identical — the second inlines `sha256Hex` where the first calls it, and the version/variant lines are byte-identical. The copies also do not share an id space (legacy-mirror events, inbound EDI, invoices, credits, approvals/dunning/portal actions), so parity between them is not load-bearing; what IS load-bearing is each copy's determinism, which its own domain suite covers |
+| `resolveTenantDb`, `deriveDocSecret`, `deriveStatusSecret` | 3 + 2 | covered by `tenant-scope.test.ts` (a gate), `plg-isolation-matrix`, `documents`, `status-cap`, `pub-status` |
+| `readModelText`, `tsaFor`/`tsaClientFor`, `resolveRecipient`, `loadTenantRatingConfig`, `loadTransitMatrix`, `sha256Hex` | — | the five §1351/§1352 already held |
+| `toLensError`, `loadEvent`, `extractJson`, `readErrorDetail`, `sequencerFor`, `effectivePayload`, `currentPeriod` | 2–3 each | small helpers whose drift is loud and local: a broken error mapper, a missing event, a bad period key all fail their own suites immediately |
+
+**Zero new defects.** The undercount was a METHOD defect, confirming §1363's lesson a second time, and not a RISK
+defect. Publishing "16 unpinned duplicate implementations" would have manufactured sixteen work items out of a
+population that is almost entirely correct duplication.
+
+**Two corrections to my own triage, both caught before publishing.** First, I ranked the constant-time family as
+the top risk and it was already the best-defended thing in the list — the repo had answered the question before
+I asked it ([[search-the-record-before-the-code]], [[the-repo-ships-the-instrument]]). Second, my triage column
+credited `resolveClaimedTenantDb` to `workers/api/test/parity.test.ts` because the FILENAME contains "parity" —
+but that file is about ledger MODULE parity (`computeAllParity`, `PARITY_MODULES`), an unrelated concept. That is
+the §1362 name-collision error repeated inside the very phase written to correct it, and the only reason it did
+not reach the record is that I checked a claimed pin instead of counting it.
+
+**The meta-observation, now that it has held twice.** §1360 triaged 16 exemption lists down to one narrow case;
+this phase triages 16 missed copy-sets down to none. A pattern-derived population in this codebase has a very
+high false-positive rate, because the codebase is mostly *correct* — the shape a scan detects is dominated by
+legitimate uses of that shape ([[invert-a-detector-whose-boundary-is-english]] said this about English; it is
+just as true of code). **The triage is not the tax on the phase, it IS the phase.** A count published without one
+is a work-list of mostly-nothing, and it costs whoever reads it the same effort it would have cost me.
+
+Verification: no source changed; the corrections are to §1351's stated count and this new section.
