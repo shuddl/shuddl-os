@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 792 | §1345 | **§1346** | **THE FRAMING PATTERN USED AS A SEARCH — AND THE ASYMMETRY IT EXPOSED.** Applied §1345's rule generatively: for a consequence-titled item, ask the SIBLING consequence. Thin on §-headings (nearly all are methodological), so applied to the domain-framed ROWS: the register carries two *"a lost trigger has no backstop"* rows, whose sibling is a DUPLICATED trigger (the queue is at-least-once). `recall "already_booked"` → **§476**, a clean negative in three steps: an alarming unpinned `ORDER BY seq LIMIT 1`, but a second booking is **unreachable** (REQ-191, rejected server-side), and that guard is pinned. **The asymmetry is the finding**: the UNRECOVERABLE direction was made impossible, the RECOVERABLE one left to a backstop — so open items cluster on the recoverable side BY CONSTRUCTION. |
 | 791 | §1344 | **§1345** | **AUDITED MY OWN FILED ROWS WITH THE RECORD'S INSTRUMENT — 4 OF 4 NOVEL.** A filed row that duplicates an existing one is debt the AUDIT added, and it looks exactly like a finding. `recall` on each row's distinguishing symbol: `ack990Key`, `OVERDUE_INVOICES_SQL`, `MAX_ROWS` all return only my own sections. `emitTerminalHoldMarker` returns **7 mentions / 5 verdicts, two PRIOR** — so §1102 (*"seven ways a delivered load does not bill"*) had to be READ: across 56 lines it mentions `split` **0** times and AP **0** times. It is an AR section end to end, so §1307's AP finding sits outside it. **The reason it was findable is the framing pattern, now at three instances** — §1330 titled for a TRIGGER, §1335 split across CONSEQUENCES, §1345 AR vs AP. |
 | 790 | §1343 | **§1344** | **THE INSTRUMENT'S FIRST REAL USE — AND WHAT IT SAVED.** Used `recall` instead of `git grep` on the question likeliest to find live work: what the record admits is UNEXERCISED (27 mentions / 19 verdicts). The sharpest was §1266, *"four unexercised guards in the Gatekeeper"* — **closed, and better than I would have closed it**: 2 were real gaps, 2 are REDUNDANT because the schema refuses a wrong type first, and the discriminator is doc 10's deliberate loose/typed asymmetry, not luck. **The borrowable move is the scoping**: §1266 names 109 `typeof` guards across 42 files and §1267 refused to sweep them, re-scoping to the enumerable BOUNDARY (8 loose kinds of 35, `readField` in one file) — sweeping 109 would have been mostly redundancy, the §1053 noisy-gate outcome. Boundary still held (3/3). |
 | 789 | §1342 | **§1343** | **POINTED §1342's INSTRUMENT AT THIS SESSION'S OWN FINDINGS.** The honest way to act on "I never used `recall`" is to run it against what I claimed to find. `recall ack990Key` returns **only §1330 and the row it amended** — so the 990 double-send is genuinely new, confirmed by the record's instrument rather than by my confidence, which matters because it sits in a file with **10 prior verdicts**. And the tool already encodes the discipline: on an exact-phrase miss it prints *"the exact phrase is absent, but ITS TERMS ARE NOT. **This is not novelty**"* with term counts and owning sections — a built-in guard against the precise inference I nearly made at §1325 and did make at §1311/§1317. Reaching for it would have corrected the REASONING, not just the search. |
@@ -78877,3 +78878,50 @@ cost four commands and would have caught a duplicate before it entered the regis
 an audit is least able to see in itself, because a duplicate row looks exactly like a finding. **The framing
 pattern is now at three independent instances (§1330 trigger, §1335 consequence-split, §1345 AR/AP), which is
 enough to state it as a property of this record rather than an accident of three rows.**
+
+
+## §1346 — PHASE GATE: the framing pattern used as a SEARCH, and the asymmetry it exposed
+
+§1345 stated the framing pattern as a property of this record: a section or row titled for one consequence
+scopes its sibling out of view. Its value is generative — **for any consequence-titled item, ask what the
+sibling consequence is** — and §1307 was found that way before the rule was named.
+
+Applied to the §-headings, the yield is thin: nearly all consequence-framed titles are METHODOLOGICAL
+(*"cannot be checked by machine"*, *"does not generalise"*), and the one domain-framed heading, §1102's *"does
+not bill"*, already had its sibling found at §1307. The heuristic belongs on the checklist ROWS, which are
+domain-framed.
+
+**The pair worth asking:** the register carries *"a lost CONCIERGE trigger has no backstop"* and *"a lost
+booking trigger has NO backstop"*. Their sibling is not a lost trigger but a **duplicated** one — the queue is
+at-least-once, so redelivery is the expected case rather than the exotic one.
+
+`recall "already_booked"` → **§476**, and it is a clean negative proved in three steps:
+
+1. `loadBookingQuoteRef` orders `ORDER BY seq LIMIT 1`, so the FIRST `booking.created` wins — and flipping it
+   to `DESC` leaves all 24 biller tests green, which looks exactly like an unpinned choice on the money path.
+2. A second booking is **unreachable**: the sequencer enforces REQ-191 — *"booking.created is IDEMPOTENT PER
+   STREAM: at most ONE per shipment"* — rejected server-side before the append.
+3. That guard is pinned: *"the same quote.accepted twice → ONE booking.created; the second returns
+   `already_booked`"*.
+
+### The asymmetry is the finding, and it is the right one
+
+The LOST direction has no backstop and is filed OPEN. The DUPLICATE direction is structurally impossible. That
+is not an oversight in one of them — it is the correct allocation:
+
+| direction | recoverable? | how the system treats it |
+|---|---|---|
+| trigger LOST | **yes** — a sweep can re-derive it from committed state | left to a backstop (unbuilt, filed) |
+| trigger DUPLICATED | **no** — a second `booking.created` on an append-only ledger cannot be withdrawn | made **impossible** server-side, and pinned |
+
+**The unrecoverable failure was made impossible; the recoverable one was left to a backstop.** That ordering is
+what an append-only ledger forces, and it explains why every "lost X" row in this register is open while no
+"duplicate X" row exists for the ledger paths — the duplicates were designed out rather than deferred.
+
+**Running tally: 247 of 247 load-bearing claims probed — 171 verified, 46 gaps closed, 23 claims corrected;
+12 operational items recorded.**
+
+**STOP.** No gap. The heuristic worked as a search — three commands from a stated pattern to a definitive
+answer — and its result is a structural fact worth more than another row: **this system's open items cluster on
+the recoverable side by construction**, so the absence of duplicate-side rows is evidence of a design decision
+rather than of an unswept area.
