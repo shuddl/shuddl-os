@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| **811** | §1364 | **§1365** | **STOPPING POINT — THE PATTERN-DERIVED POPULATIONS ARE EXHAUSTED, AND THE BOARD IS CLEAN.** Measured at `bf84a41`, not inherited: `pnpm verify:merge` gives **26 gates — 21 PASS · 0 FAIL · 5 BLOCKED**, **4,750 tests passed, zero suites failing**. All five BLOCKs are owner-held (absent `IDENTITY_DENYLIST` + four unvendored private fixture sets); the repo-owned failure set is EMPTY, with 13 files dirty from the concurrent author and the board clean anyway. §1355–§1364 closed four pattern-measured populations — loops (26 → 2 real), exemptions (8 → 1), composition roots (7 claimed → 9 actual, 1 unpinned), copy-sets (5 claimed → 21 actual, 0 defects). Two gates built, both mutation-proved isolating; two false claims struck from source. **Phase gate: five reopen triggers, three of them MECHANISMS that RED rather than prose that reminds.** Known gap named rather than hidden: a tenth composition root would be caught by no standing check |
 | 810 | §1363 | **§1364** | **THE SAME UNDERCOUNT IN §1351, AND A POPULATION THAT TRIAGES TO ZERO.** §1363's lesson applied to the other survey built the same way: §1351's duplicate-body sweep reported **five** copy-sets; brace-depth extraction finds **21**. Same 4x-class undercount, same cause — §1351 saw only the flattest bodies. **But zero new defects.** The security-critical family (6 copies of constant-time compare) is pinned by a gate STRONGER than parity — it asserts the property per copy plus a discovery half for any new `===` on a secret. The 7 `deterministicUuid`/`uuidFromSeed` copies are two textual forms of one semantics (the second inlines `sha256Hex`) and share no id space. The rest are small helpers whose drift is loud and local. **Two triage errors caught pre-publication:** I ranked the best-defended thing in the repo as the top risk, and credited a pin to `parity.test.ts` on FILENAME when that file is about ledger MODULE parity — the §1362 name-collision repeated inside the phase correcting it. **Meta, now twice-held (§1360, §1364): a pattern-derived population here is dominated by CORRECT uses, so the triage is not the tax on the phase, it IS the phase** |
 | 809 | §1362 | **§1363** | **§1362's OWN COUNT WAS WRONG, AND THE NINTH ROOT WAS THE ONE IT WAS LOOKING FOR.** It said *seven roots, six pinned*; there are **nine**, and the missed one — `conciergeParser` — is a second instance of the very defect it closed (unexported → unreachable → zero test mentions). **Why:** §1362's scan extracted bodies with a regex allowing ONE level of brace nesting, and `new ClaudeParser({ … })` inside an `if` is two — so the discipline this repo already fixed twice (§1338) was applied to the phase's TEST files while the phase's SURVEY used a nesting-limited regex. A gate built from a blind survey inherits its blind spot. Second correction, safe direction: a global name match credited the agents `evidenceSender` with the API worker's identically-named pin; checking found it genuinely pinned behaviourally (`test-send` gates 4/5). `conciergeParser` selects the live Anthropic path per inbound message — the arrival trigger for the standing cost-metering row. Fixed + **mutation-proved twice, both isolating**. **Near-miss:** mutation 2 first read GREEN because a 6-space replacement string missed a 4-space line — a no-op replace is indistinguishable from a vacuous test, so every mutation now asserts its own application count first |
 | 808 | §1361 | **§1362** | **THE DARK-DEPENDENCY CLASS SWEPT — §380 CLOSED IT TWICE WITHOUT COUNTING.** §1361 fixed two dark-bounded loops with PROSE; the repo already ships the mechanism — a **dormancy test**, which REDs at the config flip. Two existed. Sweeping: **11** `NotConfigured*` stubs by name vs **4** by my mechanism probe (64% miss — most stubs are async or throw, so the naming convention was the MORE complete instrument here; a mechanism enumeration is only as good as the mechanism specified). Class health is good — 8 of 11 have exercised live siblings, the 3 without are documented go-live rows and fail-closed. **The defect: 7 composition roots can return a dark stub, 6 are pinned.** `feedReaderFor` was neither exported nor named by any test — and it is the one §1361 showed un-bounds a whole-export loop. §380 stated this finding verbatim (*"the BEHAVIOUR of each default was pinned, the CHOICE of them was not"*) and fixed two roots instead of counting them. Fixed: exported + `feed-dormancy.test.ts` (4 cases), **mutation-proved isolating** — a live reader REDs both selector assertions while `read()→null` stays green, proving the behaviour half could never have caught a wiring. Also struck a false **BOUNDED** in `runMirrorSweep`'s header, justified by its own no-op clause |
@@ -79788,3 +79789,68 @@ just as true of code). **The triage is not the tax on the phase, it IS the phase
 is a work-list of mostly-nothing, and it costs whoever reads it the same effort it would have cost me.
 
 Verification: no source changed; the corrections are to §1351's stated count and this new section.
+
+## §1365 — PHASE GATE / STOPPING POINT: the pattern-derived populations are exhausted, and the board is clean
+
+**MEASURED AT `bf84a41`, not inherited** (§804's rule: a claim you inherit is a claim you are making).
+`pnpm verify:merge` — the only complete verdict, per CLAUDE.md — run to completion:
+
+| | count | detail |
+|---|---|---|
+| **PASS** | **21** | runtime · typecheck · lint · unit-tests · invariants · rater-purity · append-chokepoint · authority-coverage · traceability · coverage · seed · citations · table-shape · section-refs · bundle-ratchet · acceptance · design-audit · perf · visual · a11y · e2e |
+| **FAIL** | **0** | — |
+| **BLOCKED** | **5** | identity-leak (no `IDENTITY_DENYLIST`) · fixtures · rater-parity · invoice-parity · concierge-parse (four private fixture sets, not vendored) |
+
+**4,750 tests passed; zero suites reported a failure.** Aggregate is BLOCKED (exit 2) and therefore NOT
+PROMOTABLE — but every one of the five is owner-held and none is a repo defect. The repo-owned failure set is
+empty. The tree carries 13 files dirty from the concurrent author, and the board is clean anyway, which is worth
+recording because the last two measured boards each had FAILs traced to an uncommitted register row
+([[measure-against-a-known-tree-state]]).
+
+**WHAT THIS PHASE BLOCK CLOSED (§1355–§1364).** The through-line was not a subsystem, it was a *method*: every
+phase took a population someone had measured by pattern and asked what survives contact with reading.
+
+| population | measured | after triage |
+|---|---|---|
+| per-row-I/O loops (§1334/§1338 → §1361) | 26 candidates, published as "the owner's work-list" | 6 already filed, 2 not instances, **2 real** — bounded by nothing but an unwired source |
+| exemption lists without staleness assertions (§1359 → §1360) | 8 of 16 | 4 cannot go stale, 2 were my own false positives, **1 narrow case** |
+| composition roots returning a dark stub (§1362 → §1363) | "7, six pinned" | **9, one unpinned** — and the miss was a second instance of the defect being closed |
+| duplicate function bodies (§1351 → §1364) | 5 copy-sets | **21**, and zero new defects |
+
+Two gates were built and both mutation-proved isolating: `feed-dormancy.test.ts` (§1362) and
+`parser-selection.test.ts` (§1363). Two false claims were struck from source: `runMirrorSweep`'s **BOUNDED**,
+justified by its own no-op clause, and `biller.ts`'s exceptions-queue claim (§1307).
+
+**THE PHASE GATE — what reopens this block.** Each of these is a *mechanism*, not a reminder, because §1361
+established that prose in a checklist row is not a tripwire:
+
+1. **Wiring the legacy feed** REDs `feed-dormancy.test.ts`, which names the unbounded first sweep. Decide a page
+   size in the same change. *(GO-LIVE row: Live legacy-feed provisioning.)*
+2. **Wiring the webhook event source or transport** REDs `webhook-dormancy.test.ts`. Its loop is the same shape.
+3. **Binding `ANTHROPIC_API_KEY` + `ANTHROPIC_MODEL`** flips `conciergeParser` to the live path — pinned in both
+   directions by `parser-selection.test.ts`, and the arrival trigger for the cost/latency-metering row.
+4. **Vendoring the private fixtures or the denylist** clears the five BLOCKs and is the only path to PROMOTABLE.
+5. **A tenth composition root** — any new `function …For(env)` returning a `NotConfigured*` — has no gate. The
+   sweep that finds them is in §1363 and is nine lines; there is no standing check, and that is a known gap
+   rather than an oversight.
+
+**THE ONE DURABLE LESSON, held four times now.** A count derived from a pattern is a *shape* count. In this
+codebase the shape is dominated by correct uses — because the codebase is mostly correct — so publishing the raw
+number manufactures work items that reading dissolves. Twice the triage found real defects (§1361, §1363) and
+twice it found none (§1360, §1364), and in all four the number that would have been published was wrong by 3–4x.
+**The triage is not the tax on the phase, it is the phase.** The corollary bit twice in one day: a survey
+extracted more crudely than the gate it informs silently caps that gate's reach, so both sides of a phase must
+use the same instrument ([[survey-and-gate-need-one-extractor]]).
+
+**A footnote that belongs here.** This section's first draft was headed *"STOPPING POINT V"* and `phase-index`
+RED on it within a minute: the index row named §1365 while the heading did not match `§NNN — PHASE GATE`, which
+is how every one of the forty-odd prior stopping points is written. It also surfaced that **V was already used**
+— §999 — the Roman numbering having run to XX at §1170 before being dropped. A gate this record built to keep its
+own index honest caught the record's own author writing an unfindable heading, which is the cheapest possible
+demonstration that the enforcement layer §972–§991 built is load-bearing on the thing hardest to enforce by
+attention: prose about oneself.
+
+**CARRY-FORWARD (owner-held, unchanged by this block):** vendor the nine private fixtures + `IDENTITY_DENYLIST`
+· commit the `genesis/09` rows · REQ rows for the filed operational items (interline-split marker, split
+backstop, collector page bound, import bound, and now the mirror-sweep page size) · the API-contract decision on
+`quote.priced` in `SERVER_EMITTED_KINDS`.
