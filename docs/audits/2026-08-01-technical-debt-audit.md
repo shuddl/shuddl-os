@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 760 | §1313 | **§1314** | **STOPPING POINT — THE FULL BOARD AT `9af88fb`: 21 PASS · 2 FAIL · 5 BLOCKED.** Ran `verify:merge` (all 26) after §1313 showed six phases of targeted gates hid three reds. **Both FAILs are ONE uncommitted file** (`unit-tests` runs the tools suite containing `citation-links`; `citations` runs it directly) — **proved** by swapping in `git show HEAD:tools/traceability/coverage.ts`: exit 0 with HEAD's copy, 1 with the working copy. **Repo-owned failure set EMPTY.** 5 BLOCKED = nine pending engagement fixtures + absent `IDENTITY_DENYLIST`. Sharpened one of my own reopen triggers that a comment mention made undecidable. Nearly misdiagnosed a workerd wedge: the procs were state `S`, **PPID 1** (orphans), and the job's "exit 0" was my wrapper's `echo`, not the verdict. |
 | 759 | §1312 | **§1313** | **I REPRODUCED THE BUG THE GATE DOCUMENTS, IN THE GATE WRITTEN TO PREVENT IT.** Three phases corrected COUNTED claims, so I extended `checklist-figures` — hand-kept `SWEEP_COUNT_FILES` (2 of 4 files) and a vocabulary stopping at `ten` (so `"Eleven per-tenant sweeps"` matched NOTHING) both closed, file list now DERIVED. Then I planted §1312's real defect (`across four workers`) and **the new gate stayed GREEN** — `four` was not in the table, verbatim the §1077 lesson written forty lines above the code I was editing. Completing the vocabulary then made `"N of them"` match ordinary English (3 FPs), so the shape is now window-scoped. Replay: 1 RED naming the exact drift. **Also ran the FULL tools suite for the first time in six phases: 4 red, 3 of them MINE** (bare `biller.ts:NNN` into a high-churn file; a backticked Cloudflare metrics field; §1313 refs). |
 | 758 | §1311 | **§1312** | **THE ELEVEN CLOSED — AND TWO NEEDED A DIFFERENT PROOF.** All eleven per-tenant sweeps now assert CONTINUATION, not just non-rejection. §409's counted bound re-measured: eleven is right, **"four workers" is wrong — THREE** (agents 9, billing 1, translator 1; `api` has tenant bindings but iterates no roster), and the coverage gate had asserted three all along, so a doc claim and a green gate disagreed. The agents pattern (poison tenant-a, assert tenant-b's SUCCESS log) does not transfer to two members — translator poisons a SHARED R2 binding, billing's suite migrates only tenant-a — so **tenant-b's own FAILURE line is the proof**, since it can only exist if the loop continued. Declined to migrate tenant-b: the same file's live meter-identity assertion would silently change subject. **Mutation `continue→break`: 1 RED per worker on the continuation line, billing's pre-existing RESOLVES case GREEN.** |
 | 757 | §1310 | **§1311** | **A DOCUMENTED GAP CAN ALSO BE ALREADY CLOSED — §1309 AND §1310 WERE BOTH WRONG.** `sweep-containment.test.ts` has poisoned a tenant across NINE sweeps since §409, with a non-vacuity errSpy check materially identical to §1310's. The absence claim came from a grep scoped to `*cron*.test.ts`; the owning file has no "cron" in its name — **scoping the corpus by FILENAME is the same error as scoping it by MECHANISM (§1308)**. What WAS missing is the CONTINUATION half, which §409 deferred on the record (*"the property we want … entangled with slug order and log spies"*). Closed in the owning file; my duplicate DELETED. **Isolating mutation:** `continue → break` leaves containment intact — old assertion GREEN, only the new line reds. 131→132 (not 140: 8 were duplicates), 8 of 9 sweeps now assert continuation. |
@@ -77394,3 +77395,66 @@ The fourth is the standing `coverage.ts` rot from another workstream's uncommitt
 And **CLAUDE.md's rule that "green" means the full gate run, not a chosen subset, is not bureaucratic**: six
 phases of targeted checks reported green while three gates I never ran were red, each on work I had just
 committed.
+
+
+## §1314 — PHASE GATE / STOPPING POINT: the full board, measured at `9af88fb`
+
+§1313 found that six phases of targeted gates had hidden three real reds. The correction is to run the gate
+CLAUDE.md actually names — `pnpm verify:merge`, all 26 — and that is this section.
+
+### The board
+
+**21 PASS · 2 FAIL · 5 BLOCKED**, aggregate exit 1.
+
+| verdict | gates |
+|---|---|
+| **PASS** (21) | runtime · typecheck · lint · invariants · rater-purity · append-chokepoint · authority-coverage · traceability · coverage · seed · table-shape · section-refs · bundle-ratchet · acceptance · design-audit · perf (1) · visual (5) · a11y (4) · e2e (6) |
+| **FAIL** (2) | unit-tests · citations |
+| **BLOCKED** (5) | identity-leak (no `IDENTITY_DENYLIST`) · fixtures · rater-parity · invoice-parity · concierge-parse — all awaiting the nine `pending` engagement fixtures |
+
+### Both FAILs are one uncommitted file, and it is not this loop's
+
+`unit-tests` runs the tools suite, which contains `citation-links`; `citations` runs that gate directly. So the
+two reds are **one cause**: a single citation into `tools/traceability/coverage.ts`, which another workstream
+has modified in the working tree.
+
+**Proved, not asserted** — the procedure this audit adopted after mis-attributing a red once already: snapshot
+the working copy, swap in `git show HEAD:tools/traceability/coverage.ts`, re-run the one gate, restore, `diff
+-q`. With HEAD's copy the gate **exits 0**; with the working copy it exits 1. The citation is correct at the
+commit; it is rotted only against an edit this loop must not touch.
+
+**The repo-owned failure set is EMPTY at `9af88fb`.**
+
+### What this session added to the board's inputs
+
+Nine commits (§1305–§1313). Zero product source changed — every source edit was a comment correction, and both
+mutation rounds restored byte-identical. What moved: eleven per-tenant sweeps gained a CONTINUATION assertion
+(§1311/§1312), the per-party containment gained its first test at all (§1309), the figures gate stopped being
+vocabulary-blind (§1313), and four operational items were filed with measurements rather than built.
+
+### One reopen trigger sharpened, because it could not be run
+
+Checking my own three "Evidence expires" triggers from this session — the class §995 found wrong 3 times in 4 —
+two were decidable one-command checks and matched their rows exactly. The third was not: *"when a
+split-reconciliation predicate lands"* returns a hit TODAY, because `sla-sweep.ts` mentions `split.computed` in
+a comment listing the portal mirror kinds. A mention is not a predicate, and a trigger needing that judgement
+is a trigger nobody runs. Rewritten as a literal command over `packages/ledger/src/queries/` (0 hits today,
+with `UNBILLED_INVOICE_KIND` as the positive control that the grep works).
+
+### A near-misdiagnosis worth recording
+
+Mid-run the log sat at 47 lines with no test output, and `ps` showed eight `workerd` processes. The recorded
+failure mode for this repo is a workerd wedge that only a reboot clears, and the temptation was to call it. It
+was not: those processes were state `S` at 0% CPU with **PPID 1** — orphans from earlier phases, already
+reparented — and the run completed normally minutes later. Two false signals nearly combined into a wrong
+conclusion: a grep for `vitest|pnpm` matched the *workerd* processes because their path contains `.pnpm/`, and
+the background job's reported "exit code 0" was my wrapper's trailing `echo`, not the gate's verdict (the real
+one, `EXIT=1`, was inside the log). **Check the state letter and the PPID before naming a known pathology.**
+
+**Running tally: 149 of 149 load-bearing claims probed — 94 verified, 44 gaps closed, 16 claims corrected;
+9 operational items recorded.**
+
+**STOP — this is a clean stopping point.** The board is measured at a named commit, both reds are proved to
+belong to another workstream, the five BLOCKs are owner-held on absent private inputs, and no repo-owned gate
+fails. The next actionable items are all owner-scope: vendor the nine fixtures (clears 5 BLOCKs), wire
+`IDENTITY_DENYLIST`, and commit the register rows the filed items need before any of them can be built.
