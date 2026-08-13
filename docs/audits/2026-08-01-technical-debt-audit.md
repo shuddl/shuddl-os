@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 781 | §1334 | **§1335** | **WHY THE COUNT WAS WRONG FOUR TIMES — NO ROW OWNED THE CLASS.** Traced all ~30–35 loops to their sources. The bounded ones are genuinely bounded (4/3/1-element constants, a literal `parts`, a PAGED `r2.list`, and maps keyed by AGENT → the 13-agent roster). **The unbounded ones were already filed — across THREE different rows**: subrequests-per-row, *"every KPI scans the WHOLE event history"*, and *"markers are permanent"*. Measured: the subrequest row mentions KPI **0** times and the KPI row mentions subrequests **0** times. They are three FRAMINGS of one mechanism, differing only in which consequence they name. **No row owned the class, so no enumeration prompted by one could be complete.** All three now cross-reference each other. |
 | 780 | §1333 | **§1334** | **CLOSED THE SCOPE INSTEAD OF GUESSING THE COUNT A FOURTH TIME.** Mechanism-derived scan of **all 212 shipped source files**, no filename/directory/title scoping: **35 per-row-I/O loops across 18 files**, controls present. The count stays a BOUND because membership needs a second predicate — is the row set unbounded — which a pattern cannot decide: the heuristic misclassified 4 sites, three from one matcher bug (`\bMODULES\b` can't match after `_`) and one that is the real reason (**`page.objects` is bounded by its CALLER's paging, not by anything at the `for` line**). Row now reads **six CONFIRMED out of a scope-complete 35-loop candidate set** — the previous three counts were each too small by a narrowed scope; this one can only be refined downward. |
 | 779 | §1332 | **§1333** | **THIRD CORRECTION TO ONE COUNT — 2 → 4 → SIX — AND THE CAUSE IS IDENTICAL EACH TIME.** Finished §1332's enumeration: `dunning.ts:398` IS an instance and is already rostered as an unbounded READ — but the roster and its row mention **subrequests zero times**, so the loop consuming those rows (`loadInvoice` + `resolveDunningRecipient` per row) is a second failure mode that THROWS rather than degrades. Crossing *rostered read* × *per-row I/O* found **`watchtower.ts` with two unbounded instances** (`unbilledShipmentsSql`; *"every anomalous quote ever"*), never examined because §1308's candidate list was scoped by FILENAME (`*sweep*`) — a sweep not called one. Two probe failures caught by controls (an anchor matching a comment 370 lines off; 11 sites vs an asserted 9). |
 | 778 | §1331 | **§1332** | **APPLIED §1330's LESSON TO MY OWN ENUMERATION — SAME SCOPE ERROR, NEW DEFECT.** §1308 counted per-row I/O and found four instances, **all sweeps**, because the row it corrected was titled *sweeps*. The mechanism is not sweep-specific. **The probe failed its positive control first** (0 hits on routes AND 0 on `collector.ts` — a 12-line window vs a `.prepare(` 14 lines down); widened → 7 per-row-await loops across 39 handlers. **The finding:** `import.ts` caps itself at `MAX_ROWS = 5000` while `findOrCreateParty` costs 3 `prepare()` calls and `materializeShipment` 2 — **10,000–25,000 subrequests in ONE request** against 1,000 Free / 10,000 Paid. The cap and the ceiling contradict each other **inside the same module**. Structural, not reproduced. |
@@ -78413,3 +78414,45 @@ and found bounded.
 widening should be replaced by a scope-complete candidate set and a floor**, not by a fourth attempt at
 precision. The scope is the part an audit can close in one pass; the classification is per-site work, and
 publishing it as a number invites a fifth correction while a work-list invites completion.
+
+
+## §1335 — PHASE GATE: why the count was wrong four times — no row OWNED the class
+
+§1334 closed the scope and left a 35-loop work-list. Classifying it is measurement, not an owner decision, so
+this phase traced each loop's iterated variable back to its source. The classification is useful, but the
+structure it exposed is the real finding.
+
+### Most of the unbounded loops were already filed — under three different rows
+
+| loops | filed as |
+|---|---|
+| `retention` · `collector` · `recon-sweep` · `watchtower` | *"SIX sites make ONE-OR-MORE subrequests per row"* |
+| `queries/metrics.ts` ×5 · `kpis/compute.ts` | *"Every KPI/metric scans the tenant's WHOLE event history, per request"* |
+| `sweep-214` marker list | *"Idempotency MARKERS are permanent, and one sweep LISTS all of them every tick"* |
+
+And the bounded ones are genuinely bounded: `PARITY_MODULES` (4), `LOAD_UNIQUE_REF_KEYS` (3),
+`ORDER_LEVEL_REF_KEYS` (1), `tariff-seed`'s literal `parts`, `page.objects` (paged `r2.list`), and the
+`byAgent` / `agents.entries()` maps, which are keyed by AGENT and so bounded by the 13-agent roster.
+
+### The three rows never pointed at each other
+
+Measured: the subrequest row mentions KPI **zero** times; the KPI row mentions subrequests **zero** times.
+They are three FRAMINGS of one mechanism — *a per-row-I/O loop over an unbounded row set* — differing only in
+which consequence each names: a subrequest ceiling, a slow request, unbounded storage.
+
+**That is why the count was wrong four times, and it is a better explanation than "the scope was narrowed."**
+Every enumeration was prompted by ONE of these rows and inherited that row's framing — the I/O verb from the
+first, the word "sweeps" from the second, the filename from the third. **No row owned the class, so no
+enumeration could be complete by construction.** A scope is not narrowed by carelessness when the record itself
+offers three partial views and no whole one.
+
+Fixed by linking: all three rows now name the shared mechanism, name each other, and carry §1334's scan result,
+so whoever fixes one framing reads all three.
+
+**Running tally: 214 of 214 load-bearing claims probed — 143 verified, 46 gaps closed, 21 claims corrected;
+12 operational items recorded.**
+
+**STOP.** The transferable lesson is about record structure rather than measurement technique: **when one
+mechanism is filed under several consequences, the register has no place that states its extent** — and every
+count taken from it will be short, repeatedly, in a way that looks like carelessness and is actually a missing
+cross-reference. The fix is not a better enumeration; it is a row that owns the mechanism.
