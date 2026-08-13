@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 746 | §1299 | **§1300** | **A MONEY CONTRACT SPANNING TWO WORKERS, WATCHED BY NOTHING.** `workers/billing` POSTs two internal paths with a shared-secret header; `workers/api` mounts them and reads it — **four independent string literals in two packages, no shared constant, and no test spans both** (billing drives a fake `Fetcher`, the api calls its routes directly). Rename either side and **every credit purchase fails at runtime with both suites GREEN.** They agree today, verified literal by literal; nothing would have noticed if they stopped. **Twelve `*-parity.test.ts` gates exist and none covered the money seam** — closed in the same idiom: every path billing POSTs is mounted, the api mounts no `credit-*` route billing never calls (a secret-gated endpoint with no caller is attack surface with no owner), and the header is spelled identically. **Three divergences planted, all RED** (api rename 2, billing rename 2, header mismatch 1). **The header case would have hurt most:** a path mismatch is a loud 404, but a header mismatch is a **403 from a route that exists** — it reads as a misconfigured secret, sending the operator to `wrangler secret` while the cause sits in a literal two packages away. Fifth and last member of the *unobservable by any suite* family. |
 | 745 | §1298 | **§1299** | **CONFIG VS CODE — AND A SCANNER THAT NEARLY REPORTED THREE DEPLOY-BREAKING BINDINGS.** New axis: a binding the code reads but the config never declares is not a test failure, it is a **crash on first touch after deploy**. Compared every `env.X` read against each worker's `wrangler.toml`. **The first scan was wrong in the alarming direction:** it matched `binding = "…"` but not the Durable Object form `name = "…"`, so it reported `SHIPMENT_SEQ`, `SPARK_METER`, `CAPS_METER` **undeclared** — three DO bindings missing from three workers, a hard deploy failure and the stretch's most serious finding. All three are declared. §1274 repeating: **a heuristic that under-matches looks exactly like a catastrophe.** Corrected, the surface is CLEAN: 5 secrets **absent by law** (REQ-154), 5 vars with literal defaults, `PROVISIONING_ENABLED` fail-closed off, 2 test-only — and **`EVIDENCE_FROM`, which has no default on purpose**: both sites gate `apiKey && from` ⇒ sender, else `NotConfiguredSender` rejecting loudly, so an unset address means **no email, noisily**, never an email with an undefined From. **The axis's value:** it is the only sweep whose failures appear AFTER deploy, where no suite runs — the same category as §1274 and §1293–§1295. |
 | 744 | §1297 | **§1298** | **247 STATUS-ONLY ASSERTIONS, AND WHY THAT IS NOT 247 DEFECTS.** Measured the whole suite against §1297's shape-2: **309** 4xx/5xx assertions, **62** paired with a `code`/`reason`, **247** bare. That looks like a to-do list and is not. **Uniformity is the POINT on two surfaces** — `pub-status` (*bad MAC, unknown tenant, missing shipment ⇒ IDENTICAL 401*) and `isolation` (*no existence oracle*) hold **44 of the 247**, and there a distinguishing assertion would **contradict the law under test**: a test that pinned the difference would be pinning the oracle. So the population splits — bare-is-correct where the law is indistinguishability, bare-is-blind where two guards share a status — and **no reading of the assertions can tell them apart**; both are `expect(res.status).toBe(401)`. The distinguishing question is *how many guards produce this status here*, answered only by deleting one. This stretch ran that on four such paths and found **four blind spots**. **A 247-site `.code` retrofit would be §1283's exact mistake** — tests asserting what is already true, reading as diligence, and actively damaging the two uniformity suites. |
 | 743 | §1296 | **§1297** | **FOUR SURFACES MEASURED, FOUR CLEAN — AND WHAT A RUN OF CLEAN NEGATIVES MEANS.** `edi/writer.ts` byte-stability (`new Date(sentAt)` → `new Date()`) **3 RED** — and the package is clock-free **by construction**, the date being a converted INPUT, so the property is code shape rather than remembered discipline. `rater/price.ts` **I5 version pinning**: dropping `accessorials`/`fsc`/`zone_tariff` REDs **2/2/3** — a recorded price stays re-derivable. `ledger/visibility.ts` frozen 35-pair table: `credit.checked` → counterparty **8 RED (+5 api)**, `agent.acted` → counterparty **5 RED**. Zero source changes. **Nine of the last twelve surfaces measured clean, and that is information:** the stated invariants are in the main enforced, and this stretch's gaps clustered in three STRUCTURAL shapes, none of them carelessness — **tiebreaks that only fire on boring data**, **guards sharing an outcome** (a result-assertion cannot say which produced it), and **code below a seam every test replaces**. No amount of care while writing a test closes those: the test that exists looks complete and the guard that is missed looks tested. |
@@ -76645,3 +76646,46 @@ it is now four sections' worth of evidence that those are where the remaining ri
 **STOP.** The config-versus-code surface swept across all five workers and found clean, with each of the nine
 undeclared vars given its reason — and a scanner error caught before it became a three-binding deploy alarm.
 Zero source changes.
+
+## §1300 — PHASE GATE: a money contract spanning two workers, watched by nothing
+
+Four sections (§1274, §1293–§1295, §1299) converged on one conclusion: **the remaining risk lives in properties
+a test suite is structurally unable to observe.** The next member of that family is a **cross-worker contract**.
+
+`workers/billing` reaches the api sequencer over the `API` service binding, POSTing two internal paths with a
+shared-secret header. `workers/api` mounts those routes and reads that header. That is **four independent string
+literals in two packages**, with no shared constant — and **no test spans both**: billing's suite drives a fake
+`Fetcher` (§1291's, which I wrote), the api's calls its routes directly. Rename the route on either side and
+**every credit purchase fails at runtime with both suites green.**
+
+They agree today — verified literal by literal. What was missing is anything that would notice if they stopped.
+
+### The gate this repo already knew how to write
+
+Twelve `*-parity.test.ts` files exist — CORS origins, GL accounts, enums, tenant slugs, wrangler scopes,
+superRefine shapes. **None covered the money seam.** `platform-credit-parity.test.ts` closes it in the same
+idiom: read both sides as text (importing the billing module drags the Workers `Fetcher` types into a node
+test — §1245's reasoning), floor both parses for non-vacuity, and assert three things:
+
+- every path billing POSTs is a route the api mounts;
+- the api mounts no `credit-*` route billing never calls — a secret-gated endpoint with no caller is attack
+  surface with no owner;
+- the header is spelled identically on both sides.
+
+**All three planted and RED:** renaming the api's route → **2 RED**, renaming billing's constant → **2 RED**,
+disagreeing on the header → **1 RED**. Clean 4/4, typecheck 0.
+
+### Why the header case is the one that would have hurt most
+
+A path mismatch is a 404 — loud, immediate, obvious in a log. A **header** mismatch is a **403** from a route
+that exists, on a seam whose own documentation says a wrong header means *"nothing appends"*. It would read as
+a misconfigured secret rather than a code drift, and the operator would go looking for `wrangler secret` while
+the actual cause sat in a string literal two packages away.
+
+**Running tally: 127 of 127 load-bearing claims probed — 89 verified, 33 gaps closed, 5 claims corrected;
+3 operational items recorded.**
+
+**STOP.** The cross-worker money contract is now gated in the repo's own parity idiom, proved by three planted
+divergences — closing the fifth and last member of the *unobservable by any suite* family this stretch
+identified: crash-ordering, unbounded growth ×3, deploy config, and now a contract that only exists when two
+deployed workers talk.
