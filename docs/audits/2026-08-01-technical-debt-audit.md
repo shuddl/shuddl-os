@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 776 | §1329 | **§1330** | **THE FOURTH REACH CLAIM FOUND A THIRD INSTANCE OF A HIGH-SEVERITY CLASS.** `sweep-214.ts`'s *"only path where a send can happen"* is correctly scoped to its own branch; enumerating transport sends found TWO — `send214` (cron) and `send990` (inbound ack). **The 990 ack has the filed defect**: the 990 ack in `inbound.ts` gates on `evidence.head(...) === null` (presence CHECK, not a claim), then allocates FRESH monotonic ISA/GS and marks only after success — so two concurrent 204 deliveries emit two 990s with DIFFERENT ISA13/GS06 that the partner cannot dedupe. **The standing hold is titled "CRON sweeps"**, so this path is scoped out by its own title: fixing "the two sweeps" when wiring a transport leaves it open. STRUCTURAL (read), not measured. Filed on the same row — same dormancy, same activation event. |
 | 775 | §1328 | **§1329** | **THE THIRD REACH CLAIM — AND THE SHAPE THE ENUMERATION SURFACED NEXT DOOR.** `money.ts` claims narrowing `total_cents >= 0` *"removes the only path by which a negative could reach `allocateCents`"*. Verified: **exactly ONE non-test call site** (`projection/money.ts:192`), consuming a parsed `SplitComputedPayload`, so the refine stands between every real input and the allocator. **The yield was the neighbourhood**: reading that call site exposed `mapMoneyProjectionError`, which classifies failures by REGEX over the error message (`allocateCents` → 4xx not 500) — the lockstep-rot shape. It is pinned properly: the tests drive **REAL throws** (not synthesised messages), plus a negative control and §919's kind-gate precision case, so a rename or reword reds them. |
 | 774 | §1327 | **§1328** | **THE SECOND REACH CLAIM — APPROVALS HAVE ONE HOME, ENUMERATED.** Swept source for chokepoint claims: **7 exist**; the sequencer's is already gated by `append-chokepoint`, and `approve.ts` has §1327's exact two-surface shape (*"ONE home, every caller — browser or MCP — goes through it"*). Four links all verified: the general route **403s the kind for every role**; **exactly ONE append site** exists (`approvals.ts:96` — every other hit is schema/projection/visibility); MCP reaches it via `POST /…/approval-decision`; and the route re-checks `required_role` server-side. **The role check is SYMMETRIC** — finance→ops-required is ALSO 403, segregation of duties both ways rather than a privilege ladder. Both §1327 and §1328 found the prose UNDERSTATED the guarantee. |
 | 773 | §1326 | **§1327** | **THE COPILOT'S HONESTY GATE IS NOT MERELY SHARED — IT IS THE ONLY WAY TO BUILD AN ANSWER.** Targeted by RECENCY per §1323. §1255 proved the gate's LOGIC (3 layers, layer 2 mutation-proved) and described its REACH in prose (*"SHARED by every adapter"*) — a call-site claim, the class that breaks one import away. Enumerated: 3 adapters, 3 call sites, and **only 2 `AnswerResult` constructions repo-wide**, both inside the gate module (`:43` abstain, `:60` grounded). **A non-abstained answer is UNCONSTRUCTIBLE outside the gate** — an adapter cannot forget to call it because there is nothing else to return. Adds a 4th layer §1255 did not claim: universality by construction. Both §1255 construction claims re-verified (`EventRef` `.strict()` + required `kind`). |
@@ -78175,3 +78176,52 @@ what enumeration is FOR: I ran it to answer one question (how many callers) and 
 NEIGHBOURHOOD — a string-coupled classifier I would not have thought to look for, sitting two lines from the
 call site I was counting. **A call-site enumeration puts you in front of the code that consumes the thing you
 are checking**, which is where the adjacent shapes live.
+
+
+## §1330 — PHASE GATE: the fourth reach claim found a THIRD instance of a High-severity class
+
+Fourth of the seven chokepoint claims: `sweep-214.ts` says a survivor's fresh `r2.head` keeps the double-send
+window tight *"on the only path where a send can actually happen."*
+
+**The claim is correctly scoped** — it describes a branch inside that function, not the repo. Enumerating
+transport sends confirms two exist: `send214` (the cron sweep) and `send990` (the inbound ack). §1329's
+observation held again: the value was the second one.
+
+### The 990 ack has the filed defect, on a path the filed row excludes by its own title
+
+The standing hold is *"**Cron sweeps** double-fire under overlapping ticks — … both `*/5` sweeps use a presence
+CHECK, not a claim … two overlapping ticks transmit the same 214 twice, with DIFFERENT ISA13/GS06, which the
+partner cannot dedupe."* High (latent), pinned by a characterization test, expiring when either transport is
+wired.
+
+the 990 ack's guard in `inbound.ts` is the same construction and is **not a cron**:
+
+| step | code |
+|---|---|
+| presence check, not a claim | `if ((await deps.evidence.head(ack990Key)) === null) {` |
+| fresh, monotonic, persisted control numbers | `allocatePartnerControls(db, partnerId)` — *"NEVER an echo of the inbound 204's ISA13"* |
+| send | `transport.send990(scac, bytes, edi990/<acceptedId>)` |
+| mark AFTER success | `evidence.put(ack990Key, bytes)` — *"only a transmitted 990 is recorded"* |
+
+Two concurrent deliveries of the same 204 both pass the check, allocate **different** ISA13/GS06, and emit two
+990s the partner cannot dedupe. The trigger differs — HTTP concurrency rather than `scheduled()` overlap — and
+there is no mutex, DO serialization or claim on that path. The idempotency the file documents covers the
+APPENDS (deterministic event ids), which keeps the LEDGER correct while the outbound ack doubles.
+
+**Stated honestly: this is STRUCTURAL, read at HEAD — not measured.** The 214 instance was reproduced by driving
+two sweeps concurrently; I have not reproduced this one. It shares the row's dormancy (the unwired transport
+rejects, and a reject DEFERS without writing the marker) and its activation event, so it is filed on the same
+row rather than separately.
+
+**Why it matters that the row said "cron".** The class is *presence-check-then-send-then-mark*, and the row's
+title names a TRIGGER. Someone wiring a transport and fixing "the two sweeps" would satisfy the row completely
+and leave the third path open — and the third path is the one a partner sees first, since a 990 ack answers
+every inbound 204.
+
+**Running tally: 199 of 199 load-bearing claims probed — 138 verified, 46 gaps closed, 20 claims corrected;
+11 operational items recorded.**
+
+**STOP.** First defect in six phases, and it came from the method §1327 introduced rather than from a new
+search: **enumerate a reach claim, then read the OTHER call site.** The lesson to carry is about how holds are
+titled — **a row named for a TRIGGER (`cron`) scopes its own class out of view**, while the same row named for
+the MECHANISM (presence-check-then-send) would have pulled the 990 path in on the day it was written.
