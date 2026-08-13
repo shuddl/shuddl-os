@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 726 | §1279 | **§1280** | **§1279's COROLLARY MADE INTO A SEARCH — AND FALSIFIED.** If undefended code is code that never broke, the proxy for *nobody ever looked here* is a file citing **no audit section** — 49 of 198. Tested on the two largest: `legacy-mirror.ts` (327 LOC, CLAUDE.md **rule 10**) mutated five ways — unmapped gap row **2 RED**, control-column classification **3 RED**, `applied ≥ CONFIDENCE_FLOOR` **1 RED**, low_confidence row **1 RED**, below-floor applied **1 RED**; `polygon-source.ts` fail-closed geofence **1 RED**. **Six mutations, six REDs — the heuristic found nothing.** *Un-audited* and *undefended* are different properties and this codebase pulls them apart: the author tests thoroughly from the start, so a file can live its whole life without an auditor and still be pinned. The citation count measures **whether someone came looking**, not **whether the guard has a test** — and §1279's real predictor was the second. **So §1279 explains why gaps exist; it does not locate them.** No cheap proxy stands in for the measurement, because delete-the-guard-and-run IS the cheapest thing that answers it. Recorded at the same weight as the finding it follows: a heuristic proposed, applied, and falsified beats one proposed and left untested. |
 | 725 | §1278 | **§1279** | **THE REDACTION SURFACE IS FULLY PINNED — AND THAT IS THE PATTERN.** `redactEvent` (REQ-085/167/179/049/074): six rules, six mutations, **six REDs** — whole function 25, party geo 10, `INTERNAL_NESTED` 9, `REDACTIONS` 5, `override` envelope strip 1, `actor.user` strip 1. Nothing to fix; the SHAPE is the finding, because it inverts every gap in §1258–§1278. **Unpinned, all of them:** the anchor's leaf order, `ts_desc`'s tiebreaks, the wrong-kind guard in both copies, the `"unknown"` fallback, the Gatekeeper's typeofs, `asInt`/`asString`, evidence.ts's R2 ordering, three comparators' tiebreaks — **none had ever been wrong.** **Pinned, all of them:** redactEvent's six (two exist BECAUSE the 2026-08-01 audit found `override` and `actor.user` leaking), the sequencer mutex (its comment records the concurrent failure), the REQ-105 cap-bypass key (the uncomposed version was exploitable), retention/anchor's R2 order (the two sites where a crash was reasoned through). **A defect is the best thing that can happen to a line of code** — it is the only event that reliably earns a test. Corollary, and it is actionable: **the code most likely to be undefended is the code that has never once been wrong**, which is invisible to review because it looks exactly like the code that works. Also why *mutate it and see* finds what reading does not: reading confirms the code is right, which was never the question. |
 | 724 | §1277 | **§1278** | **THE COMMENT BLIND SPOT SWEPT AS A CLASS — ONE RULE DECIDES IMMUNITY.** §1277's defect generalised: **82** counting gates triaged, most are corpus floors (immune), leaving **4** that count OCCURRENCES IN SOURCE TEXT. Measured individually: `demos.test.ts` **blind** (fixed §1277), `checklist-figures.test.ts` **blind** (fixed here), `isolation-suite.test.ts` and `phase-index.test.ts` **immune — proved by planting, not assumed**. **The rule: an ANCHORED line-start pattern is comment-safe by construction; an unanchored `\b…` is not.** `// it(` cannot match `^\s+it\(` so the count DROPS and the floor fires; `// expect(` matches `\bexpect\s*\(` so the count HOLDS and the floor sleeps — nothing about intent separates the two gates, only the anchor, almost certainly incidental in both. **The second instance matters more than it looks:** `containedSweeps` counts sweeps riding the agents cron; commenting one out left the count at 8 and the gate GREEN — and **two open GO-LIVE rows argue FROM that number** (the cadence cost, and the completeness claim behind the unbackstopped-booking row §1275), so an inflated N weakens both silently, in the direction that flatters the system. **A floor claims evidence EXISTS; counting raw text answers whether the TEXT appears — they diverge exactly when code is disabled rather than deleted.** |
 | 723 | §1276 | **§1277** | **THE ACCEPTANCE FLOOR COUNTED COMMENTED-OUT ASSERTIONS — FOUND BY A BOTCHED PLANT.** The gate that claims the five doc-00 demos work survived almost everything: manifest↔module parity BOTH ways, all 7 spine files resolved, repo-anchored resolution (§1003), orphan-floor check (§672), and a per-file assertion floor with its own correction history (§890→§891). **The floor fires** — deleting 12 of `heartbeat.test.ts`'s 48 REDs; deleting 5 does not, the deliberate tolerance, **quantified here for the first time at ~17% per file / 42 assertions total**. **The hole:** `assertionCount` matched raw file TEXT, so `// expect(...)` still counted — commenting out 15 left the gate GREEN while 15 assertions stopped executing, verbatim the state its own message exists to prevent, and the MORE LIKELY weakening mode (deletion is deliberate; commenting out is a debugging step never undone). Closed by stripping comments before counting; proved 3 ways (comment 12 → RED, delete 12 → RED, comment 5 → green). **Moved no number** — raw == live across all 7 files today, so a hardening not a re-baselining. **The lesson is the discarded experiment:** my plant was invalid and I nearly binned it as noise. *Why did the gate not see it* has a different answer from *was my plant wrong* — here both were true, and the second was reachable only through the first. |
@@ -75700,3 +75701,53 @@ measured cause.
 **STOP.** The redaction surface measured rule by rule and found fully defended — zero source changes — and the
 stretch's central pattern stated with the evidence for it: what has a test is what once broke, so the search for
 undefended guarantees should start where nothing has ever gone wrong.
+
+## §1280 — PHASE GATE: §1279's corollary made into a targeting heuristic, and the heuristic failed
+
+§1279 ended on a claim with evidence behind it: *the code most likely to be undefended is the code that has
+never once been wrong.* The obvious next move is to turn that into a search. The observable proxy for "nothing
+ever forced anyone to look here" is a source file whose comments cite **no audit section** — 49 of 198 shipped
+files, once trivial ones are excluded.
+
+**Tested on the two largest, and it found nothing.**
+
+| file | LOC | guard mutated | result |
+|---|---|---|---|
+| `legacy-mirror.ts` | 327 | `unmapped` gap row deleted (CLAUDE.md rule 10's core) | **2 RED** |
+| | | control-column classification widened | **3 RED** |
+| | | `applied ≥ CONFIDENCE_FLOOR` weakened to any-ref | **1 RED** |
+| | | `low_confidence` gap row deleted | **1 RED** |
+| | | below-floor mapping applied anyway | **1 RED** |
+| `polygon-source.ts` | 195 | unparseable geofence bytes → not fail-closed | **1 RED** |
+
+Six mutations, six REDs. The largest un-audited file in the repo defends CLAUDE.md's rule 10 guard by guard,
+with a 43-case suite its author wrote alongside it.
+
+### Why the proxy is wrong, stated precisely
+
+*Un-audited* and *undefended* are different properties, and this codebase is exactly the kind where they come
+apart: the author tests thoroughly from the start, so a file can go its whole life without an auditor and still
+be pinned. The citation count measures **whether someone came looking**, not **whether the guard has a test** —
+and §1279's actual predictor was the second one.
+
+Which leaves an uncomfortable but honest conclusion: **§1279 explains why gaps exist; it does not locate them.**
+There is no cheap proxy standing in for the measurement, because the measurement — delete the guard, run the
+suite — is already the cheapest thing that answers the question. Every gap this stretch found came from doing
+it, and the one time I tried to predict where to point it, the prediction was wrong on both samples.
+
+That is worth writing down at the same weight as the finding it follows. A heuristic proposed one section
+earlier, applied, and falsified in the next is more useful to the next reader than a heuristic proposed and left
+untested — which is what it would have been had I stopped at §1279.
+
+### And a discipline I keep skipping
+
+Two readings in this section were **void**: `COUNT 0` anchors, both because I copied indentation from a `sed`
+display that adds its own two-space prefix. The rule is written in this record — *print `repr()` of the exact
+lines first* — and the assert caught both, which is why they cost a minute rather than a false verdict. It is
+the same slip five times this stretch; the fix is not more care, it is never typing an anchor by hand.
+
+**Running tally: 65 of 65 load-bearing claims probed — 44 verified, 20 gaps closed, 2 claims corrected.**
+
+**STOP.** §1279's corollary tested as a search method and falsified on both samples — the two least-audited
+large files are fully defended, six mutations, six REDs, zero source changes. The pattern stands as an
+explanation; the shortcut it seemed to offer does not exist.
