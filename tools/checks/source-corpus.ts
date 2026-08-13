@@ -30,6 +30,27 @@ export const SOURCE_SCAN_GLOBS = [
   "apps/*/src/**/*.tsx",
   "tools/**/*.ts",
   "tools/**/*.tsx",
+  // §1369 — THE TOP LEVEL OF EVERY src/ TREE, WHICH THE `**` FORMS ABOVE DO NOT MATCH UNDER git ls-files.
+  //
+  // This roster is consumed by TWO ENGINES with different `**` semantics, and nobody had compared them:
+  //   • `node:fs globSync` (invariants.ts) — `**` matches ZERO directories, so `packages/*/src/**/*.ts`
+  //     includes `packages/ledger/src/anchor.ts`. Corpus: 335 files.
+  //   • `git ls-files` (scan-corpus.ts, used by append-chokepoint, credential-blank-guard,
+  //     event-source-producers) — pathspec `*` crosses `/`, so `src/**/` requires at least one real directory
+  //     and every top-level file is INVISIBLE. Corpus: 185 files.
+  //
+  // 150 files — 45% — were missing from the git side, including `workers/api/src/intake-core.ts` (an append
+  // surface), `packages/ledger/src/anchor.ts` (REQ-014) and `workers/agents/src/index.ts`. Neither side could
+  // notice: each gate's non-vacuity floor was calibrated against its own already-wrong number, which is the
+  // §1148 failure — a floor bounds the corpus you HAVE, never the corpus you SHOULD have.
+  //
+  // These five patterns are redundant under globSync and load-bearing under git ls-files. With them the two
+  // engines return an identical 335, asserted in source-corpus.test.ts so they can never diverge again.
+  "workers/*/src/*.ts",
+  "packages/*/src/*.ts",
+  "packages/*/src/*.tsx",
+  "apps/*/src/*.ts",
+  "apps/*/src/*.tsx",
 ] as const;
 
 /**

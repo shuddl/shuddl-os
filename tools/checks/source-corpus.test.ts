@@ -1,4 +1,7 @@
+import { globSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { scanCorpus } from "./scan-corpus.js";
+import { repoRoot } from "./repo-root.js";
 import { EXPECTED_EMPTY_GLOBS, SOURCE_SCAN_GLOBS, isTestPath, stripComments } from "./source-corpus.js";
 import { scanSourceForForbiddenReplace, scanSourceForLegsReplace } from "./invariants.js";
 import { findChokepointViolations } from "./append-chokepoint.js";
@@ -27,6 +30,12 @@ describe("REQ-030/I3 §493: one corpus, shared by both source gates", () => {
         "packages/*/src/**/*.ts", "packages/*/src/**/*.tsx",
         "apps/*/src/**/*.ts", "apps/*/src/**/*.tsx",
         "tools/**/*.ts", "tools/**/*.tsx",
+        // §1369 — the top-level cells. Under git ls-files the `**` forms above match NOTHING at the top of a
+        // src/ tree, so these five are the only reason `intake-core.ts`, `anchor.ts` and `agents/src/index.ts`
+        // are scanned at all. Redundant under globSync, load-bearing under git.
+        "workers/*/src/*.ts",
+        "packages/*/src/*.ts", "packages/*/src/*.tsx",
+        "apps/*/src/*.ts", "apps/*/src/*.tsx",
       ]),
     );
   });
@@ -34,6 +43,42 @@ describe("REQ-030/I3 §493: one corpus, shared by both source gates", () => {
   it("the tools/ cell is present — this is the cell whose absence was the hole", () => {
     expect(SOURCE_SCAN_GLOBS).toContain("tools/**/*.ts");
   });
+
+  it("§1369: BOTH ENGINES resolve this roster to the same corpus — globs are not semantics", () => {
+    // §493 unified the two gates' glob LIST so they would "see the SAME files". It did not check that the list
+    // RESOLVES the same way, and it does not: this roster is read by two engines whose `**` differs.
+    //
+    //   node:fs globSync  — `**` matches ZERO directories → `packages/*/src/**/*.ts` includes `anchor.ts`
+    //   git ls-files      — pathspec `*` crosses `/`, so `src/**/` needs a real directory → top level INVISIBLE
+    //
+    // MEASURED at §1369, before the fix: globSync 335 files, git ls-files 185. The 150 missing from the git
+    // side included `workers/api/src/intake-core.ts` — an APPEND SURFACE — plus `packages/ledger/src/anchor.ts`
+    // and `workers/agents/src/index.ts`. `append-chokepoint`, `credential-blank-guard` and
+    // `event-source-producers` all read the git side. A hole in the append-only law's own scanner, invisible
+    // because each gate's floor was calibrated against its own already-wrong number (§1148).
+    const norm = (xs: readonly string[]): string[] =>
+      [...new Set(xs.map((x) => x.replace(/\\/g, "/")))].filter((x) => !isTestPath(x)).sort();
+
+    const viaGlob = norm(SOURCE_SCAN_GLOBS.flatMap((g) => globSync(g, { cwd: repoRoot() }) as string[]));
+    const viaGit = norm(scanCorpus([...SOURCE_SCAN_GLOBS], repoRoot(), { excludeTests: true, mayBeEmpty: EXPECTED_EMPTY_GLOBS }));
+
+    expect(viaGit.length, "the git-side corpus is empty or tiny — the scan broke, not the tree").toBeGreaterThan(250);
+    const missingFromGit = viaGlob.filter((f) => !viaGit.includes(f));
+    const missingFromGlob = viaGit.filter((f) => !viaGlob.includes(f));
+    expect(
+      { missingFromGit, missingFromGlob },
+      "the two engines that read SOURCE_SCAN_GLOBS disagree about which files exist. Every gate using the " +
+        "SMALLER corpus is silently blind to the difference, and no floor can detect it — a floor bounds the " +
+        "corpus you HAVE, never the one you SHOULD have. Add whichever glob form the losing engine needs; " +
+        "`*/src/*.ts` is redundant under globSync and load-bearing under git ls-files.",
+    ).toEqual({ missingFromGit: [], missingFromGlob: [] });
+
+    // The specific files whose absence made this a hole rather than a curiosity.
+    for (const f of ["workers/api/src/intake-core.ts", "packages/ledger/src/anchor.ts", "workers/agents/src/index.ts"]) {
+      expect(viaGit, `${f} is outside the shared corpus — the append-only scanners cannot see it`).toContain(f);
+    }
+  });
+
 
   it("the deliberately-empty globs are a SUBSET of the scanned set", () => {
     // An expected-empty entry naming a glob nobody scans would silence a non-vacuity rule for a pattern that

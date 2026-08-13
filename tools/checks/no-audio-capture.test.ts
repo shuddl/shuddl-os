@@ -47,6 +47,11 @@ const GLOBS = [
   "apps/*/src/**/*.ts",
   "apps/*/src/*.tsx",
   "apps/*/src/**/*.tsx",
+  // §1369 — `packages/*/src/*.ts` is NOT covered by the `**` form under git ls-files (pathspec `*` crosses
+  // `/`, so `src/**/` demands a real directory). Its absence hid 78 files — 42% of this gate's intended
+  // corpus — from a CONFIRM-GATED constitutional prohibition. Note the asymmetry that gave it away: the
+  // `.tsx` line below lists BOTH forms and the `.ts` line listed only one.
+  "packages/*/src/*.ts",
   "packages/*/src/**/*.ts",
   "packages/*/src/*.tsx",
   "packages/*/src/**/*.tsx",
@@ -129,7 +134,10 @@ describe("§1048: while REQ-096's CONFIRM is open, no surface captures audio", (
     // below that because its job is detecting a COLLAPSE; amputation is scanCorpus's job and the specific
     // file that matters is the assertion below. A floor set at the measured value would fail on every
     // legitimate deletion — which is how floors get raised past the point of meaning anything.
-    expect(files.length, "no surface files scanned — the corpus is broken, not the repo").toBeGreaterThanOrEqual(80);
+    // §1369 — FLOOR RAISED 80 → 140. The old floor was set from a MEASUREMENT OF THE BROKEN CORPUS (108
+    // files), so it could only ever detect shrinkage from a number that was already 42% short. A floor
+    // calibrated against what you scan cannot tell you what you failed to scan; corpus is now 186.
+    expect(files.length, "no surface files scanned — the corpus is broken, not the repo").toBeGreaterThanOrEqual(140);
     // The gate must actually be reading the file that can violate it. A rename would otherwise retire this
     // check silently — the §572 shape, in the one file §1048 proved is one word from a violation.
     expect(files, "the driver's camera screen is not in the corpus — it is the file this gate exists for")
