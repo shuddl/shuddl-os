@@ -485,6 +485,27 @@ export default tseslint.config(
   // `no-restricted-imports` here would silently drop REQ-024's ledger ban. A test asserts that ban still
   // fires with this block in place.
   {
+    // §1249 — THE GATES THEMSELVES WERE OUTSIDE THE TYPE-AWARE PROMISE RULES. §705 extended them to `apps/`
+    // after measuring that a floating `work();` was flagged in packages and not in the PWAs. `tools/` was the
+    // remaining hole, and it is the one that certifies everything else: 14 of the 50 non-test gate sources are
+    // async (70 awaits), including `invariants.ts` (a constitutional gate) and `deploy/backup.ts` (the nightly
+    // D1 export). A floating promise there is a check that does not finish before the process exits — a gate
+    // that passes without having run, which is the exact failure mode the gate corpus exists to prevent.
+    //
+    // NAMED PROJECT, not `projectService`. Measured at §1249: widening the block above to `tools/**/*.ts` under
+    // the service produced **163 parsing errors** ("not found by the project service") — tools live in
+    // `tsconfig.tools.json`, whose non-default name the service does not discover. Naming it is what makes the
+    // rules apply instead of failing the parse (§"adding a gate can delete a gate" — a type-aware block that
+    // cannot parse turns every rule it carries into noise).
+    files: ["tools/**/*.ts"],
+    languageOptions: { parserOptions: { project: "./tsconfig.tools.json", tsconfigRootDir: import.meta.dirname } },
+    rules: {
+      "@typescript-eslint/no-floating-promises": "error",
+      "@typescript-eslint/no-misused-promises": "error",
+      "@typescript-eslint/await-thenable": "error",
+    },
+  },
+  {
     files: ["workers/*/src/**/*.ts", "packages/*/src/**/*.ts"],
     languageOptions: { parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname } },
     rules: {

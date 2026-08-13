@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 696 | §1248 | **§1249** | **THE GATES THEMSELVES WERE OUTSIDE THE TYPE-AWARE PROMISE RULES — AND THE NAIVE FIX BROKE LINT.** §1248's rule points at floating promises (no observable failure). §1222's discipline first: the mechanism EXISTS — `no-floating-promises` is `error` with type-aware parsing. **But configured ≠ in effect**, so I asked `eslint --print-config` per path: src = 2, **`tools/` = ABSENT**, tests = ABSENT (deliberate, documented). `tools/` is where the GATES live — 14 of 50 non-test sources async, 70 awaits, including `invariants.ts` and the nightly `backup.ts`; a floating promise there is **a gate that passes without having run**. **Widening the glob produced 163 PARSING ERRORS** — tools live in `tsconfig.tools.json`, a non-default name the project service does not discover, and a type-aware block that cannot parse turns every rule it carries into noise. Fixed with a block naming the project. Clean on existing code, lint exit 0, planted violation flagged, lint-guards 17/17. |
 | 695 | §1247 | **§1248** | **THE DRIVER'S DURABILITY CONTRACT WAS HONOURED AND PINNED BY NOTHING — AND A TEST COULD NOT HAVE PINNED IT.** `queue.ts` states that `put`/`remove` must resolve only after the IDB transaction commits, or a tab-kill loses a signed airplane-mode POD. `idb-queue-store.ts` honours it; the only mention outside the source comments was a **comment in a test**. **Why no test could catch it, demonstrated:** a request's `onsuccess` fires BEFORE commit, so planting that refactor left the driver's own suite **101/101 PASS** while the new gate REDs with file, line and cause. The shape of the code IS the evidence — an ungated law whose violation has no observable failure needs a lint, not a fixture. **The gate flagged CORRECT code on its first run**: bounding blocks at the next READWRITE transaction made `put`'s block swallow the read-only `all()`, which legitimately settles from a request. Bounded at the next transaction of ANY kind — §1211's lesson, the block boundary decides what the rule can see. |
 | 694 | §1246 | **§1247** | **THE DRIVER'S OFFLINE DURABILITY CONTRACT — STATED AT AN INTERFACE, HONOURED ON BOTH SIDES.** An unaudited surface, and the one where a defect strands real work: a `device_seq` that resets on reboot re-emits `(device_id, seq)` with DIFFERENT content, so first-wins merge and the sequencer's unique index **silently drop the later signed capture** — CLAUDE.md rule 6 territory. The port is SYNCHRONOUS while IndexedDB is async, so `durable-seq.ts` persists a **reservation block** and mints from inside it; what makes that sound is one guard — `next >= ceiling` throws, and a failing refill leaves the ceiling PUT, so capture() fails LOUD rather than minting an unreserved seq a restart would reuse. **Both obligations are pinned in their owning packages**: driver-core proves a rejected capture does not burn a seq (next valid still gets seq 0); apps/driver's ceiling guard is **mutation-proved** — `>=` → `>` reds it. §1243's chain lesson applied to an INTERFACE: a test on one side proves nothing about the other. |
 | 693 | §1245 | **§1246** | **§1235'S LESSON APPLIED BEFORE THE FAILURE — AND WHY 70 FILES SHARE ONE D1 WITHOUT CHAOS.** §1239 added a **55-shipment seed** to `watchtower.test.ts`, which writes the SHARED tenant D1; I had verified that file alone (21/21) and not the suite around it — §1235's shape in reverse, a test GROWING a corpus siblings measure. Checked before assuming: **70 files, 832 tests, zero failures.** Safe because every consumer is **scoped** (`{ scope }` on each sweep, alarm ids derived from it), so 55 shipments land in a partition nothing else reads. The transferable rule: **the shared D1 is safe for tests that SCOPE and unsafe for tests that MEASURE.** Every §1235 failure was in the second category; §1234's sweep found only 7 measuring sites and the two asserting an ABSENCE now carry premises. Narrows §1236's config warning from *file order is part of the fixture* to *scope your reads and ordering cannot reach you*. |
@@ -74126,3 +74127,59 @@ Suite 112 → **113** files, 1,307 → **1,311** tests, failures unchanged at th
 **STOP.** The queue half of the driver's offline contract found correct but unpinned, the reason no test could
 pin it demonstrated by a mutation that left 101 driver tests green while the new gate reds, the gate's own
 false positive on real code found and its cause named, and both directions plus the corpus floor controlled.
+
+## §1249 — PHASE GATE: the gates themselves were outside the type-aware promise rules — and the naive fix broke lint
+
+**§1248's rule pointed at the next class**: a floating promise has no observable failure — the response returns,
+the work may or may not complete, nothing errors. §1222's discipline says check the mechanism before claiming a
+gap, and the mechanism exists: `@typescript-eslint/no-floating-promises` is `"error"` with type-aware parsing.
+
+**But "configured" and "in effect" are different questions**, and flat config is last-writer-wins
+([[adding-a-gate-can-delete-a-gate]]). Asked ESLint itself rather than read the file:
+
+```
+npx eslint --print-config <file>   →   no-floating-promises severity
+
+  packages/ledger/src/lens.ts            2        tools/checks/repo-root.ts        ABSENT
+  workers/api/src/do/sequencer.ts        2        workers/api/test/*.test.ts       ABSENT
+  apps/driver/src/storage/*.ts           2
+```
+
+The test-file absence is **deliberate and documented** — *"scoped to src only (tests legitimately float promises
+in fixtures)"*. `tools/` was not deliberate: it is simply in no block, exactly as `apps/` was until §705 measured
+the same hole and closed it.
+
+**And `tools/` is where the gates live.** 14 of the 50 non-test sources are async — **70 awaits** — including
+`invariants.ts` (a constitutional gate) and `deploy/backup.ts` (the nightly D1 export). A floating promise there
+is a check that does not finish before the process exits: **a gate that passes without having run**, which is
+the precise failure the gate corpus exists to prevent.
+
+### The naive fix broke lint, and that is the finding worth keeping
+
+Widening the existing block's glob to `tools/**/*.ts` produced **163 parsing errors** —
+*"was not found by the project service"*. The tools sources live in `tsconfig.tools.json`, whose non-default
+name the service does not auto-discover. **A type-aware block that cannot parse turns every rule it carries
+into noise**, which is the second shape of *adding a gate can delete a gate*: not a rule silently replaced, but
+a rule silently reduced to a parse failure.
+
+The working fix is a **separate block naming the project explicitly**, which is why this is a config change and
+not a one-word glob edit.
+
+**Verified rather than assumed:**
+
+| Check | Result |
+|---|---|
+| existing tools code under the new rules | **clean — zero violations** |
+| full `pnpm lint` | **exit 0** |
+| positive control — a planted `Promise.resolve(1);` in `deploy/backup.ts` | **flagged**, correct rule |
+| `lint-guards.test.ts` (the gate that guards the gates) | **17/17** |
+| tools suite | unchanged — 113 files, 1,311 tests, the 3 owner-held failures |
+
+**The transferable technique is the probe, not the fix:** `--print-config` answers *is this rule in effect for
+this file*, which reading the config cannot. Every claim of the form "we lint for X" is checkable that way in
+one command, per path.
+
+**STOP.** The floating-promise mechanism confirmed present before any gap was claimed, its actual coverage
+measured per-path rather than read, the one undeliberate hole found at the gates themselves, the naive widening
+shown to break the parse rather than extend the rule, and the working extension proved live by a planted
+violation.
