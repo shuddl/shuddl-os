@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 797 | §1350 | **§1351** | **SEARCHED FOR COPIED LOGIC — 5 COPY-SETS, AND CLOSED THE ONE HELD BY NOTHING.** §1350's refinement (SHARED vs COPIED) makes "find the copies" mechanical, and it had never been run: normalising every shipped function body and grouping across files yields **five copy-sets**. Three are already held (`uuidFromSeed`/`deterministicUuid` ×7 by `id-determinism`, the recipient pair by §786's parity test). **`readModelText` is byte-identical in ALL THREE LLM consumers — 476 chars, zero tests naming it.** A drift fails CLOSED (every copy returns `undefined`, callers abstain), which is exactly why it would go unnoticed: the symptom is an abstention RATE, not an error. Closed with §786's own pattern + its two guards (non-vacuity ≥120 chars; the fail-closed property). **Mutation-proved.** `tsaFor`/`tsaClientFor` left recorded, not assumed. |
 | 796 | §1349 | **§1350** | **§1349's METHOD RUN AS A SEARCH — LOWEST-ATTENTION MONEY SYMBOL, AND WHY ITS SILENCE IS FINE.** Ranked money-path symbols by record verdicts vs code references: `composeInvoice` 14, `allocateCents` 12, `apportion` 11 … **`decideSplit` 1** — an order-of-magnitude outlier implementing CLAUDE.md rule 5 ($222,084 regression, REQ-040). The LAW has 36 verdicts, but they audit the **Biller/AR** path; `decideSplit` is the **AP** sibling. Both halves check out: `executingShare` is **single-sourced** in `@shuddl/rater` and imported by both (the AP path calls the law rather than re-implementing it), AND the split is independently pinned (*"HOLDS below-floor on the EXECUTING SHARE, never the gross"*). **Refinement: rank by attention, then ask whether the logic is SHARED or COPIED** — §1348's recipient rule was copied, and both copies needed pinning. |
 | 795 | §1348 | **§1349** | **THE SIBLING OF §787's TITLE — A CLEAN NEGATIVE, VIA TWO OF MY OWN MEASUREMENT ERRORS.** §787 is titled for the RECIPIENT; the sibling is the CONTENT — and §785's own opening names both (*"a wrong recipient OR a wrong document"*) then audits one. Record attention is 15 verdicts vs **1**. **Error 1:** I read that as "unaudited" — `recall` measures the RECORD, not the code, which has 2 test files and a CR/LF header-injection guard (the catastrophic case, pinned as §1347 predicts). **Error 2:** grepping the test for a money alternation ending in `\$` (escaped out of this cell — 4th pipe-split this session) returned 26 hits — the `\$` was matching **template interpolation**; the source's real count is **zero**. The email carries NO money figure (a proof artifact; the invoice is named in the subject), so the sibling closes structurally: nothing to be wrong about, and the details it does render are asserted. |
 | 794 | §1347 | **§1348** | **THE OUTPUT BOUNDARY RE-WALKED WITH §1347's HEURISTIC — COMPLETE, AND THE ASYMMETRY HOLDS TWICE MORE.** §785 audited 1 of 7 outputs; §787 closes the phase with **every emitter enumerated** (recipient-decider + verdict): 2 gaps found, 4 already pinned. **The strong form:** the recipient rule is implemented TWICE, and in BOTH copies the party-scoping (unrecoverable cross-party leak) was covered while the billing preference (right party, recoverable) was pinned in NEITHER — two independent implementations, attention landing on the same side of the same line. Not a choice, a tendency. Closed at HEAD by `recipient-parity.test.ts`, which extracts both bodies by **brace matching** — §1338's technique, already in the repo. |
@@ -79094,3 +79095,52 @@ opposite of §1348's recipient rule, which was implemented TWICE and where both 
 logic is SHARED or COPIED before reading further.** A low-attention symbol that CALLS a proven helper needs a
 glance; a low-attention symbol that RE-IMPLEMENTS one is where the §1348 shape lives. The ratio alone cannot
 tell those apart, and this session has now seen one of each.
+
+
+## §1351 — PHASE GATE: searching for COPIED logic, and closing the one copy-set with nothing holding it
+
+§1350 refined the method: rank by attention, then ask whether the logic is SHARED or COPIED — because a
+low-attention symbol that CALLS a proven helper is fine, while one that RE-IMPLEMENTS it is where §1348's shape
+lives. That makes "find the copies" a mechanical search, and it had never been run.
+
+Normalising every function body in the shipped tree and grouping duplicates across FILES yields **five copy-sets**:
+
+| copies | function | held by |
+|---|---|---|
+| 3 | `readModelText` (concierge · copilot · migrator) | **nothing** |
+| 4 + 3 | `uuidFromSeed` / `deterministicUuid` across 7 sites | `id-determinism.test.ts`, `inline-tenant-key.test.ts` |
+| 2 | `resolveRecipient` / `resolveDunningRecipient` | `recipient-parity.test.ts` (§786) |
+| 2 | `tsaFor` / `tsaClientFor` | nothing found |
+
+### The one worth closing
+
+`readModelText` turns an Anthropic `Response` into the model's text or `undefined`, and it is byte-identical in
+all three LLM consumers — 476 normalised characters, **zero test files naming it**.
+
+**A drift here fails CLOSED, which is exactly why it would go unnoticed.** Every copy returns `undefined` on an
+unreadable envelope and every caller treats that as "no usable output": the Copilot abstains (§1255), the
+Concierge degrades, the Migrator guesses nothing. So a divergence does not corrupt anything — it makes ONE
+agent stop understanding a response shape its siblings still handle, and the symptom is an abstention rate
+rather than an error.
+
+**Closed with this repo's own precedent.** §786 found the recipient rule implemented twice with neither copy
+pinned and answered it with a normalised-body parity test, warning that *"a parity test alone would happily
+certify two copies that are identically WRONG"*. `model-envelope-parity.test.ts` is that shape for three
+copies, and reuses its technique deliberately: bodies extracted by **brace matching** (§1338), comments
+stripped, whitespace collapsed, plus the two guards §786 insisted on —
+
+- **non-vacuity**: each extracted body must exceed 120 characters, so a renamed function cannot make the suite
+  green by extracting nothing;
+- **a property, not just sameness**: the shared body must still contain `return undefined` and a `catch`, since
+  failing closed is the one thing every caller depends on.
+
+**Mutation-proved:** introducing a drift into the migrator's copy REDs *"readModelText has DRIFTED between
+concierge and migrator"*. Source restored byte-identical.
+
+**Running tally: 262 of 262 load-bearing claims probed — 183 verified, 47 gaps closed, 23 claims corrected;
+12 operational items recorded.**
+
+**STOP.** One gap closed, one recorded: `tsaFor`/`tsaClientFor` is a two-copy set with no parity test found, and
+it is left for a phase that can read what those two actually do rather than assume the `readModelText` verdict
+transfers. **The search itself is the durable part** — five copy-sets, mechanically derived, is a list this
+repo did not have, and three of the five were already held by exactly the kind of test §786 invented.
