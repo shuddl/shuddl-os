@@ -101,6 +101,53 @@ describe("serializeJournalIIF — deterministic byte-identical output", () => {
     expect(serializeJournalIIF(shuffled, opts)).toBe(expected);
     expect(serializeJournalIIF(shuffled, opts)).toBe(serializeJournalIIF(lines, opts));
   });
+
+  // §1271 — THE TIEBREAKS. The fixture above carries FOUR DISTINCT ACCOUNTS, so `account` alone decides its
+  // whole order and the remaining three clauses of `compareLines` (event_id → money_line_id → debit-first)
+  // never engage. Measured: deleting each of those three left packages/ledger GREEN, while deleting `account`
+  // REDs 2 — one clause of four exercised, under a test named "order-insensitive".
+  //
+  // This journal is the accountant-facing artifact (CLAUDE.md: the QB export reconciles to the penny). An
+  // unstable line order does not change any total, which is precisely why it would survive review: it turns a
+  // diff of two exports of the SAME period into noise, and that is how a real discrepancy gets skipped.
+  //
+  // Fixture: every line on ONE account, so account cannot decide anything, and money_line ids DELIBERATELY
+  // ordered against event ids (evt-1 holds ml-8/ml-9, evt-2 holds ml-1) — otherwise dropping `event_id` would
+  // yield the same sequence by accident and the clause would look defended when it is not (§1260).
+  describe("§1271 the tiebreaks below `account` (event_id → money_line_id → debit before credit)", () => {
+    const ACC = GL_AR_CONTROL;
+    const ln = (event_id: string, money_line_id: string, debit: number, credit: number): JournalLine => ({
+      account: ACC, debit_cents: debit, credit_cents: credit, division: "main", event_id, money_line_id, kind: "freight",
+    });
+    const A = ln("evt-1", "ml-8", 100, 0);
+    const B = ln("evt-1", "ml-8", 0, 100);
+    const C = ln("evt-1", "ml-9", 50, 0);
+    const D = ln("evt-1", "ml-9", 0, 50);
+    const E = ln("evt-2", "ml-1", 20, 0);
+    const F = ln("evt-2", "ml-1", 0, 20);
+    // evt-1 before evt-2; within evt-1, ml-8 before ml-9; within each pair, the DEBIT first.
+    const EXPECTED_AMOUNTS = ["1.00", "-1.00", "0.50", "-0.50", "0.20", "-0.20"];
+    const amountsOf = (iif: string): string[] =>
+      iif
+        .split("\r\n")
+        .filter((l) => l.startsWith("TRNS\t") || l.startsWith("SPL\t"))
+        .map((l) => l.split("\t")[4]!);
+
+    it("orders on every clause, from an input that is neither the answer nor its reverse", () => {
+      const input = [D, A, F, C, B, E]; // ≠ expected, and ≠ reverse(expected) — a stable sort cannot imitate it
+      const out = amountsOf(serializeJournalIIF(input, opts));
+      // PREMISE: one account throughout, so `account` decides nothing here.
+      expect(new Set([A, B, C, D, E, F].map((l) => l.account)).size).toBe(1);
+      expect(out).toEqual(EXPECTED_AMOUNTS);
+    });
+
+    it("two different interleavings of the same lines serialize byte-identically", () => {
+      const p1 = serializeJournalIIF([D, A, F, C, B, E], opts);
+      const p2 = serializeJournalIIF([E, C, A, F, B, D], opts);
+      expect(p1).toBe(p2);
+      expect(amountsOf(p1)).toEqual(EXPECTED_AMOUNTS);
+    });
+  });
 });
 
 describe("serializeJournalIIF — the transaction balances (SPL lines net to 0)", () => {

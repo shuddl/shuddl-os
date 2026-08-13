@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 717 | §1270 | **§1271** | **§1262 DECLARED THE ORDERING CLASS CLOSED; IT HAD SWEPT ONE LANGUAGE.** All 20 `.sort()` sites enumerated; two more four-clause comparators found **1/4 exercised**, the same ratio as `merge.ts`. **`iif.ts compareLines`** (the QB export, *reconciles to the penny*): its existing case is named *is order-insensitive* and carries **four DISTINCT accounts**, so clause 1 decides everything and the other three never engage — an unstable line order changes no TOTAL, which is exactly why it survives review, while turning a diff of two exports of one period into noise. Closed with all lines on ONE account and money_line ids **deliberately ordered against** event ids (else dropping `event_id` matches by accident). 4 RED. **`queue.pending`** (the driver drain order, rule 6): undefined-last REDs 1 and 2, seq direction REDs 4 — but both **index tiebreaks stay GREEN because `Array.prototype.sort` is STABLE by spec**, so the `.map((item, index))` wrapper reimplements a language guarantee (§1267's union pattern: behaviour pinned, neither mechanism individually). **What all three share:** the primary clause has a test, the tiebreaks have none, and each existing test is NAMED for the whole property. **A tiebreak only matters when the data is boring — and boring data is what a hand-written fixture never has.** |
 | 716 | §1269 | **§1270** | **§1258's CLASS WAS NEVER ABOUT SQL.** Found in `ORDER BY` clauses and treated as a SQL finding — but `driver-core/src/merge.ts` carries a **four-clause total order in TypeScript** (`captured_ts → device_id → device_seq → id`) and only the FIRST was exercised: dropping each of the other three left the package **47/47 GREEN**, against a comment claiming *a deterministic total order … independent of input order*, which is what makes an airplane-mode replay reproducible (rule 6). **The contrast is the useful part:** its sibling `seqKey` — the 3-part dedupe key the comments call dangerous — is FULLY pinned (1/2/3 REDs). Same file, same review: **the key flagged as dangerous is exercised; the ordering underneath it is not.** `Array.sort` is STABLE, so a dropped clause degrades to INPUT order — exactly what the claim denies — which makes the claim itself the sharpest test: one set, two interleavings, identical output. The `id` tiebreak is reachable ONLY for server-origin events (device events tying on the key are deduped before `cmp` sees them), so a component can be unexercised because nothing varies it OR because nothing CAN. 5 mutations RED, 49/49. Restores done by scratchpad `cp`, never `git checkout` — §1269's lesson applied the same hour. |
 | 715 | §1268 | **§1269** | **A LIVE DEFECT IN A DRIVER-FACING NUMBER — the first SOURCE defect since §1258.** `syncOnce`'s `parked` count (shown on a driver's screen via `useSync`) was incremented at **two sites whose cases are not disjoint**: once for an already-parked item, once for one that parks during the pass. An item parked → re-probed → **re-parked** hits both: **`parked === 2` for ONE stop**, 2N for N. Second instance, same shape: an item that was parked and then **DRAINED** is still counted, because the top site fires before the outcome is known. **Neither was covered and the reason is instructive** — one existing test keeps the item inside its backoff window (bottom site never runs), the other lets the refusal CLEAR (it drains); **the uncovered middle is the ORDINARY case**, a refusal that persists. Fixed by REMOVING a site: `advanceItem` mutates `item.sync` in place, so post-pass state IS the answer — **the old code guessed the outcome from pre-pass state; the new code looks.** Honest-instrument law arriving at a NUMBER. Mutation-proved by restoring the two-site shape (both RED), 47/47. **And I wiped my own uncommitted fix** restoring with `git checkout --` mid-proof — snapshot to scratchpad, never checkout, when the file carries uncommitted work. |
 | 714 | §1267 | **§1268** | **THE LOOSE-PAYLOAD BOUNDARY SWEPT TO COMPLETION — AND MADE A TRIPWIRE.** All **8** loose kinds given a verdict per reader: `exception.raised` (2 gaps closed, §1266) · `payment.received` + `settlement.executed` (2 gaps closed, §1267 — one helper pair, not two copies) · `approval.*` **PINNED** (1 RED) · `document.attached` **no exposure** (a `safeParse`, not a hand-guard) · `call.transcribed`/`quote.expired` **no exposure** (exhaustive `return []`). **The completeness is STRUCTURAL:** `readField` has exactly ONE call-site file, and both projections switch exhaustively over all 35 kinds, so *does anything read a field off X* is answered by READING THE BRANCH, not by trusting a grep. **Three ways to handle a loose payload and only one produced defects** — schema-parse (nothing to get wrong), exhaustive-ignore (compiler proves it), and **guarded hand-read, where every defect lived**, because the guard is ordinary code no test forces and it *looks* careful. Sweep converted to `loose-payload-boundary.test.ts`: the set must stay exactly 8 / 27 / one readField site, with the re-sweep instruction in the failure message. Planted both violations — a 9th loose kind → **2 RED**, a second readField site → **1 RED**. |
@@ -75261,3 +75262,52 @@ snapshot, never `git checkout --`. Verified with `diff -q` at the end rather tha
 **STOP.** The composite-ordering class re-opened where it actually lives — not in SQL, in *orderings* — and
 closed in the driver's offline merge, whose determinism is a rule-6 guarantee. Sibling key confirmed clean by
 measurement; the unreachable-by-dedupe component reached deliberately; five mutations RED.
+
+## §1271 — PHASE GATE: §1262 declared the ordering class closed; it had swept one language
+
+§1270 found the class alive in TypeScript, so the honest conclusion is that **§1262's "the class, closed" was a
+claim about `ORDER BY` clauses, not about orderings.** This completes it: all 20 `.sort()` call sites in shipped
+source enumerated, the multi-clause ones measured, two more four-clause comparators found **1/4 exercised** —
+the identical ratio to `merge.ts`.
+
+| comparator | clauses | exercised before |
+|---|---|---|
+| `driver-core/merge.ts` `cmp` | captured_ts → device_id → device_seq → id | 1 of 4 (§1270) |
+| `ledger/gl/iif.ts` `compareLines` | account → event_id → money_line_id → debit-first | **1 of 4** |
+| `driver-core/queue.ts` `pending` | seq asc, undefined last, index-stable | **1 of 5 branches** |
+
+**The IIF fixture shows the mechanism cleanly.** Its existing case is named *"is order-insensitive: a shuffled
+input serializes byte-identically"* — and its four lines carry **four distinct accounts**, so `account` alone
+decides everything and the other three clauses never engage. Deleting each of them left the package green.
+This is the accountant-facing artifact (CLAUDE.md: the QB export reconciles to the penny), and an unstable line
+order changes no total — which is exactly why it would survive review. It turns a diff of two exports of the
+same period into noise, and that is how a real discrepancy gets skipped.
+
+Closed with every line on ONE account and the money_line ids **deliberately ordered against** the event ids
+(evt-1 holds ml-8/ml-9, evt-2 holds ml-1) — without that, dropping `event_id` yields the same sequence by
+accident and the clause looks defended when it is not. **4 mutations, all RED.**
+
+**The drain order splits three ways, and two of its branches are redundant with the LANGUAGE.** Dropping the
+`undefined`-last branches REDs 1 and 2; flipping the seq direction REDs 4. But both **index tiebreaks** stay
+green — because `Array.prototype.sort` is stable by spec, so `return 0` and `return a.index - b.index` are
+observably identical. The `.map((item, index) => …)` wrapper reimplements a guarantee the language already
+gives. Same shape as `SafeInt`'s `.int()` + refine (§1267): **the behaviour is pinned; neither mechanism is,
+because either alone suffices.** The tests here assert the observable property — insertion order preserved —
+which is the thing that must not change, whichever mechanism provides it.
+
+### What the three comparators have in common
+
+Nothing about SQL, and nothing about a domain. In all three the **primary clause carries a test and the
+tiebreaks carry none**, and in all three the test that exists is *named* for the whole property —
+*"order-insensitive"*, *"deterministic total order"*. The tiebreak is the part of an ordering that only matters
+when the data is boring — equal timestamps, one account, a repeated seq — and boring data is what a
+hand-written fixture never has.
+
+**Mutation-proved:** IIF 4/4 clauses RED; drain 3 branches RED, 2 redundant with a measured reason.
+driver-core **52/52**, ledger **719/719**, typecheck 0.
+
+**Running tally: 36 of 40 load-bearing claims probed — 19 verified, 16 gaps closed, 1 claim corrected.**
+
+**STOP.** The ordering class is now closed across BOTH languages — 5 SQL sites (§1258–§1262) and 3 TypeScript
+comparators (§1270–§1271), every clause either mutation-proved RED or recorded redundant with the mechanism
+that covers it. §1262's closure claim is corrected in place rather than left standing.
