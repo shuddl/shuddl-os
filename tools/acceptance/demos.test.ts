@@ -157,11 +157,30 @@ const MIN_ASSERTIONS = Object.values(ASSERTION_FLOOR).reduce((a, b) => a + b, 0)
  *
  * The floors below are therefore in `expect(` call sites. Compare them to this function, never to a run count.
  */
+/**
+ * §1277 — count `expect(` sites that are ACTUALLY LIVE, i.e. not inside a comment.
+ *
+ * The previous counter matched raw text, so a COMMENTED-OUT assertion still counted. That is not hypothetical:
+ * measured by commenting out 15 of `heartbeat.test.ts`'s 48 assertions — the file still ran, those 15 no longer
+ * executed, and this gate stayed GREEN. That is verbatim the state its own failure message exists to prevent
+ * ("the file exists and runs, while the demo it proves no longer proves it"). DELETING the same 15 fired
+ * correctly; commenting out is the far more common way a test is weakened, because it is what someone does to a
+ * failing assertion mid-refactor.
+ *
+ * Deliberately a stripper, not a parser: block comments, then line comments (the `[^:]` guard keeps `://` in a
+ * URL from eating the rest of the line). §890/§891's lesson is respected — this does not judge assertion
+ * STRENGTH, only whether the call site is live code.
+ */
+export function countExpectSites(src: string): number {
+  const stripped = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/[^\n]*/gm, "$1");
+  return (stripped.match(/\bexpect\s*\(/g) ?? []).length;
+}
+
 function assertionCount(root: string, key: string): number {
   const [pkg, file] = key.split(" ") as [string, string];
   const dir = packageDirs(root).get(pkg);
   if (dir === undefined) throw new Error(`no workspace package named ${pkg} — the floor names a package that does not exist`);
-  return (readFileSync(`${root}/${dir}/${file}`, "utf8").match(/\bexpect\s*\(/g) ?? []).length;
+  return countExpectSites(readFileSync(`${root}/${dir}/${file}`, "utf8"));
 }
 
 describe("§889: a spine test may not be gutted", () => {
