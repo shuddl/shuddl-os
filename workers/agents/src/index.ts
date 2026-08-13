@@ -198,7 +198,11 @@ export async function runRetentionSweep(env: AgentsEnv, now: () => number = () =
 // (genesis/13) — the SAME NotConfigured posture as evidenceSender/conciergeParser. So the mirror cron below is
 // INERT (a no-op) in every environment today, exactly as the overlay's authority map ships unflipped. Wiring a
 // live R2/API feed reader here is a CONFIRM-gated config step, not code that turns on by itself.
-function feedReaderFor(_env: AgentsEnv, _slug: string): FeedReader {
+// Exported for `test/feed-dormancy.test.ts` (audit §1362) — the CHOICE of the dark default is what needs
+// pinning, not just its behaviour (§380's finding, applied here). Its five sibling composition roots
+// (`transportFor`, `billingFor`, `evidenceSender`, `secretResolverFor`, `webhookDepsFor`) were already
+// exported and pinned; this one was neither, which is exactly why wiring it would have RED nothing.
+export function feedReaderFor(_env: AgentsEnv, _slug: string): FeedReader {
   return new NotConfiguredFeedReader();
 }
 
@@ -207,7 +211,11 @@ function feedReaderFor(_env: AgentsEnv, _slug: string): FeedReader {
 // NEW/CHANGED legacy-export row into the ledger as a `source:'legacy'` event THROUGH the api sequencer DO
 // (Task-6 parity's legacy side), re-raises a gap `anomalies` row for every unmapped column (continuous no-silent-
 // drop), skips SHUDDL echoes + dedupes on deterministic ids (no ping-pong), and advances the per-tenant watermark
-// on integrations.config. Idempotent + BOUNDED + FAIL-CLOSED: absent a wired feed/integration it no-ops, so
+// on integrations.config. Idempotent + FAIL-CLOSED: absent a wired feed/integration it no-ops, so
+// (~~BOUNDED~~ struck 2026-08-13, audit §1362 — the word was justified by the no-op clause that follows it,
+// which is darkness, not a bound. The watermark makes a sweep `O(changed)` in STEADY STATE; the FIRST sweep
+// after a feed is wired sees every export row as new and iterates the whole file, one D1 read + one append
+// each, with no LIMIT. See §1361 and test/feed-dormancy.test.ts, which REDs at exactly that moment.)
 // re-running every tick is safe; a per-tenant fault is contained + logged so one tenant never stalls the rest.
 // Exported so the cron test + a manual re-drive hit the identical path. The cron reads wall-clock for `now`.
 export async function runMirrorSweep(env: AgentsEnv, now: () => number = () => Date.now()): Promise<void> {

@@ -14,7 +14,7 @@ import { repoRoot } from "./repo-root.js";
 //     # GO-LIVE (2026-07-14): staging evidence sending is ON.
 //     EVIDENCE_FROM = "SHUDDL <pod@send.shuddl.tech>"
 //
-// `index.ts:237@evidenceSender` returns a ResendSender when RESEND_API_KEY and EVIDENCE_FROM are both
+// `workers/agents/src/index.ts:245@evidenceSender` returns a ResendSender when RESEND_API_KEY and EVIDENCE_FROM are both
 // non-empty, so the header was false about whether a DEPLOYED environment sends real email — to whatever
 // address a shipment's party carries. It also silently fired the GO-LIVE-CHECKLIST L417 reopen trigger
 // ("when RESEND_API_KEY + EVIDENCE_FROM bind"), leaving that row reading "Dormant while no provider is

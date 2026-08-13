@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 808 | §1361 | **§1362** | **THE DARK-DEPENDENCY CLASS SWEPT — §380 CLOSED IT TWICE WITHOUT COUNTING.** §1361 fixed two dark-bounded loops with PROSE; the repo already ships the mechanism — a **dormancy test**, which REDs at the config flip. Two existed. Sweeping: **11** `NotConfigured*` stubs by name vs **4** by my mechanism probe (64% miss — most stubs are async or throw, so the naming convention was the MORE complete instrument here; a mechanism enumeration is only as good as the mechanism specified). Class health is good — 8 of 11 have exercised live siblings, the 3 without are documented go-live rows and fail-closed. **The defect: 7 composition roots can return a dark stub, 6 are pinned.** `feedReaderFor` was neither exported nor named by any test — and it is the one §1361 showed un-bounds a whole-export loop. §380 stated this finding verbatim (*"the BEHAVIOUR of each default was pinned, the CHOICE of them was not"*) and fixed two roots instead of counting them. Fixed: exported + `feed-dormancy.test.ts` (4 cases), **mutation-proved isolating** — a live reader REDs both selector assertions while `read()→null` stays green, proving the behaviour half could never have caught a wiring. Also struck a false **BOUNDED** in `runMirrorSweep`'s header, justified by its own no-op clause |
 | 807 | §1360 | **§1361** | **FINISHED THE LOOP WORK-LIST — AND TWO LOOPS ARE BOUNDED BY NOTHING BUT A DARK DEPENDENCY.** Applied §1360's rule to §1338's 26-loop set. The 15 the regex called bounded are recorded UNREAD (the same heuristic already misclassified four the other way). Of the 11 read: 6 already filed, `sla-sweep:186` is **no longer an instance** (post-§471 the append fires per BREACH, not per candidate), `index.ts:579` is bounded by `max_batch_size = 10` — and **`mirror-sweep.ts:225` and `webhooks.ts:356` are inert only because their sources are `NotConfigured*` stubs**. Each is un-darkened by a named go-live row (168, 146) that mentions no loop, no row count and no ceiling; mirror-sweep's watermark bounds STEADY STATE, while the FIRST sweep after wiring iterates the whole legacy export with a D1 read + append per row. **"Returns nothing today" is not a bound** — it is an unconnected dependency, and the hazard's ARRIVAL trigger was written in two rows that did not know they were it. Both rows cross-linked; the page bound left to the register owner |
 | 806 | §1359 | **§1360** | **TRIAGED §1359's POPULATION — AND DE-ESCALATED MY OWN FINDING.** §1359 measured *8 of 16 exemption lists lack a staleness assertion* and promised triage. **Four cannot go stale by construction** (marker STRINGS, build dirs, a mapping). **Two were false positives of my own heuristic**, which flagged anything containing a `/`: `test-collection`'s IGNORED is build globs, and `design`'s `ALLOWED_HEX` is **DERIVED** from `tokens.css` — the §1341 GOOD shape, misread as a roster. **The last is alive and correctly exempt** (`"21 used"`/`"11 used"` are RUNTIME figures other gates re-derive; both subjects verified present). Both remaining kinds fail SAFE; the narrow residual is a path-prefix later re-occupied by a different file — which is why the assertion belongs in `r2-before-row` and nowhere else. **"8 of 16" counted a SHAPE, not a risk.** |
 | 805 | §1358 | **§1359** | **EXEMPTIONS THAT OUTLIVE THEIR SUBJECTS — CLASS SWEPT, AND MY OWN GATE WAS IN IT.** §1357 selects by failure mode and an exemption has the purest: when its subject disappears it keeps excusing a site that no longer exists and **nothing fails**. `recall` → §672 established the rule; §835/§842/§1324 applied it. **Swept: 16 gates carry an exemption list, 8 assert its subject still exists, 8 do not** — not 8 defects (a design palette cannot go stale), but one was **`r2-before-row`, which I wrote this session**. Added the §672 assertion and mutation-proved it (an exemption pointed at a nonexistent path REDs: *"a standing excuse"*). Two self-inflicted errors on the way, both from anchoring on text that appears three times — **an anchor is only as good as its uniqueness**; reading 40 lines fixed it in one attempt. |
@@ -50948,7 +50949,7 @@ Comments only; **no behaviour changed**, and the diff was checked to be comment-
 - `BOARD_POLL_MS` is annotated as REQ-257's sanctioned fallback rather than a stopgap someone forgot.
 - A `dispositions` note records the verdict, following the REQ-184 precedent: citing a `vNEXT` row creates a
   status-drift entry (now 10), and the manifest is where "deferral marker, not implementation" is written
-  down. Verified `dispositions` is actually *read* (`tools/traceability/coverage.ts:201@scanRecordedHomes`,
+  down. Verified `dispositions` is actually *read* (`tools/traceability/coverage.ts:209@scanRecordedHomes`,
   which folds every disposition key into the recorded-homes set at `:181`, with a staleness guard at `:202`)
   before writing into it — a note nobody reads is the defect §851 filed.
 
@@ -56039,7 +56040,7 @@ hits, the sense that row explicitly excludes; L418's `ANTHROPIC_API_KEY` is boun
 EVIDENCE_FROM = "SHUDDL <pod@send.shuddl.tech>"
 ```
 
-`index.ts:237@evidenceSender` returns a `ResendSender` when both are non-empty. **The header is false**, and it
+`workers/agents/src/index.ts:245@evidenceSender` returns a `ResendSender` when both are non-empty. **The header is false**, and it
 is false about whether a deployed environment sends real email to whatever address a shipment's party carries.
 An operator who reads the section header and believes staging is inert is exactly the person who would seed a
 real recipient into it.
@@ -60182,7 +60183,7 @@ the anchoring path's job, and exactly why it holds 15 of the 42.
 The one critical path where the thinness is a real gap is already an open row, and it is **more current than
 my sweep**: L422 — *a permanently-failed evidence email surfaces nowhere* — was re-verified **today** by §944,
 which found its trigger had FIRED (the provider IS bound in staging via `[env.staging.vars]`, so
-`index.ts:237@evidenceSender` returns a real sender and the unsurfaced-failure branch is reachable in a
+`workers/agents/src/index.ts:245@evidenceSender` returns a real sender and the unsurfaced-failure branch is reachable in a
 deployed environment), corrected a `wrangler.toml` header that claimed the opposite, and built
 `wrangler-absence-claims.test.ts` to gate that class of claim.
 
@@ -79608,3 +79609,78 @@ not a scope label.
 says *"needs a REQ row first (a page size changes sweep semantics)"*. That holds doubly for `mirror-sweep`, where
 the page size interacts with the watermark's monotonicity. Documented, cross-linked, and left for the register
 owner.
+
+## §1362 — PHASE GATE: the dark-dependency class swept, and §380 closed it twice without counting
+
+§1361 found two loops bounded by nothing but an unwired source and fixed them with PROSE — two checklist rows.
+The repo already owns a better instrument for exactly that, and I did not reach for it: a **dormancy test**, which
+asserts that the production composition root still selects the dark stub and therefore **REDs at the config flip**.
+Two exist (`transport-dormancy.test.ts`, `webhook-dormancy.test.ts`). That is the [[the-repo-ships-the-instrument]]
+failure again — prose where a mechanism was already available.
+
+**The sweep.** Enumerating by name finds **11** `NotConfigured*` stubs; enumerating by mechanism (a class whose
+methods return a constant with no `await`) found only **4** — a 64% miss, because most stubs are `async` or
+`throw`. Recorded because §1332–§1334 taught *enumerate by mechanism, never by name*, and here the naming
+convention was the MORE complete instrument. The lesson survives with a correction: a mechanism enumeration is
+only as good as the mechanism you specify, and mine encoded "inert" as a shape most inert things do not have.
+Two enumerations disagreeing is the finding ([[two-mechanisms-disagreeing-is-the-finding]]); the union is the floor.
+
+**The health of the class is good.** Of the 11 stubs, 8 have a live sibling that tests exercise. Three have no live
+implementation shipped at all — `FeedReader`, `WebhookEventSource`, `WebhookTransport` — and all three are
+documented go-live rows, fail-closed (`NotConfiguredWebhookTransport.send` throws), with their delivery LOGIC
+covered by injected fakes. `EdiTransport`'s only non-stub is `RecordingTransport`, an in-memory recorder, and
+`transportFor` returns the stub **unconditionally** — the documented CONFIRM-gated EDI hold, correct as designed.
+
+**The defect: seven composition roots can return a dark stub, and six are pinned.**
+
+| selector | pinned by a test? |
+|---|---|
+| `billingFor`, `evidenceSender`, `transportFor`, `secretResolverFor` ×2, `webhookDepsFor` | YES — asserted `toBeInstanceOf` the stub |
+| `feedReaderFor` | **NO — and zero tests named `NotConfiguredFeedReader` at all** |
+
+It escaped for a structural reason: it was the only one of the seven **not exported**, so no test could reach it.
+And §380 stated this exact finding when it built the second dormancy test — *"the BEHAVIOUR of each default was
+pinned, the CHOICE of them was not, so swapping in a live implementation broke nothing"* — then fixed two
+composition roots rather than counting them. This is [[n-instances-usually-share-one-idiom]]: at instance #2, stop
+fixing and start counting. Nine hundred sections passed before anyone did.
+
+Of the seven this is also the worst one to leave unpinned, because §1361 measured what un-darkening it costs: the
+first sweep after a feed is wired iterates the entire legacy export, one D1 read plus one append per row, with no
+`LIMIT`, against a per-invocation subrequest ceiling.
+
+**Fixed.** `feedReaderFor` exported; `workers/agents/test/feed-dormancy.test.ts` added (4 cases: the selector, the
+selector across THREE slugs so a per-tenant flip cannot hide behind the one tenant the file names, the dark
+reader's behaviour, and a non-vacuity case). **Mutation-proved** by returning a live reader from the selector:
+the two selector assertions RED, and the behaviour assertion — `read()` resolves null — stays GREEN. That is the
+isolating mutation of §1352: it proves the pre-existing behaviour half could never have caught a live wiring, and
+therefore that the new assertions carry the whole weight.
+
+**And a false claim in the source, struck.** `runMirrorSweep`'s header read *"Idempotent + BOUNDED + FAIL-CLOSED:
+absent a wired feed/integration it no-ops"* — the justification for **BOUNDED** is the no-op clause immediately
+after it, which is darkness, not a bound. §1361's conflation, written into the code that the checklist rows
+describe. Struck rather than deleted, with the mechanism stated: `O(changed)` in steady state, whole-file on the
+first sweep ([[state-the-mechanism-not-the-outcome]]).
+
+**A fragility this phase exposed rather than caused.** Inserting nine comment lines into `workers/agents/src/index.ts`
+rotted **four** citations elsewhere that point at `evidenceSender` — [[line-numbers-are-not-a-key]], on schedule.
+The repair is supposed to be automatic (§733's `--fix` re-derives an anchored citation's line from its anchor),
+and it refused all four: they cite a bare `index.ts` (line 237, anchor `evidenceSender` — deliberately not written
+in citation form here, because prose in that shape becomes a LIVE citation and rots with its subject, §1354), and that filename is ambiguous across
+**14 files**, so the fixer cannot know which one and correctly declines to guess. So `--fix`'s coverage depends on
+PATH SPECIFICITY, not merely on having an anchor — a bare-filename citation is anchored yet unrepairable, and
+costs a human every time any line above it moves. Rewritten as full paths, which makes them auto-repairable next
+time. Worth generalising: when writing a citation, the anchor buys re-derivability only if the path resolves to
+one file.
+
+**And I did it again while writing the paragraph above.** Quoting the bad citation IN citation form made it a live
+citation, which rotted immediately — the §1354 mistake, committed twice in one session now. Worse, the gate said
+`exit: 1` in the same command block as the commit and I did not stop, which is **§805's recorded failure repeated**
+(*"I committed with `verify:docs` red"*). Amended. The durable lesson is smaller than either instance: reading a
+gate's exit code and ACTING on it are two steps, and putting the check in the same block as the commit removes the
+moment where the second one happens.
+
+Verification: agents worker 23 files / 136 tests green, typecheck Done, lint exit 0, traceability no orphans,
+`check:citations` **exit 0** with the ratchet running — 132 unanchored into 11 high-churn targets, exactly the
+frozen baseline, so nothing this phase wrote grew a ratcheted count. The tools suite is **120/120 files and
+1,340/1,340 tests**: the single failure that stood through §1354–§1361 was that `coverage.ts` citation rot, and
+`--fix` repaired it, so the repo-owned failure set is empty on this measure.
