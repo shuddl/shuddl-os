@@ -46,7 +46,16 @@ const CHECKLIST = "docs/ops/GO-LIVE-CHECKLIST.md";
  * decision, and "none of the N crons reconciles bookings" is the completeness claim.
  */
 function containedSweeps(root: string): number {
-  const src = readFileSync(`${root}/workers/agents/src/index.ts`, "utf8");
+  // §1278 — comments STRIPPED before matching. This counted raw text, so a commented-out `contain("…")` still
+  // counted: measured by commenting one out, the derived count stayed at 8 and this gate stayed GREEN while
+  // that sweep no longer rode the cron. The number is not cosmetic — two open GO-LIVE rows argue FROM it
+  // ("all N sweeps ride this one cron" is the cadence cost; "none of the N reconciles bookings" is the
+  // completeness claim), so an inflated N weakens both arguments silently. Same defect §1277 fixed in the
+  // acceptance floor; the rule is that an UNANCHORED source-text count must strip comments, while a
+  // line-anchored one (`/^\s+it\(/m`, isolation-suite) is immune by construction.
+  const src = readFileSync(`${root}/workers/agents/src/index.ts`, "utf8")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/(^|[^:])\/\/[^\n]*/gm, "$1");
   return new Set([...src.matchAll(/contain\("([^"]+)"/g)].map((m) => m[1] as string)).size;
 }
 
