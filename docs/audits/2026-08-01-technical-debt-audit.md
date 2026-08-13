@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 775 | §1328 | **§1329** | **THE THIRD REACH CLAIM — AND THE SHAPE THE ENUMERATION SURFACED NEXT DOOR.** `money.ts` claims narrowing `total_cents >= 0` *"removes the only path by which a negative could reach `allocateCents`"*. Verified: **exactly ONE non-test call site** (`projection/money.ts:192`), consuming a parsed `SplitComputedPayload`, so the refine stands between every real input and the allocator. **The yield was the neighbourhood**: reading that call site exposed `mapMoneyProjectionError`, which classifies failures by REGEX over the error message (`allocateCents` → 4xx not 500) — the lockstep-rot shape. It is pinned properly: the tests drive **REAL throws** (not synthesised messages), plus a negative control and §919's kind-gate precision case, so a rename or reword reds them. |
 | 774 | §1327 | **§1328** | **THE SECOND REACH CLAIM — APPROVALS HAVE ONE HOME, ENUMERATED.** Swept source for chokepoint claims: **7 exist**; the sequencer's is already gated by `append-chokepoint`, and `approve.ts` has §1327's exact two-surface shape (*"ONE home, every caller — browser or MCP — goes through it"*). Four links all verified: the general route **403s the kind for every role**; **exactly ONE append site** exists (`approvals.ts:96` — every other hit is schema/projection/visibility); MCP reaches it via `POST /…/approval-decision`; and the route re-checks `required_role` server-side. **The role check is SYMMETRIC** — finance→ops-required is ALSO 403, segregation of duties both ways rather than a privilege ladder. Both §1327 and §1328 found the prose UNDERSTATED the guarantee. |
 | 773 | §1326 | **§1327** | **THE COPILOT'S HONESTY GATE IS NOT MERELY SHARED — IT IS THE ONLY WAY TO BUILD AN ANSWER.** Targeted by RECENCY per §1323. §1255 proved the gate's LOGIC (3 layers, layer 2 mutation-proved) and described its REACH in prose (*"SHARED by every adapter"*) — a call-site claim, the class that breaks one import away. Enumerated: 3 adapters, 3 call sites, and **only 2 `AnswerResult` constructions repo-wide**, both inside the gate module (`:43` abstain, `:60` grounded). **A non-abstained answer is UNCONSTRUCTIBLE outside the gate** — an adapter cannot forget to call it because there is nothing else to return. Adds a 4th layer §1255 did not claim: universality by construction. Both §1255 construction claims re-verified (`EventRef` `.strict()` + required `kind`). |
 | 772 | §1325 | **§1326** | **SWEPT THE REOPEN TRIGGERS, PRIORITISED BY WHICH ONES FIRED.** Of the OPEN rows, **17 carry a locally-runnable expiry**; the rest name decisions. The refinement that makes the sweep nearly free: don't run all of them — **find the ones whose CONDITION fired**, decidable in one `git status`. Two name `genesis/09`, which IS modified by the concurrent workstream, so their conditions had fired unrun. Both clean: `check:coverage` exit 0 with **100%, 292 of 292 register rows**, and **11 status-drift rows — identical to 2026-08-12**. Two more checked and NOT fired (no denylist file, `identity-leak.ts` untouched since 08-08; `captures.ts` not among the concurrent edits though its siblings are). The prose's *"288 rows"* is correct dated history, not drift — no LIVE claim states a register count. |
@@ -78133,3 +78134,44 @@ promised more than the code delivered.
 A process note, because it is now five occurrences: the `packages/*/src` pathspec matches nothing in this
 repo's git, and I have re-made that error in five separate phases. Plain tree paths (`-- packages workers`)
 work. The tell is a zero-hit grep on a pattern that obviously exists.
+
+
+## §1329 — PHASE GATE: the third reach claim, and the adjacent shape the enumeration surfaced
+
+Third of the seven chokepoint claims, and the money one: `money.ts` narrows `SplitComputedPayload.total_cents`
+to `>= 0` and says that *"removes the only path by which a negative `total_cents` could reach
+`allocateCents`."*
+
+**Verified by enumeration.** `allocateCents` has exactly **one** non-test call site —
+`projection/money.ts:192`, `allocateCents(p.total_cents, p.allocations.map(a => a.share_bps))` — and `p` is a
+parsed `SplitComputedPayload`, so the refine stands between every real input and the allocator. Every other
+grep hit is the definition, its own error strings, a mirror header, or a comment. The claim holds.
+
+### What the enumeration surfaced next door
+
+Reading the call site put `mapMoneyProjectionError` in view, and it classifies failures **by regex over the
+error message**: `/\ballocateCents\b/.test(msg)` → `VALIDATION_FAILED`, so an off-path allocator throw
+surfaces as a client 4xx rather than an opaque 500. That is a lockstep coupling of exactly the shape this audit
+files as debt — a classifier that silently goes blind if the thrown text is reworded, with nothing connecting
+the two files.
+
+**It is pinned, and pinned in the way that actually works.** The tests do not synthesise a message containing
+the literal; they drive the REAL function:
+
+- `allocateCents(100, [5_000])` — a genuine postcondition throw → asserts `VALIDATION_FAILED`
+- `allocateCents(100, [-1])` — a genuine input throw → same
+- `new Error("something else entirely")` → **null**, the negative control that stops the branch swallowing
+  unrelated failures
+- §919's precision case: the I1 trigger text alone does NOT map without the event-kind gate, because both
+  `money_lines` guards raise the same text and *"a confidently wrong answer is worse than the 500 it replaced"*
+
+A rename of the function, or a reword of its messages, reds these — the coupling cannot rot silently.
+
+**Running tally: 196 of 196 load-bearing claims probed — 136 verified, 46 gaps closed, 20 claims corrected;
+10 operational items recorded.**
+
+**STOP.** No defect. Three reach claims verified in three phases, and the transferable observation is about
+what enumeration is FOR: I ran it to answer one question (how many callers) and its real yield was the
+NEIGHBOURHOOD — a string-coupled classifier I would not have thought to look for, sitting two lines from the
+call site I was counting. **A call-site enumeration puts you in front of the code that consumes the thing you
+are checking**, which is where the adjacent shapes live.
