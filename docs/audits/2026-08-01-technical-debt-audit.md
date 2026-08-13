@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 761 | §1314 | **§1315** | **THE GATE POPULATION AUDITED BY §1313'S OWN LESSON — CLEAN NEGATIVE.** All **119** gates have a floor or a positive control (3 flagged, all false positives of MY detector). The real §1313 class is a literal path ROSTER, not a glob: 8 files carry one, 6 are correctly allowlists, 2 are corpora (`preflight@WORKER_CONFIGS`, `recall@SOURCES`) — complete today. **Planted a ninth worker config** with a plaintext secret: **3 gates fire**, including `wrangler-scope-parity`, built for exactly this (*"DISCOVERED from the worker tree, so a new one cannot be added silently"*). Two errors inside the experiment: the plant is invisible until TRACKED, and **2 of 4 "gates fired" signals were phantom** — `check:secrets`/`check:named-resources` DO NOT EXIST, pnpm was printing "Command not found". Caught only because they still exited 1 after cleanup. |
 | 760 | §1313 | **§1314** | **STOPPING POINT — THE FULL BOARD AT `9af88fb`: 21 PASS · 2 FAIL · 5 BLOCKED.** Ran `verify:merge` (all 26) after §1313 showed six phases of targeted gates hid three reds. **Both FAILs are ONE uncommitted file** (`unit-tests` runs the tools suite containing `citation-links`; `citations` runs it directly) — **proved** by swapping in `git show HEAD:tools/traceability/coverage.ts`: exit 0 with HEAD's copy, 1 with the working copy. **Repo-owned failure set EMPTY.** 5 BLOCKED = nine pending engagement fixtures + absent `IDENTITY_DENYLIST`. Sharpened one of my own reopen triggers that a comment mention made undecidable. Nearly misdiagnosed a workerd wedge: the procs were state `S`, **PPID 1** (orphans), and the job's "exit 0" was my wrapper's `echo`, not the verdict. |
 | 759 | §1312 | **§1313** | **I REPRODUCED THE BUG THE GATE DOCUMENTS, IN THE GATE WRITTEN TO PREVENT IT.** Three phases corrected COUNTED claims, so I extended `checklist-figures` — hand-kept `SWEEP_COUNT_FILES` (2 of 4 files) and a vocabulary stopping at `ten` (so `"Eleven per-tenant sweeps"` matched NOTHING) both closed, file list now DERIVED. Then I planted §1312's real defect (`across four workers`) and **the new gate stayed GREEN** — `four` was not in the table, verbatim the §1077 lesson written forty lines above the code I was editing. Completing the vocabulary then made `"N of them"` match ordinary English (3 FPs), so the shape is now window-scoped. Replay: 1 RED naming the exact drift. **Also ran the FULL tools suite for the first time in six phases: 4 red, 3 of them MINE** (bare `biller.ts:NNN` into a high-churn file; a backticked Cloudflare metrics field; §1313 refs). |
 | 758 | §1311 | **§1312** | **THE ELEVEN CLOSED — AND TWO NEEDED A DIFFERENT PROOF.** All eleven per-tenant sweeps now assert CONTINUATION, not just non-rejection. §409's counted bound re-measured: eleven is right, **"four workers" is wrong — THREE** (agents 9, billing 1, translator 1; `api` has tenant bindings but iterates no roster), and the coverage gate had asserted three all along, so a doc claim and a green gate disagreed. The agents pattern (poison tenant-a, assert tenant-b's SUCCESS log) does not transfer to two members — translator poisons a SHARED R2 binding, billing's suite migrates only tenant-a — so **tenant-b's own FAILURE line is the proof**, since it can only exist if the loop continued. Declined to migrate tenant-b: the same file's live meter-identity assertion would silently change subject. **Mutation `continue→break`: 1 RED per worker on the continuation line, billing's pre-existing RESOLVES case GREEN.** |
@@ -77458,3 +77459,74 @@ one, `EXIT=1`, was inside the log). **Check the state letter and the PPID before
 belong to another workstream, the five BLOCKs are owner-held on absent private inputs, and no repo-owned gate
 fails. The next actionable items are all owner-scope: vendor the nine fixtures (clears 5 BLOCKs), wire
 `IDENTITY_DENYLIST`, and commit the register rows the filed items need before any of them can be built.
+
+
+## §1315 — PHASE GATE: the gate population audited by §1313's own lesson — a clean negative
+
+§1313 proved one gate blind by planting a violation in it. The obvious question is how many others are
+hypotheses. Measured across all **119** gate files under `tools/`.
+
+### Every gate has a floor or a control
+
+Three files came back with neither a corpus floor nor a synthetic-violation assertion. **All three are false
+positives of the detector**, which is worth stating because the detector was mine and too narrow:
+
+| flagged | why it is actually covered |
+|---|---|
+| `testing/delta.test.ts` | not a scanner — a unit test of pure `classify`/`failuresFrom`, with both directions, key-uniqueness and parse cases |
+| `deploy/surface-contract.test.ts` | *"Every test here asserts against a config MUTATED away from the real committed one"* — a systematic positive control, phrased without my keywords |
+| `release/evidence.test.ts` | a pure state machine with explicit reject cases (a PASS that never executed, a PASS with zero assertions) |
+
+### The sharper question, and the experiment
+
+§1313's defect was never a missing control — the figures gate HAD floors. What it lacked was coverage of its
+**corpus selection**: `SWEEP_COUNT_FILES` was a hand-kept literal list, so the detector worked correctly and
+never saw the file. So the real class is a literal path ROSTER, not a glob.
+
+Eight files carry one. Six are allowlists or fixtures, which is the correct shape (`append-chokepoint.ts`'s is
+*"The ONLY modules permitted to write the events table"*). Two are corpora: `preflight.ts@WORKER_CONFIGS` and
+`audit/recall.ts@SOURCES`. Both are complete today — five `workers/*` configs in preflight, three `apps/*` in
+`surface-contract@SURFACES`, which is all eight in the tree.
+
+**But completeness today is not the question. The question is whether a NINTH would be noticed**, and that is
+answerable only by planting one. A `workers/probe9/wrangler.toml` carrying a plaintext `STRIPE_SECRET_KEY` and
+a duplicate binding, **tracked** (see below), fires **three** gates:
+
+- `wrangler-no-secrets` — REQ-154/134, the constitutional law
+- `binding-parity` — the logical resource name must agree in every scope
+- `wrangler-scope-parity` — *"the deployable surface is complete … is DISCOVERED from the worker tree, so a new
+  one cannot be added silently"* — a gate built for precisely this shape
+
+So the §1313 defect is already defended where it would cost most. Clean negative, and this one is worth the
+phase it took, because §1313 established that assuming it would have been worthless.
+
+### Two measurement errors inside one experiment
+
+**The plant must be TRACKED.** Untracked, it was invisible to every `git ls-files`-derived gate; only after
+`git add -N` did the three fire. Not a defect — CI deploys from a checkout, so an untracked file does not exist
+there — but it means an experiment on a derived-corpus gate is meaningless until the probe is in the index.
+
+**And two of my four "gates fired" signals were phantom.** I invoked two scripts named `check:secrets` and
+`check:named-resources` (written here WITHOUT the `pnpm <name>` form on purpose — see below) and both exited 1,
+which I read as detections. **Neither script EXISTS** — the runner was reporting *"Command not found. Did you
+mean check:seed?"* on stderr I did not read.
+
+There is a gate for precisely this — §996's *"every cited `pnpm <script>` resolves to a defined script"* — and
+writing this paragraph in the natural form tripped it, which is how the second failure in this phase's own
+verification appeared. That is the most useful thing here: **had I written the command into a document before
+running it, an existing gate would have told me the script was imaginary before I drew a conclusion from its
+exit code.** That is verbatim a recorded failure mode of this audit
+("a script that doesn't exist"), met again, and it survived because a non-zero exit was the answer I expected.
+It was caught only by the cleanup step: after removing the probe those two still exited 1, and a signal that
+does not return to baseline was never measuring the subject. **I also never captured their baseline before
+planting**, which is the discipline that would have caught it one command earlier.
+
+The valid measurement was the vitest run, which named three specific gates and specific assertions, and which
+returned to 27/27 green once the probe was removed.
+
+**Running tally: 152 of 152 load-bearing claims probed — 97 verified, 44 gaps closed, 16 claims corrected;
+9 operational items recorded.**
+
+**STOP.** Tree verified clean of the probe (0 tracked, 0 in `git status`, `workers/` back to its five). The
+lesson is narrow and cheap to apply: **a probe's exit code is only evidence if you know what that exit code was
+before the probe.**
