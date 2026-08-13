@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 698 | §1250 | **§1251** | **THE COVERAGE QUESTION GATED — THE HOLE §1249 WALKED THROUGH, AND §705 BEFORE IT, IS NOW MECHANICAL.** §1250 named the gap: `lint-guards` proves the bans FIRE and is **silent about coverage**, because a rule nobody plants a violation against is a rule nobody notices missing. The same hole was found by hand twice — `apps/` at §705, `tools/` (the 50 files implementing every other gate) at §1249. New gate asks ESLint what it **resolves for a path** across all **327** non-test shipped sources in four trees, requiring `no-restricted-imports`, `no-explicit-any`, `no-floating-promises` at error. **Mutation-proved against the ORIGINAL hole**: pointing §1249's block at a non-matching glob reproduces the pre-§1249 state and the gate reports **50 pairs**, one per tools source. Floored two ways (≥250 files AND all four trees present, so a glob that stops matching `tools/` cannot go vacuously green), and the documented test exclusion is asserted — doubling as a positive control on the severity reader. |
 | 697 | §1249 | **§1250** | **THE CONSTITUTIONAL LINT SURFACE VERIFIED THREE WAYS — AND THE REPO ALREADY HAD THE STRONGER PROBE.** §1249's `--print-config` technique applied to every lint-enforced constitutional rule across six paths: `no-restricted-imports`, `no-explicit-any`, `no-floating-promises` all **2** everywhere, and §1249's new block disturbed none. **Severity is not enforcement**, so the OPTIONS were printed too — both bans intact for the ledger: REQ-163's prior-codebase patterns and REQ-024's LLM-import group, each naming its REQ. Then: `lint-guards.test.ts` does not read config at all — it runs `ESLint.lintText(code, {filePath})` on **planted violations at real paths, both directions**, including the `src/tsa/**` fetch carve-out pinned by its own negative case and §814's override-parity check. **Strictly stronger than my probe.** But the two answer different questions — *does it FIRE* vs *does it APPLY here* — and a suite of the first kind is **silent about coverage**, which is exactly the hole §1249 walked through. |
 | 696 | §1248 | **§1249** | **THE GATES THEMSELVES WERE OUTSIDE THE TYPE-AWARE PROMISE RULES — AND THE NAIVE FIX BROKE LINT.** §1248's rule points at floating promises (no observable failure). §1222's discipline first: the mechanism EXISTS — `no-floating-promises` is `error` with type-aware parsing. **But configured ≠ in effect**, so I asked `eslint --print-config` per path: src = 2, **`tools/` = ABSENT**, tests = ABSENT (deliberate, documented). `tools/` is where the GATES live — 14 of 50 non-test sources async, 70 awaits, including `invariants.ts` and the nightly `backup.ts`; a floating promise there is **a gate that passes without having run**. **Widening the glob produced 163 PARSING ERRORS** — tools live in `tsconfig.tools.json`, a non-default name the project service does not discover, and a type-aware block that cannot parse turns every rule it carries into noise. Fixed with a block naming the project. Clean on existing code, lint exit 0, planted violation flagged, lint-guards 17/17. |
 | 695 | §1247 | **§1248** | **THE DRIVER'S DURABILITY CONTRACT WAS HONOURED AND PINNED BY NOTHING — AND A TEST COULD NOT HAVE PINNED IT.** `queue.ts` states that `put`/`remove` must resolve only after the IDB transaction commits, or a tab-kill loses a signed airplane-mode POD. `idb-queue-store.ts` honours it; the only mention outside the source comments was a **comment in a test**. **Why no test could catch it, demonstrated:** a request's `onsuccess` fires BEFORE commit, so planting that refactor left the driver's own suite **101/101 PASS** while the new gate REDs with file, line and cause. The shape of the code IS the evidence — an ungated law whose violation has no observable failure needs a lint, not a fixture. **The gate flagged CORRECT code on its first run**: bounding blocks at the next READWRITE transaction made `put`'s block swallow the read-only `all()`, which legitimately settles from a request. Bounded at the next transaction of ANY kind — §1211's lesson, the block boundary decides what the rule can see. |
@@ -74238,3 +74239,43 @@ questions, and a suite of the first kind is silent about coverage.
 prove severity is not standing in for enforcement, the repo's own planted-violation gate found to be the
 stronger instrument, and the one question it structurally cannot answer — coverage across paths — named as the
 gap §1249 walked through.
+
+## §1251 — PHASE GATE: the coverage question gated — the hole §1249 walked through, and §705 before it, is now mechanical
+
+**§1250 ended by naming a structural gap rather than a defect:** `lint-guards.test.ts` proves the constitutional
+bans FIRE, which is the stronger check for a rule it tests — and it is **silent about coverage**, because *a rule
+nobody thought to plant a violation against is a rule nobody notices missing.*
+
+**Twice is a pattern, so this makes it mechanical.** The same hole has now been found by hand twice:
+
+| Hole | Found at | By |
+|---|---|---|
+| `apps/` outside the type-aware promise rules | §705 | a planted floating promise flagged in `packages/` and not in `apps/` |
+| `tools/` outside them — the 50 files implementing every other gate | §1249 | `eslint --print-config` per path |
+
+`tools/checks/lint-coverage.test.ts` asks ESLint what it **resolves for a path**, for every one of the **327**
+non-test shipped sources across all four trees, and requires all three lint-only constitutional rules at
+`error`: `no-restricted-imports` (REQ-024's LLM ban and REQ-163's prior-codebase ban), `no-explicit-any` (the
+stack rule), `no-floating-promises` (§1248's class — failure with no observable symptom).
+
+**Mutation-proved against the original hole**, not a synthetic one: pointing §1249's block at a glob that matches
+nothing reproduces the exact pre-§1249 state, and the gate reports **50 pairs** — one per non-test `tools/`
+source — each naming `no-floating-promises = ABSENT`. It would have caught §1249's hole, and §705's, without
+anyone thinking to look.
+
+**Three guards against the gate itself going quiet:**
+
+- the corpus is **floored** (≥250 files) *and* required to contain all four trees, so a glob that stops matching
+  `tools/` cannot make the sweep vacuously green — the failure mode of the very hole it exists to catch
+- the documented **exclusion** is asserted, not assumed: worker tests must resolve `no-floating-promises` to
+  absent (the config scopes the promise rules to `src` on purpose). An always-`2` reader would fail this case,
+  so it doubles as a positive control on the severity reader
+- and in the same case, `no-restricted-imports` must be `2` **for that same test file** — because REQ-024/163
+  bind a test exactly as they bind a source, and the two rules having different scopes is the point
+
+Suite 113 → **114** files, 1,311 → **1,314** tests; `pnpm lint` exit 0; failures unchanged at the 3 owner-held
+REQ-289 ones.
+
+**STOP.** The coverage question — *does this rule apply here at all* — turned from a technique someone must
+remember into a gate over every shipped source, proved by restoring the exact hole it was built for, and
+floored in the two ways that would otherwise let it go quiet.
