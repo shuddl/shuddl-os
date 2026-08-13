@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 697 | §1249 | **§1250** | **THE CONSTITUTIONAL LINT SURFACE VERIFIED THREE WAYS — AND THE REPO ALREADY HAD THE STRONGER PROBE.** §1249's `--print-config` technique applied to every lint-enforced constitutional rule across six paths: `no-restricted-imports`, `no-explicit-any`, `no-floating-promises` all **2** everywhere, and §1249's new block disturbed none. **Severity is not enforcement**, so the OPTIONS were printed too — both bans intact for the ledger: REQ-163's prior-codebase patterns and REQ-024's LLM-import group, each naming its REQ. Then: `lint-guards.test.ts` does not read config at all — it runs `ESLint.lintText(code, {filePath})` on **planted violations at real paths, both directions**, including the `src/tsa/**` fetch carve-out pinned by its own negative case and §814's override-parity check. **Strictly stronger than my probe.** But the two answer different questions — *does it FIRE* vs *does it APPLY here* — and a suite of the first kind is **silent about coverage**, which is exactly the hole §1249 walked through. |
 | 696 | §1248 | **§1249** | **THE GATES THEMSELVES WERE OUTSIDE THE TYPE-AWARE PROMISE RULES — AND THE NAIVE FIX BROKE LINT.** §1248's rule points at floating promises (no observable failure). §1222's discipline first: the mechanism EXISTS — `no-floating-promises` is `error` with type-aware parsing. **But configured ≠ in effect**, so I asked `eslint --print-config` per path: src = 2, **`tools/` = ABSENT**, tests = ABSENT (deliberate, documented). `tools/` is where the GATES live — 14 of 50 non-test sources async, 70 awaits, including `invariants.ts` and the nightly `backup.ts`; a floating promise there is **a gate that passes without having run**. **Widening the glob produced 163 PARSING ERRORS** — tools live in `tsconfig.tools.json`, a non-default name the project service does not discover, and a type-aware block that cannot parse turns every rule it carries into noise. Fixed with a block naming the project. Clean on existing code, lint exit 0, planted violation flagged, lint-guards 17/17. |
 | 695 | §1247 | **§1248** | **THE DRIVER'S DURABILITY CONTRACT WAS HONOURED AND PINNED BY NOTHING — AND A TEST COULD NOT HAVE PINNED IT.** `queue.ts` states that `put`/`remove` must resolve only after the IDB transaction commits, or a tab-kill loses a signed airplane-mode POD. `idb-queue-store.ts` honours it; the only mention outside the source comments was a **comment in a test**. **Why no test could catch it, demonstrated:** a request's `onsuccess` fires BEFORE commit, so planting that refactor left the driver's own suite **101/101 PASS** while the new gate REDs with file, line and cause. The shape of the code IS the evidence — an ungated law whose violation has no observable failure needs a lint, not a fixture. **The gate flagged CORRECT code on its first run**: bounding blocks at the next READWRITE transaction made `put`'s block swallow the read-only `all()`, which legitimately settles from a request. Bounded at the next transaction of ANY kind — §1211's lesson, the block boundary decides what the rule can see. |
 | 694 | §1246 | **§1247** | **THE DRIVER'S OFFLINE DURABILITY CONTRACT — STATED AT AN INTERFACE, HONOURED ON BOTH SIDES.** An unaudited surface, and the one where a defect strands real work: a `device_seq` that resets on reboot re-emits `(device_id, seq)` with DIFFERENT content, so first-wins merge and the sequencer's unique index **silently drop the later signed capture** — CLAUDE.md rule 6 territory. The port is SYNCHRONOUS while IndexedDB is async, so `durable-seq.ts` persists a **reservation block** and mints from inside it; what makes that sound is one guard — `next >= ceiling` throws, and a failing refill leaves the ceiling PUT, so capture() fails LOUD rather than minting an unreserved seq a restart would reuse. **Both obligations are pinned in their owning packages**: driver-core proves a rejected capture does not burn a seq (next valid still gets seq 0); apps/driver's ceiling guard is **mutation-proved** — `>=` → `>` reds it. §1243's chain lesson applied to an INTERFACE: a test on one side proves nothing about the other. |
@@ -74183,3 +74184,57 @@ one command, per path.
 measured per-path rather than read, the one undeliberate hole found at the gates themselves, the naive widening
 shown to break the parse rather than extend the rule, and the working extension proved live by a planted
 violation.
+
+## §1250 — PHASE GATE: the constitutional lint surface verified three ways — and the repo already had the stronger probe
+
+**§1249 produced a technique** — `eslint --print-config` answers *is this rule in effect for this file*. Applied
+to every lint-enforced constitutional rule, across six representative paths:
+
+| | `no-restricted-imports` | `no-explicit-any` | `no-floating-promises` |
+|---|---|---|---|
+| `packages/ledger/src/**` · `packages/agents/**` · `workers/api/src/**` · `apps/driver/src/**` · `tools/checks/**` | **2** | **2** | **2** |
+
+All in effect, everywhere, and §1249's new block disturbed none of them.
+
+**But severity is not enforcement.** A `no-restricted-imports` set to `error` with an empty `paths` list is a
+rule that is on and bans nothing — the exact hazard of last-writer-wins config, where a later block *replaces* a
+rule's options rather than merging them. So the options were printed too, for a ledger file:
+
+```
+patterns: 2
+  ['*lumina*','*Lumina*','*shuddl-2023*']            → "REQ-163: organ bank only."
+  ['@anthropic-ai/*','anthropic*','openai*', …]      → "REQ-024: LLMs never write ledger truth …"
+```
+
+Both constitutional bans intact, each carrying the REQ that owns it.
+
+### The repo already had a stronger probe than the one I invented
+
+`lint-guards.test.ts` does not read the config at all. It constructs `new ESLint()` and calls
+`lintText(code, { filePath })` — **running the real linter over planted code at a real path**, in both
+directions:
+
+- *flags an LLM SDK import in the ledger package* / *allows the same import outside the ledger package*
+- *flags a raw fetch in the ledger core* / ***ALLOWS** fetch inside `src/tsa/**`* — the one sanctioned egress,
+  with its carve-out pinned by its own negative case
+- §814: *every REQ-163 pattern in the repo-wide group is also in the ledger's override* — the parity that stops
+  a narrower override from silently weakening the wider ban
+
+That is strictly stronger than `--print-config`: it proves the rule **fires**, not merely that it is configured.
+
+### The two probes answer different questions, and the repo was missing one
+
+| Probe | Answers | Repo had it? |
+|---|---|---|
+| `lintText` on a planted violation | **does the rule FIRE** for this code at this path | yes — `lint-guards`, 17 cases |
+| `--print-config` per path | **does the rule APPLY** to this path at all | **no** |
+
+**§1249's finding came from the second.** `lint-guards` proves the ledger ban fires wherever it is tested; it
+cannot reveal that `no-floating-promises` was absent for `tools/`, because a rule nobody thought to plant a
+violation against is a rule nobody notices missing. *Does it fire* and *does it apply here* are different
+questions, and a suite of the first kind is silent about coverage.
+
+**STOP.** Every lint-enforced constitutional rule confirmed in effect across six paths, their options printed to
+prove severity is not standing in for enforcement, the repo's own planted-violation gate found to be the
+stronger instrument, and the one question it structurally cannot answer — coverage across paths — named as the
+gap §1249 walked through.
