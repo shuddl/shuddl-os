@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 710 | §1263 | **§1264** | **ONE RULE WRITTEN TWICE, DEFENDED IN NEITHER COPY.** §1258's family generalised from orderings to multi-condition `WHERE` clauses: 13 queries carry 3+ AND-ed conditions; the 4 sharpest were mutated condition by condition. **Two fully defended** (the invoice-settle amount cap REDs 3, `status='issued'` REDs 1 — clean negative). **The gap:** `kind = 'quote.priced'` in BOTH `portal-actions.ts` and `booking.ts` GUARD 2 — deleting it left the full api suite at **834/834** and **835/835** respectively, while each side's `stream_id`/`id` clauses RED 3–8. Both suites already had a test that READS as though it covers this; both name a `crypto.randomUUID()`, an id that exists NOWHERE, so `id = ?` refuses it and the `kind` clause never runs — **the fixture cannot distinguish DANGLING from WRONG-KIND**, which both guards' comments name as separate faults. **Damage:** an UNTRUSTED portal party gets **201** and writes a `quote.accepted` naming a non-quote onto an **append-only** ledger (I3/I7 — never removable), and the freight then silently never books. Closed both sides, 6 mutations RED, api 836/836. **And a recorded measurement error:** the first booking probe ran `workers/agents`, where the file LIVES → **130/130 false green**; it is owned by `workers/api/test/booking.test.ts` across a package boundary. Stopping there would have recorded *the mirror defends it* — a wrong finding that made the gap look survivable. |
 | 709 | §1262 | **§1263** | **THE BOARD CAUGHT TWO DEFECTS OF MINE THAT EVERY SUITE I RAN HAD PASSED.** Re-earned at `7ef7d34`: **18 PASS · 3 FAIL · 5 BLOCKED**, all three attributed. **(1) typecheck — MINE:** §1262's fixture destructures a sorted array, which is `string \| undefined` under `noUncheckedIndexedAccess`; 11 errors in the file I had just proved five ways, while `vitest` reported **16/16 GREEN on that exact file** — vitest does not typecheck. The companion to *run the suite that owns the file*: the owning suite is NECESSARY, not SUFFICIENT. **(2) phase-index — MINE:** the §4 index lists phase gates ONLY and I indexed §1261, a finding section; unindexed. **(3) evidence-expiry — MINE BY TRIGGER:** §1259 changed `anchor.test.ts`, expiring a row dated 2026-08-11; re-verified, substance HOLDS — and the clearance shape is the finding: the prior note anchored the two CONSTRUCTORS `path:line@symbol` and left the two CONSUMPTION sites bare, and **those are exactly the citations that rotted, by +32**, same file, same note, same day. **(4) coverage — NOT MINE, proved by EXIT CODE:** HEAD's register → **exit 0**; owner's working register → **exit 1**. That swap also demoted the **status-drift list to ADVISORY** (all 11 rows print at exit 0), so L423's 8 → 10 → 11 history has been tracking an advisory signal; the new row REQ-267 is a **deferral marker, not an implementation**. Plus a re-derivation logged as one: I re-proved Law 5, which the record already held **three times**. |
 | 708 | §1260 | **§1262** | **THE JOURNAL'S LINE ORDER + A SECOND AUTHOR IN THE WORKING COPY.** Reversing `created_ts, event_id, line_no` left 23/23 GREEN; the suite's *serializes byte-identically* case cannot see it, since one query run twice on the same rows is answered identically with or without an ORDER BY — a stable ENGINE, not an ORDERED query. Closed with 4 lines varying all three components, 5 mutations RED. **Class closed: 5 sites, 13 mutations, ledger 711/711 + api 834/834.** And reconciling the count found something bigger: 3 of the new tests are **NOT MINE** — a REQ-290 dated today, plus **seven modified files I never touched**. A delta here is not attributable to one author (I nearly recorded a fabricated *the suite mutates its own source*), and `git add -A` is unsafe regardless of exclusions — staging is **explicit paths** now. |
 | 707 | §1259 | **§1260** | **THE CLASS HAS TEN MEMBERS; FIVE MEASURED, FIVE UNEXERCISED.** Run as a search, §1258's rule enumerated every multi-column `ORDER BY` in shipped source. Measured each in THE SUITE THAT OWNS ITS CONSEQUENCE: `lens.ts` ts_desc (both tiebreaks deleted → ledger 706/706 AND api exceptions **7/7 GREEN**, in the suite whose comment says *this proves ts_desc keeps the freshest*), `credit.ts` (seq flipped → **3/3 + 13/13 GREEN**), `gl/export.ts` (reversed → **23/23 GREEN**). Equal `ts` is a PLATFORM property — `Date.now()` returns the time of the last I/O and does not advance during execution — and under a LIMIT an unstable order changes WHICH ROWS SURVIVE, resurfacing the REQ-197 vanishing-exception trap at the tie. **§1258's rule gets a second half:** the test written to close this carried the defect — varying every component is NECESSARY, not SUFFICIENT; the fixture must also beat the INCIDENTAL order (SQLite serves `ts DESC` from a BACKWARD index scan, so within a tie it returns reverse-insertion order, which imitated the intended order exactly), **per clause**, since a whole-order mutation can red while one component stays undefended. Insertion order derived from the constraints, proved 5 ways. |
@@ -74861,3 +74862,62 @@ So it stays, and this section is the recorded home for why. It is the sharper fo
 **STOP.** Board re-earned and every failure attributed by measurement: three FAILs, two mine and fixed
 (a type error no test could see, a documentation-convention break), one the owner's register, proved by an
 exit-code swap that also demoted the status-drift list to advisory and gave its newest row a verdict.
+
+## §1264 — PHASE GATE: one rule written twice, defended in neither copy — and an untrusted caller reaching an append-only ledger
+
+The §1258 family generalises past orderings. The property is *a fixture whose corpus is smaller than the arity
+of what it claims*, and the next sibling is a **multi-condition `WHERE`**: drop one condition and see whether
+anything notices. Thirteen queries in the ledger and API carry three or more AND-ed conditions; the four with
+the sharpest consequence were mutated condition by condition.
+
+**Two of the four were fully defended — a clean negative, stated as one.** `UPDATE invoices SET status='paid'
+WHERE id = ? AND status = 'issued' AND total_cents <= ?`: dropping the amount cap (a $1 payment settling any
+invoice) REDs 3 tests; dropping `status = 'issued'` (re-settling a paid invoice, or paying a draft) REDs 1.
+
+**The gap is the same rule in two places, blind in both:**
+
+```
+workers/api/src/routes/portal-actions.ts   SELECT 1 FROM events WHERE stream_id=? AND id=? AND kind='quote.priced'
+workers/agents/src/booking.ts   GUARD 2    SELECT 1 FROM events WHERE stream_id=? AND id=? AND kind='quote.priced'
+```
+
+Deleting `kind = 'quote.priced'` from the portal copy left the **full workers/api suite at 834/834**. Deleting
+it from the booking copy left it at **835/835**. Each side's `stream_id` and `id` clauses are firmly pinned
+(3–8 REDs); it is precisely the **wrong-kind** clause, on both sides, that nothing exercised.
+
+**Both suites already had a test that reads as though it covers this.** The portal case is titled *"a
+quote_event_id not priced on this shipment → 400 (no dangling accept)"* and the booking case *"(d2) GUARD 2 …
+names no quote.priced on the stream"* — and both name a `crypto.randomUUID()`. An id that exists NOWHERE is
+refused by `id = ?`, so the `kind` clause never runs. §1258's mechanism exactly, now in a predicate rather than
+an ordering: **the fixture cannot distinguish a DANGLING id from a WRONG-KIND one**, and both guards' own
+comments name the two faults separately (*"a dangling / wrong-kind quote_event_id"*).
+
+### What the damage actually is
+
+Not a phantom booking — GUARD 2 skips it, which is what "defense in depth" is supposed to buy. But the depth was
+zero, and the shape is worse than it first looks even so. An **untrusted portal party** POSTs an accept naming
+any event id on a shipment it can see; the API answers **201**; a `quote.accepted` referencing a non-quote event
+lands on an **append-only** ledger where I3/I7 mean it can never be removed; and the freight then **silently
+never books**. A caller outside the trust boundary writes a permanent malformed fact and gets a success code.
+
+**Closed on both sides**, each with a fixture that names an id which resolves on the stream and is the wrong
+kind — the portal via a non-quote event already on the stream, the booking via a second accept naming the first
+accept. Both assert the premise (the named event EXISTS and is not a `quote.priced`) so neither can decay back
+into the dangling case, and both assert nothing was appended. **Mutation-proved 6 ways** — each of the three
+clauses on each side — all RED. api 836/836, agents 130/130.
+
+### The measurement error, recorded
+
+The first booking probe ran `workers/agents`, where `booking.ts` lives, and returned **130/130 — a false
+green.** `handleQuoteAccepted` is tested from `workers/api/test/booking.test.ts`, across a package boundary. I
+have now made this error often enough that the rule needs its blunt form: **the package that contains a file
+tells you nothing about which suite owns it.** The correct first move is `git grep -l <exported symbol> -- '*test*'`,
+not an inference from the path. Had I stopped at the false green, I would have recorded "the portal copy is
+blind, the booking mirror defends it" — a *wrong* finding that would have made the gap look survivable.
+
+**Running tally: 17 of 40 load-bearing claims probed — 9 verified, 9 gaps closed, 1 claim corrected.**
+
+**STOP.** The WHERE-condition class opened and worked at its four sharpest sites: two fully defended (recorded
+as a clean negative), two gaps that are one rule written twice and defended in neither copy, both closed and
+proved six ways. The trust-boundary consequence — an untrusted caller writing a permanent malformed event and
+receiving 201 — is the reason this one mattered more than its test count suggests.

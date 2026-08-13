@@ -192,6 +192,31 @@ describe("Piece 2 — POST /v1/shipments/:id/accept-quote (REQ-085/028)", () => 
     expect(r.status).toBe(400);
   });
 
+  // §1264 — THE WRONG-KIND HALF of the same guard. The case above names an id that exists NOWHERE, so it is
+  // refused by `id = ?` and the `kind = 'quote.priced'` clause never runs — the fixture cannot tell a DANGLING
+  // id from a WRONG-KIND one, though the test's name reads as though it covers both.
+  //
+  // Measured: deleting that clause left the FULL workers/api suite at 834/834 — and its MIRROR, booking.ts
+  // GUARD 2, left workers/agents at 130/130. One rule written twice and NEITHER copy defended, so the
+  // "defense in depth" against a wrong-kind quote id had zero depth.
+  //
+  // The damage is not a phantom booking (GUARD 2 skips it) — it is worse-shaped than that: the API answers
+  // 201, an untrusted portal party writes a `quote.accepted` naming a non-quote event onto an APPEND-ONLY
+  // ledger where it can never be removed (I3/I7), and the freight then silently never books.
+  it("§1264 REQ-085: an id that EXISTS on this stream but is NOT a quote.priced → 400 (wrong-kind, not dangling)", async () => {
+    const stream = await streamEvents(SHP);
+    const notAQuote = stream.find((e) => e.kind !== "quote.priced");
+    expect(notAQuote, "premise: the stream must carry a NON-quote event, or this repeats the dangling case").toBeDefined();
+    const r = await acceptQuote(SHP, { quote_event_id: notAQuote!.id }, await portalTok(PORTAL_P));
+    expect(r.status, `naming a ${notAQuote!.kind} as the accepted quote must be refused`).toBe(400);
+    // ...and nothing was appended. Events are append-only: a malformed quote.accepted is permanent.
+    const accepted = (await streamEvents(SHP)).filter((e) => e.kind === "quote.accepted");
+    expect(
+      accepted.some((e) => (e.payload as Record<string, unknown>).quote_event_id === notAQuote!.id),
+      "a quote.accepted naming a non-quote event reached the immutable ledger",
+    ).toBe(false);
+  });
+
   it("a non-strict / malformed body is a clean 400", async () => {
     const quoteId = await quotePricedIdOf(SHP);
     const r = await acceptQuote(SHP, { quote_event_id: quoteId, sneaky: "x" }, await portalTok(PORTAL_P));

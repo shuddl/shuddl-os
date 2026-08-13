@@ -289,6 +289,39 @@ describe("Booking agent — quote.accepted → gated booking.created (REQ-028/04
     expect(await shipmentState(shp)).toBeUndefined();
   });
 
+  // §1264 — (d3) THE WRONG-KIND HALF of GUARD 2. The guard's own comment names two faults — *"a dangling /
+  // wrong-kind quote_event_id"* — and (d2) above covers only the first: it names a `crypto.randomUUID()`,
+  // which is refused by `id = ?` while the `kind = 'quote.priced'` clause never runs.
+  //
+  // Measured: deleting that clause left the FULL workers/api suite at 835/835. Its MIRROR — the identical
+  // predicate in `portal-actions.ts`, on the UNTRUSTED-caller side — was blind the same way, so one rule
+  // written twice was defended in neither copy and the "defense in depth" here had zero depth.
+  //
+  // (The measurement error is recorded too: the first probe ran `workers/agents`, where booking.ts LIVES, and
+  // came back 130/130 — a false green. This file, in a different package, is what owns it.)
+  it("(d3) GUARD 2: a quote_event_id that EXISTS on the stream but is NOT a quote.priced → skipped, nothing appended", async () => {
+    const shp = "booking-wrongkind";
+    await seedShipment(shp);
+    const quoteId = await seedQuotePriced(shp); // a REAL quote exists — the guard is not just "no quotes here"
+    const acceptA = await seedAccepted(shp, quoteId); // ...and a real accept, kind `quote.accepted`
+    // The second accept names the FIRST ACCEPT — an id that resolves on this very stream, wrong kind.
+    const acceptB = await seedAccepted(shp, acceptA);
+
+    // PREMISE: the named id really is present and really is not a quote.priced, or this repeats (d2).
+    const named = (await streamEvents(shp)).find((e) => e.id === acceptA);
+    expect(named, "the named event must EXIST on the stream").toBeDefined();
+    expect(named!.kind).toBe("quote.accepted");
+
+    const outcome = await handleQuoteAccepted(triggerFor(shp, acceptB), deps());
+    expect(outcome.status, JSON.stringify(outcome)).toBe("skipped");
+    if (outcome.status !== "skipped") throw new Error("unreachable");
+    expect(outcome.reason).toBe("accepted_quote_not_found");
+
+    // Doubly pinned: without the kind clause the handler would BOOK off a non-quote.
+    expect(await bookingEvents(shp)).toHaveLength(0);
+    expect(await shipmentState(shp)).toBeUndefined();
+  });
+
   it("NON-GATE RE-THROW: a plain (non-GATE_BLOCKED) DO/transient fault THROWS for redelivery — never swallowed as held", async () => {
     const shp = "booking-rethrow";
     await seedShipment(shp);
