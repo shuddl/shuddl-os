@@ -175,7 +175,8 @@ describe("billing parity + regression pins (the ones the port omitted)", () => {
 
 // REQ-025 / REQ-278 — ONE TENANT'S FAILURE MUST NOT STARVE THE REST (audit §408).
 //
-// Every per-tenant sweep in this system — eleven of them across four workers — wraps its body in a
+// Every per-tenant sweep in this system — eleven of them across ~~four~~ THREE workers (§1312: agents 9,
+// billing 1, translator 1; `api` carries tenant bindings but iterates no roster) — wraps its body in a
 // try/catch INSIDE the `for (const slug of await allTenantSlugs(env))` loop, with `resolveTenantDb` inside
 // the guard too, and the same comment: "re-run next tick — the sweep is idempotent". That containment is
 // the only thing making a multi-tenant cron fair: without it, the FIRST tenant whose data throws aborts the
@@ -195,5 +196,38 @@ describe("REQ-278: a per-tenant metering failure is contained, not fatal to the 
 
     await expect(runMeteringSweep(poisoned), "an uncontained per-tenant failure would reject here").resolves.toBeUndefined();
     expect(spy.mock.calls.some((c) => String(c[0]).includes("tenant-a")), "the failing tenant is named in a loud log").toBe(true);
+  });
+
+  // §1312 — CONTINUATION, the half the comment above names as the property that matters ("every tenant after
+  // it in slug order is silently never swept") while asserting only that the run RESOLVES. The two are NOT the
+  // same: a catch that `break`s instead of `continue`s still resolves and still logs tenant-a, and skips every
+  // later tenant. Closed for agents' nine sweeps at §1311; this is the billing member of the same eleven.
+  //
+  // WHAT PROVES CONTINUATION HERE IS A SECOND FAILURE LINE, NOT A SUCCESS LINE. MEASURED (§1312): this suite
+  // migrates only `TENANT_A_DB` (`applyTenant` in beforeAll), so tenant-b has no tables and its sweep fails on
+  // its own merits. Migrating it here would silently change what the live meter-identity assertion in this same
+  // file sweeps, so the harness is left alone. tenant-b's failure line can only exist if tenant-a's fault did
+  // NOT abort the iteration — which is exactly the property under test. Same adaptation the translator member
+  // needs for a different reason (its poison is a SHARED R2 binding).
+  it("the tenant AFTER the poisoned one is still REACHED — containment, not merely non-rejection", async () => {
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    try {
+      const poisoned = { ...env, TENANT_A_DB: { prepare: () => { throw new Error("D1_DOWN"); } } } as unknown as BillingEnv;
+      await runMeteringSweep(poisoned);
+
+      const said = (n: string): boolean => errSpy.mock.calls.some((c) => String(c[0]).includes(n));
+      expect(said("metering-sweep: tenant tenant-a failed"), "the injected fault never fired — this proves nothing").toBe(true);
+      expect(said("metering-sweep: tenant tenant-b failed"), "tenant-b was never reached — tenant-a's fault aborted the loop").toBe(true);
+    } finally {
+      vi.restoreAllMocks();
+    }
+  });
+
+  it("the poisoned tenant is iterated FIRST — the premise the continuation assertion rests on", () => {
+    // Poisoning the LAST tenant would satisfy the assertion above with the containment DELETED, since the throw
+    // would land after every other tenant had been swept. Pinning the order keeps that degradation loud.
+    expect(TENANT_SLUGS[0], "poisoning TENANT_A_DB no longer targets the first-swept tenant").toBe("tenant-a");
+    expect(TENANT_SLUGS.length, "a single-tenant roster makes continuation unobservable").toBeGreaterThanOrEqual(2);
   });
 });

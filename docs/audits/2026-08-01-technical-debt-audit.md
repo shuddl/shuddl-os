@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 758 | §1311 | **§1312** | **THE ELEVEN CLOSED — AND TWO NEEDED A DIFFERENT PROOF.** All eleven per-tenant sweeps now assert CONTINUATION, not just non-rejection. §409's counted bound re-measured: eleven is right, **"four workers" is wrong — THREE** (agents 9, billing 1, translator 1; `api` has tenant bindings but iterates no roster), and the coverage gate had asserted three all along, so a doc claim and a green gate disagreed. The agents pattern (poison tenant-a, assert tenant-b's SUCCESS log) does not transfer to two members — translator poisons a SHARED R2 binding, billing's suite migrates only tenant-a — so **tenant-b's own FAILURE line is the proof**, since it can only exist if the loop continued. Declined to migrate tenant-b: the same file's live meter-identity assertion would silently change subject. **Mutation `continue→break`: 1 RED per worker on the continuation line, billing's pre-existing RESOLVES case GREEN.** |
 | 757 | §1310 | **§1311** | **A DOCUMENTED GAP CAN ALSO BE ALREADY CLOSED — §1309 AND §1310 WERE BOTH WRONG.** `sweep-containment.test.ts` has poisoned a tenant across NINE sweeps since §409, with a non-vacuity errSpy check materially identical to §1310's. The absence claim came from a grep scoped to `*cron*.test.ts`; the owning file has no "cron" in its name — **scoping the corpus by FILENAME is the same error as scoping it by MECHANISM (§1308)**. What WAS missing is the CONTINUATION half, which §409 deferred on the record (*"the property we want … entangled with slug order and log spies"*). Closed in the owning file; my duplicate DELETED. **Isolating mutation:** `continue → break` leaves containment intact — old assertion GREEN, only the new line reds. 131→132 (not 140: 8 were duplicates), 8 of 9 sweeps now assert continuation. |
 | 756 | §1309 | **§1310** | **THE NON-VACUITY ASSERTION IS WHAT FOUND THE ARCHITECTURE.** Closed §1309's open sibling: 8 cron wrappers × *"one tenant never stalls the rest"*, now 9 table-driven tests (131 → 140 green). The decision that makes it mean anything: break **tenant-a (FIRST)**, since breaking the LAST tenant passes with the catch DELETED (§1281 shared-outcome blindness) — plus a 9th test pinning `TENANT_SLUGS[0]` so a reorder cannot silently make the other 8 tautologies. **The errSpy non-vacuity check fired on the anchor and corrected ME, not the code**: `runDailyAnchor` contains its own faults and RETURNS, logging `[REQ-014] … NOTHING was anchored` + a correlated-fault line when the failure-record write also fails; the wrapper's catch covers a narrower class. **Mutation: 7 catches → exactly 7 REDs, one per wrapper**, anchor stayed green. Zero source changed. |
 | 755 | §1308 | **§1309** | **THE CONTAINMENT THREE PHASES REASONED FROM, FINALLY PINNED.** §1306–§1308 all leaned on *"a per-party fault is contained + logged, never fatal to the rest"*; nothing asserted it, and the test file SAID SO in a §791 header (*"STILL UNEXERCISED … this suite has no seam for one"*) — an honest dated gap that survived because it reads as resolved. Built the seam (argument-scoped `faultSeam` from `anchor.test.ts`; the sweep's SELECT binds the RULE not a party, so it still returns every gap and *"the others reconcile"* is observable). **Mutation-proved:** `throw err` after the log reds ONLY the new test. Continuation asserted with its weakness stated — no `ORDER BY`, so the poison is bracketed by reconcilable parties on both sides. The per-TENANT catch in 7 wrappers is still unpinned (technique exists in `watchtower-cron.test.ts`). 131/131 green, source unchanged. **A documented gap is still a gap.** |
@@ -77279,3 +77280,51 @@ sections corrected in place. **The failure mode to keep: I searched, found nothi
 two phases — because the search LOOKED thorough.** §1310's own probe had already printed the pre-existing
 harness's fingerprint (`claimed-tenant enumeration failed`) and I read past it. Before recording any gap,
 enumerate the corpus the grep actually covered, and name the file you would expect the coverage to live in.
+
+
+## §1312 — PHASE GATE: the eleven closed, and two of them could not be closed the same way
+
+§1311 closed the CONTINUATION half for `workers/agents` (8 of its 9 sweeps). This finishes the family: the
+billing and translator members now assert it too, so **all eleven per-tenant sweeps pin continuation, not just
+non-rejection.**
+
+### The counted bound, re-measured
+
+§409 filed *"Eleven per-tenant sweeps across four workers."* Derived from the code by the coverage gate's own
+rule — a function whose body reaches `allTenantSlugs` — the population is **eleven across THREE workers**:
+nine in `agents`, one in `billing`, one in `translator`. FOUR is the number of workers carrying tenant
+bindings, which is a different set (`api` has the bindings and iterates no roster). The gate
+`sweep-containment-coverage.test.ts` has asserted exactly `["agents","billing","translator"]` all along, so a
+doc claim and a green gate disagreed about the same number. Corrected in both test files that repeat it.
+
+### Two members needed a different proof, for two different reasons
+
+The agents pattern — poison tenant-a's D1, assert tenant-b's SUCCESS log — does not transfer:
+
+| member | why the success log is unavailable | what proves continuation instead |
+|---|---|---|
+| `run214Sweep` | the poison is the **shared** `EVIDENCE` R2 (this sweep hits R2 before D1, §411), so every tenant fails | tenant-b's own FAILURE line |
+| `runMeteringSweep` | the suite migrates only `TENANT_A_DB`, so tenant-b has no tables and fails on its own merits | tenant-b's own FAILURE line |
+
+In both, a second failure line can only exist if the first tenant's fault did not abort the iteration — which
+is exactly the property. For billing I deliberately did **not** migrate tenant-b to manufacture a success log:
+the same file runs a live meter-identity assertion over the real sweep, and adding tables would silently change
+what that assertion sweeps. Adjusting a harness to make a new test prettier, at the cost of an existing test's
+subject, is a bad trade made quietly.
+
+### The isolating mutation, both members
+
+`continue → break` in each catch: containment intact, both sweeps still RESOLVE, and **exactly one test reds in
+each worker, on exactly the continuation line.** Billing's pre-existing *"still RESOLVES"* case is a separate
+`it` and stayed **GREEN** under the same mutation — the cleanest possible demonstration that the new assertion
+adds discriminating power rather than restating the old one. Both sources restored byte-identical.
+
+**Running tally: 143 of 143 load-bearing claims probed — 92 verified, 41 gaps closed, 15 claims corrected;
+9 operational items recorded.**
+
+**STOP.** billing 74/74, translator 128/128, agents 132/132, lint and typecheck clean, zero source changed.
+
+A measurement note worth keeping, because it is now three instances in one session: I printed a hardcoded
+`"(nothing above = X)"` label under a grep **three times**, and **twice the output directly above it contradicted
+the label.** A canned negative caption asserts the absence before the result is read, which is the same failure
+§1311 diagnosed one level up. State what a probe returned; conclude afterwards.

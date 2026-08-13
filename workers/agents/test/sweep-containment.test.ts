@@ -16,7 +16,9 @@ import { applyAll } from "./helpers.js";
 
 // REQ-025 / REQ-278 — ONE TENANT'S FAILURE MUST NOT KILL THE TICK (audit §409).
 //
-// Eleven per-tenant sweeps across four workers share one shape: a try/catch INSIDE
+// Eleven per-tenant sweeps across ~~four~~ THREE workers (count corrected §1312: nine in `agents`, one in
+// `billing`, one in `translator` — derived by the gate's own rule, a body reaching `allTenantSlugs`. FOUR is
+// the number of workers carrying TENANT bindings, which is not the same set) share one shape: a try/catch INSIDE
 // `for (const slug of await allTenantSlugs(env))`, with `resolveTenantDb` within the guard and the roster
 // load outside it. That containment is the only thing making a multi-tenant cron fair — without it the FIRST
 // tenant whose data throws aborts the loop, and every tenant after it in slug order is silently never swept.

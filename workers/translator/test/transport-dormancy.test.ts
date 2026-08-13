@@ -4,7 +4,7 @@ import { transportFor, secretResolverFor } from "../src/index.js";
 import { run214Sweep } from "../src/sweep-214.js";
 import { NotConfiguredTransport, TransportError } from "../src/transport.js";
 import { NotConfiguredSecretResolver } from "../src/inbound.js";
-import type { TranslatorEnv } from "../src/tenants.js";
+import { TENANT_SLUGS, type TranslatorEnv } from "../src/tenants.js";
 
 // REQ-203/154 — THE EDI TRANSPORT IS UNWIRED, AND THAT IS LOAD-BEARING (audit §379).
 //
@@ -148,6 +148,21 @@ describe("REQ-278: run214Sweep contains a per-tenant failure — the tick surviv
     // Non-vacuity — the assertion that caught a silently-skipped sweep in §410. A sweep that returned early,
     // or whose roster came back empty because the harness broke enumeration, would also "resolve".
     expect(errors.mock.calls.some((c) => String(c[0]).includes("tenant-a")), "the failing tenant must be named in a loud log").toBe(true);
+
+    // §1312 — CONTINUATION, the half "the tick survives" does not actually assert. A catch that `break`s
+    // instead of `continue`s ALSO resolves and ALSO logs tenant-a, while skipping every later tenant.
+    //
+    // THE SHAPE HERE DIFFERS FROM THE OTHER TEN, and the difference is the point. `poisonBinding` breaks the
+    // SHARED `EVIDENCE` R2 (see §411 above — this sweep reaches R2 before D1), not one tenant's D1, so there is
+    // no healthy tenant whose success log could prove the loop went on. What proves it is that the LATER tenant
+    // was REACHED AT ALL: its own failure line can only exist if tenant-a's fault did not abort the iteration.
+    expect(
+      errors.mock.calls.some((c) => String(c[0]).includes("214-sweep: tenant tenant-b failed")),
+      "tenant-b was never reached — tenant-a's fault aborted the loop rather than being contained",
+    ).toBe(true);
+    // The premise both assertions rest on: poisoning must hit a tenant that is NOT last, or a `break` would
+    // satisfy them with the containment deleted (§1281 shared-outcome blindness).
+    expect(TENANT_SLUGS[0], "tenant-a is no longer swept first — the continuation assertion is now vacuous").toBe("tenant-a");
     // NOTE (§411): this suite has no control-plane tables, so `allTenantSlugs` ALWAYS logs "claimed-tenant
     // enumeration failed" and degrades to the static roster — its documented fallback. That message is
     // ambient here, not harness damage. §410 read it as the blocker and was wrong: the real obstacle was
