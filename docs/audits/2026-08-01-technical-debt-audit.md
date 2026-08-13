@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 793 | §1346 | **§1347** | **§1346's CLAIM TESTED ONE LEVEL DOWN — IT HOLDS INSIDE A SINGLE FUNCTION.** Tested "unrecoverable designed out, recoverable deferred" where it could most easily fail: an output that cannot be withdrawn. `recall "resolveRecipient"` → 15 verdicts, owned by §785 (the address receiving a customer's POD **and** invoice). Its TWO rules split exactly on recoverability: *read only the named party's contacts* (**cross-party leak, unrecoverable**) was **4 REDs — covered**; *prefer the billing contact* (right party, wrong contact — recoverable) was **SILENT in both suites** — the gap. Nobody chose that per-rule, so it shows where design attention went. Gap closed at HEAD (`recipient-parity.test.ts:75`). **Three granularities now: ledger design, register, single function.** |
 | 792 | §1345 | **§1346** | **THE FRAMING PATTERN USED AS A SEARCH — AND THE ASYMMETRY IT EXPOSED.** Applied §1345's rule generatively: for a consequence-titled item, ask the SIBLING consequence. Thin on §-headings (nearly all are methodological), so applied to the domain-framed ROWS: the register carries two *"a lost trigger has no backstop"* rows, whose sibling is a DUPLICATED trigger (the queue is at-least-once). `recall "already_booked"` → **§476**, a clean negative in three steps: an alarming unpinned `ORDER BY seq LIMIT 1`, but a second booking is **unreachable** (REQ-191, rejected server-side), and that guard is pinned. **The asymmetry is the finding**: the UNRECOVERABLE direction was made impossible, the RECOVERABLE one left to a backstop — so open items cluster on the recoverable side BY CONSTRUCTION. |
 | 791 | §1344 | **§1345** | **AUDITED MY OWN FILED ROWS WITH THE RECORD'S INSTRUMENT — 4 OF 4 NOVEL.** A filed row that duplicates an existing one is debt the AUDIT added, and it looks exactly like a finding. `recall` on each row's distinguishing symbol: `ack990Key`, `OVERDUE_INVOICES_SQL`, `MAX_ROWS` all return only my own sections. `emitTerminalHoldMarker` returns **7 mentions / 5 verdicts, two PRIOR** — so §1102 (*"seven ways a delivered load does not bill"*) had to be READ: across 56 lines it mentions `split` **0** times and AP **0** times. It is an AR section end to end, so §1307's AP finding sits outside it. **The reason it was findable is the framing pattern, now at three instances** — §1330 titled for a TRIGGER, §1335 split across CONSEQUENCES, §1345 AR vs AP. |
 | 790 | §1343 | **§1344** | **THE INSTRUMENT'S FIRST REAL USE — AND WHAT IT SAVED.** Used `recall` instead of `git grep` on the question likeliest to find live work: what the record admits is UNEXERCISED (27 mentions / 19 verdicts). The sharpest was §1266, *"four unexercised guards in the Gatekeeper"* — **closed, and better than I would have closed it**: 2 were real gaps, 2 are REDUNDANT because the schema refuses a wrong type first, and the discriminator is doc 10's deliberate loose/typed asymmetry, not luck. **The borrowable move is the scoping**: §1266 names 109 `typeof` guards across 42 files and §1267 refused to sweep them, re-scoping to the enumerable BOUNDARY (8 loose kinds of 35, `readField` in one file) — sweeping 109 would have been mostly redundancy, the §1053 noisy-gate outcome. Boundary still held (3/3). |
@@ -78925,3 +78926,39 @@ what an append-only ledger forces, and it explains why every "lost X" row in thi
 answer — and its result is a structural fact worth more than another row: **this system's open items cluster on
 the recoverable side by construction**, so the absence of duplicate-side rows is evidence of a design decision
 rather than of an unswept area.
+
+
+## §1347 — PHASE GATE: §1346's claim tested one level down, and it holds inside a single function
+
+§1346 concluded that this system's open items cluster on the RECOVERABLE side by construction — the
+unrecoverable failure (a duplicate `booking.created` on an append-only ledger) was made structurally impossible,
+while the recoverable one (a lost trigger) was left to a backstop. That is a claim, and a claim is worth testing
+where it could most easily fail: **an output that cannot be withdrawn once sent.**
+
+`recall "resolveRecipient"` → 19 mentions across 15 verdicts, owned by §785, *"the OUTPUT boundary — who the
+evidence email actually goes to"* — the address that receives a customer's proof-of-delivery **and** their
+invoice. Read first, per the tool's instruction.
+
+**The claim holds, and at a finer granularity than §1346 tested it — inside ONE function's two rules:**
+
+| rule | if it breaks | mutation result at §785 |
+|---|---|---|
+| read ONLY the named party's contacts | **cross-party leak** — a customer's POD reaches a stranger; unrecoverable | **4 REDs in `workers/api`** — covered |
+| prefer the `billing` contact | the right party's DISPATCH address instead of its billing one; recoverable by resending | **SILENT in both suites** — the gap |
+
+The unrecoverable half was covered; the recoverable half was the hole. That is §1346's asymmetry reproduced
+between two lines of the same function, which is a much stronger form of the claim than the row-level version:
+nobody chose it per-rule, so it reflects where the design's attention actually went rather than how the register
+was written.
+
+**And the gap is closed at HEAD** — verified rather than assumed: `recipient-parity.test.ts:75` asserts *"the
+`kind === billing` preference is gone"*, so deleting the preference now REDs.
+
+**Running tally: 250 of 250 load-bearing claims probed — 174 verified, 46 gaps closed, 23 claims corrected;
+12 operational items recorded.**
+
+**STOP.** No gap. The asymmetry now has three granularities — the ledger's design (REQ-191 makes a duplicate
+booking impossible), the register's open set (§1346), and a single function's two rules (§785) — which is
+enough to use predictively: **when auditing a new surface, the unrecoverable half is likely already defended,
+and the recoverable half is where to look.** That is the opposite of the instinct that says to start with the
+worst consequence, and it is what the evidence in this repo supports.
