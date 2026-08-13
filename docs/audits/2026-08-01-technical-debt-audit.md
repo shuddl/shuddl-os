@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 804 | §1357 | **§1358** | **THE COLLECTION-SURFACE CLASS — ALL THREE RE-PROVED, PLUS A FALSE CLEAN OF MY OWN.** §1357's criterion (re-prove when the failure mode is SILENCE) picks §729's two named siblings: one finding per runner that COLLECTS. **TypeScript** (§729) → planted type errors exit 1; **vitest** (§728) → a planted `.test.ts` is collected; **playwright** (§727) → a planted unclaimed spec fails the gate by name. What §727 built is the interesting part: the e2e selector is **still an allowlist**, and that is fine because the gate asserts *"every spec file would actually RUN under some config"* — §1341's derived-completeness shape, arrived at independently: **don't forbid the roster, detect what it omits.** **My first probe was a FALSE CLEAN** — untracked, so the `git ls-files` corpus could not see it. §1315's lesson, re-learned in the session that recorded it. |
 | 803 | §1356 | **§1357** | **`recall` USED FIRST — AND A 600-SECTION-OLD FIX RE-PROVED BY ITS OWN METHOD.** Acted on §1356's commitment: targeted `tools/live/` (19 files, never opened) with the tool instead of a grep. `recall "tools/live"` returned **4 prior verdicts** in one command, including §729 *"files TypeScript never checked, and the two bugs they hid"* — the sweep I was about to run was already done. Re-proved §729's fix at HEAD with ITS method (plant `const __probe: number = "not a number"`, read the exit code, never read a config): **orphan A** (`tools/live/render-email.ts`) → exit 1; **orphan B** (nine package-level `vite`/`vitest.config.ts`) → exit 1. Clean typecheck exits 0; both restored byte-identical. **A closed finding is worth re-proving when its failure mode is silence.** |
 | 802 | §1355 | **§1356** | **THE THIRD UNUSED INSTRUMENT — 325 ORPHANS REAPED, AND A BELIEF CORRECTED.** Enumerating question-answering tools (vs gates) yields three: `recall`, `delta`, **`reap`**. **`pnpm reap` is the tool for the diagnosis I did BY HAND at §1314** — §1061 had already measured it (*a suite that completes leaks **0**; a runner killed mid-flight leaks 1+; workerd reparents to PPID 1*). Ran it: **325 orphans signalled, 0 remain.** Its output corrects a belief I held as settled — *"state S and SIGTERM sufficed — no -9 and no reboot, which corrects the note that called this an uninterruptible wedge"* — a note that conflated a WEDGED process (state `UE`, signal-proof) with an ORPHANED one (state `S`). **Three for three: each instrument encodes the exact inference I attempted unaided.** |
 | 801 | §1354 | **§1355** | **THE SECOND UNUSED INSTRUMENT — AND THE OBVIOUS FIX WOULD HAVE MADE §1354 PERMANENT.** §1354's blindness has a purpose-built tool: `pnpm delta` (§1081), written for the identical failure (*"reproducing a number is not the same as IDENTIFYING it"*). **Never used** — the second such instrument after `recall` (§1342). Its baseline was **inverted from reality**: 3 entries blaming the REQ-289 row, all HEALED (those suites are 34/34 green, both gates PASS), while the one live failure was unlisted. **The tempting fix — baseline `citation-links` — would make §1354 PERMANENT**, since that test asserts an ARRAY and marking it expected-failing absorbs every future rot. **`delta` is TEST-granular; the defect is SUB-test.** Baseline emptied with both decisions recorded. |
@@ -79414,3 +79415,44 @@ off on its first use. And **a closed finding is worth re-proving when its failur
 orphans could have returned through any `tsconfig` edit in six hundred sections, and nothing about
 `pnpm typecheck` exiting 0 would have said so. The probe costs two commands; reading the configs would have
 proved nothing, which is precisely why §729 refused to.
+
+
+## §1358 — PHASE GATE: the collection-surface class, all three re-proved — and a false clean of my own
+
+§1357 re-proved §729 and produced the selection criterion: **re-prove a closed finding when its failure mode is
+silence.** §729's own opening names two siblings, so the class is three — one per runner that COLLECTS:
+
+| runner | finding | re-proof at HEAD |
+|---|---|---|
+| TypeScript | §729 — two orphan sets outside every project | plant a type error → **exit 1** in both (§1357) |
+| vitest | §728 — `packages/design` included `.test.tsx` only | plant a `.test.ts` with a failing assertion → **collected** |
+| playwright | §727 — the e2e suite selected by an explicit allowlist | plant an unclaimed spec → the gate **fails**, naming it |
+
+All three hold.
+
+### What §727 and §728 actually built is the interesting part
+
+Neither was fixed by banning the pattern. The e2e selector is **still an allowlist** at HEAD —
+`testMatch: /(driver-offline-sync|portal-isolation)\.spec\.ts$/` — and that is fine, because §727 built
+`spec-collection.test.ts`, whose assertion is *"every spec file would actually RUN under some config"*. The
+allowlist stays; a file no allowlist claims is what fails. That is §1341's derived-completeness shape, arrived
+at independently: **do not forbid the roster, detect what the roster omits.**
+
+### My first §727 probe was a false clean, for a reason I had already recorded
+
+Planting the unclaimed spec left the gate at **7 passed**. Read literally that says the gate is blind — the
+§727 defect live again. It was my probe: the file was **untracked**, and the gate derives its corpus from
+`git ls-files`. With `git add -N` the same plant fails immediately, naming the file.
+
+**That is §1315's lesson, re-learned in the same session that recorded it** — there, a planted `wrangler.toml`
+was invisible until tracked, and I wrote it down. The tell was available before the conclusion: a gate whose
+whole job is finding unclaimed files, reporting a clean run against a file I had just created, is a claim about
+my instrument rather than about the tree.
+
+**Running tally: 283 of 283 load-bearing claims probed — 199 verified, 50 gaps closed, 26 claims corrected;
+12 operational items recorded.**
+
+**STOP.** No gap; three closed findings re-proved by their own methods, and every probe restored (`tests/`
+clean, `packages/design` clean). The compounding lesson: **§1357's criterion picks the right targets, and
+§1315's rule decides whether the probe is valid** — a silent failure mode is worth re-testing, and a plant is
+worth nothing until the gate can see it.
