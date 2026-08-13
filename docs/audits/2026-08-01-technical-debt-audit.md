@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 773 | §1326 | **§1327** | **THE COPILOT'S HONESTY GATE IS NOT MERELY SHARED — IT IS THE ONLY WAY TO BUILD AN ANSWER.** Targeted by RECENCY per §1323. §1255 proved the gate's LOGIC (3 layers, layer 2 mutation-proved) and described its REACH in prose (*"SHARED by every adapter"*) — a call-site claim, the class that breaks one import away. Enumerated: 3 adapters, 3 call sites, and **only 2 `AnswerResult` constructions repo-wide**, both inside the gate module (`:43` abstain, `:60` grounded). **A non-abstained answer is UNCONSTRUCTIBLE outside the gate** — an adapter cannot forget to call it because there is nothing else to return. Adds a 4th layer §1255 did not claim: universality by construction. Both §1255 construction claims re-verified (`EventRef` `.strict()` + required `kind`). |
 | 772 | §1325 | **§1326** | **SWEPT THE REOPEN TRIGGERS, PRIORITISED BY WHICH ONES FIRED.** Of the OPEN rows, **17 carry a locally-runnable expiry**; the rest name decisions. The refinement that makes the sweep nearly free: don't run all of them — **find the ones whose CONDITION fired**, decidable in one `git status`. Two name `genesis/09`, which IS modified by the concurrent workstream, so their conditions had fired unrun. Both clean: `check:coverage` exit 0 with **100%, 292 of 292 register rows**, and **11 status-drift rows — identical to 2026-08-12**. Two more checked and NOT fired (no denylist file, `identity-leak.ts` untouched since 08-08; `captures.ts` not among the concurrent edits though its siblings are). The prose's *"288 rows"* is correct dated history, not drift — no LIVE claim states a register count. |
 | 771 | §1324 | **§1325** | **RAN A FILED ROW'S OWN REOPEN TRIGGER.** External claims that leave a LOCAL trace are decidable here even when their external half is not. Converted three INHERITED claims to measured ones: `ci.yml`'s triggers (**§1316 argued FROM this and had it from a row, not the file**), L355's *"no `permissions:` block"* (still true), and §594's SHA-pinning (all five `uses:` 40-hex, zero mutable tags — nearly published as NEW until searching the record). **The non-re-verification part:** L355's expiry names a LOCAL condition never run — *"whenever a workflow gains a step that writes to the repo"*. Run: **zero** write-shaped steps; the only artifact steps are SHA-pinned `upload-artifact`, needing no repo write scope. The row's "safe today" now measured. |
 | 770 | §1323 | **§1324** | **RE-MEASURED §895's DESIGN CORPUS — UNCHANGED, AND THE FOURTH CONSECUTIVE NEGATIVE.** §895's count (**apps 62 · packages 16 · docs 2**) is the kind that silently drifts, and two new untracked directories appeared this session. It has NOT moved: 62/16/2/0 today, identical. The one untracked style-bearing file (`docs/gtm/mission-control-board.html`) is outside the law twice over — concurrent GTM workstream, and §895's documented `docs` exemption. The exemption is NAMED with a reason and guarded by *"no EXEMPT row outlives its subject"* (the shrink direction). Residual, narrow and recorded not gated: the exemption is keyed by DIRECTORY while its justification is a CATEGORY, so a product file under `docs/` would be exempt by path while failing the reason. §1321–§1324 all sound. |
@@ -78044,3 +78045,50 @@ triggers are *"the one sentence never measured"*, and the reason they go unmeasu
 them is expensive. **Sorting by whether the condition fired makes the sweep nearly free** — two commands
 identified the only two rows in the file that could have gone stale since their last measurement, and both had
 not.
+
+
+## §1327 — PHASE GATE: the copilot's honesty gate is not merely SHARED — it is the only way to build an answer
+
+Targeting by recency rather than by category (§1323's diagnosis: defects sit in the newest code), the most
+recently-changed non-mine source includes `packages/agents/src/copilot/answer.ts` — the one place an LLM's
+output reaches a user as fact. §1255 audited it thoroughly: three non-redundant layers, layer 2 mutation-proved
+both ways, layer 3 explained as enforcement-by-construction.
+
+**Both of §1255's construction claims verify.** `EventRef` is `.strict()` with `kind` REQUIRED
+(`contracts/copilot.ts:12-18`), and the ref is built as `{ event_id: ev.event_id, kind: ev.kind }` off the
+RETRIEVED row — so a model cannot supply a `kind`, and a citation chip cannot misrepresent the event it links
+to. Verified because this audit's own rule is that a stated mechanism can be false; here it is not.
+
+### The claim §1255 did NOT verify was about call sites
+
+Its table describes `groundOrAbstain` as *"the one load-bearing guard … SHARED by every adapter"*. That is a
+claim about where a function is CALLED — the class this audit repeatedly finds broken one import away, where a
+gate is sound and something bypasses it. Enumerated:
+
+| measured | result |
+|---|---|
+| adapters implementing `Copilot.answer` | **3** — Deterministic (`:106`), NotConfigured (`:142`), Claude (`:297`) |
+| call sites of the honesty gate | **3** — `:116`, `:126` (deterministic paths), `:334` (the model path) |
+| **`AnswerResult` constructions repo-wide, non-test** | **2** — `:43` inside `abstain()`, `:60` inside `groundOrAbstain` |
+
+That third row is the finding, and it is stronger than "shared". **A non-abstained `AnswerResult` is
+unconstructible outside the gate**: line 60 is the only expression in the repository that produces one, and it
+sits inside `groundOrAbstain` after the membership check. An adapter cannot return an ungrounded answer by
+forgetting to call the guard, because there is nothing else to return. The route and the `CopilotPanel` only
+consume the type. (Positive control: the same grep finds `AnswerResult` in three test files, so its silence
+elsewhere is absence, not a broken pattern.)
+
+So §1255's layer table gains a fourth row it did not claim:
+
+> **4. Universality** — the guard cannot be bypassed by a new adapter, because the only construction site for a
+> non-abstained answer is inside it. Enforcement by construction at the ADAPTER level, not just at the field
+> level.
+
+**Running tally: 190 of 190 load-bearing claims probed — 130 verified, 46 gaps closed, 20 claims corrected;
+10 operational items recorded.**
+
+**STOP.** No defect. The transferable point is about what to re-audit in already-audited code: §1255 proved the
+guard's LOGIC and described its REACH in prose. Logic is what mutation testing verifies; reach is what call-site
+enumeration verifies, and the two need different instruments. **The sentence most worth re-checking in a
+finished audit is the one describing where a verified mechanism applies** — and in this case it was not merely
+true, it was understated.
