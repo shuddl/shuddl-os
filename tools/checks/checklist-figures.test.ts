@@ -126,6 +126,12 @@ function perTenantOrchestrators(root: string): { total: number; workers: string[
   return { total: [...byWorker.values()].reduce((n, s) => n + s.size, 0), workers: [...byWorker.keys()].sort() };
 }
 
+// RESIDUAL, stated so it is a known limit rather than a discovered one (§1318): both claim-readers below
+// anchor on the literal phrase `per-tenant sweep`. Rewording THAT — "tenant-scoped sweeps", "per-tenant crons"
+// — silently removes a file from this gate's view, exactly as hard-coding `across` did before §1318 widened
+// it. The anchor is not widened here because it is what makes the window specific enough to read a bare
+// `<N> workers` safely; loosening both the anchor and the pattern would trade a silent miss for a noisy gate,
+// which §1053 records as the failure that gets a gate deleted. A phrase rename must update this file.
 /** Every file that states the PER-TENANT sweep population, derived rather than hand-kept. */
 function perTenantCountClaims(root: string): { file: string; stated: number }[] {
   const files = execSync('git ls-files "workers/**/*.ts" "packages/**/*.ts" "tools/**/*.ts"', { cwd: root, encoding: "utf8" })
@@ -184,7 +190,14 @@ function perTenantWorkerClaims(root: string): { file: string; stated: number }[]
     const text = stripStruck(readFileSync(`${root}/${f}`, "utf8"));
     for (const anchor of text.matchAll(/per-tenant sweep/gi)) {
       const window = text.slice(anchor.index, anchor.index + 200);
-      for (const m of window.matchAll(new RegExp(`\\bacross\\s+${N}\\s+workers\\b`, "gi"))) {
+      // NO PREPOSITION IN THE PATTERN. §1318 probed this matcher with nine rewordings: it survived digits,
+      // capitals, a comma before the preposition and a struck number, and went BLIND on two — "spanning four
+      // workers" and "in four workers" — because the first cut hard-coded `across`. A count check that a
+      // synonym silently disables is the §1077 curated-vocabulary bug wearing a different hat, so the
+      // preposition is gone entirely: inside a window that already names the population, `<N> workers` IS the
+      // claim regardless of what precedes it. The window is what keeps this specific (a bare `N workers`
+      // anywhere in the file would be far too loose).
+      for (const m of window.matchAll(new RegExp(`\\b${N}\\s+workers\\b`, "gi"))) {
         const n = WORD[m[1]!.toLowerCase()] ?? Number(m[1]);
         if (Number.isFinite(n)) out.push({ file: f, stated: n });
       }

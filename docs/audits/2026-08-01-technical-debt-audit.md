@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 764 | §1317 | **§1318** | **ADVERSARIALLY PROBED MY OWN §1313 GATE — BLIND ON TWO OF NINE REWORDINGS.** Started from the riskiest thing ADDED rather than hunting new debt. The worker-count matcher survived digits, capitals, a comma and a struck number, and went blind on `spanning four workers` and `in four workers`: it hard-coded the preposition `across`. **That is §1077's curated-vocabulary bug one level down** — §1313 curated the NUMBER WORDS and its fix curated the PREPOSITION, in the same edit. Fixed by REMOVING the dependency (a window already names the population, so `<N> workers` is the claim), not by extending a list: all three wordings now RED, real tree 9/9 with no FP. Residual written into the source: both readers still anchor on the literal phrase `per-tenant sweep`. |
 | 763 | §1316 | **§1317** | **I RE-DERIVED §945 — AND FOUND ONE THING THAT WAS ACTUALLY NEW.** Three counting rules returned **32 / 28 / 34**; §945 had already answered this four times with four wrong answers, and the gate born from it (`ledger-status-vocabulary`) already requires a canonical token so counting cannot drift. I hit 3 of its 4 recorded failure modes, including the naive `\|` split (escaped here — writing it bare split THIS row, which is the same failure the row describes). **The genuinely new part:** that gate enforces one live verdict WITHIN the status cell — L436 satisfied it while its ITEM cell said CLOSED and its STATUS said OPEN. A cross-CELL contradiction is outside its scope, and it kept the row miscounted under a green gate. Reconciled; no second instance; one FP (*"fails CLOSED"*, which is §945's failure mode #1 inside my detector for it). |
 | 762 | §1315 | **§1316** | **RE-RAN THE REGISTER'S OWN CLAIMS — THE BIGGEST ONE HAD INVERTED.** 32 OPEN rows, only 3 with a command-decidable expiry, so re-measured the FACTS instead. **The remote-divergence row had reversed**: it recorded 1,278 unpushed and GROWING; `origin/main` is now `2c47440` (2026-08-12), local 62 ahead, origin 0 ahead — **the owner pushed**, so its consequence (*"CI has evaluated none of this work"*) is no longer categorically true. Whether that run PASSED is UNKNOWN from this machine (no network) and is recorded as such; the sibling GitHub-API rows were NOT re-measured and stand untouched. Also re-verified: `quote.priced` still absent from `SERVER_EMITTED_KINDS` (5 members), no coverage config in 12 vitest configs. **The security row now UNDERSTATES**: §1307 made the interline split a SECOND consumer of the forged quote's floors + anomaly, and both treat ABSENT as "no flag". |
 | 761 | §1314 | **§1315** | **THE GATE POPULATION AUDITED BY §1313'S OWN LESSON — CLEAN NEGATIVE.** All **119** gates have a floor or a positive control (3 flagged, all false positives of MY detector). The real §1313 class is a literal path ROSTER, not a glob: 8 files carry one, 6 are correctly allowlists, 2 are corpora (`preflight@WORKER_CONFIGS`, `recall@SOURCES`) — complete today. **Planted a ninth worker config** with a plaintext secret: **3 gates fire**, including `wrangler-scope-parity`, built for exactly this (*"DISCOVERED from the worker tree, so a new one cannot be added silently"*). Two errors inside the experiment: the plant is invisible until TRACKED, and **2 of 4 "gates fired" signals were phantom** — `check:secrets`/`check:named-resources` DO NOT EXIST, pnpm was printing "Command not found". Caught only because they still exited 1 after cleanup. |
@@ -77636,3 +77637,56 @@ measurement, per the rule this audit uses for one-instance findings.
 and the cost of checking it is one grep.** The new one is narrow and real: **a gate that validates a field can
 still miss a contradiction between that field and its neighbour** — the canonical-token rule made the ledger
 countable, and a row whose other cell disagreed stayed miscounted for a day underneath a green gate.
+
+
+## §1318 — PHASE GATE: adversarially probing the gate I wrote five phases ago
+
+Two consecutive phases (§1311, §1317) failed by not searching the record first. This one started from the
+opposite end: rather than look for new debt, review the riskiest thing I had ADDED. A wrong gate is worse than
+no gate, because it converts an unchecked property into a checked-looking one.
+
+The subject is §1313's worker-count check, which had already been caught blind once — it passed its own review,
+then stayed GREEN on a planted violation because `four` was missing from its vocabulary.
+
+### Nine rewordings, two blind spots
+
+| probe | sweep count | worker count |
+|---|---|---|
+| `Eleven per-tenant sweeps across four workers` | ✅ | ✅ |
+| digits on either side (`11 …`, `… 4 workers`) | ✅ | ✅ |
+| ALL CAPS | ✅ | ✅ |
+| comma before the preposition | ✅ | ✅ |
+| struck number (`across ~~four~~ three workers`) | — | ✅ reads `three`, ignores `four` |
+| `spanning four workers` | ✅ | ❌ **missed** |
+| `in four workers` | ✅ | ❌ **missed** |
+
+The matcher hard-coded `across`. **A count check that a synonym silently disables is the §1077
+curated-vocabulary bug wearing a different hat** — the same defect I had just documented, in the same file, one
+level down: §1313 curated the NUMBER WORDS, and the fix curated the PREPOSITION.
+
+### The fix removes the dependency rather than extending the list
+
+The preposition is gone from the pattern entirely. Inside a window that already names the population, `<N>
+workers` IS the claim regardless of what precedes it — and the window is what keeps a bare `<N> workers` safe
+to read. Verified three ways: the real tree still passes 9/9 with no false positive, and all three wordings —
+including both previously-blind ones — now turn the gate RED with the message naming the file and the drift.
+
+Extending a list would have fixed three phrasings and left the fourth; removing the dependency fixes the class.
+That distinction is the whole content of this phase.
+
+### The residual, written down rather than discovered later
+
+Both claim-readers still anchor on the literal phrase `per-tenant sweep`. Renaming THAT — "tenant-scoped
+sweeps", "per-tenant crons" — removes a file from the gate's view just as silently. It is not widened, because
+the anchor is what makes the window specific enough to read a bare `<N> workers` without noise, and loosening
+both would trade a silent miss for the noisy gate §1053 records as the shape people delete. Stated in the
+source so a future reader inherits a KNOWN limit instead of finding it.
+
+**Running tally: 162 of 162 load-bearing claims probed — 103 verified, 45 gaps closed, 19 claims corrected;
+9 operational items recorded.**
+
+**STOP.** tools 118/119, lint and typecheck clean, source restored byte-identical after every probe.
+The lesson generalises past this gate: **when a pattern is found blind on one dimension, check the neighbouring
+dimensions of the same pattern before declaring it fixed.** §1313 found the number vocabulary curated and fixed
+exactly that; the preposition beside it was curated the same way, by the same hand, in the same edit, and
+survived because the fix was verified only against the failure that prompted it.
