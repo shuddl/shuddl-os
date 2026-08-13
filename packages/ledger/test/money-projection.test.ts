@@ -214,6 +214,44 @@ describe("REQ-012 — projectMoneyLines is a pure projection of the event payloa
     expect(p.invoices).toEqual([{ mode: "settle", id: "inv-1", status: "paid" }]); // ... but still settles
   });
 
+  // §1267 — WRONG-TYPE payload fields on the MONEY path. `payment.received` is one of doc 10's eight LOOSE
+  // JsonObject payloads, so a caller controls the TYPE of every field here; `asInt`/`asString` are the only
+  // things standing between that and the projection. Measured: dropping BOTH checks from `asInt`, dropping
+  // just `Number.isInteger`, and dropping the `typeof` from `asString` each left this file GREEN — every
+  // existing case supplies well-typed values or omits the field, so the guards were exercised by nothing.
+  //
+  // Three distinct consequences, one test each — they do not stand in for each other:
+  describe("§1267 wrong-typed fields on a LOOSE money payload", () => {
+    it("a FRACTIONAL amount_cents cannot REACH the projection — `JsonValue` numbers are `SafeInt`", () => {
+      // The obvious test here is "10.5 projects a sub-cent money_line without `Number.isInteger`". It cannot be
+      // written: `JsonValue` types every number as `SafeInt`, so a float is refused when the EVENT is parsed,
+      // long before the projection. `asInt`'s isInteger half is therefore defense-in-depth against an
+      // unreachable state — which is why dropping it alone left this file green (§1266's second explanation).
+      //
+      // "Loose" is loose in TYPE, not in numeric PRECISION. That distinction is the whole reason the two cases
+      // below ARE reachable while this one is not, so it is pinned rather than described.
+      expect(() => mkEvent("payment.received", { payload: { method: "cod", amount_cents: 10.5 } })).toThrow();
+      expect(() => mkEvent("payment.received", { payload: { method: "cod", amount_cents: 50_000 } })).not.toThrow();
+    });
+
+    it("a STRING amount_cents does NOT settle an invoice (Math.abs would coerce it)", () => {
+      // `Math.abs("120000") >= 120000` is TRUE, so without the typeof an invoice settles off a string.
+      const ach = mkEvent("payment.received", { payload: { method: "ach", amount_cents: "120000" } });
+      const p = projectMoneyLines(ach, { settleInvoice: { id: "inv-1", total_cents: 120_000 } });
+      expect(p.invoices, "a string amount must never flip an invoice to paid").toEqual([]);
+      expect(p.lines).toEqual([]);
+    });
+
+    it("a NON-STRING party_id falls back to the actor's party — never lands on the money_line", () => {
+      const cod = mkEvent("payment.received", { payload: { method: "cod", amount_cents: 50_000, party_id: 42 } });
+      const p = projectMoneyLines(cod, {});
+      expect(p.lines).toHaveLength(1);
+      expect(p.lines[0]?.party_id, "a numeric party_id must not become a money_line's party reference").toBe(
+        cod.actor.party,
+      );
+    });
+  });
+
   it("REQ-083 pay-in-full model: a payment that does NOT cover the total leaves the invoice OPEN (no settle)", () => {
     const partial = mkEvent("payment.received", { payload: { method: "ach", amount_cents: 50_000 } });
     const p = projectMoneyLines(partial, { settleInvoice: { id: "inv-1", total_cents: 120_000 } });

@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 713 | §1266 | **§1267** | **THE LOOSE BOUNDARY WALKED TO ITS END — AND "LOOSE" HAS A FLOOR.** Enumerated it: **8 of 35 kinds carry a loose `JsonObject`**, 27 are typed, and `readField` has **exactly one call site** (closed at §1266). Sharpest remaining reader is `projection/money.ts`, which turns `payment.received` into money — and **all its guards were unexercised** (dropping `asInt`'s checks and `asString`'s typeof each left the suite GREEN). Split by REACHABILITY: a **string** `amount_cents` settles an invoice, because `Math.abs("120000") >= 120000` is TRUE (**gap, closed**); a **numeric** `party_id` lands on a money_line (**gap, closed**); a **float** amount is UNREACHABLE — `JsonValue` types every number as `SafeInt`, so **loose is loose in TYPE, not in numeric PRECISION** (precondition pinned instead). **And a false alarm caught by measuring the UNION:** `SafeInt.int()` mutated away left contracts **331/331 GREEN**, reading exactly like an unpinned constitutional law — but `.int()` and the `isSafeInteger` refine each fully cover the other; **both dropped → 18 RED**, the `-0` clause → 2 RED. The law is defended; neither half is. When two mechanisms enforce one law, mutate the **union**, never a member. ledger 717/717. |
 | 712 | §1265 | **§1266** | **FOUR UNEXERCISED GUARDS IN THE GATEKEEPER — EXACTLY TWO COULD EVER FIRE.** 109 `typeof` guards across 42 files; swept the sharpest surface, `transition-gates.ts`. All four string guards were unexercised — dropping each `typeof` left **56/56 GREEN** (the suite varies every field's VALUE, including *a photo_hash that is not 64-hex*, and never its TYPE). **A green mutation has two explanations and BOTH were true here, in different guards:** the two on `exception.raised` — doc 10's deliberately LOOSE payload — were real gaps; the two on `custody.transferred`/`delivery.evidenced` are **redundant**, because those payloads are strictly typed and Zod refuses the bad type first (measured, not argued). **Cost of the two live ones:** `photo_hash` as an ARRAY holding a valid hash PASSES `HASH64.test()` by coercion — REQ-050's evidence pillar clears carrying no hash at all; `reason_code` as a NUMBER makes `.trim()` throw a **TypeError instead of blocking** — a gate that 500s is not a gate that refuses (REQ-030). The redundant pair got a gate on their **PRECONDITION** rather than a prose note: both typed payloads asserted to REJECT the bad type, the loose one to ACCEPT it, so the test dies the day the assumption does. **Hand-written type guards matter exactly where the schema stops** — and that boundary is documented, so it can be swept. ledger 714/714. |
 | 711 | §1264 | **§1265** | **TWO CLEAN NEGATIVES AT THE UNTRUSTED BOUNDARIES — AND A LAW UNDEFENDED IN THE ONE PLACE IT APPLIED.** MCP (demo #4) returns **5 mutations, 5 REDs**: `kind='mcp'`, **revocation** (`status !== active`), the lane allow-list, the `caps_unconfigured` refusal, and — the one worth naming — the **REQ-105 cap bypass fix REVERTED to its pre-fix form**, which REDs, so *mutate the pin, not just the fix* answers clean. On `pub/status.ts`, REQ-188's always-coarse geo is solid, but two lines above it `state: … : "unknown"` swapped for a fabricated `"in_transit"` left the file **13/13 GREEN** — and the same file states the honest-instrument law explicitly for `eta`, **a field that does not exist yet**, while the one field that actually degrades was defended by nothing. Closed as **PS-7** (an unused slot in the suite's own numbering). **It took two tries:** the first two cases both have `state` ABSENT, so dropping the `typeof === "string"` check stayed GREEN; the discriminating input is `state` present with the WRONG TYPE, whose consequence is a `z.string()` throw into the outer catch → **401**, one bad projection field making a real shipment look like a forged cap. §1258 one level down: **absent ≠ present-but-wrong.** 4 mutations RED, api 839/839. Also corrects this record's own arithmetic: §1264's tally summed to 19, not 17. |
 | 710 | §1263 | **§1264** | **ONE RULE WRITTEN TWICE, DEFENDED IN NEITHER COPY.** §1258's family generalised from orderings to multi-condition `WHERE` clauses: 13 queries carry 3+ AND-ed conditions; the 4 sharpest were mutated condition by condition. **Two fully defended** (the invoice-settle amount cap REDs 3, `status='issued'` REDs 1 — clean negative). **The gap:** `kind = 'quote.priced'` in BOTH `portal-actions.ts` and `booking.ts` GUARD 2 — deleting it left the full api suite at **834/834** and **835/835** respectively, while each side's `stream_id`/`id` clauses RED 3–8. Both suites already had a test that READS as though it covers this; both name a `crypto.randomUUID()`, an id that exists NOWHERE, so `id = ?` refuses it and the `kind` clause never runs — **the fixture cannot distinguish DANGLING from WRONG-KIND**, which both guards' comments name as separate faults. **Damage:** an UNTRUSTED portal party gets **201** and writes a `quote.accepted` naming a non-quote onto an **append-only** ledger (I3/I7 — never removable), and the freight then silently never books. Closed both sides, 6 mutations RED, api 836/836. **And a recorded measurement error:** the first booking probe ran `workers/agents`, where the file LIVES → **130/130 false green**; it is owned by `workers/api/test/booking.test.ts` across a package boundary. Stopping there would have recorded *the mirror defends it* — a wrong finding that made the gap look survivable. |
@@ -75046,3 +75047,63 @@ record** rather than filed as blindness. ledger **714/714**.
 measured reason with their precondition now gated. The exposure mapped exactly onto doc 10's loose-payload
 asymmetry, which is the useful generalisation — **hand-written type guards matter exactly where the schema
 stops**, and that boundary is documented, so it can be swept rather than guessed.
+
+## §1267 — PHASE GATE: the loose boundary, walked to its end — and "loose" turns out to have a floor
+
+§1266 generalised to *hand-written type guards matter exactly where the schema stops*. That boundary is
+enumerable, so it was enumerated: **8 of the 35 event kinds carry a loose `JsonObject` payload**
+(`approval.decided`, `approval.requested`, `call.transcribed`, `document.attached`, `exception.raised`,
+`payment.received`, `quote.expired`, `settlement.executed`); the other 27 are strictly typed. `readField` — the
+defensive reader §1266 closed — turns out to be used in **exactly one file**, so that half of the sweep is
+complete. The remaining exposure is wherever a loose payload's fields are read by hand, and the sharpest is
+`projection/money.ts`, which turns `payment.received` into money.
+
+It guards with two helpers, `asInt` and `asString`, and **all of it was unexercised**: dropping both checks from
+`asInt`, dropping just `Number.isInteger`, and dropping the `typeof` from `asString` each left the suite GREEN.
+Every existing case supplies well-typed values or omits the field.
+
+### Reachability first, per §1266 — and it split three ways
+
+| shape | reachable? | consequence | outcome |
+|---|---|---|---|
+| `amount_cents` as a **string** | **yes** | `Math.abs("120000") >= 120000` is TRUE → **an invoice flips to `paid` off a string** | gap — closed |
+| `party_id` as a **number** | **yes** | a numeric party reference lands on a `money_line` instead of falling back to the actor | gap — closed |
+| `amount_cents` as a **float** | **no** | would be a sub-cent `money_line` | unreachable — precondition pinned |
+
+**The float case is the finding.** The obvious test — *"10.5 projects a fractional cent"* — cannot be written,
+because `JsonValue` types every number as **`SafeInt`**. Its own comment says so: *"every number in a stored
+payload is an integer — no float can enter the chain."* So **"loose" is loose in TYPE, not in numeric
+PRECISION**, and `asInt`'s `isInteger` half is defense against a state the schema forbids. That is why dropping
+it alone was silent — §1266's second explanation, arriving one layer deeper. Pinned as a precondition (a float
+payload value is refused at parse; an integer one is not), so the day `JsonValue` loosens, the test says so.
+
+### A false alarm, caught by measuring the union
+
+Following the thread, `SafeInt`'s own `.int()` was mutated away — and `packages/contracts` stayed **331/331
+GREEN**, which reads exactly like an unpinned constitutional law. It is not. `SafeInt` is
+`.int()` **and** `.refine(Number.isSafeInteger(n) && !Object.is(n, -0))`, and `isSafeInteger(10.5)` is already
+false, so each mechanism fully covers the other. Measured properly:
+
+```
+.int() alone dropped              → 331/331 green   (redundant)
+refine's isSafeInteger dropped    → 331/331 green   (redundant)
+BOTH dropped — the LAW itself     → 18 RED
+the -0 clause dropped             → 2 RED
+```
+
+**The law is defended; neither half is, because they are mutually redundant.** Filing *"`SafeInt.int()` is
+unpinned"* would have been a defect report about nothing. *A redundant guard mutates green* — so when two
+mechanisms enforce one law, the unit to mutate is the **union**, never a member. (And this was measured in
+`packages/contracts`, not in `packages/ledger` where the first probe ran — §1264's ownership rule, applied
+before drawing a conclusion rather than after.)
+
+**Mutation-proved:** `asInt`'s typeof and `asString`'s typeof now RED; `isInteger` stays green **with its reason
+on the record**. ledger **717/717**, contracts 331/331.
+
+**Running tally: 30 of 40 load-bearing claims probed — 16 verified, 13 gaps closed, 1 claim corrected.**
+
+**STOP.** The loose-payload boundary is now walked end to end: 8 loose kinds enumerated against 27 typed,
+`readField` confirmed to have a single call site, and the money projection's guards split by reachability into
+two real gaps (closed) and one schema-forbidden state (precondition pinned). The generalisation earned here is
+that a documented looseness boundary still has a floor underneath it — `JsonValue`'s `SafeInt` — and that floor
+is defended as a union even though neither of its halves is.
