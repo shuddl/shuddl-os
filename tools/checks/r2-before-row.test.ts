@@ -91,5 +91,20 @@ describe("§1274 REQ-016/017: R2 moves before the documents row", () => {
         "if it does not, add it to the exemption above WITH the reason:\n  " +
         known.join("\n  "),
     ).toEqual([]);
+
+    // §1359 (§672) — NO EXEMPTION OUTLIVES ITS SUBJECT.
+    //
+    // The two entries above are excused because their R2 write pairs with no `documents` row. If either file
+    // stops writing to R2 at all — deleted, rewritten, its transport swapped — the exemption becomes a
+    // standing excuse for a site that no longer exists, and nothing here would ever say so. An exemption's
+    // failure mode is SILENCE, which is precisely the class §1357 says to re-test. Swept at §1359: sixteen
+    // gates carry an exemption list, eight assert this, and this one did not.
+    const orphanedExemptions = EXEMPT.filter((e) => !found.some((l) => l.startsWith(e)));
+    expect(
+      orphanedExemptions,
+      "an EXEMPT entry no longer names a file that writes to R2. Its subject is gone, so the exemption is now " +
+        "a standing excuse — delete it, or point it at whatever replaced that write:\n  " +
+        orphanedExemptions.join("\n  "),
+    ).toEqual([]);
   });
 });
