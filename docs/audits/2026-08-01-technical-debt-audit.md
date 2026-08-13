@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 786 | §1339 | **§1340** | **FINISHED THE FIXED-WINDOW ENUMERATION — THE BLIND ZONE WAS IN MY OWN GATE.** Measured all five verdict-by-window gates. **The dangerous direction INVERTS between them**: `api-conventions` is unsafe when the window is too LONG (borrows a neighbour's `redirect:`), `cors-origin-parity` when too SHORT (drops a host from the browser-origin set, so a deployed origin missing from the CORS allowlist passes) — margins 4 and 2 lines. `ci-contract`/`list-endpoint-pagination` are structural in practice. **`checklist-figures` — the gate I wrote at §1313 — fell back to 3000 chars when a function is last in its file**, and **ten** last-in-file exports already exceed that (largest **31,972**): the §1313 under-detection reproduced inside the gate built to prevent it. 0 missed today (both counts yield 11); fallback now end-of-file. |
 | 785 | §1338 | **§1339** | **THE FIXED-WINDOW CLASS, APPLIED TO THE GATES THAT USE ONE.** 11 slice a region: 5 slice to a STRUCTURAL boundary (immune), 1 builds an error-message excerpt (decides nothing), 5 reach a verdict by fixed window — and `idb-durability` already hybridises (next-transaction boundary, 30-line fallback). Measured the one that matters: `api-conventions` scans **16 lines** below each driver-sync `fetch` for a `redirect:` policy, and the directions are asymmetric — under-reach is a LOUD false positive, **over-reach silently passes an unpoliced fetch** on the path carrying signed POD evidence. `transport.ts`'s two sites are **20 lines apart — a 4-line margin** — each with its own policy 4 lines below. **Mutation-proved:** deleting the policy at :52 REDs it rather than borrowing :72's. Fixed by stating the margin, not rewriting a working parser. |
 | 784 | §1337 | **§1338** | **FINISHED THE WORK-LIST — THE CANDIDATE SET REFINES DOWNWARD, 35 → 26.** §1334's scan bounded loop bodies with a fixed 30-line window; delimiting by **BRACE DEPTH** and excluding WebCrypto awaits (no subrequest) drops nine. Four "instances" were not: `board.ts:88`, `money.ts:342`, `money.ts:349` have **no awaits in the body at all** (pure transforms sitting above unrelated I/O), and `mirror-sweep.ts:198` has only `sha256Hex`. Nine of the surviving 26 are `index.ts`'s per-TENANT cron wrappers — bounded by the roster, their budget-sharing consequence already on the row. **§1334 predicted the count could only refine downward; it did.** The mechanical lesson: the same fixed-window parameter under-counted at §1332 and over-counted here. |
 | 783 | §1336 | **§1337** | **THE REGISTER CANNOT TELL YOU WHICH ROWS SHARE A MECHANISM — AND THE METHOD'S FAILURE IS THE FINDING.** To settle §1336's open question without guessing from prose, derived relatedness from the CODE each row cites. **34 OPEN rows share only 2 files, and BOTH overlaps are incidental** (a file cited as evidence; a shared `wrangler.toml`). Worse, it **misses the cluster I already know exists**: the unbounded-reads row does not cite its nine files inline — it delegates them to a roster TEST, which is the right engineering choice and makes the row's subject invisible to a reader of the row. So the four linked rows stand as a **hand-maintained** cross-reference with nothing deriving it and nothing to notice a fifth joining. Line of inquiry closed. |
@@ -78631,3 +78632,45 @@ the condition that would force the rewrite — the two calls moving within 16 li
 margin is fixed by stating the margin, not by rewriting the parser.** §1338's rule says the window is wrong in
 principle; the measurement says it is right by four lines today; and the honest resolution is to make the next
 reader able to see both without re-deriving either.
+
+
+## §1340 — PHASE GATE: finishing the fixed-window enumeration, and the blind zone was in MY gate
+
+§1339 measured one of the five fixed-window verdict gates. This finishes the other four, and the one that
+mattered was the one I wrote.
+
+| gate | window | dangerous direction | measured margin |
+|---|---|---|---|
+| `api-conventions` (§1339) | 16 lines below a `fetch` | **over**-reach borrows a neighbour's policy | sites 20 lines apart — **4 lines** |
+| `cors-origin-parity` | 3 lines below a `pattern` | **under**-reach drops a host from the browser-origin set, so a deployed origin missing from the CORS allowlist passes | all four `custom_domain` lines sit **1** below — **2 lines** |
+| `ci-contract` | 7 lines around a `uses:` | the `if:` belongs to the same YAML step | structural by convention |
+| `list-endpoint-pagination` | 200 chars after a route | a named handler's identifier | far inside 200 |
+| **`checklist-figures`** | **3000 chars** when no next `export` | **under**-reach silently uncounts an orchestrator | **see below** |
+
+Note the direction INVERTS between the first two: `api-conventions` is unsafe when the window is too LONG,
+`cors-origin-parity` when it is too SHORT. A rule of thumb about window size would be wrong for one of them;
+only the failure direction tells you which way the margin has to hold.
+
+### The blind zone was mine
+
+`checklist-figures` — the gate I wrote at §1313 and hardened at §1318/§1319 — bounds an exported function's
+body at the next `\nexport `, **falling back to 3000 characters when there is none.** A last-in-file function
+IS the remainder of the file, so that truncation buys nothing and invents a blind zone.
+
+**Measured:** ten last-in-file exports already exceed 3000 characters — `concierge.ts@handleMessageReceived` at
+**31,972**, `inbound.ts@handleInbound204` at 25,734, `biller.ts@handlePodSigned` at 19,713. A future
+orchestrator whose `allTenantSlugs` call sat past that offset would be silently uncounted: **the §1313
+under-detection this gate exists to prevent, reproduced inside it.**
+
+**No orchestrator is missed today** — counting with true bodies and with the 3000-char fallback both yield 11 —
+so this is a widening with no behaviour change, and the gate's own non-vacuity assertion (which pins the
+derived population) would have RED-ed had the count moved. Fallback is now end-of-file.
+
+**Running tally: 229 of 229 load-bearing claims probed — 154 verified, 46 gaps closed, 23 claims corrected;
+12 operational items recorded.**
+
+**STOP.** Third defect this session in code I wrote during it (§1318 preposition, §1319 sibling alternation, now
+this), against zero in the gates I inherited. That distribution has been stable for fifteen phases and it is
+not modesty: **the code with the least exposure is the newest, and in an audit the newest code is the
+auditor's.** The instrument that keeps finding them is the same one — enumerate the class, then check the
+instrument against the class it was built to detect.

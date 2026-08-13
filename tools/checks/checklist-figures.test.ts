@@ -116,8 +116,18 @@ function perTenantOrchestrators(root: string): { total: number; workers: string[
     const src = readFileSync(`${root}/${f}`, "utf8");
     for (const m of src.matchAll(/export async function (\w+)\s*\(/g)) {
       if (m[1] === "allTenantSlugs") continue;
+      // §1339/§1340 — the fallback is END OF FILE, not a fixed 3000 chars.
+      //
+      // When a function is the LAST export in its file there is no next `\nexport ` to bound it, and the
+      // function IS the remainder of the file — so truncating at 3000 characters invents a blind zone for no
+      // benefit. MEASURED 2026-08-13: **ten** last-in-file exports already exceed 3000 characters, the largest
+      // at 31,972 (`concierge.ts@handleMessageReceived`), so a future orchestrator whose `allTenantSlugs` call
+      // sits past that offset would be silently uncounted — the §1313 under-detection this gate exists to
+      // prevent, reproduced inside it. No orchestrator is missed TODAY (the true-body count and the
+      // fallback count both yield 11), which is why this is a widening with no behaviour change rather than a
+      // fix to a live defect.
       const next = src.indexOf("\nexport ", m.index + 10);
-      if (!/allTenantSlugs\s*\(/.test(src.slice(m.index, next > 0 ? next : m.index + 3000))) continue;
+      if (!/allTenantSlugs\s*\(/.test(src.slice(m.index, next > 0 ? next : src.length))) continue;
       const w = f.split("/")[1]!;
       if (!byWorker.has(w)) byWorker.set(w, new Set());
       byWorker.get(w)!.add(m[1]!);
