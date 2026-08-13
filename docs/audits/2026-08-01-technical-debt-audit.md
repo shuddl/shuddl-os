@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 701 | §1253 | **§1254** | **TWO MORE LOAD-BEARING CLAIMS — A COMMENT THAT RE-RUNS, AND A GATE ON A PRECONDITION.** The sequencer mutex does not assert it matters, it **reports the measurement** (*deleting it reds the 100-concurrent test with SQLITE_CONSTRAINT*) — re-run, and it reds **exactly the named test** with exactly the predicted symptom. A comment recording a reproducible experiment is the strongest documentation form here: falsifiable, self-naming, one command to check. The meter DOs' mutexes are **redundant today** and become load-bearing the instant a non-storage await enters; §318's gate checks **the PRECONDITION, not the property**, and fires when one is planted. Two instrument errors of my own: `invariants.test.ts` gave 202/202 GREEN because the check lives in the **script**; and `git grep -l` for the class matched `invariants.ts` itself, which BUILDS that regex as a string. Tally: 4 of 40 probed, 3 verified, 1 gap (closed at §1253). |
 | 700 | §1252 | **§1253** | **"LOAD-BEARING" AS A SEARCH TERM — THE PROPERTY PROVED ONCE AND ASSUMED THREE MORE TIMES.** §1252 named the correct-but-unpinned class; this codebase supplies the handle — authors write *load-bearing* on exactly the properties whose breakage is silent. **40** such claims; two ORDERING ones probed. `status-cache.ts`'s FK order (parent before children) REDs five tests — genuinely enforced, clean. `concierge.ts`'s SLA coupling is correct and **cites its own test**, which exists — but (1) the count read *three call sites* where there are **four**, and (2) that crash test exercises ONE branch: moving the stamp after the append at the FIRST site leaves it **25/25 green**. Proved once, assumed three times, and a fifth site covered by nothing. Closed by a source-shape gate, mutation-proved on the real file (names the site AND its offending predecessor) with both controls plus the comment-between case. §1251's coverage question asked of a CODE PATTERN. |
 | 699 | §1251 | **§1252** | **SECOND STOPPING POINT — BOARD RE-MEASURED, AND THE RESIDUE WAS CORRECT-BUT-UNPINNED.** All 26 gates at `0c9b87f`: **19 PASS · 2 FAIL · 5 BLOCKED, 4,647 tests passing, zero repo-owned failures**; `lint` PASS confirms §1249's config change holds under the full gate. §1238 predicted the yield had moved from code to record — **half right**. Thirteen phases (§1239–§1251) found a THIRD category: behaviour that is **right today, stated in a comment, and defended by nothing**. Three of the five gates added this session pin properties that were already CORRECT (IDB commit-durability, CORS↔route parity, lint coverage); two closed real gaps (secrets in 4 unscanned configs, workflow commands in a CI that has never run). The sharpest case is §1248, where a test is **structurally incapable** — the driver's suite stays 101/101 under the mutation because resolving on the request still writes the row. **A comment is not a gate, and "it works" is not evidence it will keep working.** |
 | 698 | §1250 | **§1251** | **THE COVERAGE QUESTION GATED — THE HOLE §1249 WALKED THROUGH, AND §705 BEFORE IT, IS NOW MECHANICAL.** §1250 named the gap: `lint-guards` proves the bans FIRE and is **silent about coverage**, because a rule nobody plants a violation against is a rule nobody notices missing. The same hole was found by hand twice — `apps/` at §705, `tools/` (the 50 files implementing every other gate) at §1249. New gate asks ESLint what it **resolves for a path** across all **327** non-test shipped sources in four trees, requiring `no-restricted-imports`, `no-explicit-any`, `no-floating-promises` at error. **Mutation-proved against the ORIGINAL hole**: pointing §1249's block at a non-matching glob reproduces the pre-§1249 state and the gate reports **50 pairs**, one per tools source. Floored two ways (≥250 files AND all four trees present, so a glob that stops matching `tools/` cannot go vacuously green), and the documented test exclusion is asserted — doubling as a positive control on the severity reader. |
@@ -74383,3 +74384,53 @@ working gate feels like from the inside.
 the SLA coupling found correct but proved at one of four sites with a stale count besides, the site-coverage gap
 closed by a gate that reds where the existing crash test cannot, and the forward-reference gate credited for
 firing on its author.
+
+## §1254 — PHASE GATE: two more "load-bearing" claims — a comment that re-runs, and a gate on a PRECONDITION
+
+**Continuing §1253's queue** (40 claims, 2 probed there). Two concurrency claims, the class where breakage is
+silent by definition.
+
+### The sequencer mutex — a comment that records its own experiment, and the experiment still runs
+
+`do/sequencer.ts` does not assert its mutex matters, it **reports the measurement**: *"Verified by deleting this
+mutex and running the 100-concurrent fresh-stub test: it goes red with `D1_ERROR: I3: append-only:
+SQLITE_CONSTRAINT`."*
+
+Re-run rather than trusted: deleting the lock chain reds **exactly the named test** — *"assigns dense, gapless
+seqs under 100 concurrent appends via fresh stubs (production shape)"* — with exactly the predicted symptom,
+the duplicate `(stream_id, seq)` collision on `events_guard_ins`. **A comment that records a reproducible
+experiment is the strongest documentation form this record has met**: it is falsifiable, it names its own test,
+and re-running it costs one command.
+
+### The meter DOs — a gate on a PRECONDITION, which is a shape worth naming
+
+The meter DOs' mutexes are **redundant today**: the DO input gate closes across `ctx.storage` awaits, and all
+four awaits in each meter are `this.ctx.storage.*`. They become **load-bearing the moment a non-storage await**
+— a D1 read, a fetch, a queue send — enters the critical section.
+
+§296 described that as gate-enforced when it was a human trigger; §318 made it true. And the gate does not check
+the property, it checks **the condition under which the property becomes necessary**:
+
+```
+FAIL workers/agents/src/spark-meter.ts: SparkMeter awaits something that is not `this.ctx.storage.*`
+```
+
+— produced by planting exactly that await. It is scoped to files *declaring* the class (a false positive it had
+already found and fixed), and strips comments first, because **both meters describe the forbidden await in
+prose** and a naive scan would flag the documentation.
+
+### Two instrument errors of my own, both caught by the next command
+
+1. **I ran the wrong owner.** `invariants.test.ts` returned **202/202 green** with the await planted — the check
+   lives in the `check:invariants` **script**, not its test file. [[run-the-suite-that-owns-the-file]] with a
+   twist: the owner is a script, and a test file next to it is a different instrument.
+2. **My file-finder matched the gate, not the class.** `git grep -l "export class SparkMeter extends
+   DurableObject"` returns `invariants.ts` too — because the gate **builds that regex as a string**. Taking the
+   first hit pointed the mutation at a file with no storage awaits, and the assertion failed rather than
+   silently mutating the wrong thing.
+
+**Running tally: 4 of 40 load-bearing claims probed — 3 verified, 1 gap (§1253's, closed).**
+
+**STOP.** The sequencer's recorded experiment re-run and reproducing, the meter tripwire proved to fire by
+planting the precondition it watches, the precondition-gate shape named as a forward-looking instrument, and two
+of my own mis-aimed probes recorded with what caught them.
