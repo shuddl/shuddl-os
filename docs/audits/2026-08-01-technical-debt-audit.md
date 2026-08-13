@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 685 | §1237 | **§1238** | **SESSION STOPPING POINT — BOARD MEASURED, 27 PHASES ACCOUNTED FOR, AND §1237'S RULE TESTED FOR GENERALITY.** **19 PASS · 2 FAIL · 5 BLOCKED, zero repo-owned failures**; both FAILs and all five BLOCKs owner-held and unchanged. §1237's rule (*an unenforceable rule still has a violation count*) tested against the 21 sections concluding "not viable" — **§704 counted (0 defects), §844 counted (full corpus), L410 is an unmade decision. §880 was the sole instance**, now closed. The generalisation was worth testing and worth abandoning. Session yield: 15 measured defects across live code/config, guards asserted by nothing (the SOLE page bound; two on the PAID LLM path), tests that did not test (a pagination walk fetching ONE page), and records asserting the opposite of the code — plus 2 new gates. **Every predictor I proposed was falsified by its own test; every measurement held.** The four surviving rules are all about PREMISES, not categories. |
 | 684 | §1236 | **§1237** | **L426'S PATH-ONLY BLINDNESS HAS REAL INSTANCES — 18 REFERENCES TO 3 NONEXISTENT FILES, 8 OF THEM OPERATOR-FACING.** Measured 2,083 backticked repo-path references across docs + skills: **48 point at nothing**. Three are unambiguous errors whose targets exist — `docs/ops/threat-model.md` (x10; `git log --all` shows it **never existed**, so an error not staleness), `workers/agents/src/sender.ts` (x5), and a missing `/routes/` segment (x3) — and **8 of the 18 are in GO-LIVE-CHECKLIST**, where a go-live reviewer following the threat-model link finds nothing. All corrected, 48 → 45. The rest are deliberate notation (elisions, ranges, deleted probes, and paths quoted TO SAY they don't exist — including my own §1228 note). Basename matching nominated 23 as "moves" but its top hits were the elision and that negative example — §1194's collision — so **none were bulk-rewritten**. **§880 already measured detector VIABILITY (no); this measured current VIOLATIONS (18).** "Cannot be gated" had been doing duty for "nothing to find". |
 | 683 | §1235 | **§1236** | **THE BOARD MEASURED AT 19·2·5 — AND THE CONSTRAINT I BROKE WAS DOCUMENTED IN THE CONFIG ALL ALONG.** §1235 closed on an INFERENCE (*component-verified rather than a re-run*), which its own rule forbids; this replaces it with all 26 gates: **19 PASS · 2 FAIL · 5 BLOCKED**, `lint` restored to PASS, `workers/api` **831/831**, and the ONLY three failing tests in the whole run are the owner's REQ-289 register row. **Zero repo-owned failures.** Alongside: swept exact-count assertions over the shared D1 — first regex found 2, broadening to `toHaveLength(N)` found **20** (the §1234 under-matching error again, caught BEFORE concluding this time). All 20 sound — stream-scoped, or in `packages/ledger` where `isolatedStorage` defaults ON. **The finding that matters: `workers/api/vitest.config.ts` already said *isolatedStorage is OFF, so N files share ONE D1* — the exact cause of §1235's failures, in the config of the suite I was calibrating against, unread.** Its own counts were stale (66→70 files, 730→831 tests); re-dated. |
 | 682 | §1234 | **§1235** | **STOPPING POINT — THE BOARD RE-MEASURED AFTER 23 COMMITS, AND IT CAUGHT TWO REGRESSIONS I HAD INTRODUCED.** 26 gates: **18 PASS · 3 FAIL · 5 BLOCKED** (§1214 was 19·2·5). (1) **`lint` FAILED for eight commits** — §1227 removed the only consumers of an `EventKind` type import in two files; unused imports are not TYPE errors, so the `typecheck` I ran passed. Verified with the adjacent tool, not the one owning the rule. (2) **Three of my own tests failed in the suite and passed alone** — the shared tenant D1 holds 51 rows in isolation (the number I published at §1233) and **over 500** under `pnpm test`, so a `limit=500` short page came back FULL and a page size of 10 timed out at 30s. **The premise assertions did their job**, failing ON the premise with the cause in the message. Fixed by removing the corpus dependency, not re-tuning: scope to one stream · bound the walk to its subject · walk to termination. The export fix escaped its own mutation first (dropping the length check costs ONE empty round trip, not a loop) — the invariant with teeth is per-page. **A test verified in isolation is not verified.** api now 70 files / 831 tests / 0 failures. |
@@ -73606,3 +73607,69 @@ is what makes the marker necessary. What changes is that the row's cost is now k
 **STOP.** The unquantified half of L426 measured at 2,083 references, 48 dead, 3 of them real errors with live
 targets and 18 references corrected including 8 an operator would follow, the other 45 left alone with the
 basename-collision reason stated, and the older experiment that answered the adjacent question credited.
+
+## §1238 — PHASE GATE: SESSION STOPPING POINT — the board measured, 27 phases accounted for, and the §1237 rule tested for generality
+
+**The board, measured** (§1236, all 26 gates at `72b69a6`):
+
+```
+19 PASS · 2 FAIL · 5 BLOCKED        zero repo-owned failures
+```
+
+Both FAILs and all five BLOCKs are **owner-held and unchanged**: three tests failing on the uncommitted REQ-289
+register row, and five gates blocked on the nine private fixtures plus `IDENTITY_DENYLIST`.
+
+### §1237's rule, tested for generality — it does not generalise
+
+*"A rule that cannot be mechanically enforced still has a measurable violation count."* If that were a common
+gap, other sections concluding **"not viable"** would also have skipped counting. **21** such sections exist.
+Checked:
+
+- **§704** — swallowed-error gate, 96% FP: *"57 candidates, 2 relevant, **0 defects**."* Counted.
+- **§844** — return-of-a-computed-cent: *"three cents-named functions... two exact, the third a false positive."*
+  Full corpus, counted.
+- **L410** — the one live checklist row saying "not mechanical" is an unmade **decision**, which has no
+  violations to count.
+
+**§880 was the sole instance**, and §1237 closed it. The record's discipline here is better than the rule
+predicted, which is the useful answer: the generalisation was worth testing and worth abandoning.
+
+### What this session actually found
+
+Fifteen defects, every one measured rather than reasoned:
+
+| Kind | Instances |
+|---|---|
+| **Live code / config** | `workers/api` alone un-tilde-pinned (§1215) · `EXCEPTION_KINDS` duplicated across two surfaces (§1227) · pagination constants triplicated, silent-truncation risk (§1228) · `lint` red for 8 commits (§1235) |
+| **Guards asserted by nothing** | `LIMIT_CAP` — the SOLE page bound (§1230) · `PROMPT_EVENT_CAP` and `MAX_PAYLOAD_CHARS` on the PAID LLM path (§1231/§1232) · cursor termination, both routes (§1228) · keyset ordering (§1233) |
+| **Tests that did not test** | a pagination walk that fetched one page (§1233) · absence asserted over a capped page, REQ-025 (§1234) · three of my own failing only at suite scale (§1235) |
+| **Records asserting the opposite of the code** | a comment describing the REVERTED mechanism (§1213) · a log naming a recovery that does not exist (§1225) · L408's "most of the tests" at 44% (§1216) · 18 references to 3 nonexistent files (§1237) |
+| **New gates** | `wrangler-no-secrets` (§1221) · `ci-command-resolution` (§1224) |
+
+### The method that produced them, and the one that did not
+
+**Every predictor I proposed was falsified by its own test** — quietness (§1229), cost (§1231), identifiable-vs-
+countable (§1233). Every *measurement* held. Three times I built a taxonomy of where coverage fails; three times
+the cause was specific and mundane — one parameter, one config flag, one unread comment.
+
+The rules that survived contact are all about **premises**, not categories:
+
+1. A scope sentence must name the **search**, not the subject (§1220).
+2. A test whose meaning depends on a parameter-vs-corpus relationship must **assert that relationship** (§1233) —
+   needed five times, and the fifth caught §1235's failures by design.
+3. **A test verified in isolation is not verified**; whether isolation exists is a **config fact** (§1235/§1236).
+4. Enumerate enforcement **mechanisms**, not files, before claiming nothing enforces X (§1222).
+
+### Reopen triggers
+
+| Watch | Fires when |
+|---|---|
+| Board | the REQ-289 row is committed with a classifying status ⇒ both FAILs clear |
+| Five BLOCKs | the private fixtures + `IDENTITY_DENYLIST` arrive from the engagement workspace |
+| §1232's row | any of the four remaining size bounds gains a test that fails when the bound is raised |
+| §1225's row | a concierge-reconciliation sweep lands (needs a REQ row first) |
+| CI dormancy | the first push — 1,300+ commits, so `ci.yml` and gitleaks execute for the first time (§1223) |
+
+**STOP.** Board measured at 19 PASS with zero repo-owned failures, 27 phases accounted for by kind, the
+session's own rule tested for generality and honestly abandoned, the four premises that survived stated as the
+transferable result, and every remaining verdict named with the event that clears it.
