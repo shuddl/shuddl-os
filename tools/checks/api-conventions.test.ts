@@ -187,6 +187,19 @@ describe("§850: every fetch in the driver's sync path declares a redirect polic
         if (line.startsWith("//") || line.startsWith("*")) return;
         if (!/\b(?:doFetch|fetchImpl|fetch)\s*\(/.test(line)) return;
         // The RequestInit follows the URL; look ahead to the end of the call.
+        //
+        // §1339 — THE 16 IS LOAD-BEARING IN ONE DIRECTION, AND THE MARGIN IS MEASURED.
+        // OVER-reach is the dangerous failure: if a fetch declared NO policy while a LATER call's `redirect:`
+        // fell inside this window, that neighbour's line would satisfy this site and the gate would pass an
+        // unpoliced fetch — a silent false clean on the path that carries signed POD evidence. UNDER-reach is
+        // loud instead: a RequestInit longer than the window reports a violation that is not real, and gets
+        // fixed. MEASURED 2026-08-13: `transport.ts` has its two fetch sites at 48 and 68 — **20 lines apart
+        // against a 16-line window, a 4-line margin** — and each site's own policy sits 4 lines below it, so
+        // neither can borrow the other's. Mutation-proved the same day: deleting the policy at :52 REDs this
+        // test rather than being masked by the one at :72.
+        // If those calls are ever tightened to within 16 lines of each other, this must become a
+        // brace-delimited slice of the call (§1338: a body ends where its braces close). The fixed window is
+        // kept only because that margin was checked — not because it is safe by construction.
         const window = lines.slice(i, i + 16).join("\n");
         out.push({ site: `${f}:${i + 1}`, hasPolicy: /redirect:\s*"(error|manual)"/.test(window) });
       });

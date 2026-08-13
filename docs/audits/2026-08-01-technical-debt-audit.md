@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 785 | §1338 | **§1339** | **THE FIXED-WINDOW CLASS, APPLIED TO THE GATES THAT USE ONE.** 11 slice a region: 5 slice to a STRUCTURAL boundary (immune), 1 builds an error-message excerpt (decides nothing), 5 reach a verdict by fixed window — and `idb-durability` already hybridises (next-transaction boundary, 30-line fallback). Measured the one that matters: `api-conventions` scans **16 lines** below each driver-sync `fetch` for a `redirect:` policy, and the directions are asymmetric — under-reach is a LOUD false positive, **over-reach silently passes an unpoliced fetch** on the path carrying signed POD evidence. `transport.ts`'s two sites are **20 lines apart — a 4-line margin** — each with its own policy 4 lines below. **Mutation-proved:** deleting the policy at :52 REDs it rather than borrowing :72's. Fixed by stating the margin, not rewriting a working parser. |
 | 784 | §1337 | **§1338** | **FINISHED THE WORK-LIST — THE CANDIDATE SET REFINES DOWNWARD, 35 → 26.** §1334's scan bounded loop bodies with a fixed 30-line window; delimiting by **BRACE DEPTH** and excluding WebCrypto awaits (no subrequest) drops nine. Four "instances" were not: `board.ts:88`, `money.ts:342`, `money.ts:349` have **no awaits in the body at all** (pure transforms sitting above unrelated I/O), and `mirror-sweep.ts:198` has only `sha256Hex`. Nine of the surviving 26 are `index.ts`'s per-TENANT cron wrappers — bounded by the roster, their budget-sharing consequence already on the row. **§1334 predicted the count could only refine downward; it did.** The mechanical lesson: the same fixed-window parameter under-counted at §1332 and over-counted here. |
 | 783 | §1336 | **§1337** | **THE REGISTER CANNOT TELL YOU WHICH ROWS SHARE A MECHANISM — AND THE METHOD'S FAILURE IS THE FINDING.** To settle §1336's open question without guessing from prose, derived relatedness from the CODE each row cites. **34 OPEN rows share only 2 files, and BOTH overlaps are incidental** (a file cited as evidence; a shared `wrangler.toml`). Worse, it **misses the cluster I already know exists**: the unbounded-reads row does not cite its nine files inline — it delegates them to a roster TEST, which is the right engineering choice and makes the row's subject invisible to a reader of the row. So the four linked rows stand as a **hand-maintained** cross-reference with nothing deriving it and nothing to notice a fifth joining. Line of inquiry closed. |
 | 782 | §1335 | **§1336** | **MY OWN FIX TO "NO ROW OWNS THE CLASS" WAS ITSELF INCOMPLETE.** §1335 cross-linked three rows filing one mechanism; it **missed a fourth** — *"Unbounded list reads — 9 sites"*, which mentions subrequests **0** times and "per-row" **0** times — because I enumerated rows naming a LOOP and that one names a READ. **A framing, which is the exact error §1335 diagnosed.** The relationship is COMPOUNDING, not identity: the read costs a big scan, the loop costs a per-invocation ceiling that THROWS — but on **2 files they are the same code** (`watchtower.ts`, `dunning.ts`), where each failure arrives sooner than either row predicts and a `LIMIT` on the read also shrinks the loop. Linked with that stated rather than merged. **A cross-reference is itself an enumeration and inherits a scope the same way a count does.** |
@@ -78588,3 +78589,45 @@ file already named by a row.
 approximation over-counts in one direction and under-counts in the other.** §1332 hit the under-count (a
 12-line window missed a `.prepare(` 14 lines down) and this phase hit the over-count (a 30-line window counted
 four loops that do no I/O at all). The same parameter, wrong both ways, in the same investigation.
+
+
+## §1339 — PHASE GATE: the fixed-window class, applied to the gates that use one
+
+§1338 ended with a mechanical rule earned by making the mistake twice: **a body ends where its braces close,
+and a fixed-window approximation errs in both directions.** The natural application is the gates themselves.
+
+**Eleven sites slice a region.** Five slice to a STRUCTURAL boundary (`indexOf("\n## ")`, a found end index,
+to end-of-file) and are immune. One builds a 28-character excerpt for an error MESSAGE, which decides nothing.
+The remaining five slice a fixed window to reach a VERDICT, and `idb-durability` already hybridises — it
+delimits on the next transaction and keeps 30 lines only as a fallback.
+
+### The one worth measuring
+
+`api-conventions.test.ts` asserts every fetch in the driver's sync path declares `redirect: "error"|"manual"`,
+by scanning **16 lines** below each call. The two failure directions are not symmetric:
+
+| direction | effect |
+|---|---|
+| UNDER-reach (RequestInit longer than the window) | a violation reported that is not real — **loud**, gets fixed |
+| **OVER-reach** (a LATER call's `redirect:` falls inside this window) | that neighbour's line satisfies this site → **an unpoliced fetch passes**, silently, on the path carrying signed POD evidence |
+
+**Measured:** `transport.ts` has its two fetch sites at 48 and 68 — **20 lines apart against a 16-line window,
+a 4-line margin** — and each site's own policy sits 4 lines below it, so neither can borrow the other's.
+
+**Mutation-proved:** deleting the policy at `:52` REDs the test with a precise message about the platform
+default being `follow`, rather than being masked by the policy at `:72`. The gate is correct today.
+
+### Why the fix is a comment and not a rewrite
+
+The parsing works, and re-implementing it as a brace-delimited slice of the call would risk a real gate for a
+latent margin. What was missing is that the margin was **invisible**: nothing in the file said the 16 was
+load-bearing, in which direction, or by how much. That is now stated, with the measurement, the mutation, and
+the condition that would force the rewrite — the two calls moving within 16 lines of each other.
+
+**Running tally: 226 of 226 load-bearing claims probed — 151 verified, 46 gaps closed, 23 claims corrected;
+12 operational items recorded.**
+
+**STOP.** No defect. The judgement worth recording is about proportionality: **a working gate with an unstated
+margin is fixed by stating the margin, not by rewriting the parser.** §1338's rule says the window is wrong in
+principle; the measurement says it is right by four lines today; and the honest resolution is to make the next
+reader able to see both without re-deriving either.
