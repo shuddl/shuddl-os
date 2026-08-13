@@ -121,3 +121,55 @@ describe("mergeByDeviceSeq — first-wins, never overwrite (REQ-016)", () => {
     if (survivor?.kind === "freight.counted") expect(survivor.payload.pieces).toBe(10); // original wins, not 99
   });
 });
+
+
+// §1270 — THE TOTAL ORDER'S TIEBREAKS. `merge.ts` claims "a deterministic total order (captured_ts →
+// device_id → device_seq → id), independent of input order — the SAME set of events always merges to the SAME
+// sequence, however the syncs interleaved". That property is what makes an airplane-mode replay reproducible
+// (CLAUDE.md rule 6), and only its FIRST clause was exercised: dropping the `device_id`, `device_seq` and `id`
+// comparisons each left this package at 47/47 GREEN, because every fixture varied `captured_ts`.
+//
+// JS `Array.prototype.sort` is STABLE, so a dropped clause silently degrades to INPUT order — which is exactly
+// the thing the comment says the output does not depend on. So the sharpest test is the claim itself: merge the
+// same set in two different orders and require identical output. It kills all three clauses at once, and the
+// explicit expected sequence below pins WHICH order, not merely that one exists.
+//
+// The `id` tiebreak is only reachable for SERVER-ORIGIN events: two device events tying on
+// (shipment, device_id, device_seq) are deduped by `seqKey` before `cmp` ever compares them, so the fixture
+// uses two device-less events to reach it. Fixture arranged per §1260 — the expected order is neither input
+// permutation, so a stable sort cannot imitate it.
+describe("§1270 the total order is deterministic across interleavings (REQ-016, CLAUDE.md rule 6)", () => {
+  const TS = 5_000; // every event ties on captured_ts, so ONLY the tiebreaks decide
+  const srvB = mkEvent({ id: "bbbbbbbb-0000-4000-8000-0000000000b1", captured_ts: TS });
+  const srvA = mkEvent({ id: "aaaaaaaa-0000-4000-8000-0000000000a1", captured_ts: TS });
+  const devA1 = mkEvent({ id: "cccccccc-0000-4000-8000-0000000000c1", device_id: "dev_a", device_seq: 1, captured_ts: TS });
+  const devA0 = mkEvent({ id: "dddddddd-0000-4000-8000-0000000000d1", device_id: "dev_a", device_seq: 0, captured_ts: TS });
+  const devB0 = mkEvent({ id: "eeeeeeee-0000-4000-8000-0000000000e1", device_id: "dev_b", device_seq: 0, captured_ts: TS });
+
+  // device_id "" (server-origin) sorts before "dev_a" before "dev_b"; within dev_a, seq 0 before 1; the two
+  // server events tie on device_id AND device_seq, so their `id` decides: a… before b…
+  const EXPECTED = [srvA.id, srvB.id, devA0.id, devA1.id, devB0.id];
+
+  it("the same set in TWO different input orders merges to the SAME sequence", () => {
+    const p1 = [srvB, srvA, devA1, devA0, devB0];
+    const p2 = [devB0, devA0, devA1, srvA, srvB];
+    const m1 = mergeByDeviceSeq(p1).map((e) => e.id);
+    const m2 = mergeByDeviceSeq(p2).map((e) => e.id);
+    // PREMISE: the inputs really are different orders of one set, and neither IS the answer — otherwise a
+    // stable sort with no tiebreaks would pass this by accident.
+    expect(p1.map((e) => e.id)).not.toEqual(p2.map((e) => e.id));
+    expect(p1.map((e) => e.id)).not.toEqual(EXPECTED);
+    expect(p2.map((e) => e.id)).not.toEqual(EXPECTED);
+    expect(m1, "two interleavings of one set must merge identically").toEqual(m2);
+    expect(m1, "…and to the documented (captured_ts → device_id → device_seq → id) order").toEqual(EXPECTED);
+  });
+
+  it("each tiebreak decides its own pair (so one clause cannot stand in for another)", () => {
+    // device_id: same seq, different device.
+    expect(mergeByDeviceSeq([devB0, devA0]).map((e) => e.id)).toEqual([devA0.id, devB0.id]);
+    // device_seq: same device, different seq.
+    expect(mergeByDeviceSeq([devA1, devA0]).map((e) => e.id)).toEqual([devA0.id, devA1.id]);
+    // id: two server-origin events, tying on everything above it.
+    expect(mergeByDeviceSeq([srvB, srvA]).map((e) => e.id)).toEqual([srvA.id, srvB.id]);
+  });
+});
