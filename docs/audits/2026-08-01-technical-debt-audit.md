@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 795 | §1348 | **§1349** | **THE SIBLING OF §787's TITLE — A CLEAN NEGATIVE, VIA TWO OF MY OWN MEASUREMENT ERRORS.** §787 is titled for the RECIPIENT; the sibling is the CONTENT — and §785's own opening names both (*"a wrong recipient OR a wrong document"*) then audits one. Record attention is 15 verdicts vs **1**. **Error 1:** I read that as "unaudited" — `recall` measures the RECORD, not the code, which has 2 test files and a CR/LF header-injection guard (the catastrophic case, pinned as §1347 predicts). **Error 2:** grepping the test for a money alternation ending in `\$` (escaped out of this cell — 4th pipe-split this session) returned 26 hits — the `\$` was matching **template interpolation**; the source's real count is **zero**. The email carries NO money figure (a proof artifact; the invoice is named in the subject), so the sibling closes structurally: nothing to be wrong about, and the details it does render are asserted. |
 | 794 | §1347 | **§1348** | **THE OUTPUT BOUNDARY RE-WALKED WITH §1347's HEURISTIC — COMPLETE, AND THE ASYMMETRY HOLDS TWICE MORE.** §785 audited 1 of 7 outputs; §787 closes the phase with **every emitter enumerated** (recipient-decider + verdict): 2 gaps found, 4 already pinned. **The strong form:** the recipient rule is implemented TWICE, and in BOTH copies the party-scoping (unrecoverable cross-party leak) was covered while the billing preference (right party, recoverable) was pinned in NEITHER — two independent implementations, attention landing on the same side of the same line. Not a choice, a tendency. Closed at HEAD by `recipient-parity.test.ts`, which extracts both bodies by **brace matching** — §1338's technique, already in the repo. |
 | 793 | §1346 | **§1347** | **§1346's CLAIM TESTED ONE LEVEL DOWN — IT HOLDS INSIDE A SINGLE FUNCTION.** Tested "unrecoverable designed out, recoverable deferred" where it could most easily fail: an output that cannot be withdrawn. `recall "resolveRecipient"` → 15 verdicts, owned by §785 (the address receiving a customer's POD **and** invoice). Its TWO rules split exactly on recoverability: *read only the named party's contacts* (**cross-party leak, unrecoverable**) was **4 REDs — covered**; *prefer the billing contact* (right party, wrong contact — recoverable) was **SILENT in both suites** — the gap. Nobody chose that per-rule, so it shows where design attention went. Gap closed at HEAD (`recipient-parity.test.ts:75`). **Three granularities now: ledger design, register, single function.** |
 | 792 | §1345 | **§1346** | **THE FRAMING PATTERN USED AS A SEARCH — AND THE ASYMMETRY IT EXPOSED.** Applied §1345's rule generatively: for a consequence-titled item, ask the SIBLING consequence. Thin on §-headings (nearly all are methodological), so applied to the domain-framed ROWS: the register carries two *"a lost trigger has no backstop"* rows, whose sibling is a DUPLICATED trigger (the queue is at-least-once). `recall "already_booked"` → **§476**, a clean negative in three steps: an alarming unpinned `ORDER BY seq LIMIT 1`, but a second booking is **unreachable** (REQ-191, rejected server-side), and that guard is pinned. **The asymmetry is the finding**: the UNRECOVERABLE direction was made impossible, the RECOVERABLE one left to a backstop — so open items cluster on the recoverable side BY CONSTRUCTION. |
@@ -79006,3 +79007,43 @@ in the repo, correctly, in the test whose subject is two functions that must not
 one rule — and the practical form is worth stating plainly: **on any surface where something leaves the
 building, check the detail that is merely wrong before the detail that is catastrophic.** The catastrophic one
 has usually already frightened someone into pinning it.
+
+
+## §1349 — PHASE GATE: the sibling of §787's title, and two measurement errors on the way to a clean negative
+
+§1345's framing pattern applied to §787 itself: that phase is titled *"who the evidence email actually goes
+to"* — the RECIPIENT. Its sibling is the CONTENT: what the email says once it reaches the right person. And
+§785's own opening sentence names both halves — *"the failure mode is a wrong recipient **or a wrong
+document**"* — then audits the recipient. A section containing its own sibling is exactly the shape §1345
+predicts.
+
+**The record's attention is lopsided, and measurably so:** `recall "resolveRecipient"` → 19 mentions across 15
+verdicts; `recall "renderEvidenceEmail"` → **1**, and that one (§124) is about authority, not content.
+
+### But the code is not, and my first inference was wrong
+
+`recall` measures what the RECORD has attended to, not what the CODE defends. `renderEvidenceEmail` has two
+test files and a CR/LF **header-injection** guard that throws before interpolating `shipment_ref` into a mail
+header. Per §1347's heuristic the catastrophic case is already frightening enough to be pinned, and it is —
+`renderEvidenceEmail({…, shipment_ref: "SHP-1\r\nbcc: x@y" })` must throw.
+
+**A second measurement error, worth recording because it nearly produced a finding.** Grepping the test for
+`total|amount|cents|\$` returned **26 hits**, which reads as thorough money coverage. The `\$` was matching
+template interpolation. The source's real count for `total|amount|cents|invoice` is **zero**: this email carries
+no money figure at all. It is a PROOF artifact — shipment ref, Delivered status, signature and placed-freight
+captions, the dispute footer — and the invoice is named in the subject rather than inlined.
+
+**So the sibling closes as a clean negative for a structural reason rather than a coverage one:** there is no
+amount on this surface to be wrong about, and the recoverable details it DOES render (`>Delivered<`,
+`>Signature<`, `>Freight as placed<`) are each asserted.
+
+That also explains the 15-to-1 attention gap without it being a gap: the recipient is a DECISION with many
+failure modes and two implementations; the content is a static render with few, and those few are pinned.
+
+**Running tally: 256 of 256 load-bearing claims probed — 180 verified, 46 gaps closed, 23 claims corrected;
+12 operational items recorded.**
+
+**STOP.** No gap, and two of my own measurements corrected mid-phase — `recall` counts verdicts rather than
+tests, and `\$` in a grep counts template syntax rather than money. The transferable half: **an attention
+asymmetry in the record is evidence about the record, not about the code**, and confirming which requires
+reading the code the record ignored.
