@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 691 | §1243 | **§1244** | **§1243'S RULE ON THE CONSTITUTIONAL CHOKEPOINT — AND IT REACHED OUT OF THE CODE.** REQ-025 says *the tenant resolves from the JWT claim ONLY*, which is a chokepoint claim, so all **49** tenant-db resolutions were classified by SLUG SOURCE rather than by call shape: **33** JWT `session.tenant`, **12** server-side cron enumeration, 2 host-map/DO-self, 1 server-authored queue trigger, 1 MAC-verified capability claim — **0 client-supplied**. The one unauthenticated selection (`pub/quote.ts`) uses a server-side host map whose comment claims *never the client-forgeable Host header* — **an assertion about the DEPLOYMENT, not the file**. Verifying it meant leaving TypeScript for `wrangler.toml`: exact zone-bound routes and `workers_dev = false`, so a forged Host cannot route here. **The least-controlled input to this chokepoint is a routing rule.** Consequence stated: `HOST_TENANTS` holds only synthetic placeholders (REQ-167), so the route 404s by construction in prod until onboarding provisions the host — the recorded design (genesis/13). |
 | 690 | §1242 | **§1243** | **WHAT REACHES A CLIENT IN AN ERROR BODY — A FOUR-HOP CHAIN, CLEAN AT EVERY HOP.** New surface: the client-facing analogue of §1225's wrong operator messages is a LEAK. Traced end to end because a leak analysis is a chain and any hop can launder the previous one's guarantee. (1) The catch-all logs `err.message` but returns a fixed `"INTERNAL ERROR"` — **mutation-proved**, leaking it REDs a test named exactly for the property. (2) `extras` has ONE caller, typed to a two-member union — closed by the compiler. (3) 15 of 16 messages are literals; the one variable has two callers, both literals. (4) `error.ts:48` DOES pass `err.message` for `ApiError` by design — and **reading only hop 1 would have called that a leak** — but all three non-literal constructions are safe: a table keyed by an enum, and `dunning`'s detail interpolating CLIENT-SUPPLIED ids + a status enum on an authenticated route. **A guarantee stated at a chokepoint is only as strong as the least-controlled input reaching it.** |
 | 689 | §1241 | **§1242** | **§1241'S DISCIPLINE GENERALISED TO IDEMPOTENCY — THE MONEY PATHS ALREADY WRITE THE SECOND CALL.** *Running twice changes nothing* is unfalsifiable without running twice, and a false claim here is a double invoice. 98 files carry such a claim; narrowed to the five entry points where failure moves money and checked mechanically (idempotency-NAMED test + ≥2 invocations in its body): **5 of 5**, with 3–5 calls each — biller, booking, Stripe credits, sequencer, dunning. The credits case asserts *exact-redelivery of both **in either order***, i.e. **commutativity**, which is what a webhook redelivery actually needs since Stripe promises no ordering. **Mutation-proved rather than read**: neutralising the sequencer's by-event-id dedup REDs two tests. Thread closes — §1240's `stripe_refs` gap was the EXCEPTION (1 of 4 accumulators, 0 of 5 idempotency paths), and its cause is visible: seeding `'{}'` is the one start where the second call is not needed to write the test. Scope: 5 of 98 checked. |
 | 688 | §1240 | **§1241** | **§1240'S TRAP SWEPT — ONE INSTANCE IN THE BUILD, AND THE THREE SAFE ONES SHARE ONE HABIT.** 16 identity-respecting combiners in shipped source; 8 are `der.ts` `concat` over byte arrays (no prior state). **Four accumulate over a prior value**, each checked for a NON-identity start: `allocatePartnerControls` (EDI ISA/GS numbers) **safe** — pinned 1→2→3 *and* a seeded prior of 41 → 42; `flipped_events` append **safe** — asserts `[promote.id, drift.id]`; passport `scores` **safe** — asserts `deliveries` 1 → 2; `stripe_refs` was **the one instance**, closed at §1240. **One in four**, and the three safe ones were safe for the same reason: **somebody wrote the SECOND invocation** — not a richer assertion, a second call or a seeded prior. The control-number case is where the trap would cost most (a partner rejects a duplicate ISA13) and its author started at 41 deliberately. |
@@ -73891,3 +73892,56 @@ they write into anomalies, quarantine rows and logs, none of which is a client r
 **STOP.** The client-facing error surface traced through four hops rather than asserted at the boundary, each
 hop's guarantee checked against the next hop's freedom, the one guard that could silently regress mutation-proved,
 and the deliberate pass-through distinguished from a leak by where its inputs are authored.
+
+## §1244 — PHASE GATE: §1243's rule applied to the constitutional chokepoint — and it reached out of the code
+
+**REQ-025's guarantee is a chokepoint claim**: *the tenant resolves from the JWT claim ONLY*. §1243's rule says
+such a claim is only as strong as the least-controlled input reaching it — so every resolution was classified by
+**where its slug comes from**, not by whether it calls the right function.
+
+```
+49 tenant-db resolutions, by slug SOURCE
+
+  33  JWT session.tenant                            0  client-supplied (body / query / path / Host)
+  12  server-side cron enumeration (allTenantSlugs)
+   2  host map / the DO's own tenant
+   1  queue trigger (server-authored)
+   1  signed capability claim (pub/status)
+```
+
+**Zero client-supplied.** The 33 authenticated routes take it from the session; the 12 sweeps from
+`allTenantSlugs()` (§1225's enumeration); the queue consumer from a message the sequencer authored; `pub/status`
+from a **MAC-verified** capability claim, which §1200 established is a whole-payload signature with no
+projection to lose a field.
+
+### The one unauthenticated tenant selection, and where its guarantee actually lives
+
+`pub/quote.ts` is the only route choosing a tenant with no caller identity. It uses a **server-side host map**:
+
+```ts
+const host = new URL(c.req.url).hostname;   // "routing-authoritative, NEVER the client-forgeable Host header"
+const tenant = HOST_TENANTS[host];
+if (tenant === undefined) return envelope(c, "NOT_FOUND", 404, "NOT FOUND");  // no existence oracle, no D1 touched
+```
+
+**That comment asserts a property of the DEPLOYMENT, not of this file** — and checking it meant leaving
+TypeScript for `wrangler.toml`:
+
+- routes are **exact hostnames** — `api.shuddl.tech/*` and `api-staging.shuddl.tech/*`, both zone-bound
+- **`workers_dev = false`** — no wildcard `*.workers.dev` origin to reach the worker by another name
+
+So a forged Host cannot route here at all, and the claim holds — **but it holds because of two lines in a
+deployment config**, not because of anything in the route. That is §1243's rule reaching past the code: the
+least-controlled input to this chokepoint is a routing rule.
+
+**A consequence worth stating plainly:** `HOST_TENANTS` contains only synthetic placeholders (`api.local`,
+`tenant-{a,b}.example`) because REQ-167 forbids real tenant hostnames in the repo. In production the deployed
+hostname is therefore **not in the map**, and the public quote route **404s by construction** until onboarding
+provisions the mapping. That is the documented design, not a gap — the checklist already records host
+provisioning as an onboarding step (genesis/13), and the audit already names the subset invariant
+`values(HOST_TENANTS) ⊆ TENANT_BINDINGS`, guarded by a boot-time throw.
+
+**STOP.** The constitutional chokepoint audited by input source rather than by call shape, all 49 resolutions
+traced to a server-controlled origin with none client-supplied, the single unauthenticated selection's guarantee
+followed out of the code into the deployment config that actually enforces it, and its dark-in-production
+posture confirmed as the recorded design rather than an omission.
