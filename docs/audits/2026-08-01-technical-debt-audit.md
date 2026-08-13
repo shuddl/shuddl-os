@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 766 | §1319 | **§1320** | **SWEPT THE CURATED-VOCABULARY CLASS REPO-WIDE — 9 CLOSED, 2 OPEN, 1 RESIDUAL.** After three curated lists in one file, counted the class across all gates: **12 carry a word alternation**, and the discriminator is CLOSED-by-contract vs OPEN-to-rewording. Nine are closed (HTTP verbs, vitest modifiers, the event `source` enum, file extensions, storage APIs). `motion.ts` bans animation NAMES but is safe by design — its real detectors are STRUCTURAL (`isSpringBezier`, `hasNonZeroRotate`), so a rename still trips it. The residual is `gate-wiring`'s script-PREFIX filter: **widening it was measured and REJECTED** (`pnpm backup` is a defined script and an operational job — pure noise). Bounds written into the source: 16 prefixes exist, 5 recognised, and **4 of 30 merge scripts are bare-named**; the convention is enforced nowhere. |
 | 765 | §1318 | **§1319** | **THE THIRD CURATED LIST IN ONE FILE — AND A PROBE THAT NEARLY LIED.** Applied §1318's rule to the sibling matcher: `statedSweepCounts` hard-coded a six-to-ten alternation (escaped out of this cell — a regex alternation's pipes split a markdown row, which is now twice in three phases) beside the `WORD` table its own `.map` already used. Blind to **`eleven` AND `five`** — so it could not see growth past ten OR a shrink below six. Now built from `Object.keys(WORD)`. **The first probe reported all three plants GREEN**, which reads as "the gate is broken" — but `sla-sweep.ts` states NO count, so the substitution matched nothing; re-aimed at `sequencer.ts` (which states `eight sweeps`) both wrong counts RED. A uniform 3-for-3 result was the tell. Also found: of the roster's 2 files only **1** carries a live claim. |
 | 764 | §1317 | **§1318** | **ADVERSARIALLY PROBED MY OWN §1313 GATE — BLIND ON TWO OF NINE REWORDINGS.** Started from the riskiest thing ADDED rather than hunting new debt. The worker-count matcher survived digits, capitals, a comma and a struck number, and went blind on `spanning four workers` and `in four workers`: it hard-coded the preposition `across`. **That is §1077's curated-vocabulary bug one level down** — §1313 curated the NUMBER WORDS and its fix curated the PREPOSITION, in the same edit. Fixed by REMOVING the dependency (a window already names the population, so `<N> workers` is the claim), not by extending a list: all three wordings now RED, real tree 9/9 with no FP. Residual written into the source: both readers still anchor on the literal phrase `per-tenant sweep`. |
 | 763 | §1316 | **§1317** | **I RE-DERIVED §945 — AND FOUND ONE THING THAT WAS ACTUALLY NEW.** Three counting rules returned **32 / 28 / 34**; §945 had already answered this four times with four wrong answers, and the gate born from it (`ledger-status-vocabulary`) already requires a canonical token so counting cannot drift. I hit 3 of its 4 recorded failure modes, including the naive `\|` split (escaped here — writing it bare split THIS row, which is the same failure the row describes). **The genuinely new part:** that gate enforces one live verdict WITHIN the status cell — L436 satisfied it while its ITEM cell said CLOSED and its STATUS said OPEN. A cross-CELL contradiction is outside its scope, and it kept the row miscounted under a green gate. Reconciled; no second instance; one FP (*"fails CLOSED"*, which is §945's failure mode #1 inside my detector for it). |
@@ -77742,3 +77743,53 @@ the day that file states a count again.
 repeating it: **a file that contains one curated list usually contains another, and the second one is found by
 probing, never by reading** — three lists in this file, all three invisible to inspection, all three caught by
 planting a value the list did not contain.
+
+
+## §1320 — PHASE GATE: sweeping the curated-vocabulary class repo-wide — nine closed, two open, one residual
+
+Three curated lists in one file (§1313 number words, §1318 preposition, §1319 alternation) is a pattern, and
+the discipline at instance three is to stop fixing and start counting. Swept every gate under `tools/` for the
+same shape: a regex alternation of plain English words.
+
+**Twelve carry one. The discriminator is whether the set is CLOSED by an external contract or OPEN to a human
+rewording** — which is exactly what made the three fixable ones fixable.
+
+| gate | alternation | verdict |
+|---|---|---|
+| `api-conventions` · `route-authz-coverage` · `list-endpoint-pagination` | HTTP verbs | **closed** — fixed by the protocol |
+| `no-focused-tests` | `only` `skip` `todo` `fails` | **closed** — fixed by vitest |
+| `event-source-producers` | `legacy` `edi` `email` | **closed** — the event `source` enum |
+| `design-corpus-coverage` · `tenant-scope` | file extensions · storage API methods | **closed** — fixed by the platform |
+| `design/motion.ts` | banned animation NAMES | **safe by design** — see below |
+| `gate-wiring` | script-name PREFIXES | **open, unenforced** — the residual |
+
+### Why `motion.ts` is not the fourth instance
+
+It bans four animation names, which is exactly the curated shape — but the names are supplementary. The file's
+real detectors are STRUCTURAL: `isSpringBezier` and `hasNonZeroRotate` catch the behaviour whatever the
+keyframe is called, so renaming `spin` to `twirl` escapes the name list and is still caught by the rotation
+check. That is the *detect the violation, not the vocabulary* pattern, and it is why a curated list there costs
+nothing.
+
+### The one residual, characterised rather than "fixed"
+
+`workflowGates` filters CI invocations to five prefixes. **Widening it to "any defined script" was measured and
+rejected**: `pnpm backup` runs in a workflow, is a defined script, and is a scheduled operational job — it
+would land in the failure list as pure noise, the §1053 shape that gets a gate deleted. **No name can carry the
+gate-versus-operational judgement**, so the filter is doing real semantic work and the honest move is to bound
+it, not widen it.
+
+Measured bounds, now written into the source: the workspace defines **16** script prefixes and this recognises
+**5**; **4 of the 30 merge-gate scripts are bare-named** (`typecheck`, `lint`, `test`, `preflight`) and are
+therefore invisible to it — harmless today, since all four ARE merge scripts and would pass anyway. The live
+risk is the reverse: a future workflow gate named outside the five is never tested for merge-path membership,
+and its silence reads as compliance. The convention it rests on is enforced **nowhere**.
+
+**Running tally: 168 of 168 load-bearing claims probed — 108 verified, 46 gaps closed, 19 claims corrected;
+10 operational items recorded.**
+
+**STOP.** tools 118/119, lint and typecheck clean, zero behaviour changed. The sweep's value is mostly negative
+and that is the point: **nine of twelve curated lists are closed sets and need no work, and knowing which is
+which took one measurement each.** The class that bit three times in one file is rare elsewhere in this repo,
+because most of these alternations enumerate something a protocol or a schema already froze — and the one that
+does not is doing a judgement no derivation could replace.

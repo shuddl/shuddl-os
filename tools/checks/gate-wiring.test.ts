@@ -268,6 +268,20 @@ describe("REQ-118 §656: the test script still chains the tools suite", () => {
     ],
   ]);
 
+  // §1320 — THE PREFIX SET IS A SEMANTIC FILTER, AND ITS LIMIT IS MEASURED RATHER THAN GUESSED.
+  //
+  // These five prefixes separate GATES from operational jobs, which is a judgement no name can fully carry.
+  // Widening the filter to "any defined script" was measured and rejected: `pnpm backup` runs in a workflow,
+  // IS a defined script, and is a scheduled operational job rather than coverage — it would land in
+  // `soleCoverage` as pure noise, which is how a gate earns deletion (§1053).
+  //
+  // WHAT ESCAPES, stated exactly (measured §1320): the workspace defines 16 script prefixes and this
+  // recognises 5, and **4 of the 30 merge-gate scripts are bare-named** — `typecheck`, `lint`, `test`,
+  // `preflight` — so an invocation of those is invisible here. Harmless today, because all four ARE merge
+  // scripts and would pass the assertion anyway. The live risk is the other direction: a future workflow gate
+  // named outside these prefixes (`typecheck:strict`, a bare `securityscan`) is never tested for merge-path
+  // membership, and its silence is indistinguishable from compliance. The naming convention this rests on is
+  // enforced NOWHERE — grepped, §1320. A gate whose name breaks it must be added to the prefix list here.
   /** Gate-shaped pnpm invocations in a workflow, excluding the `verify:*` aggregates themselves. */
   function workflowGates(yml: string): string[] {
     return [...yml.matchAll(/run:\s*pnpm (?:-s )?(?:exec )?([a-z0-9:_-]+)/g)]
