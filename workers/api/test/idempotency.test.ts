@@ -18,6 +18,38 @@ describe("idempotency", () => {
     });
   }
 
+  // §1288 — THE SCOPE TUPLE'S PATHNAME. The key is a SHA-256 of [tenant, method, pathname, key], and the
+  // tenant component is pinned one test below ("keys are tenant-scoped"). The PATHNAME component was not:
+  // measured, dropping it from the tuple left workers/api at 74/74 GREEN.
+  //
+  // Its absence means one Idempotency-Key spans EVERY endpoint — a client that mints one key per user action
+  // (the ordinary pattern, and what the driver PWA does per capture) would have its second call to a different
+  // route replay the FIRST route's response, 2xx and all. The mutation never runs and the caller is told it
+  // succeeded. This is the same shape as the REQ-105 cap bypass §1265 re-proved, where the fix was precisely
+  // "the api's own dedupe folds the request pathname into its scope".
+  it("§1288: the SAME key on a DIFFERENT route executes fresh — the pathname is part of the scope", async () => {
+    const key = `pathscope-${crypto.randomUUID()}`;
+    const t = await token({ sub: "u1", tenant: "tenant-a", role: "ops" });
+    const call = (path: string, body: unknown) =>
+      SELF.fetch(`https://api.local${path}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${t}`, "content-type": "application/json", "Idempotency-Key": key },
+        body: JSON.stringify(body),
+      });
+
+    const echo = await call("/v1/_echo", { n: 7 });
+    expect(echo.status).toBe(200);
+    const echoBody = await echo.text();
+
+    // Same tenant, same method, same key — DIFFERENT route, with a body that route rejects. The point is not
+    // that it succeeds; it is that it RUNS. A deterministic 400 (validation, before any DB work) is the
+    // cleanest discriminator: if the pathname were absent from the scope, this returns the echo's cached 200.
+    const other = await call("/v1/parties", { nope: true });
+    expect(other.headers.get("idempotency-replay"), "a different route must not be served from the first route's cache").toBeNull();
+    expect(other.status, "the second route replayed the first route's 200").toBe(400);
+    expect(await other.text(), "the second route returned the FIRST route's body").not.toBe(echoBody);
+  });
+
   it("rejects a mutation without the header", async () => {
     const res = await post(undefined);
     expect(res.status).toBe(400);

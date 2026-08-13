@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 734 | §1287 | **§1288** | **ONE IDEMPOTENCY-KEY SPANNING EVERY ENDPOINT.** The KV scope is a SHA-256 of `[tenant, method, pathname, key]`. Pinned: the **2xx-only** caching rule (REQ-206/H-5) **3 RED**, `tenant` (REQ-025) **1 RED**, the key requirement **1 RED** — **both documented past defects have tests**, §1279 again. **The gap: `pathname`** — dropping it left api **74/74 GREEN**, and its absence makes one key GLOBAL to the tenant: a client minting one key per user action (what the driver PWA does per capture) gets its second call to a DIFFERENT route served the first route's response, 2xx and all — the mutation never runs and the caller is told it succeeded. Same shape as the REQ-105 cap bypass, whose fix was *the api's own dedupe folds the request pathname into its scope*. Closed; the discriminator took two tries (the obvious second route 500s unseeded, so the test asserts the route **RUNS** via a deterministic 400, not that it succeeds). **`method` and the `NUL` separator recorded UNCONSTRUCTIBLE with evidence** — no path carries two mutating verbs, and every mutating route ends in a fixed literal so `pathname+key` cannot be made to collide client-side. Inventing tests for them would be §1283's *assert nothing, read as diligence*. |
 | 733 | §1286 | **§1287** | **THE AUTHZ BOUNDARY IS 4-FOR-4, AND THE FIFTH GUARD IS A LIBRARY CONTRACT.** `middleware/auth.ts` decides who every caller is. Mutated: client-supplied tenant rejection (REQ-156) **1 RED**, `Bearer ` prefix **6 RED**, `SessionClaims.safeParse` **2 RED**, `requireRole` **3 RED** — all pinned, zero source changes. **The fifth is not what it looks like:** I labelled removing `"HS256"` an *alg-confusion* defence and got 6 REDs, which fits perfectly. Reading hono's source: `verify(token, key, algOrOptions)` **throws `JwtAlgorithmRequired` when the third argument is absent** — so dropping it widens nothing, it makes every token unverifiable, and the 6 failures are ordinary requests becoming 401s. **The hole I named cannot exist in this version.** Six REDs prove the argument is REQUIRED, not that it DEFENDS. That is the **fourth** framing of mine this stretch corrected by reading the mechanism rather than the result (§1280 heuristic, §1282 HMAC-forgery, §1285 reachability, this) — every one a plausible story the red/green pattern appeared to confirm, which is when a story is most dangerous. |
 | 732 | §1285 | **§1286** | **THE BYTE LAW IS 5-FOR-5 — AND ONE OF ITS TESTS IS THE FIX FOR §1281–§1285.** `canonical.ts` is the frozen-forever primitive (every stored hash digests its output). Five rules, five mutations: **key sort 6 RED**, undefined-filter RED, `-0` rejection 1 RED, sparse-hole 1 RED, unsupported-type throw 1 RED. Zero source changes. **The sparse-hole case is worth more than its tick:** removing that guard STILL throws (a hole reads `undefined`, which the unsupported-type branch rejects) — identical outcome, so by the logic that defeated four suites this stretch it should have been unpinnable. It is not, because the test asserts **`.toThrow(/sparse\|hole/)`** — the REASON, not the outcome. That one choice is the whole difference from `sign.test.ts` (`=== false`), `inbound.test.ts` (`status === 401`) and `chain.test.ts` (`ok === false`), each of which hid a real gap. **So the class has a cheap general fix: when several guards share an outcome, assert the distinguishing detail** — the message, the `reason`, the code not the class. §1282 solved it the expensive way with one-column fixtures; this gets there in one line. The generalisation was sitting in `canonical.test.ts` the whole time. |
 | 731 | §1284 | **§1285** | **THE HASH CHAIN, AND A SEQ CHECK THREE TESTS COULD NOT SEE.** `verifyChain` mutated five ways: `prev_hash` linkage **2 RED**, stored-hash comparison **1 RED**, `hashView` deleting `sig` **1 RED**, `expectedPrev = e.hash ?? recomputed` **equivalent** (they cannot differ while the hash check stands), and the **`seq` gap check → 726/726 GREEN**. **Why the existing test missed it:** `chain.test.ts` tampers `{ ...chain[1], seq: 3 }` and asserts `ok === false` — but **`seq` is INSIDE the hash view**, so the edit changes the recomputed hash and `hash_mismatch` rejects it; the seq comparison never runs. §1281's pattern, third occurrence, and the sharpest yet because the fixture NAMES the field it tampers. Isolated with a correct `trustedPrevHash` + stale `fromSeq` (only the seq check can reject that), plus the complement and a **no-op control**. **And the scope claim was wrong:** I wrote that `anchor.ts` resumes this way — it never calls `verifyChain`, and the only `verifyChain(` matches in src are a **different function** in `tsa/cms.ts`. The real caller is `restore-verify.ts`, which passes NO options — so this pins an exported CONTRACT, not a live path. Same-name-different-function is the trap that makes a grep look like an answer. |
@@ -76088,3 +76089,51 @@ pin each exit in one line.
 **STOP.** The authz boundary measured element by element and found fully defended — four guards pinned, the
 fifth identified as a library requirement rather than a defence, and the framing corrected by reading hono's
 source instead of trusting a red that agreed with me.
+
+## §1288 — PHASE GATE: one Idempotency-Key spanning every endpoint
+
+`middleware/idempotency.ts` keys its KV cache on a SHA-256 of `[tenant, method, pathname, key]`. Six elements,
+mutated:
+
+| element | dropped → | verdict |
+|---|---|---|
+| the `2xx`-only caching rule (REQ-206 / H-5) | **3 RED** | pinned |
+| `tenant` from the scope tuple (REQ-025) | **1 RED** | pinned |
+| the `Idempotency-Key` requirement | **1 RED** | pinned |
+| **`pathname` from the scope tuple** | **74/74 GREEN** | **gap — closed** |
+| `method` from the scope tuple | 74/74 green | not constructible here |
+| the `NUL` separator | 74/74 green | not constructible here |
+
+**The two documented past defects are both pinned** — the 2xx rule and tenant scoping each cite an earlier
+incident, and §1279's pattern holds again: what once broke has a test.
+
+### Dropping the pathname makes one key span every endpoint
+
+The absence means a single `Idempotency-Key` is global to the tenant. A client that mints one key per user
+action — the ordinary pattern, and what the driver PWA does per capture — has its second call to a *different*
+route served the **first route's response, 2xx and all**: the mutation never runs and the caller is told it
+succeeded. It is the same shape as the REQ-105 cap bypass §1265 re-proved, whose fix was precisely *"the api's
+own dedupe folds the request pathname into its scope"*.
+
+Closed with same-tenant, same-method, same-key calls to two different routes. The discriminator took two
+attempts: the obvious one (a second route that succeeds) 500s in this suite because its schema is not seeded —
+so the test asserts the second route **runs** rather than **succeeds**, using a deterministic 400 from body
+validation, which happens before any DB work. A replay would surface as a 200 with the first route's body.
+**Mutation-proved:** dropping `pathname` REDs; dropping `method` stays green (the control).
+
+### Two guards recorded as unconstructible, with the reason
+
+- **`method`**: no path in the API carries two mutating verbs, so no request pair can differ in method alone.
+- **The `NUL` separator**: it defends against a tuple whose concatenation is ambiguous. Every mutating route
+  ends in a fixed literal (`/revoke`, `/send`, `/flip`, `/accept-quote`) or is a fixed path, so `pathname+key`
+  cannot be made to collide from the client side; the remaining vector is a **crafted tenant slug**, which
+  needs provisioning this suite has no seam for.
+
+Both are real guards. Neither is reachable from the HTTP surface today, and inventing a test that asserts
+something else would be §1283's "tests that assert nothing and read as diligence".
+
+**Running tally: 100 of 100 load-bearing claims probed — 69 verified, 26 gaps closed, 5 claims corrected.**
+
+**STOP.** The idempotency scope audited element by element: three guards pinned (both citing past incidents),
+one gap closed where a single key would otherwise span every endpoint, two recorded unconstructible with the
+route-shape evidence for each. api 840/840, typecheck 0.
