@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 812 | §1365 | **§1366** | **THE GAP §1365 NAMED, CLOSED — AND THE GATE FOUND A FALSE PIN IN ITS FIRST MINUTE.** §1365 named "a tenth composition root is caught by no standing check" rather than hiding it; four manual sweeps had given four answers, which argues for a gate not a fifth sweep. Built `tools/checks/dark-stub-roster.test.ts` — brace-depth extraction, and a **same-package** rule requiring a test that names the selector AND asserts `toBeInstanceOf` its stub. That rule immediately exposed `secretResolverFor` (workers/mcp) as **falsely pinned by every prior sweep**: the assertion they matched is in workers/TRANSLATOR's suite on a same-named function, and zero mcp tests named it. It decides whether **MCP client authentication is live** (REQ-154) — `oauth.test.ts` INJECTS its resolvers and never reaches the production assembler, so behaviour was pinned and choice was not, in the worker behind acceptance demo #4. **Not a tenth root — the ninth root's pin being false**, which indicts the method rather than the count. The gate also corrected my floor (I wrote `>= 10` from narrative; it failed at 9). Mutation-proved three ways, all isolating: a live resolver REDs only the new case (21 OAuth tests stay green); a planted root and a weakened pin each RED the gate by name |
 | **811** | §1364 | **§1365** | **STOPPING POINT — THE PATTERN-DERIVED POPULATIONS ARE EXHAUSTED, AND THE BOARD IS CLEAN.** Measured at `bf84a41`, not inherited: `pnpm verify:merge` gives **26 gates — 21 PASS · 0 FAIL · 5 BLOCKED**, **4,750 tests passed, zero suites failing**. All five BLOCKs are owner-held (absent `IDENTITY_DENYLIST` + four unvendored private fixture sets); the repo-owned failure set is EMPTY, with 13 files dirty from the concurrent author and the board clean anyway. §1355–§1364 closed four pattern-measured populations — loops (26 → 2 real), exemptions (8 → 1), composition roots (7 claimed → 9 actual, 1 unpinned), copy-sets (5 claimed → 21 actual, 0 defects). Two gates built, both mutation-proved isolating; two false claims struck from source. **Phase gate: five reopen triggers, three of them MECHANISMS that RED rather than prose that reminds.** Known gap named rather than hidden: a tenth composition root would be caught by no standing check |
 | 810 | §1363 | **§1364** | **THE SAME UNDERCOUNT IN §1351, AND A POPULATION THAT TRIAGES TO ZERO.** §1363's lesson applied to the other survey built the same way: §1351's duplicate-body sweep reported **five** copy-sets; brace-depth extraction finds **21**. Same 4x-class undercount, same cause — §1351 saw only the flattest bodies. **But zero new defects.** The security-critical family (6 copies of constant-time compare) is pinned by a gate STRONGER than parity — it asserts the property per copy plus a discovery half for any new `===` on a secret. The 7 `deterministicUuid`/`uuidFromSeed` copies are two textual forms of one semantics (the second inlines `sha256Hex`) and share no id space. The rest are small helpers whose drift is loud and local. **Two triage errors caught pre-publication:** I ranked the best-defended thing in the repo as the top risk, and credited a pin to `parity.test.ts` on FILENAME when that file is about ledger MODULE parity — the §1362 name-collision repeated inside the phase correcting it. **Meta, now twice-held (§1360, §1364): a pattern-derived population here is dominated by CORRECT uses, so the triage is not the tax on the phase, it IS the phase** |
 | 809 | §1362 | **§1363** | **§1362's OWN COUNT WAS WRONG, AND THE NINTH ROOT WAS THE ONE IT WAS LOOKING FOR.** It said *seven roots, six pinned*; there are **nine**, and the missed one — `conciergeParser` — is a second instance of the very defect it closed (unexported → unreachable → zero test mentions). **Why:** §1362's scan extracted bodies with a regex allowing ONE level of brace nesting, and `new ClaudeParser({ … })` inside an `if` is two — so the discipline this repo already fixed twice (§1338) was applied to the phase's TEST files while the phase's SURVEY used a nesting-limited regex. A gate built from a blind survey inherits its blind spot. Second correction, safe direction: a global name match credited the agents `evidenceSender` with the API worker's identically-named pin; checking found it genuinely pinned behaviourally (`test-send` gates 4/5). `conciergeParser` selects the live Anthropic path per inbound message — the arrival trigger for the standing cost-metering row. Fixed + **mutation-proved twice, both isolating**. **Near-miss:** mutation 2 first read GREEN because a 6-space replacement string missed a 4-space line — a no-op replace is indistinguishable from a vacuous test, so every mutation now asserts its own application count first |
@@ -79854,3 +79855,55 @@ attention: prose about oneself.
 · commit the `genesis/09` rows · REQ rows for the filed operational items (interline-split marker, split
 backstop, collector page bound, import bound, and now the mirror-sweep page size) · the API-contract decision on
 `quote.priced` in `SERVER_EMITTED_KINDS`.
+
+## §1366 — PHASE GATE: the gap §1365 named, closed — and the gate found a false pin in its first minute
+
+§1365 ended by naming a gap rather than hiding it: *"a tenth composition root … is caught by no standing check.
+The nine-line sweep that finds them is in §1363."* Four separate manual sweeps had produced four different
+answers about this class (§380's two, §1362's "seven", §1363's corrected "nine"), which is the argument for a
+gate rather than a fifth sweep.
+
+**Built: `tools/checks/dark-stub-roster.test.ts`.** It extracts by BRACE DEPTH — the §1338/§1363 lesson, and the
+specific reason the earlier counts were wrong — and requires, for every function constructing a `NotConfigured*`
+stub, that a test **in its own package** both names the selector and asserts `toBeInstanceOf` its stub.
+
+**The same-package rule found a false pin within a minute of first running.** `secretResolverFor` in
+`workers/mcp` had been credited as pinned by every prior sweep. It is not, and never was: the assertion those
+sweeps matched is in workers/**translator**'s suite, on a function of the same name. Zero mcp tests named it.
+
+That root decides whether **MCP client authentication is live** (REQ-154). It returns `NotConfiguredSecretResolver`
+unconditionally, its own header calls resolving from a real store *"the CONFIRM-gated live flip"*, and
+`oauthDeps` — the production assembler that calls it — is not exported. `oauth.test.ts` proves the ceremony
+behaves correctly given either resolver, because it **injects** them (`goodSecrets()`, and a
+`NotConfiguredSecretResolver` for the refusal case). Behaviour pinned, choice unpinned — §380's sentence, in the
+worker behind acceptance demo #4.
+
+**So it is not a tenth root; it is the ninth root's pin being false.** Worth stating precisely, because "we
+found another one" and "one we already counted was never actually covered" are different failures and only the
+second one indicts the *method*. The gate corrected my framing too: I wrote the floor as `>= 10` from the
+narrative and it failed at 9, which is the count being owned by a mechanism instead of by my memory of it.
+
+**Fixed and mutation-proved, three ways, each isolating:**
+
+| mutation | result |
+|---|---|
+| `secretResolverFor` returns a live `StaticSecretResolver` | ONLY the new §1366 case REDs — the other 21 OAuth tests stay green, proving the pre-existing suite could not have caught a live wiring |
+| plant a new unpinned root in a tracked source file | the gate REDs, naming `workers/billing/src/billing.ts::plantedRootFor → NotConfiguredBilling` |
+| weaken an existing pin (`toBeInstanceOf` → `toBeDefined`) | the gate REDs, naming `feedReaderFor` |
+
+The plant went into an **existing tracked file** deliberately: the scanner reads `git ls-files`, so a new
+untracked file would have been invisible and the mutation would have "passed" while proving nothing (§1315).
+
+**What the roster now records.** Nine roots: eight pinned by a same-package `toBeInstanceOf`, one EXEMPT with its
+mechanism stated — `workers/agents`'s `evidenceSender`, which is not exported but is pinned *behaviourally* end
+to end by `test-send.test.ts`'s gate 4 (nothing bound → no outbound send) and gate 5 (both vars bound → the send
+happens). Two further cases refuse an exemption that has outlived its subject (§1359) **or whose cited test file
+has been deleted** — because an exemption is only as good as the mechanism it names still existing.
+
+**The through-line of this whole block, stated once.** §1361 fixed a hazard with prose in a checklist row.
+§1362 replaced that with a test that REDs. §1363 corrected the count that test was built from. §1366 replaces
+the count itself with a gate. Each step moved one claim from something a person has to remember to something the
+build refuses to lose — which is the only definition of "production ready" this audit has ever used.
+
+Verification: tools suite **121 files / 1,344 tests**, agents 140, mcp 187 — all green; the roster gate's four
+cases include the corpus floor and both staleness checks.

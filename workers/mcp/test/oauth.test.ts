@@ -1,7 +1,7 @@
 import { env } from "cloudflare:test";
 import { decode } from "hono/jwt";
 import { beforeAll, describe, expect, it } from "vitest";
-import worker from "../src/index.js";
+import worker, { secretResolverFor } from "../src/index.js";
 import { NotConfiguredSecretResolver, StaticSecretResolver, mintPrincipalJwt } from "../src/principal.js";
 import {
   handleOAuth,
@@ -513,5 +513,38 @@ describe("REQ-106 §596: the authorization code is spent on first use", () => {
       client_secret: CLIENT_SECRET,
     });
     expect(retry.status, "the code survived a failed exchange — it is retryable, and PKCE becomes guessable").not.toBe(200);
+  });
+});
+
+// §1366 (REQ-154) — THE PRODUCTION COMPOSITION ROOT, not just the injected one.
+//
+// Everything above authenticates the client through a SecretResolver this file INJECTS — `goodSecrets()` for the
+// happy paths, `NotConfiguredSecretResolver` for the refusal case. That proves the ceremony behaves correctly
+// given either resolver. It says nothing about which one production actually selects, and `oauthDeps` (the real
+// assembler) is not exported, so nothing here reaches it.
+//
+// That gap is the §380/§1362 shape in the one place that decides whether MCP client authentication is live:
+// `secretResolverFor` returns `NotConfiguredSecretResolver` unconditionally, its own header calls resolving from
+// a real store "the CONFIRM-gated live flip", and — measured 2026-08-13 — **zero tests named it**. Wiring the
+// live secret store would have RED nothing, in the worker behind acceptance demo #4.
+//
+// Found while building the standing roster check that §1365 named as a known gap: the tenth composition root,
+// discovered by the gate written because a tenth was possible.
+describe("§1366 REQ-154: the production OAuth secret resolver is fail-closed (dormancy tripwire)", () => {
+  it("secretResolverFor selects the NotConfigured resolver — wiring a live secret store must fail HERE first", () => {
+    expect(
+      secretResolverFor(env as unknown as Parameters<typeof secretResolverFor>[0]),
+      "STOP: MCP client authentication is fail-closed by CONFIRM gate (REQ-154) — the token exchange 401s in " +
+        "every environment because this resolver resolves nothing. If you are wiring a real secret store, that " +
+        "is the CONFIRM-gated flip: confirm it, and re-read the OAuth threat model before this goes green.",
+    ).toBeInstanceOf(NotConfiguredSecretResolver);
+  });
+
+  it("is non-vacuous: the resolver it guards is the real class the ceremony refuses on", async () => {
+    // Without this, a renamed or stubbed-out NotConfiguredSecretResolver would satisfy the case above while the
+    // ceremony had quietly stopped refusing. Ties the SELECTION to the observable REFUSAL proved earlier in this
+    // file, so the two halves cannot drift apart.
+    const res = await register(deps(new NotConfiguredSecretResolver()), PAIRING);
+    expect(res.status, "the fail-closed resolver no longer refuses registration").not.toBe(200);
   });
 });

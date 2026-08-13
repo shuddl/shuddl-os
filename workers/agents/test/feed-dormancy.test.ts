@@ -9,9 +9,11 @@ import { NotConfiguredFeedReader } from "../src/mirror-sweep.js";
 // transport-dormancy.test.ts` and `workers/mcp/test/webhook-dormancy.test.ts`. §380 stated the finding
 // exactly — *"the BEHAVIOUR of each default was pinned, the CHOICE of them was not, so swapping in a live
 // implementation broke nothing"* — and then fixed two composition roots rather than counting them. A sweep of
-// every selector that can return a `NotConfigured*` stub finds SEVEN; six are pinned. This was the seventh.
+// every selector that can return a `NotConfigured*` stub finds ~~SEVEN~~ **NINE** (count corrected at §1363 —
+// the original scan's body extraction could not span nested braces; a standing gate now owns the number, at
+// `tools/checks/dark-stub-roster.test.ts`). This was the first of the two that sweep found unpinned.
 //
-// WHY THIS ONE MATTERS MOST OF THE SEVEN. §1361 measured what un-darkening it costs. `sweepTenantLegacyMirror`
+// WHY THIS ONE MATTERS MOST. §1361 measured what un-darkening it costs. `sweepTenantLegacyMirror`
 // does a D1 `anchorStream` read PLUS a sequencer append per record, over `records.filter(isNew)`. The watermark
 // makes that `O(changed)` in STEADY STATE — but on the FIRST sweep after a feed is wired the cursor sits at its
 // initial value, every row of the legacy export is `isNew`, and the loop runs the whole file against a
