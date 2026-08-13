@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 747 | §1300 | **§1301** | **"THE LAST MEMBER" WAS WRONG, AND CHECKING THE SENTENCE FOUND THE SECOND ONE.** §1300 called the billing↔api contract the *fifth and last member* of the unobservable family. One command falsified it: **the MCP worker POSTs four `/v1/*` paths as bare literals** (`/v1/rate`, `/v1/parties`, `/v1/shipments`, `/v1/whoami`) — identical shape, identically unwatched. **The gate that exists there proves something ADJACENT:** `mcp-api-seam` (§983) proves every tool routes THROUGH the binding and issues no raw `fetch` — *how* the call is made — and says nothing about **whether the path exists**. Rename `/v1/whoami` and MCP's identity call 404s with both suites green. **§1289's lesson past test files: an adjacent gate is the easiest thing to mistake for coverage**, because its subject IS the same seam; the separating question is not *is this seam tested* but *is THIS PROPERTY of the seam tested*. Closed by extending §1300's gate (prefix comparison so a parameterised mount still covers a concrete call, while a RENAME fails); both directions planted RED. §1300's sentence **corrected in place, not dropped**. **Third over-claim of COMPLETENESS this stretch** — a claim about a SET is the one kind re-reading cannot check; it needs the enumeration re-run. |
 | 746 | §1299 | **§1300** | **A MONEY CONTRACT SPANNING TWO WORKERS, WATCHED BY NOTHING.** `workers/billing` POSTs two internal paths with a shared-secret header; `workers/api` mounts them and reads it — **four independent string literals in two packages, no shared constant, and no test spans both** (billing drives a fake `Fetcher`, the api calls its routes directly). Rename either side and **every credit purchase fails at runtime with both suites GREEN.** They agree today, verified literal by literal; nothing would have noticed if they stopped. **Twelve `*-parity.test.ts` gates exist and none covered the money seam** — closed in the same idiom: every path billing POSTs is mounted, the api mounts no `credit-*` route billing never calls (a secret-gated endpoint with no caller is attack surface with no owner), and the header is spelled identically. **Three divergences planted, all RED** (api rename 2, billing rename 2, header mismatch 1). **The header case would have hurt most:** a path mismatch is a loud 404, but a header mismatch is a **403 from a route that exists** — it reads as a misconfigured secret, sending the operator to `wrangler secret` while the cause sits in a literal two packages away. Fifth and last member of the *unobservable by any suite* family. |
 | 745 | §1298 | **§1299** | **CONFIG VS CODE — AND A SCANNER THAT NEARLY REPORTED THREE DEPLOY-BREAKING BINDINGS.** New axis: a binding the code reads but the config never declares is not a test failure, it is a **crash on first touch after deploy**. Compared every `env.X` read against each worker's `wrangler.toml`. **The first scan was wrong in the alarming direction:** it matched `binding = "…"` but not the Durable Object form `name = "…"`, so it reported `SHIPMENT_SEQ`, `SPARK_METER`, `CAPS_METER` **undeclared** — three DO bindings missing from three workers, a hard deploy failure and the stretch's most serious finding. All three are declared. §1274 repeating: **a heuristic that under-matches looks exactly like a catastrophe.** Corrected, the surface is CLEAN: 5 secrets **absent by law** (REQ-154), 5 vars with literal defaults, `PROVISIONING_ENABLED` fail-closed off, 2 test-only — and **`EVIDENCE_FROM`, which has no default on purpose**: both sites gate `apiKey && from` ⇒ sender, else `NotConfiguredSender` rejecting loudly, so an unset address means **no email, noisily**, never an email with an undefined From. **The axis's value:** it is the only sweep whose failures appear AFTER deploy, where no suite runs — the same category as §1274 and §1293–§1295. |
 | 744 | §1297 | **§1298** | **247 STATUS-ONLY ASSERTIONS, AND WHY THAT IS NOT 247 DEFECTS.** Measured the whole suite against §1297's shape-2: **309** 4xx/5xx assertions, **62** paired with a `code`/`reason`, **247** bare. That looks like a to-do list and is not. **Uniformity is the POINT on two surfaces** — `pub-status` (*bad MAC, unknown tenant, missing shipment ⇒ IDENTICAL 401*) and `isolation` (*no existence oracle*) hold **44 of the 247**, and there a distinguishing assertion would **contradict the law under test**: a test that pinned the difference would be pinning the oracle. So the population splits — bare-is-correct where the law is indistinguishability, bare-is-blind where two guards share a status — and **no reading of the assertions can tell them apart**; both are `expect(res.status).toBe(401)`. The distinguishing question is *how many guards produce this status here*, answered only by deleting one. This stretch ran that on four such paths and found **four blind spots**. **A 247-site `.code` retrofit would be §1283's exact mistake** — tests asserting what is already true, reading as diligence, and actively damaging the two uniformity suites. |
@@ -76686,6 +76687,49 @@ the actual cause sat in a string literal two packages away.
 3 operational items recorded.**
 
 **STOP.** The cross-worker money contract is now gated in the repo's own parity idiom, proved by three planted
-divergences — closing the fifth and last member of the *unobservable by any suite* family this stretch
-identified: crash-ordering, unbounded growth ×3, deploy config, and now a contract that only exists when two
+divergences — closing the fifth member of the *unobservable by any suite* family this stretch
+identified (**not the last — §1301 found a second cross-worker seam by checking this very sentence**): crash-ordering, unbounded growth ×3, deploy config, and now a contract that only exists when two
 deployed workers talk.
+
+## §1301 — PHASE GATE: "the last member" was wrong, and checking the sentence found the second one
+
+§1300 closed the billing↔api contract and called it *"the fifth and last member"* of the family a test suite
+cannot observe. That sentence was worth checking rather than shipping, and checking it took one command:
+
+**The MCP worker POSTs four `/v1/*` paths to the same api worker as bare literals** — `/v1/rate`,
+`/v1/parties`, `/v1/shipments`, `/v1/whoami`. Identical shape, identical failure mode, and identically
+unwatched.
+
+### The gate that exists there proves something adjacent
+
+`mcp-api-seam.test.ts` (§983) is a good gate and does **not** cover this. It proves every tool reaches the
+ledger **through** the service binding and issues no raw `fetch` — a structural property about *how* the call
+is made. It says nothing about **whether the path named exists.** Rename `/v1/whoami` in the api and MCP's
+identity call 404s the first time a model uses it, with both suites green — exactly the billing failure, one
+seam over.
+
+This is §1289's lesson generalised past test files: **an adjacent gate is the easiest thing to mistake for
+coverage**, because its subject *is* the same seam. The question that separates them is not "is this seam
+tested" but "is *this property* of the seam tested".
+
+**Closed** by extending §1300's parity gate: every `/v1` path any MCP tool names must be a route the api mounts,
+compared on the literal prefix before a parameter segment (so a mounted `/v1/shipments/:id/accept-quote` covers
+a called `/v1/shipments/abc/accept-quote`, and a **rename** still fails). **Both directions planted and RED** —
+renaming `/v1/parties` in the api → 1 RED; pointing an MCP tool at a path the api never mounts → 1 RED. Clean
+6/6, typecheck 0.
+
+**§1300's sentence is corrected in place**, not quietly dropped: it now reads "the fifth member … not the last".
+
+### The pattern in the correction
+
+This is the sixth framing of mine this stretch overturned by measurement, and the third where the error was
+**over-claiming completeness** — §1280's targeting heuristic, §1292's 24 candidates, and now "the last member".
+Each was a claim about a *set* rather than about a thing, and a claim about a set is the one kind this record
+cannot verify by re-reading: it needs the enumeration re-run. Cheap when done immediately; invisible forever if
+not.
+
+**Running tally: 128 of 128 load-bearing claims probed — 89 verified, 34 gaps closed, 6 claims corrected;
+3 operational items recorded.**
+
+**STOP.** The second cross-worker seam gated in the same idiom and proved both directions — found not by a new
+sweep but by treating my own closing sentence as a claim that needed measuring.

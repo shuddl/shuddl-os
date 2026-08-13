@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
+import { execSync } from "node:child_process";
 import { repoRoot } from "../checks/repo-root.js";
 
 // §1300 (REQ-123/154) — THE PLATFORM-CREDIT CONTRACT SPANS TWO WORKERS AND NOTHING WATCHED IT.
@@ -35,6 +36,70 @@ function declaredPaths(src: string): string[] {
 function headerOf(src: string): string[] {
   return [...new Set([...src.matchAll(/"(X-Platform-[\w-]+)"/g)].map((m) => m[1]!))].sort();
 }
+
+// §1301 — THE SECOND INSTANCE, found by checking §1300's own closing claim.
+//
+// §1300 called the billing seam "the fifth and last member" of the unobservable family. It is not. The MCP
+// worker POSTs four `/v1/*` paths to the same api worker as bare literals (`/v1/rate`, `/v1/parties`,
+// `/v1/shipments`, `/v1/whoami`), and `mcp-api-seam.test.ts` (§983) does NOT cover this: it proves every tool
+// routes THROUGH the service binding and issues no raw `fetch` — a structural property — while saying nothing
+// about whether the paths those tools name actually exist. Rename `/v1/whoami` in the api and MCP's identity
+// call 404s at runtime with both suites green, exactly as the billing seam would have.
+//
+// Same gate, second seam. The api side is read from the route modules rather than one file, because /v1 routes
+// are mounted across many `mount*Routes` functions.
+const MCP_SRC = "workers/mcp/src";
+const API_ROUTES_DIR = "workers/api/src/routes";
+
+function mcpCalledPaths(root: string): string[] {
+  const files = execSync('git ls-files "workers/mcp/src/**/*.ts" "workers/mcp/src/*.ts"', { cwd: root, encoding: "utf8" })
+    .split("\n")
+    .filter((f) => f !== "" && !f.includes(".test."));
+  const out = new Set<string>();
+  for (const f of files) {
+    for (const m of readFileSync(`${root}/${f}`, "utf8").matchAll(/path:\s*"(\/v1\/[^"]+)"/g)) out.add(m[1]!);
+  }
+  return [...out].sort();
+}
+
+function apiMountedV1Paths(root: string): string[] {
+  const files = execSync(`git ls-files "${API_ROUTES_DIR}/*.ts" "workers/api/src/index.ts"`, { cwd: root, encoding: "utf8" })
+    .split("\n")
+    .filter((f) => f !== "" && !f.includes(".test."));
+  const out = new Set<string>();
+  for (const f of files) {
+    for (const m of readFileSync(`${root}/${f}`, "utf8").matchAll(/\.(?:get|post|put|patch|delete)\("(\/v1\/[^"]*)"/g)) out.add(m[1]!);
+  }
+  return [...out].sort();
+}
+
+describe("§1301 REQ-030: every /v1 path the MCP worker calls is a route the api mounts", () => {
+  const root = repoRoot();
+
+  it("both sides parse (non-vacuity)", () => {
+    expect(mcpCalledPaths(root).length, `no path: "/v1/…" literals found under ${MCP_SRC} — parser stale`).toBeGreaterThanOrEqual(3);
+    expect(apiMountedV1Paths(root).length, "no /v1 routes parsed from the api — parser stale, not the tree").toBeGreaterThanOrEqual(10);
+  });
+
+  it("no MCP tool names a /v1 path the api does not mount", () => {
+    const mounted = apiMountedV1Paths(root);
+    // A mounted `/v1/shipments/:id/x` covers a called `/v1/shipments/abc/x`: compare on the literal prefix
+    // before any parameter segment, which is what a rename would change.
+    const covers = (called: string): boolean =>
+      mounted.some((m) => {
+        const mp = m.split("/:")[0]!;
+        return called === m || called.startsWith(`${mp}/`) || called === mp;
+      });
+    const orphans = mcpCalledPaths(root).filter((c) => !covers(c));
+    expect(
+      orphans,
+      "an MCP tool POSTs a /v1 path the api worker does not mount. Both suites stay GREEN — mcp-api-seam " +
+        "(§983) proves the tools route THROUGH the binding, never that the paths exist — and the tool 404s the " +
+        "first time a model calls it:\n  " +
+        orphans.join("\n  "),
+    ).toEqual([]);
+  });
+});
 
 describe("§1300 REQ-123: the platform-credit seam agrees across the two workers", () => {
   const root = repoRoot();
