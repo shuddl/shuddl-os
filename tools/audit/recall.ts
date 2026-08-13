@@ -20,6 +20,15 @@ import { repoRoot } from "../checks/repo-root.js";
 // heading is a pointer, not evidence — §1044's rule (an inherited claim is a claim you are making) still
 // applies to whatever it points at, and the re-verification is still the reader's job.
 
+// §1342 — SOURCES IS HAND-KEPT AND COVERS THE RECORD'S THREE DENSEST FILES, NOT ALL OF IT.
+// Measured 2026-08-13: the tracked record spans ~45 markdown files (docs/audits 3, docs/ops 9, docs/wp 17,
+// genesis 16), and these three carry the overwhelming bulk of it — the audit alone is ~78k lines. The
+// omissions are real and worth knowing before reading a silence as absence: the two OTHER audits under
+// docs/audits, the 17 WP checklists (two of which cite `audit §N`), PROJECT-STATE and the rest of docs/ops,
+// and the genesis specs. This is the §1341 shape — a hand-kept CORPUS, where drift under-detects silently
+// rather than failing — and it is kept deliberately: widening it to every markdown file would return the
+// genesis specs for most product terms, which is the false-positive profile §1053 records as fatal to a
+// tool people are meant to reach for.
 const SOURCES = [
   "docs/audits/2026-08-01-technical-debt-audit.md",
   "docs/ops/GO-LIVE-CHECKLIST.md",

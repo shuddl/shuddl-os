@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 788 | §1341 | **§1342** | **THE REPO SHIPS THE INSTRUMENT I FAILED TO USE, TWICE.** Chasing §1341's undeclared-corpus discriminator to its last instance found `recall.ts@SOURCES` — not a gate, but the repo's **`pnpm recall`**, which searches the record and returns each hit WITH THE SECTION THAT OWNS IT. **I did not use it once in 37 phases**, while failing twice at exactly its task: `recall "how many are open"` returns §945 (which §1317 re-derived), and `recall "per-tenant containment"` returns **§410** (the work §1311 duplicated). Both misses were inside its corpus; both cost a phase. A grep searches STRINGS; recall searches the RECORD and names the owning verdict. Corpus limit now stated in the tool: 3 files of ~45, kept narrow deliberately (§1053 noise). |
 | 787 | §1340 | **§1341** | **AUDITED THE FOUR GATES I BUILT THIS SESSION — ZERO DEFECTS — AND REVERTED A "FIX" THE FIRST RESULT DISPROVED.** No fixed windows in any. Their hand-kept lists are safe for a nameable reason: a list is safe as the SUBJECT of an equality assertion (drift REDs it) or as a declared subset with a **derived completeness check** (`r2-before-row` does exactly this); it is dangerous only as an undeclared CORPUS — which is what `SWEEP_COUNT_FILES` is, and why that one gate produced three defects while these four produced none. So I applied `r2-before-row`'s pattern to it — and it **fired on `sweep-214.ts`, whose text is *"driving two sweeps concurrently"***: two INVOCATIONS, not a population. Reverted; the roster's own comment had already measured this. **The transfer test is whether the predicate is MECHANICAL or SEMANTIC.** |
 | 786 | §1339 | **§1340** | **FINISHED THE FIXED-WINDOW ENUMERATION — THE BLIND ZONE WAS IN MY OWN GATE.** Measured all five verdict-by-window gates. **The dangerous direction INVERTS between them**: `api-conventions` is unsafe when the window is too LONG (borrows a neighbour's `redirect:`), `cors-origin-parity` when too SHORT (drops a host from the browser-origin set, so a deployed origin missing from the CORS allowlist passes) — margins 4 and 2 lines. `ci-contract`/`list-endpoint-pagination` are structural in practice. **`checklist-figures` — the gate I wrote at §1313 — fell back to 3000 chars when a function is last in its file**, and **ten** last-in-file exports already exceed that (largest **31,972**): the §1313 under-detection reproduced inside the gate built to prevent it. 0 missed today (both counts yield 11); fallback now end-of-file. |
 | 785 | §1338 | **§1339** | **THE FIXED-WINDOW CLASS, APPLIED TO THE GATES THAT USE ONE.** 11 slice a region: 5 slice to a STRUCTURAL boundary (immune), 1 builds an error-message excerpt (decides nothing), 5 reach a verdict by fixed window — and `idb-durability` already hybridises (next-transaction boundary, 30-line fallback). Measured the one that matters: `api-conventions` scans **16 lines** below each driver-sync `fetch` for a `redirect:` policy, and the directions are asymmetric — under-reach is a LOUD false positive, **over-reach silently passes an unpoliced fetch** on the path carrying signed POD evidence. `transport.ts`'s two sites are **20 lines apart — a 4-line margin** — each with its own policy 4 lines below. **Mutation-proved:** deleting the policy at :52 REDs it rather than borrowing :72's. Fixed by stating the margin, not rewriting a working parser. |
@@ -78719,3 +78720,44 @@ the result, so the next reader does not re-attempt it.
 whether the population predicate is mechanical or semantic.** I had a correct pattern, a real gap to apply it
 to, and applying it would have made the gate worse — caught only by reading the single result it produced
 instead of shipping a green-once-adjusted check.
+
+
+## §1342 — PHASE GATE: the repo ships the instrument I failed to use, twice
+
+Following §1341's discriminator — a hand-kept list is dangerous as an undeclared CORPUS — through the last
+unchecked instance led somewhere unexpected. `tools/audit/recall.ts@SOURCES` is a corpus, but the file is not a
+gate: **it is the repo's "search the record" tool, exposed as `pnpm recall`.** It searches the record and
+returns each hit WITH THE SECTION THAT OWNS IT.
+
+**I did not use it once in thirty-seven phases**, and twice failed at precisely the task it performs:
+
+| my miss | what one command returns |
+|---|---|
+| §1317 re-derived §945's counting problem from scratch | `pnpm recall "how many are open"` → the §944/§945 text, verbatim |
+| §1311 built a duplicate containment test, missing the pre-existing one | `pnpm recall "per-tenant containment"` → **§410**, the section recording that very work |
+
+Both misses were inside its corpus. Both cost a phase. I used `git grep` throughout — which is why §1311's
+search was scoped to `*cron*.test.ts` and missed the owning file, and why §1317's was scoped to prose I
+happened to guess. **A grep searches strings; `recall` searches the record and tells you which verdict owns the
+hit** — and "which prior verdict already answered this" is the exact question I kept getting wrong.
+
+### The corpus limit, now stated in the tool
+
+`SOURCES` is three files against a tracked record of ~45 markdown files (docs/audits 3, docs/ops 9, docs/wp 17,
+genesis 16). Those three carry the bulk — the audit alone is ~78k lines — but the omissions are real: two other
+audits, seventeen WP checklists (two citing `audit §N`), PROJECT-STATE and the rest of docs/ops, and the
+genesis specs. That is §1341's dangerous shape, a hand-kept corpus whose drift under-detects silently.
+
+It is nonetheless kept, and the reason is §1341's own: widening it to every markdown file would return the
+genesis specs for most product terms — the false-positive profile that makes a tool nobody reaches for. The
+limit is now written where the next reader will see it, so a silence from `recall` is read as "not in the three
+densest files" rather than "not in the record."
+
+**Running tally: 235 of 235 load-bearing claims probed — 159 verified, 46 gaps closed, 23 claims corrected;
+12 operational items recorded.**
+
+**STOP.** The finding is about method, and it is the most useful one this session has produced about my own
+practice: **the repo already contained the instrument for the discipline I kept invoking and kept
+mis-executing.** "Search the record before the code" failed twice not because the rule is hard but because I
+implemented it by hand each time, with a scope guessed per attempt, while a purpose-built command sat unused in
+`package.json`.
