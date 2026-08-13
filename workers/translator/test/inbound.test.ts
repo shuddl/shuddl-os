@@ -268,6 +268,62 @@ describe("REQ-201/202 — inbound 204 → gated chain, NO booking.created", () =
     expect(await obj!.text()).toBe(bad);
   });
 
+  // §1282 — THE OTHER FOUR REFUSALS. `authenticate()` has FIVE fail-closed exits and every one returns `null`,
+  // so a test asserting 401 cannot tell which fired. Measured: only the HMAC comparison was pinned — dropping
+  // `p.kind = 'edi'`, dropping `p.status = 'active'`, allowing an empty secret, and allowing an empty header
+  // each left workers/translator at 124/124 GREEN. The same two predicates ARE pinned on the MCP boundary
+  // (§1265, `resolveActiveMcpPairing`): one rule, two boundaries, defended at one of them.
+  //
+  // The fixtures below differ from the PASSING request in exactly one column. Same body, same secret_ref, same
+  // HMAC — so a 401 can only come from the predicate under test, which is what the shared-`null` exits
+  // otherwise make impossible to attribute.
+  it("§1282: a REVOKED edi pairing → 401, even with a perfectly valid signature", async () => {
+    await env.CONTROL_DB.prepare("INSERT OR IGNORE INTO pairings (id, tenant_id, kind, scopes, caps, secret_ref, status) VALUES (?,?,?,?,?,?,?)")
+      .bind("partner-revoked", "t-a", "edi", "[]", "{}", SECRET_REF, "revoked")
+      .run();
+    const body = tender204();
+    const req = await signedRequest(body, { partner: "partner-revoked", signature: await hmacHex(SECRET, body) });
+    const res = await handleInbound204(req, makeDeps(new RecordingSeq(), new RecordingTransport(), goodSecrets()));
+    expect(res.status, "revocation must refuse a correctly-signed request").toBe(401);
+  });
+
+  it("§1282: a NON-EDI pairing (kind='mcp') → 401, even active and correctly signed", async () => {
+    await env.CONTROL_DB.prepare("INSERT OR IGNORE INTO pairings (id, tenant_id, kind, scopes, caps, secret_ref, status) VALUES (?,?,?,?,?,?,?)")
+      .bind("partner-mcp", "t-a", "mcp", "[]", "{}", SECRET_REF, "active")
+      .run();
+    const body = tender204();
+    const req = await signedRequest(body, { partner: "partner-mcp", signature: await hmacHex(SECRET, body) });
+    const res = await handleInbound204(req, makeDeps(new RecordingSeq(), new RecordingTransport(), goodSecrets()));
+    expect(res.status, "an mcp/api pairing must not authenticate on the EDI seam").toBe(401);
+  });
+
+  // The EMPTY-SECRET exit, with my first hypothesis CORRECTED by the runtime. I assumed a "" secret made the
+  // expected HMAC `hmac("", body)` — computable by anyone, so a forgeable shared secret. It is not: WebCrypto
+  // REFUSES a zero-length HMAC key (`DataError: Imported HMAC key length (0)`), which is what the first draft
+  // of this test hit while trying to sign with it. So an empty secret cannot be used to forge — it makes
+  // `hmacHex` THROW.
+  //
+  // That makes the guard's real job turning a 500 into a clean 401 on an operational fault (a rotated-away or
+  // unset secret), which is §1281's charset-guard shape: the refusal happens either way, but one path is an
+  // uncaught throw. The discriminating request therefore carries ANY well-formed signature and asserts the
+  // STATUS is 401 — with the guard removed, `hmacHex` throws before any comparison.
+  it("§1282: a pairing whose secret resolves to EMPTY is a clean 401, never a throw", async () => {
+    await env.CONTROL_DB.prepare("INSERT OR IGNORE INTO pairings (id, tenant_id, kind, scopes, caps, secret_ref, status) VALUES (?,?,?,?,?,?,?)")
+      .bind("partner-nosecret", "t-a", "edi", "[]", "{}", "ref-empty", "active")
+      .run();
+    const body = tender204();
+    const secrets = new StaticSecretResolver({ [SECRET_REF]: SECRET, "ref-empty": "" });
+    const req = await signedRequest(body, { partner: "partner-nosecret", signature: await hmacHex(SECRET, body) });
+    const res = await handleInbound204(req, makeDeps(new RecordingSeq(), new RecordingTransport(), secrets));
+    expect(res.status, "an unresolvable secret must refuse cleanly, not fault").toBe(401);
+  });
+  it("§1282: an EMPTY partner header → 401 (empty is not merely 'present')", async () => {
+    const body = tender204();
+    const req = await signedRequest(body, { partner: "", signature: await hmacHex(SECRET, body) });
+    const res = await handleInbound204(req, makeDeps(new RecordingSeq(), new RecordingTransport(), goodSecrets()));
+    expect(res.status).toBe(401);
+  });
+
   it("(d) a BAD-SECRET POST → 401, and NOTHING is written", async () => {
     const seq = new RecordingSeq();
     const req = await signedRequest(tender204(), { signature: "deadbeef".repeat(8) }); // wrong HMAC
