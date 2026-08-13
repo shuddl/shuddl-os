@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 689 | §1241 | **§1242** | **§1241'S DISCIPLINE GENERALISED TO IDEMPOTENCY — THE MONEY PATHS ALREADY WRITE THE SECOND CALL.** *Running twice changes nothing* is unfalsifiable without running twice, and a false claim here is a double invoice. 98 files carry such a claim; narrowed to the five entry points where failure moves money and checked mechanically (idempotency-NAMED test + ≥2 invocations in its body): **5 of 5**, with 3–5 calls each — biller, booking, Stripe credits, sequencer, dunning. The credits case asserts *exact-redelivery of both **in either order***, i.e. **commutativity**, which is what a webhook redelivery actually needs since Stripe promises no ordering. **Mutation-proved rather than read**: neutralising the sequencer's by-event-id dedup REDs two tests. Thread closes — §1240's `stripe_refs` gap was the EXCEPTION (1 of 4 accumulators, 0 of 5 idempotency paths), and its cause is visible: seeding `'{}'` is the one start where the second call is not needed to write the test. Scope: 5 of 98 checked. |
 | 688 | §1240 | **§1241** | **§1240'S TRAP SWEPT — ONE INSTANCE IN THE BUILD, AND THE THREE SAFE ONES SHARE ONE HABIT.** 16 identity-respecting combiners in shipped source; 8 are `der.ts` `concat` over byte arrays (no prior state). **Four accumulate over a prior value**, each checked for a NON-identity start: `allocatePartnerControls` (EDI ISA/GS numbers) **safe** — pinned 1→2→3 *and* a seeded prior of 41 → 42; `flipped_events` append **safe** — asserts `[promote.id, drift.id]`; passport `scores` **safe** — asserts `deliveries` 1 → 2; `stripe_refs` was **the one instance**, closed at §1240. **One in four**, and the three safe ones were safe for the same reason: **somebody wrote the SECOND invocation** — not a richer assertion, a second call or a seeded prior. The control-number case is where the trap would cost most (a partner rejects a duplicate ISA13) and its author started at 41 deliberately. |
 | 687 | §1239 | **§1240** | **THE IDENTITY ELEMENT HIDES THE OPERATOR — A MERGE TEST THAT COULD NOT TELL MERGE FROM OVERWRITE.** Two money guards whose failure produces no error, probed by mutation. **Rounding: clean** — turning `halfUpBig` into truncation REDs five tests including the exact half both ways and a real tariff line (*105 lb @ 4230¢/cwt = 4441.5¢ ⇒ 4442¢*). **The `stripe_refs` MERGE: half-defended.** `metered` preservation has a purpose-named test; the MERGE itself was caught only by a SETTLEMENT case. The reason is the finding — the named test seeds `stripe_refs = '{}'`, and **`json_patch('{}', new)` is byte-identical to an overwrite**. Starting from the identity element (`{}`, `0`, `1`, `[]`) makes every identity-respecting operator indistinguishable: the test asserts something LANDED, never how it COMBINED. Closed with a non-empty prior ref + a premise; the overwrite mutation now reds BY NAME. Not academic — issue and settlement each stamp this row, so an overwrite drops whichever ran first. |
 | 686 | §1238 | **§1239** | **§1232'S QUEUE WORKED TO ZERO — THE SIZE-BOUND CLASS CLOSES AT 7 OF 7.** §1232 filed four bounds as unasserted, judging each to need its own oversized-input harness. **Three closed**, each mutation-proved against the exact change that had survived: `MAX_INPUT` → MAX_SAFE_INTEGER, `ISA_SCAN_LIMIT` → 100_000, `DETAIL_SHIPMENT_CAP` → 100_000 (*expected 55 to be 50*). **The harness cost was near zero** — a `.repeat()` and a seed loop using a helper already present — so that judgement was wrong the same way its cost prediction was. The fourth, `MAX_BODY_BYTES`, was **already defended**: `inbound.test.ts:695` posts exactly `1_048_576 + 1` bytes and asserts 413 plus nothing written. **That vindicates "unexamined" as a verdict distinct from "clean"** — guessing either way would have been wrong, hiding three real gaps or inventing a fourth. Class now 7/7, each pinning VALUE as well as mechanism; the watchtower case also pins that **the count stays truthful while the list is capped**. |
@@ -73809,3 +73810,45 @@ classified out by inspection (they build a byte string from parts with no accumu
 **STOP.** The identity-hides-the-operator trap swept across every combiner in the build, one live instance found
 and already closed, the three safe ones traced to a single shared habit — a second invocation — and the
 highest-stakes of them noted as having applied that habit deliberately.
+
+## §1242 — PHASE GATE: §1241's discipline generalised to idempotency — the money paths already write the second call
+
+**§1241 distilled a discipline**: the test that distinguishes an accumulator from an assignment is the **second
+invocation**. Idempotency is the same claim in its purest form — *running twice changes nothing* is unfalsifiable
+without running twice — and a false idempotency claim on a money path means a **double invoice or a double
+credit**.
+
+**98** shipped files carry an idempotency or dedup claim, which is too many to read. Narrowed to the five entry
+points where a failure moves money, and checked **mechanically**: does a test whose NAME claims idempotency also
+contain **two or more invocations** of that entry point in its body?
+
+| Path | The test | Invocations |
+|---|---|---|
+| Biller | *"the same message twice → ONE invoice event, ONE money line"* | 5 |
+| Booking | *"the same quote.accepted twice → ONE booking.created"* | 5 |
+| Stripe credits | *"a re-emitted sale commits NOTHING more"* · *"settlement is idempotent — a redelivered payment does not re-append"* · *"exact-redelivery of both, **in either order** → exactly one credit"* | 3–4 |
+| Sequencer | *"a duplicate event id returns the original row; the count is unchanged"* · *"a duplicate (device_id, device_seq)"* | 4–5 |
+| Dunning | *"a double-send is a no-op — exactly ONE message.sent"* | 4 |
+
+**All five write the second call.** The credits case goes further than idempotency — *in either order* is
+**commutativity**, which is the property a webhook redelivery actually needs, since Stripe does not promise
+ordering.
+
+**Verified by mutation, not by reading the names** (a test named for idempotency can still be vacuous):
+neutralising the sequencer's by-event-id dedup so it can never match REDs **two** tests, both named for the
+property. The foundation the other four rest on is real.
+
+### What the thread closes on
+
+§1240 found `stripe_refs` untestable-from-identity and fixed it; §1241 found that was **1 of 4** accumulators;
+§1242 finds the money paths' idempotency claims are **5 of 5** backed by a genuine second call. **The
+`stripe_refs` gap was the exception, not the rule** — and the reason is visible in the fixture that missed it:
+it seeded `'{}'`, which is the one starting state where a second call is not needed to write the test, and
+therefore the one where nobody noticed it was missing.
+
+**Scope, stated:** 5 of 98 claim-bearing files were checked, chosen by money impact; the other 93 are
+unexamined and this phase claims nothing about them.
+
+**STOP.** The second-invocation discipline generalised from accumulators to idempotency, the five money-moving
+entry points confirmed to apply it, the foundation mutation-proved rather than taken on the strength of a test
+name, and the one gap this thread found placed in context as an exception with an explicable cause.
