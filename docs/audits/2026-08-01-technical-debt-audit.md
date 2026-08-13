@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 783 | §1336 | **§1337** | **THE REGISTER CANNOT TELL YOU WHICH ROWS SHARE A MECHANISM — AND THE METHOD'S FAILURE IS THE FINDING.** To settle §1336's open question without guessing from prose, derived relatedness from the CODE each row cites. **34 OPEN rows share only 2 files, and BOTH overlaps are incidental** (a file cited as evidence; a shared `wrangler.toml`). Worse, it **misses the cluster I already know exists**: the unbounded-reads row does not cite its nine files inline — it delegates them to a roster TEST, which is the right engineering choice and makes the row's subject invisible to a reader of the row. So the four linked rows stand as a **hand-maintained** cross-reference with nothing deriving it and nothing to notice a fifth joining. Line of inquiry closed. |
 | 782 | §1335 | **§1336** | **MY OWN FIX TO "NO ROW OWNS THE CLASS" WAS ITSELF INCOMPLETE.** §1335 cross-linked three rows filing one mechanism; it **missed a fourth** — *"Unbounded list reads — 9 sites"*, which mentions subrequests **0** times and "per-row" **0** times — because I enumerated rows naming a LOOP and that one names a READ. **A framing, which is the exact error §1335 diagnosed.** The relationship is COMPOUNDING, not identity: the read costs a big scan, the loop costs a per-invocation ceiling that THROWS — but on **2 files they are the same code** (`watchtower.ts`, `dunning.ts`), where each failure arrives sooner than either row predicts and a `LIMIT` on the read also shrinks the loop. Linked with that stated rather than merged. **A cross-reference is itself an enumeration and inherits a scope the same way a count does.** |
 | 781 | §1334 | **§1335** | **WHY THE COUNT WAS WRONG FOUR TIMES — NO ROW OWNED THE CLASS.** Traced all ~30–35 loops to their sources. The bounded ones are genuinely bounded (4/3/1-element constants, a literal `parts`, a PAGED `r2.list`, and maps keyed by AGENT → the 13-agent roster). **The unbounded ones were already filed — across THREE different rows**: subrequests-per-row, *"every KPI scans the WHOLE event history"*, and *"markers are permanent"*. Measured: the subrequest row mentions KPI **0** times and the KPI row mentions subrequests **0** times. They are three FRAMINGS of one mechanism, differing only in which consequence they name. **No row owned the class, so no enumeration prompted by one could be complete.** All three now cross-reference each other. |
 | 780 | §1333 | **§1334** | **CLOSED THE SCOPE INSTEAD OF GUESSING THE COUNT A FOURTH TIME.** Mechanism-derived scan of **all 212 shipped source files**, no filename/directory/title scoping: **35 per-row-I/O loops across 18 files**, controls present. The count stays a BOUND because membership needs a second predicate — is the row set unbounded — which a pattern cannot decide: the heuristic misclassified 4 sites, three from one matcher bug (`\bMODULES\b` can't match after `_`) and one that is the real reason (**`page.objects` is bounded by its CALLER's paging, not by anything at the `for` line**). Row now reads **six CONFIRMED out of a scope-complete 35-loop candidate set** — the previous three counts were each too small by a narrowed scope; this one can only be refined downward. |
@@ -78498,3 +78499,45 @@ is not something this phase can assert, having just been wrong about it once.
 inherits a scope the same way a count does.** §1335 fixed the symptom it could see from the row that prompted
 it, which is precisely the behaviour it had spent the phase explaining. Recorded plainly because the alternative
 — quietly adding the fourth link — would have left the record claiming a completeness it had already failed once.
+
+
+## §1337 — PHASE GATE: the register cannot tell you which rows share a mechanism
+
+§1336 ended honestly unable to say whether the linked cluster was complete, having just been wrong about it.
+The way to settle that without guessing from prose — which had failed twice — is to derive relatedness from the
+CODE each row cites rather than from its wording. Built the index: every OPEN row, every source path it names,
+grouped by file.
+
+**The method fails, and its failure is the finding.**
+
+- **34 OPEN rows cite only 2 files in common.** `biller.ts` is shared by a register-drift row and the
+  evidence-email row; `agents/wrangler.toml` by the evidence-email row and the 4h-SLA-vs-daily-cron row. On
+  inspection **both overlaps are incidental** — a file cited as evidence in one case, a shared config file
+  mentioned by two unrelated consequences in the other. Neither is a shared mechanism.
+- **It misses the cluster I already know exists.** §1336's link rests on `watchtower.ts` and `dunning.ts`
+  appearing in both the READ row and the LOOP rows — and neither shows up here, because the unbounded-reads row
+  does not cite its nine files inline. It delegates them to `unbounded-reads-roster.test.ts`, which is the
+  RIGHT engineering choice (the roster is pinned and testable) and makes the row's subject invisible to any
+  reader of the row.
+
+### What that settles, and what it does not
+
+It settles §1336's question in the only direction available: **the register's text cannot answer whether a
+mechanism cluster is complete.** Rows cite files inconsistently — some inline, some by roster, some not at all —
+so any derivation from row text under-detects, and a derivation from row PROSE is the framing error §1335 and
+§1336 each made once.
+
+What can answer it is the code, one mechanism at a time — which is what §1334's scan did: 212 files, one
+predicate, no scoping. That is expensive per mechanism and it does not generalise into "find all clusters."
+
+So the four linked rows stand as a hand-maintained cross-reference, and it is now recorded that **nothing
+derives it and nothing will notice if a fifth row joins the class.** That is a weaker guarantee than this repo
+usually accepts, and stating it is better than a link that reads as complete.
+
+**Running tally: 220 of 220 load-bearing claims probed — 145 verified, 46 gaps closed, 22 claims corrected;
+12 operational items recorded.**
+
+**STOP — and this line of inquiry stops here.** Three phases (§1335–§1337) chased the same question and it has
+reached its floor: **a cross-reference between rows is prose, and prose is exactly what cannot be derived.**
+The productive move from here is not more cluster-hunting but the per-site classification §1334 left as a
+work-list, which is code-derived and finite.
