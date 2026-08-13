@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 748 | §1301 | **§1302** | **SIX HAND-WRITTEN COPIES OF THE APPEND CONTRACT — AND A CAST IS NOT A CHECK.** §1301's rule applied to my own set-claim: agents/translator have no PATH literals, but they reach the sequencer by **DO RPC** — same family, different surface. `AppendReq` is declared ONCE, and **no caller uses it**: the DO's comment explains that `LedgerEvent`'s recursive `payload` explodes Workers-RPC's type mapper (TS2589) at every call site, so every caller **casts** to a hand-written surface — **six of them, in five packages**. They agree today, measured field by field; nothing kept them agreeing, because **a cast is not a check**. Rename a field in `AppendReq` and every caller still compiles, failing at runtime on the chokepoint every event passes through. Gated on declared required-field names; **three drift shapes planted RED** (DO renames `streamId`, a caller renames `input`, the DO adds a required field). **The gate's floor caught my own matcher again** — `'workers/*/src'` matched nothing, so it found <4 surfaces and would have compared an empty set: a green meaning nothing (§1274's shape, 2nd occurrence). **Three seams, one family:** §1300 paths+header, §1301 `/v1` paths, §1302 RPC shape — each *one fact written twice* at a boundary no unit suite crosses. |
 | 747 | §1300 | **§1301** | **"THE LAST MEMBER" WAS WRONG, AND CHECKING THE SENTENCE FOUND THE SECOND ONE.** §1300 called the billing↔api contract the *fifth and last member* of the unobservable family. One command falsified it: **the MCP worker POSTs four `/v1/*` paths as bare literals** (`/v1/rate`, `/v1/parties`, `/v1/shipments`, `/v1/whoami`) — identical shape, identically unwatched. **The gate that exists there proves something ADJACENT:** `mcp-api-seam` (§983) proves every tool routes THROUGH the binding and issues no raw `fetch` — *how* the call is made — and says nothing about **whether the path exists**. Rename `/v1/whoami` and MCP's identity call 404s with both suites green. **§1289's lesson past test files: an adjacent gate is the easiest thing to mistake for coverage**, because its subject IS the same seam; the separating question is not *is this seam tested* but *is THIS PROPERTY of the seam tested*. Closed by extending §1300's gate (prefix comparison so a parameterised mount still covers a concrete call, while a RENAME fails); both directions planted RED. §1300's sentence **corrected in place, not dropped**. **Third over-claim of COMPLETENESS this stretch** — a claim about a SET is the one kind re-reading cannot check; it needs the enumeration re-run. |
 | 746 | §1299 | **§1300** | **A MONEY CONTRACT SPANNING TWO WORKERS, WATCHED BY NOTHING.** `workers/billing` POSTs two internal paths with a shared-secret header; `workers/api` mounts them and reads it — **four independent string literals in two packages, no shared constant, and no test spans both** (billing drives a fake `Fetcher`, the api calls its routes directly). Rename either side and **every credit purchase fails at runtime with both suites GREEN.** They agree today, verified literal by literal; nothing would have noticed if they stopped. **Twelve `*-parity.test.ts` gates exist and none covered the money seam** — closed in the same idiom: every path billing POSTs is mounted, the api mounts no `credit-*` route billing never calls (a secret-gated endpoint with no caller is attack surface with no owner), and the header is spelled identically. **Three divergences planted, all RED** (api rename 2, billing rename 2, header mismatch 1). **The header case would have hurt most:** a path mismatch is a loud 404, but a header mismatch is a **403 from a route that exists** — it reads as a misconfigured secret, sending the operator to `wrangler secret` while the cause sits in a literal two packages away. Fifth and last member of the *unobservable by any suite* family. |
 | 745 | §1298 | **§1299** | **CONFIG VS CODE — AND A SCANNER THAT NEARLY REPORTED THREE DEPLOY-BREAKING BINDINGS.** New axis: a binding the code reads but the config never declares is not a test failure, it is a **crash on first touch after deploy**. Compared every `env.X` read against each worker's `wrangler.toml`. **The first scan was wrong in the alarming direction:** it matched `binding = "…"` but not the Durable Object form `name = "…"`, so it reported `SHIPMENT_SEQ`, `SPARK_METER`, `CAPS_METER` **undeclared** — three DO bindings missing from three workers, a hard deploy failure and the stretch's most serious finding. All three are declared. §1274 repeating: **a heuristic that under-matches looks exactly like a catastrophe.** Corrected, the surface is CLEAN: 5 secrets **absent by law** (REQ-154), 5 vars with literal defaults, `PROVISIONING_ENABLED` fail-closed off, 2 test-only — and **`EVIDENCE_FROM`, which has no default on purpose**: both sites gate `apiKey && from` ⇒ sender, else `NotConfiguredSender` rejecting loudly, so an unset address means **no email, noisily**, never an email with an undefined From. **The axis's value:** it is the only sweep whose failures appear AFTER deploy, where no suite runs — the same category as §1274 and §1293–§1295. |
@@ -76733,3 +76734,54 @@ not.
 
 **STOP.** The second cross-worker seam gated in the same idiom and proved both directions — found not by a new
 sweep but by treating my own closing sentence as a claim that needed measuring.
+
+## §1302 — PHASE GATE: six hand-written copies of the append contract, and a cast is not a check
+
+§1301's discipline — *a claim about a set needs the enumeration re-run* — applied to my own claim that agents
+and translator have no cross-worker contracts. They have no **path** literals; they reach the sequencer by
+**DO RPC**, which is the same family with a different surface.
+
+`ShipmentSequencer.append` is the chokepoint every event enters the ledger through, and its request shape is
+declared once as `type AppendReq`. **No caller uses that type.** The DO's own comment says why: `LedgerEvent`'s
+`payload` is a recursive `z.lazy` type and Workers-RPC's structural mapper recurses into it, *"exploding into a
+TS2589 'excessively deep' instantiation at every `stub.append()` call site"*. So every caller casts to a
+hand-written surface — and there are **six**, in five packages:
+
+```
+workers/agents/src/biller.ts          workers/api/src/routes/dunning.ts
+workers/agents/src/mirror-sweep.ts    workers/api/src/routes/events.ts
+workers/translator/src/inbound.ts     (+ the billing HTTP port, a different contract — gated at §1300)
+```
+
+They agree today, measured field by field. Nothing kept them agreeing: **a cast is not a check** — this
+record's own *"a type argument can be a cast"* — so renaming a field in `AppendReq` leaves every caller
+compiling and fails at runtime on the append chokepoint.
+
+**Gated** by comparing declared required-field names against the DO's own. **Three drift shapes planted, all
+RED**: the DO renaming `streamId`, one caller renaming `input`, and the DO adding a required field that callers
+do not supply. Clean 2/2, typecheck 0.
+
+### The gate's floor caught my own matcher, again
+
+Its first run failed the non-vacuity case, not the parity case: the pathspec `'workers/*/src'` matched nothing
+(git read it literally; the sources sit deeper), so the sweep found **fewer than four** surfaces and would have
+compared an almost-empty set to the canonical one — a **green** that meant nothing. Second occurrence of §1274's
+shape, and the second time a floor I wrote for someone else's future mistake caught mine instead. The floor is
+worth more than the assertion above it.
+
+### Three seams, one family, one remedy
+
+| § | seam | copies | how it fails |
+|---|---|---|---|
+| §1300 | billing → api, HTTP paths + secret header | 4 literals | 404, or a **403 that reads as a bad secret** |
+| §1301 | mcp → api, `/v1` paths | 4 literals | 404 the first time a model calls the tool |
+| §1302 | five workers → the sequencer DO, RPC shape | **6 surfaces** | runtime failure on **every** append |
+
+Each is *"one fact written twice, and nothing notices divergence"* — §1226's rule — at a boundary no unit suite
+crosses. None was findable by testing either side; all three needed a gate that reads both.
+
+**Running tally: 129 of 129 load-bearing claims probed — 89 verified, 35 gaps closed, 6 claims corrected;
+3 operational items recorded.**
+
+**STOP.** The cross-worker contract family is enumerated and closed at all three seams — the third found only
+because §1301's rule was applied to my own set-claim, and the largest of the three at six copies.
