@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Cents } from "@shuddl/contracts";
-import { allocateCents } from "../src/money/split.js";
+import { allocateCents, apportion } from "../src/money/split.js";
 
 // Deterministic PRNG (mulberry32). Tests MUST be reproducible — no Math.random anywhere.
 function mulberry32(seed: number): () => number {
@@ -81,5 +81,23 @@ describe("REQ-003 / REQ-112 — allocateCents (Hamilton largest-remainder, integ
   it("rejects negative or non-integer shares (integer-only law)", () => {
     expect(() => allocateCents(100, [10_000, -1])).toThrow();
     expect(() => allocateCents(100.5, [10_000])).toThrow();
+  });
+});
+
+
+// §1272 — `apportion`'s own degenerate-input contract, tested at ITS level. `deriveSplitFromLegs` refuses an
+// empty leg set with its own guard one layer up, so these two branches of `apportion` are reachable only
+// through its exported API — and both were exercised by nothing (removing either left the split suites green).
+// The messages differ on purpose: no weights at all is a caller bug; weights that are all zero is malformed
+// data. A shared message would make the two indistinguishable in a log.
+describe("§1272 apportion refuses degenerate weight sets by name", () => {
+  it("NO weights → 'at least one weight is required'", () => {
+    expect(() => apportion(100, [])).toThrow(/at least one weight is required/);
+  });
+
+  it("ALL-ZERO weights → the all-zero message, never a BigInt division by zero", () => {
+    expect(() => apportion(100, [0, 0, 0])).toThrow(/at least one weight must be positive/);
+    // The complement: one positive weight is enough, and it takes the whole pie.
+    expect(apportion(100, [0, 5, 0])).toEqual([0, 100, 0]);
   });
 });

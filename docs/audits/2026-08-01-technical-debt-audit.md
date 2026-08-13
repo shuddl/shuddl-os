@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 718 | §1271 | **§1272** | **BORING DATA ON THE MONEY PATH — THE LEG SET WITH NOTHING TO SPLIT.** §1271's lens applied to money. The remainder tiebreak is PINNED (reversing REDs 3, flipping the remainder direction REDs 5) but dropping it is silent — the **third** site hand-implementing stable-sort semantics the language guarantees, which is why it goes green for a reason unrelated to coverage. **The gap:** `derive-split.ts` writes the contract down — *apportion THROWS on an all-zero weight set … a leg set with no split anywhere is malformed* — and it is REACHABLE (`split_bps: 0` passes the per-leg check), yet deleting the `divisor === 0n` guard left ledger **719/719 GREEN**. Without it the next line is a BigInt divide: **`RangeError: Division by zero`** on the interline money path instead of the promised refusal. Closed at the layer owning each contract — `deriveSplitFromLegs` has its OWN empty-legs guard so the empty case never reaches `apportion`; `apportion`'s branches are pinned via its exported API, **including that the two messages stay DISTINCT** (making them identical REDs), since *no weights* is a caller bug and *all-zero weights* is malformed freight data. 4 mutations RED, 724/724. **And a mis-attributed RED caught:** the first draft's loose regex failed CLEAN as well as mutated — a non-zero exit says something failed, never that YOUR subject did. |
 | 717 | §1270 | **§1271** | **§1262 DECLARED THE ORDERING CLASS CLOSED; IT HAD SWEPT ONE LANGUAGE.** All 20 `.sort()` sites enumerated; two more four-clause comparators found **1/4 exercised**, the same ratio as `merge.ts`. **`iif.ts compareLines`** (the QB export, *reconciles to the penny*): its existing case is named *is order-insensitive* and carries **four DISTINCT accounts**, so clause 1 decides everything and the other three never engage — an unstable line order changes no TOTAL, which is exactly why it survives review, while turning a diff of two exports of one period into noise. Closed with all lines on ONE account and money_line ids **deliberately ordered against** event ids (else dropping `event_id` matches by accident). 4 RED. **`queue.pending`** (the driver drain order, rule 6): undefined-last REDs 1 and 2, seq direction REDs 4 — but both **index tiebreaks stay GREEN because `Array.prototype.sort` is STABLE by spec**, so the `.map((item, index))` wrapper reimplements a language guarantee (§1267's union pattern: behaviour pinned, neither mechanism individually). **What all three share:** the primary clause has a test, the tiebreaks have none, and each existing test is NAMED for the whole property. **A tiebreak only matters when the data is boring — and boring data is what a hand-written fixture never has.** |
 | 716 | §1269 | **§1270** | **§1258's CLASS WAS NEVER ABOUT SQL.** Found in `ORDER BY` clauses and treated as a SQL finding — but `driver-core/src/merge.ts` carries a **four-clause total order in TypeScript** (`captured_ts → device_id → device_seq → id`) and only the FIRST was exercised: dropping each of the other three left the package **47/47 GREEN**, against a comment claiming *a deterministic total order … independent of input order*, which is what makes an airplane-mode replay reproducible (rule 6). **The contrast is the useful part:** its sibling `seqKey` — the 3-part dedupe key the comments call dangerous — is FULLY pinned (1/2/3 REDs). Same file, same review: **the key flagged as dangerous is exercised; the ordering underneath it is not.** `Array.sort` is STABLE, so a dropped clause degrades to INPUT order — exactly what the claim denies — which makes the claim itself the sharpest test: one set, two interleavings, identical output. The `id` tiebreak is reachable ONLY for server-origin events (device events tying on the key are deduped before `cmp` sees them), so a component can be unexercised because nothing varies it OR because nothing CAN. 5 mutations RED, 49/49. Restores done by scratchpad `cp`, never `git checkout` — §1269's lesson applied the same hour. |
 | 715 | §1268 | **§1269** | **A LIVE DEFECT IN A DRIVER-FACING NUMBER — the first SOURCE defect since §1258.** `syncOnce`'s `parked` count (shown on a driver's screen via `useSync`) was incremented at **two sites whose cases are not disjoint**: once for an already-parked item, once for one that parks during the pass. An item parked → re-probed → **re-parked** hits both: **`parked === 2` for ONE stop**, 2N for N. Second instance, same shape: an item that was parked and then **DRAINED** is still counted, because the top site fires before the outcome is known. **Neither was covered and the reason is instructive** — one existing test keeps the item inside its backoff window (bottom site never runs), the other lets the refusal CLEAR (it drains); **the uncovered middle is the ORDINARY case**, a refusal that persists. Fixed by REMOVING a site: `advanceItem` mutates `item.sync` in place, so post-pass state IS the answer — **the old code guessed the outcome from pre-pass state; the new code looks.** Honest-instrument law arriving at a NUMBER. Mutation-proved by restoring the two-site shape (both RED), 47/47. **And I wiped my own uncommitted fix** restoring with `git checkout --` mid-proof — snapshot to scratchpad, never checkout, when the file carries uncommitted work. |
@@ -75311,3 +75312,56 @@ driver-core **52/52**, ledger **719/719**, typecheck 0.
 **STOP.** The ordering class is now closed across BOTH languages — 5 SQL sites (§1258–§1262) and 3 TypeScript
 comparators (§1270–§1271), every clause either mutation-proved RED or recorded redundant with the mechanism
 that covers it. §1262's closure claim is corrected in place rather than left standing.
+
+## §1272 — PHASE GATE: boring data on the money path — the leg set with nothing to split
+
+§1271 ended on *a tiebreak only matters when the data is boring, and boring data is what a hand-written fixture
+never has*. Applied to the money path, the boring cases are: a tie in the remainder, an empty weight set, and a
+weight set that is all zero.
+
+**The remainder tiebreak is pinned** — reversing *ties by ascending index* REDs 3, flipping the remainder
+direction REDs 5. Dropping it entirely is silent, and for the now-familiar reason: the index array is built
+ascending and `Array.prototype.sort` is stable, so `return 0` reproduces `a - b` exactly. That is the **third**
+site in this codebase hand-implementing stable-sort semantics the language already guarantees (queue.pending's
+two branches, and this). Not a defect anywhere — but a consistent habit worth knowing when reading a mutation
+result, because all three go green for a reason that has nothing to do with coverage.
+
+### The gap: a leg set where nothing carries a split
+
+`derive-split.ts` writes the contract down: *"apportion THROWS on an all-zero weight set (no revenue to split)
+— a leg set with no split anywhere is malformed, not a free-for-all direct move."* It is **reachable** —
+`split_bps: 0` is a valid non-negative integer and passes the per-leg check, so an entirely-zero leg set walks
+straight into `apportion` — and it was exercised by **nothing**: deleting the `divisor === 0n` guard left
+`packages/ledger` at **719/719 GREEN**.
+
+Without it, `divisor` is `0n` and the next line is a BigInt divide: **`RangeError: Division by zero`** on the
+interline money path, instead of the named refusal the comment promises.
+
+**Closed at the layer that owns each contract**, which took two attempts to get right:
+
+- `deriveSplitFromLegs([])` never reaches `apportion` — it has **its own** `legs.length === 0` guard with its
+  own message. So the empty-leg contract is pinned there, against *that* message.
+- `apportion`'s two degenerate branches are reachable only through its exported API, so they are pinned in
+  `split.test.ts` — including that the two messages stay **distinct**: making them identical REDs. *No weights
+  at all* is a caller bug; *weights present but all zero* is malformed freight data, and a shared string makes
+  the two indistinguishable in a log.
+
+**Mutation-proved 4 ways** — all-zero guard, empty-weights guard, the message distinction, and
+`deriveSplitFromLegs`'s own guard — all RED. ledger **724/724**.
+
+### I nearly credited a RED to the wrong cause
+
+The first draft asserted a loose `/at least one weight|no legs|empty/i` against `deriveSplitFromLegs([])`. It
+failed — and it failed **clean as well as mutated**, because the message it actually throws is
+`deriveSplitFromLegs: at least one custody leg is required`. For one command I had a mutation reported RED and
+a conclusion forming that the guard was pinned. The rule this record already carries: **a non-zero exit says
+something failed, never that YOUR subject failed** — and the tell was free, because the clean run was one line
+away. The loose regex was the deeper error: it matched all three messages, so it could not have distinguished
+which layer refused even if it had passed.
+
+**Running tally: 38 of 40 load-bearing claims probed — 20 verified, 17 gaps closed, 1 claim corrected.**
+
+**STOP.** The boring-data lens carried onto money: the remainder tiebreak verified (and its silent-drop
+explained by the third stable-sort redundancy), the all-zero leg set closed where it was reachable and
+documented, each layer's refusal pinned against its own message, and a mis-attributed RED caught before it
+became a recorded verdict.

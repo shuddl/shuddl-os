@@ -140,3 +140,38 @@ describe("REQ-019 DoD — the derived split matches the partner statement to the
     });
   }
 });
+
+
+// §1272 — THE DEGENERATE LEG SET. `derive-split.ts` states the contract in a comment: *"apportion THROWS on an
+// all-zero weight set (no revenue to split) — a leg set with no split anywhere is malformed, not a
+// free-for-all direct move"*. It is REACHABLE — `split_bps: 0` is a valid non-negative integer and passes the
+// per-leg check, so a leg set that is entirely zero reaches `apportion` — and it was exercised by NOTHING:
+// deleting the `divisor === 0n` guard left packages/ledger at 719/719 GREEN, and deleting the
+// `weights.length === 0` guard left the split suites at 17/17.
+//
+// What the guards buy is the difference between a NAMED refusal and `RangeError: Division by zero` out of a
+// BigInt divide, on the interline money path. Same shape as §1271's tiebreaks: the behaviour only appears on
+// boring data — every fixture here splits a real pie between real carriers.
+describe("§1272 degenerate weight sets are refused by name, not by a BigInt crash", () => {
+  it("a leg set whose split_bps are ALL zero throws the documented error (not a division by zero)", () => {
+    const zeroLegs = [leg("carrier-a", 0), leg("carrier-b", 0)];
+    expect(() => deriveSplitFromLegs(zeroLegs, 500_000)).toThrow(/all-zero weight set|at least one weight must be positive/);
+  });
+
+  it("ONE positive weight among zeros is fine — the guard refuses only the all-zero set", () => {
+    // The complement, so the guard cannot be "any zero anywhere is fatal" and still pass.
+    const mixed = [leg("carrier-a", 0), leg("carrier-b", 10_000)];
+    const split = deriveSplitFromLegs(mixed, 500_000);
+    expect(split.allocations.map((a) => a.share_bps)).toEqual([0, 10_000]);
+    expect(split.allocations.reduce((s, a) => s + a.share_bps, 0)).toBe(10_000);
+  });
+
+  // The empty set is a DIFFERENT fault from the all-zero set, and it is refused ONE LAYER UP: this function
+  // has its own `legs.length === 0` guard, so `apportion`'s `weights.length === 0` is never reached from here.
+  // Asserting the exact message pins WHICH layer refuses — a loose regex matched all three messages and would
+  // have passed whichever guard fired (measured; that was this test's first draft, and it failed clean AND
+  // mutated, which is how the mis-attribution surfaced).
+  it("an EMPTY leg set is refused HERE, by name — before apportion is ever called", () => {
+    expect(() => deriveSplitFromLegs([], 500_000)).toThrow(/at least one custody leg is required/);
+  });
+});
