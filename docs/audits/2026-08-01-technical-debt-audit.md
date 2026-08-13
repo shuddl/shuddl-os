@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 754 | §1307 | **§1308** | **"SELF-HEALING BUT CAPPED" IS A PROPERTY OF THE CANDIDATE SET, NOT THE SWEEP.** Re-measured L430's BOUNDED COUNT: the population is **four, not two** — the original probe enumerated by MECHANISM (`queue.send`/`r2.delete`/`fetch`) and missed that a plain D1 `.run()` is a subrequest too. The new deciding property: **does a processed row LEAVE the candidate set?** retention (tombstone) and recon (invoice/marker) YES, so a truncated tick advances; **collector NO** — it writes to `messages` and never touches the invoice, so every open overdue invoice costs 2 subrequests EVERY tick and a truncated tick re-spends on the same prefix: **the tail never gets a draft, permanently.** Budget is per INVOCATION while every tenant loops inside one, so one tenant's book starves later slugs — silently, because the per-tenant catch reports success. 1 row filed, L430 corrected twice (count + verdict). |
 | 753 | §1306 | **§1307** | **THE SIBLING AGENT THAT STOPPED ONE LINE SHORT.** The exceptions queue LANDED (WP-10, REQ-082) and is a durable read over `exception.raised + osd.captured`; the DLQ consumer did NOT, and REQ-169 is the Biller sweep, not a DLQ reader. So an outcome is visible iff it WRITES one of those kinds. `pod.signed` runs TWO jobs under one message: the Biller (backstopped) and the interline split (**not** — the anti-join self-clears on `invoice.issued`, and no predicate reads `split.computed`). `interline-split.ts` has **0 hold markers vs the Biller's `emitTerminalHoldMarker`**, and `below_floor` is *always* taken (approvals unwired), so every below-floor AP settlement holds into a `console.log`. Corrected: `biller.ts:115` claims its marker surfaces on the exceptions queue — its kind is `message.received`, which that filter excludes. **A backstop is only as wide as its predicate.** 2 items filed, 0 behaviour changed. |
 | 752 | §1305 | **§1306** | **THE ONE GROWTH ITEM THAT CANNOT HEAL ITSELF.** Second unseen limit: **memory, 128 MB on BOTH tiers — and unlike subrequests it cannot be raised.** `dayLeaves` selects every `events.hash` and every `positions` row for the day (**zero `LIMIT` in the whole file**), holds both result sets AND the derived `leaves` array alive together, and builds a Merkle root over all of them. Positions dominate: ~2,880 rows/vehicle/day, so ~100 vehicles is hundreds of thousands of leaves. **Why it differs from every other growth item:** §1294 merely slows, §1305 throws but keeps processed rows, §1293/§1295 only cost — **§1306 OOMs, and a Merkle root is ALL-OR-NOTHING**, so there is no progress to keep. The day returns `unanchored`, the next run reads the same day, and OOMs again **forever**; REQ-014's tamper evidence for that day is permanently absent. **The counter-example to §1305's closing note:** there, recoverability kept bounding blast radius — here the retry is correct for every OTHER failure this function has (TSA refusal, boundary race, mid-write crash) and turns a memory ceiling into an unrecoverable one. **A retry loop is only as safe as the assumption that the next attempt differs from the last.** |
 | 751 | §1304 | **§1305** | **A SIXTH INVISIBLE MECHANISM — THE PER-ITEM SUBREQUEST.** §1304 named five reasons a gap escapes the owning suite; enumerating by mechanism gives a sixth: **a platform resource limit** — tests run ten fixtures, production runs the backlog. Six loops make an awaited I/O call per iteration; four are paginated `r2.list` walks (bounded, correct). **Two are sweeps over an unbounded row set:** `retention.ts` (`CANDIDATES_SQL` has **no LIMIT**; the loop does `r2.delete` **plus** a tombstone UPDATE per row = 2 subrequests each) and `recon-sweep.ts` (one `queue.send` per unbilled shipment). **The ceiling was VERIFIED, not recalled** — the Workers limits doc: **1,000 Cloudflare-service subrequests on Free, 10,000 default on Paid**, raisable via `[limits] subrequests`, which **no worker here sets**. So a tick throws `Too many subrequests` past ~500 docs (Free) / ~5,000 (Paid) — a **ceiling, not a slope**: §1294 gets slower forever, this one stops. **§1274's R2-before-row ordering makes it self-healing** (processed rows stay tombstoned, the rest wait), so the repair is a register choice: a LIMIT (page size) or a raised knob (cost). **Third time this stretch a correct design made an adjacent problem benign** — the properties that make a system recoverable also bound the blast radius of what is still wrong with it. |
@@ -77038,3 +77039,62 @@ silently certifies both.** The sweep's name (*reconciliation*) and its placement
 suggest it covers that message; it covers the invoice. The find came from adjacency, not absence: the highest-
 yield question was not "what has no discipline" but "what sits one line short of a discipline already applied
 next door."
+
+
+## §1308 — PHASE GATE: "self-healing but capped" is a property of the CANDIDATE SET, not of the sweep
+
+§1307 closed the `pod.signed` trigger's three jobs. This phase re-measured the neighbouring claim, because
+L430 states a BOUNDED COUNT — *"**Two** sweeps make ONE subrequest per row, over an unbounded row set"* — and a
+counted claim is the kind this audit has repeatedly found undercounted.
+
+**The population is four, not two.** L430 names `retention.ts` and `recon-sweep.ts`. The first probe missed the
+other two because it enumerated by MECHANISM — `queue.send` / `r2.delete` / `fetch` — and forgot that a plain
+D1 `.run()` is equally a subrequest. Sweeping by BEHAVIOUR instead (an unbounded candidate query feeding a
+per-row loop that does I/O) finds `collector.ts` and `credit-recon-sweep.ts` too. Neither carries a `LIMIT`,
+neither chunks.
+
+### The deciding property nobody had named
+
+L430's verdict — *"Self-healing but capped … a mid-loop throw leaves processed rows correctly tombstoned and the
+rest for the next tick, so no data is lost and throughput is simply bounded per tick"* — is true of the two
+sweeps it examined and **does not generalise**. Whether a truncated tick makes progress depends on one thing:
+
+**does a processed row LEAVE the candidate set?**
+
+| sweep | candidate set | processed row leaves it? | truncated tick advances? |
+|---|---|---|---|
+| `retention.ts` | `retention_status='active'` | **yes** — `TOMBSTONE_SQL` flips it to `expired` | yes |
+| `recon-sweep.ts` | pod without invoice/marker | **yes** — the invoice or marker lands | yes |
+| `credit-recon-sweep.ts` | `anomalies status='open'` | only if the gap is RESOLVABLE | partly — unresolvable gaps form a permanent prefix |
+| **`collector.ts`** | `invoices status='issued' AND due_ts < now` | **NO** | **NO** |
+
+The collector writes its draft into `messages` and **touches the invoice not at all**. The invoice stays
+`issued` and overdue, so it is still a candidate on the next tick, and the tick before that. Per open overdue
+invoice, EVERY tick, it spends two subrequests unconditionally — `resolveRecipient` (a D1 read) and the
+`INSERT OR IGNORE` draft write, which is a no-op after the first tick but costs the same. `OVERDUE_INVOICES_SQL`
+has no `ORDER BY` and no `LIMIT`.
+
+So once the open-overdue book exceeds the budget, the sweep throws partway, and the next tick re-spends its
+entire budget on **the same prefix** and truncates at the same place. **The tail never gets a dunning draft —
+permanently.** Not bounded throughput: starvation.
+
+### The budget is per INVOCATION, and every tenant shares one
+
+`runCollectorSweep` (and its four siblings) loop `allTenantSlugs` **inside a single scheduled invocation**, and
+the per-tenant `try/catch` — *"contained + logged so one tenant never stalls the rest"* — does not reset a
+subrequest budget, because that budget is per invocation, not per tenant. So a single tenant with a large aging
+book can exhaust the tick and every tenant after it in the (stable) slug order fails immediately, each with its
+own `console.error`, while the cron itself reports success. The containment that makes one tenant's fault
+non-fatal is exactly what makes this silent.
+
+**Filed, not built** — both remedies (a `LIMIT`/page size, or `[limits] subrequests`) are register decisions,
+as L430 already says. L430 corrected in place: the count, and the over-general "self-healing" verdict.
+
+**Running tally: 138 of 138 load-bearing claims probed — 90 verified, 36 gaps closed, 12 claims corrected;
+9 operational items recorded.**
+
+**STOP.** §1306 said a retry is only as safe as the assumption the next attempt differs from the last. §1307
+found a backstop no wider than its predicate. This is the same law a third time, one level up: **a sweep's
+recoverability is a property of its candidate set, not of its code.** Three of these four sweeps look identical
+at the loop — same containment, same idempotence comment, same reassuring phrasing — and one of them cannot
+make progress. The distinguishing fact is in the WHERE clause, not the handler.
