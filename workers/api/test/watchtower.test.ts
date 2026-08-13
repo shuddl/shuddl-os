@@ -163,6 +163,32 @@ describe("Watchtower — the unbilled=0 alarm (REQ-036 DoD: fires on a seeded $0
     expect(a2!.status).toBe("resolved"); // cleared, not deleted — the alarm row persists as resolved
   });
 
+  // §1239 (REQ-036/118) — THE DETAIL CAP, which nothing asserted. `DETAIL_SHIPMENT_CAP` slices the shipment
+  // list written into the alarm payload so a tenant with hundreds of unbilled PODs cannot write hundreds of ids
+  // into one row. §1232 measured it unasserted: raising it to 100_000 left the agents package 228/228 green.
+  //
+  // The property has TWO halves and only one is obvious. The list must be capped — and the COUNT must remain
+  // the TRUE total, because an operator reads `count` to size the problem. A "fix" that truncated both would
+  // silently under-report a backlog while looking tidy, which is the failure this pins against.
+  it("CAPS the detail's shipment list while keeping the COUNT truthful — a truncated list must not shrink the total", async () => {
+    const scope = "wt-unb-cap-";
+    const N = 55; // > DETAIL_SHIPMENT_CAP (50), so the slice actually bites
+    for (let i = 0; i < N; i += 1) {
+      await seedEvent("pod.signed", `${scope}shp${String(i).padStart(3, "0")}`, 0);
+    }
+    const r = await runWatchtowerSweep(env.TENANT_A_DB, TENANT, NOW, { scope });
+    // PREMISE: every seeded shipment really is unbilled, or the cap below is measured against the wrong set.
+    expect(r.unbilled.count, "the sweep did not see all seeded shipments as unbilled").toBe(N);
+
+    const a = await alarm(watchtowerAlarmId(TENANT, "unbilled", { scope }));
+    const detail = JSON.parse(a!.detail) as { count: number; shipments: string[] };
+    expect(detail.count, "the alarm's COUNT must be the true total — an operator sizes the backlog from it").toBe(N);
+    expect(
+      detail.shipments.length,
+      "the detail list must be capped at DETAIL_SHIPMENT_CAP; an uncapped list writes every id into one alarm row",
+    ).toBe(50);
+  });
+
   it("IDEMPOTENT — a re-sweep of the SAME unbilled state upserts the SAME row (never a duplicate)", async () => {
     const scope = "wt-unb-idem-";
     await seedEvent("pod.signed", `${scope}shp1`, 0);

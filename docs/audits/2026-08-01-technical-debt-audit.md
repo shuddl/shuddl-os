@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 686 | §1238 | **§1239** | **§1232'S QUEUE WORKED TO ZERO — THE SIZE-BOUND CLASS CLOSES AT 7 OF 7.** §1232 filed four bounds as unasserted, judging each to need its own oversized-input harness. **Three closed**, each mutation-proved against the exact change that had survived: `MAX_INPUT` → MAX_SAFE_INTEGER, `ISA_SCAN_LIMIT` → 100_000, `DETAIL_SHIPMENT_CAP` → 100_000 (*expected 55 to be 50*). **The harness cost was near zero** — a `.repeat()` and a seed loop using a helper already present — so that judgement was wrong the same way its cost prediction was. The fourth, `MAX_BODY_BYTES`, was **already defended**: `inbound.test.ts:695` posts exactly `1_048_576 + 1` bytes and asserts 413 plus nothing written. **That vindicates "unexamined" as a verdict distinct from "clean"** — guessing either way would have been wrong, hiding three real gaps or inventing a fourth. Class now 7/7, each pinning VALUE as well as mechanism; the watchtower case also pins that **the count stays truthful while the list is capped**. |
 | 685 | §1237 | **§1238** | **SESSION STOPPING POINT — BOARD MEASURED, 27 PHASES ACCOUNTED FOR, AND §1237'S RULE TESTED FOR GENERALITY.** **19 PASS · 2 FAIL · 5 BLOCKED, zero repo-owned failures**; both FAILs and all five BLOCKs owner-held and unchanged. §1237's rule (*an unenforceable rule still has a violation count*) tested against the 21 sections concluding "not viable" — **§704 counted (0 defects), §844 counted (full corpus), L410 is an unmade decision. §880 was the sole instance**, now closed. The generalisation was worth testing and worth abandoning. Session yield: 15 measured defects across live code/config, guards asserted by nothing (the SOLE page bound; two on the PAID LLM path), tests that did not test (a pagination walk fetching ONE page), and records asserting the opposite of the code — plus 2 new gates. **Every predictor I proposed was falsified by its own test; every measurement held.** The four surviving rules are all about PREMISES, not categories. |
 | 684 | §1236 | **§1237** | **L426'S PATH-ONLY BLINDNESS HAS REAL INSTANCES — 18 REFERENCES TO 3 NONEXISTENT FILES, 8 OF THEM OPERATOR-FACING.** Measured 2,083 backticked repo-path references across docs + skills: **48 point at nothing**. Three are unambiguous errors whose targets exist — `docs/ops/threat-model.md` (x10; `git log --all` shows it **never existed**, so an error not staleness), `workers/agents/src/sender.ts` (x5), and a missing `/routes/` segment (x3) — and **8 of the 18 are in GO-LIVE-CHECKLIST**, where a go-live reviewer following the threat-model link finds nothing. All corrected, 48 → 45. The rest are deliberate notation (elisions, ranges, deleted probes, and paths quoted TO SAY they don't exist — including my own §1228 note). Basename matching nominated 23 as "moves" but its top hits were the elision and that negative example — §1194's collision — so **none were bulk-rewritten**. **§880 already measured detector VIABILITY (no); this measured current VIOLATIONS (18).** "Cannot be gated" had been doing duty for "nothing to find". |
 | 683 | §1235 | **§1236** | **THE BOARD MEASURED AT 19·2·5 — AND THE CONSTRAINT I BROKE WAS DOCUMENTED IN THE CONFIG ALL ALONG.** §1235 closed on an INFERENCE (*component-verified rather than a re-run*), which its own rule forbids; this replaces it with all 26 gates: **19 PASS · 2 FAIL · 5 BLOCKED**, `lint` restored to PASS, `workers/api` **831/831**, and the ONLY three failing tests in the whole run are the owner's REQ-289 register row. **Zero repo-owned failures.** Alongside: swept exact-count assertions over the shared D1 — first regex found 2, broadening to `toHaveLength(N)` found **20** (the §1234 under-matching error again, caught BEFORE concluding this time). All 20 sound — stream-scoped, or in `packages/ledger` where `isolatedStorage` defaults ON. **The finding that matters: `workers/api/vitest.config.ts` already said *isolatedStorage is OFF, so N files share ONE D1* — the exact cause of §1235's failures, in the config of the suite I was calibrating against, unread.** Its own counts were stale (66→70 files, 730→831 tests); re-dated. |
@@ -73673,3 +73674,57 @@ The rules that survived contact are all about **premises**, not categories:
 **STOP.** Board measured at 19 PASS with zero repo-owned failures, 27 phases accounted for by kind, the
 session's own rule tested for generality and honestly abandoned, the four premises that survived stated as the
 transferable result, and every remaining verdict named with the event that clears it.
+
+## §1239 — PHASE GATE: §1232's queue worked to zero — the size-bound class closes at 7 of 7
+
+**§1232 filed four size bounds as unasserted rather than fixing them**, on the grounds that each needed its own
+oversized-input harness. §1231 had already shown that framing overstates the cost. Worked to completion:
+
+| Bound | Guards | Outcome |
+|---|---|---|
+| `MAX_INPUT` (5 MB) | a multi-megabyte hostile interchange | **closed** — one `.repeat()` |
+| `ISA_SCAN_LIMIT` (200) | an unbounded scan for the 16th ISA separator | **closed** |
+| `DETAIL_SHIPMENT_CAP` (50) | hundreds of ids written into one alarm row | **closed** |
+| `MAX_BODY_BYTES` (1 MB) | a storage-DoS body | **already defended** — see below |
+
+**Three closed, each mutation-proved against the exact change that survived §1232**: `MAX_INPUT` →
+`MAX_SAFE_INTEGER` REDs, `ISA_SCAN_LIMIT` → 100 000 REDs, `DETAIL_SHIPMENT_CAP` → 100 000 REDs with
+*"expected 55 to be 50"*.
+
+**The harness cost was near zero in every case** — a `.repeat()` for the EDI ceilings, and a 55-iteration seed
+loop for the watchtower using the `seedEvent` helper that was already there. §1232's "each needs its own
+harness" was a reasonable guess and was wrong, which is the same shape as its own cost-based prediction failing.
+
+### The one that was already defended, and why §1232 was right not to claim it
+
+`MAX_BODY_BYTES` was listed as **unexamined rather than clean** because its 1 MB harness looked slow. It has
+**three** enforcement points — a `Content-Length` pre-check, the actual byte-length check, and a defensive R2
+slice — and the primary one is covered by `inbound.test.ts:695`, which posts `1_048_576 + 1` bytes and asserts
+**413 plus nothing written**: no shipment, no anomaly, no R2 object. Exactly one byte over, so raising the cap
+REDs it. Nothing to do.
+
+**That is the value of "unexamined" as a distinct verdict from "clean."** Had §1232 guessed either way it would
+have been wrong — guessing clean would have hidden three real gaps in its siblings; guessing broken would have
+invented a fourth.
+
+### The class, closed
+
+| Bound | Closed at |
+|---|---|
+| `LIMIT_CAP` — the SOLE page-size bound | §1230 |
+| `PROMPT_EVENT_CAP` — events into a PAID prompt | §1231 |
+| `MAX_PAYLOAD_CHARS` — bytes per event into that prompt | §1232 |
+| `MAX_INPUT`, `ISA_SCAN_LIMIT`, `DETAIL_SHIPMENT_CAP` | §1239 |
+| `MAX_BODY_BYTES` | pre-existing |
+
+**The class that measured 0-for-6 at §1232 is now 7 of 7 asserted.** Each new test pins the **value** as well as
+the mechanism, because §1230 proved a cap compared only against itself cannot see itself move.
+
+One property worth naming beyond the class: the watchtower case asserts the **count stays truthful while the
+list is capped**. A "fix" that truncated both would under-report a backlog while looking tidy — the detail is a
+sample, the count is the measurement, and only the sample may be cut.
+
+**STOP.** §1232's four-item queue worked to zero, three bounds closed and mutation-proved against the exact
+mutations that had survived, the fourth found already defended at its exact boundary, the size-bound class
+complete at 7 of 7, and "unexamined" vindicated as a verdict that guessing would have got wrong in both
+directions.
