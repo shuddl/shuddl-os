@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 762 | §1315 | **§1316** | **RE-RAN THE REGISTER'S OWN CLAIMS — THE BIGGEST ONE HAD INVERTED.** 32 OPEN rows, only 3 with a command-decidable expiry, so re-measured the FACTS instead. **The remote-divergence row had reversed**: it recorded 1,278 unpushed and GROWING; `origin/main` is now `2c47440` (2026-08-12), local 62 ahead, origin 0 ahead — **the owner pushed**, so its consequence (*"CI has evaluated none of this work"*) is no longer categorically true. Whether that run PASSED is UNKNOWN from this machine (no network) and is recorded as such; the sibling GitHub-API rows were NOT re-measured and stand untouched. Also re-verified: `quote.priced` still absent from `SERVER_EMITTED_KINDS` (5 members), no coverage config in 12 vitest configs. **The security row now UNDERSTATES**: §1307 made the interline split a SECOND consumer of the forged quote's floors + anomaly, and both treat ABSENT as "no flag". |
 | 761 | §1314 | **§1315** | **THE GATE POPULATION AUDITED BY §1313'S OWN LESSON — CLEAN NEGATIVE.** All **119** gates have a floor or a positive control (3 flagged, all false positives of MY detector). The real §1313 class is a literal path ROSTER, not a glob: 8 files carry one, 6 are correctly allowlists, 2 are corpora (`preflight@WORKER_CONFIGS`, `recall@SOURCES`) — complete today. **Planted a ninth worker config** with a plaintext secret: **3 gates fire**, including `wrangler-scope-parity`, built for exactly this (*"DISCOVERED from the worker tree, so a new one cannot be added silently"*). Two errors inside the experiment: the plant is invisible until TRACKED, and **2 of 4 "gates fired" signals were phantom** — `check:secrets`/`check:named-resources` DO NOT EXIST, pnpm was printing "Command not found". Caught only because they still exited 1 after cleanup. |
 | 760 | §1313 | **§1314** | **STOPPING POINT — THE FULL BOARD AT `9af88fb`: 21 PASS · 2 FAIL · 5 BLOCKED.** Ran `verify:merge` (all 26) after §1313 showed six phases of targeted gates hid three reds. **Both FAILs are ONE uncommitted file** (`unit-tests` runs the tools suite containing `citation-links`; `citations` runs it directly) — **proved** by swapping in `git show HEAD:tools/traceability/coverage.ts`: exit 0 with HEAD's copy, 1 with the working copy. **Repo-owned failure set EMPTY.** 5 BLOCKED = nine pending engagement fixtures + absent `IDENTITY_DENYLIST`. Sharpened one of my own reopen triggers that a comment mention made undecidable. Nearly misdiagnosed a workerd wedge: the procs were state `S`, **PPID 1** (orphans), and the job's "exit 0" was my wrapper's `echo`, not the verdict. |
 | 759 | §1312 | **§1313** | **I REPRODUCED THE BUG THE GATE DOCUMENTS, IN THE GATE WRITTEN TO PREVENT IT.** Three phases corrected COUNTED claims, so I extended `checklist-figures` — hand-kept `SWEEP_COUNT_FILES` (2 of 4 files) and a vocabulary stopping at `ten` (so `"Eleven per-tenant sweeps"` matched NOTHING) both closed, file list now DERIVED. Then I planted §1312's real defect (`across four workers`) and **the new gate stayed GREEN** — `four` was not in the table, verbatim the §1077 lesson written forty lines above the code I was editing. Completing the vocabulary then made `"N of them"` match ordinary English (3 FPs), so the shape is now window-scoped. Replay: 1 RED naming the exact drift. **Also ran the FULL tools suite for the first time in six phases: 4 red, 3 of them MINE** (bare `biller.ts:NNN` into a high-churn file; a backticked Cloudflare metrics field; §1313 refs). |
@@ -77530,3 +77531,54 @@ returned to 27/27 green once the probe was removed.
 **STOP.** Tree verified clean of the probe (0 tracked, 0 in `git status`, `workers/` back to its five). The
 lesson is narrow and cheap to apply: **a probe's exit code is only evidence if you know what that exit code was
 before the probe.**
+
+
+## §1316 — PHASE GATE: re-running the register's own claims, and finding the biggest one had inverted
+
+The debt register is itself an artifact that decays. 32 rows stand OPEN; only 3 carry an expiry condition a
+command can decide (the rest name decisions, which `checklist-figures.test.ts` already documents as
+un-gateable). So rather than re-check triggers, this phase re-measured the rows' FACTUAL CLAIMS.
+
+### The one that had inverted
+
+> *"The remote is 1,016 commits / 11 days behind local `main`. **RE-MEASURED 2026-08-12: 1,278 commits
+> unpushed — the gap GREW by 262 while this row stood.** `origin/main` = `0415148` (2026-07-31)."*
+
+Measured today: `origin/main` = **`2c47440` (2026-08-12)**, local **62 ahead**, origin **0 ahead**, and the ref
+file written Aug 12 19:16. **The owner pushed.** The gap did not grow to 1,278 and stay there; it collapsed to
+62.
+
+That matters beyond the number, because the row argues FROM it: *"`ci.yml` triggers on `pull_request` +
+`push: [main]`, so **CI has evaluated none of this work**."* A push to `main` is precisely that trigger, and one
+occurred. The categorical claim is now false.
+
+**What I did NOT claim.** Whether that CI run passed is not verifiable from this machine — no network — so the
+row records it as UNKNOWN rather than resolved. The two sibling rows in the same block (Dependabot disabled;
+no branch protection) rest on GitHub API reads and were likewise NOT re-measured, so they stand untouched. A
+re-measurement is worth exactly the instrument it used.
+
+### The rest of the sweep
+
+| row | claim | verdict |
+|---|---|---|
+| `quote.priced` absent from `SERVER_EMITTED_KINDS` | a hand-crafted quote is appendable by ops/admin/driver | **still TRUE** — the set has 5 members, `quote.priced` is not among them, and `workers/api/src` contains the string zero times |
+| no line/branch coverage anywhere | no `coverage` config in any vitest config | **still TRUE** — 12 configs, 0 with coverage |
+| the citation gate is blind to PATH-ONLY citations | — | settled: *"measured twice as not-worth-building without an opt-in marker"* |
+
+**One thing the security row now understates.** It was written 2026-08-11, before §1307 established that
+`interline-split.ts` reads THE SAME recorded accepted quote for its gross, its floors and its anomaly. So a
+forged `quote.priced` is not one money path but two: the AR invoice via `composeInvoice`, and the AP
+settlement via `decideSplit`. Both read `basis.anomaly` and both treat ABSENT as "no flag", so omitting the
+field defeats the $222,084 anomaly hold on both sides at once. The row's "Blocks: none today (no money moves
+until a POD bills it)" survives — both consumers still trigger on `pod.signed` — but its severity argument is
+stronger than when it was filed. Recorded on the row; the one-line fix stays the owner's call, as the row
+already states and for the reason it already gives.
+
+**Running tally: 156 of 156 load-bearing claims probed — 99 verified, 44 gaps closed, 17 claims corrected;
+9 operational items recorded.**
+
+**STOP.** The lesson is the register's own: **a filed row is a measurement with a date on it, and the ones that
+argue from a NUMBER are the ones that can silently invert.** This row had already been re-measured once, which
+is what made it feel settled — and the second re-measurement found not drift but reversal. The rows that
+cannot decay this way are the ones whose claim is a property of code in this repo; the ones that can are those
+naming external state.
