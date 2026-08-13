@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 791 | §1344 | **§1345** | **AUDITED MY OWN FILED ROWS WITH THE RECORD'S INSTRUMENT — 4 OF 4 NOVEL.** A filed row that duplicates an existing one is debt the AUDIT added, and it looks exactly like a finding. `recall` on each row's distinguishing symbol: `ack990Key`, `OVERDUE_INVOICES_SQL`, `MAX_ROWS` all return only my own sections. `emitTerminalHoldMarker` returns **7 mentions / 5 verdicts, two PRIOR** — so §1102 (*"seven ways a delivered load does not bill"*) had to be READ: across 56 lines it mentions `split` **0** times and AP **0** times. It is an AR section end to end, so §1307's AP finding sits outside it. **The reason it was findable is the framing pattern, now at three instances** — §1330 titled for a TRIGGER, §1335 split across CONSEQUENCES, §1345 AR vs AP. |
 | 790 | §1343 | **§1344** | **THE INSTRUMENT'S FIRST REAL USE — AND WHAT IT SAVED.** Used `recall` instead of `git grep` on the question likeliest to find live work: what the record admits is UNEXERCISED (27 mentions / 19 verdicts). The sharpest was §1266, *"four unexercised guards in the Gatekeeper"* — **closed, and better than I would have closed it**: 2 were real gaps, 2 are REDUNDANT because the schema refuses a wrong type first, and the discriminator is doc 10's deliberate loose/typed asymmetry, not luck. **The borrowable move is the scoping**: §1266 names 109 `typeof` guards across 42 files and §1267 refused to sweep them, re-scoping to the enumerable BOUNDARY (8 loose kinds of 35, `readField` in one file) — sweeping 109 would have been mostly redundancy, the §1053 noisy-gate outcome. Boundary still held (3/3). |
 | 789 | §1342 | **§1343** | **POINTED §1342's INSTRUMENT AT THIS SESSION'S OWN FINDINGS.** The honest way to act on "I never used `recall`" is to run it against what I claimed to find. `recall ack990Key` returns **only §1330 and the row it amended** — so the 990 double-send is genuinely new, confirmed by the record's instrument rather than by my confidence, which matters because it sits in a file with **10 prior verdicts**. And the tool already encodes the discipline: on an exact-phrase miss it prints *"the exact phrase is absent, but ITS TERMS ARE NOT. **This is not novelty**"* with term counts and owning sections — a built-in guard against the precise inference I nearly made at §1325 and did make at §1311/§1317. Reaching for it would have corrected the REASONING, not just the search. |
 | 788 | §1341 | **§1342** | **THE REPO SHIPS THE INSTRUMENT I FAILED TO USE, TWICE.** Chasing §1341's undeclared-corpus discriminator to its last instance found `recall.ts@SOURCES` — not a gate, but the repo's **`pnpm recall`**, which searches the record and returns each hit WITH THE SECTION THAT OWNS IT. **I did not use it once in 37 phases**, while failing twice at exactly its task: `recall "how many are open"` returns §945 (which §1317 re-derived), and `recall "per-tenant containment"` returns **§410** (the work §1311 duplicated). Both misses were inside its corpus; both cost a phase. A grep searches STRINGS; recall searches the RECORD and names the owning verdict. Corpus limit now stated in the tool: 3 files of ~45, kept narrow deliberately (§1053 noise). |
@@ -78841,3 +78842,38 @@ worked: **`recall` moved me from "19 verdicts mention unexercised" to "the class
 than the one I would have chosen" without reading a single source file first.** The axis is the saving —
 §1267 chose 8 loose kinds over 109 guards, and a grep-driven sweep would have enumerated the 109 and found
 mostly redundancy, which is exactly the noisy-gate outcome §1053 records.
+
+
+## §1345 — PHASE GATE: auditing my own filed rows with the record's instrument
+
+§1343 confirmed one of this session's findings novel. This completes that check across the rest, using `recall`
+rather than confidence, because a filed row that duplicates an existing one is debt an audit ADDED.
+
+| filed this session | `recall` on its distinguishing symbol | verdict |
+|---|---|---|
+| 990 ack double-send (§1330) | `ack990Key` → §1330 + the row it amended | **novel** |
+| Collector starvation (§1308) | `OVERDUE_INVOICES_SQL` → 2 verdicts, both mine | **novel** |
+| import subrequest ceiling (§1332) | `MAX_ROWS` → 3, all mine | **novel** |
+| interline split appends no marker (§1307) | `emitTerminalHoldMarker` → **7 mentions, 5 verdicts, two of them PRIOR** (§386, §1102) | see below |
+
+### The one that needed reading, and why it survived
+
+§1102 is *"seven ways a delivered load does not bill"* — the section most likely to have already held §1307's
+finding, and it does cite `emitTerminalHoldMarker`. Measured across its 56 lines: **`split` appears 0 times**,
+`AP` 0 times, `interline` twice (as the Biller's `interline_unresolved` hold reason). It is an **AR** section
+end to end.
+
+So §1307 stands — and the reason it was findable is the pattern this session has now documented three times.
+**§1102 is titled for a CONSEQUENCE ("does not bill"), and the sibling consequence ("does not settle") is
+outside it**, exactly as §1330's row was titled for a trigger (`cron`) and §1335's three rows were each titled
+for a different cost of one mechanism. A delivered load that bills correctly and never settles its AP is not a
+way it "does not bill", so seven ways was seven ways — of one half.
+
+**Running tally: 244 of 244 load-bearing claims probed — 168 verified, 46 gaps closed, 23 claims corrected;
+12 operational items recorded.**
+
+**STOP.** Four filed rows, four confirmed novel, one requiring an actual read rather than a count. The check
+cost four commands and would have caught a duplicate before it entered the register — which is the failure mode
+an audit is least able to see in itself, because a duplicate row looks exactly like a finding. **The framing
+pattern is now at three independent instances (§1330 trigger, §1335 consequence-split, §1345 AR/AP), which is
+enough to state it as a property of this record rather than an accident of three rows.**
