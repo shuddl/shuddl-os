@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 756 | §1309 | **§1310** | **THE NON-VACUITY ASSERTION IS WHAT FOUND THE ARCHITECTURE.** Closed §1309's open sibling: 8 cron wrappers × *"one tenant never stalls the rest"*, now 9 table-driven tests (131 → 140 green). The decision that makes it mean anything: break **tenant-a (FIRST)**, since breaking the LAST tenant passes with the catch DELETED (§1281 shared-outcome blindness) — plus a 9th test pinning `TENANT_SLUGS[0]` so a reorder cannot silently make the other 8 tautologies. **The errSpy non-vacuity check fired on the anchor and corrected ME, not the code**: `runDailyAnchor` contains its own faults and RETURNS, logging `[REQ-014] … NOTHING was anchored` + a correlated-fault line when the failure-record write also fails; the wrapper's catch covers a narrower class. **Mutation: 7 catches → exactly 7 REDs, one per wrapper**, anchor stayed green. Zero source changed. |
 | 755 | §1308 | **§1309** | **THE CONTAINMENT THREE PHASES REASONED FROM, FINALLY PINNED.** §1306–§1308 all leaned on *"a per-party fault is contained + logged, never fatal to the rest"*; nothing asserted it, and the test file SAID SO in a §791 header (*"STILL UNEXERCISED … this suite has no seam for one"*) — an honest dated gap that survived because it reads as resolved. Built the seam (argument-scoped `faultSeam` from `anchor.test.ts`; the sweep's SELECT binds the RULE not a party, so it still returns every gap and *"the others reconcile"* is observable). **Mutation-proved:** `throw err` after the log reds ONLY the new test. Continuation asserted with its weakness stated — no `ORDER BY`, so the poison is bracketed by reconcilable parties on both sides. The per-TENANT catch in 7 wrappers is still unpinned (technique exists in `watchtower-cron.test.ts`). 131/131 green, source unchanged. **A documented gap is still a gap.** |
 | 754 | §1307 | **§1308** | **"SELF-HEALING BUT CAPPED" IS A PROPERTY OF THE CANDIDATE SET, NOT THE SWEEP.** Re-measured L430's BOUNDED COUNT: the population is **four, not two** — the original probe enumerated by MECHANISM (`queue.send`/`r2.delete`/`fetch`) and missed that a plain D1 `.run()` is a subrequest too. The new deciding property: **does a processed row LEAVE the candidate set?** retention (tombstone) and recon (invoice/marker) YES, so a truncated tick advances; **collector NO** — it writes to `messages` and never touches the invoice, so every open overdue invoice costs 2 subrequests EVERY tick and a truncated tick re-spends on the same prefix: **the tail never gets a draft, permanently.** Budget is per INVOCATION while every tenant loops inside one, so one tenant's book starves later slugs — silently, because the per-tenant catch reports success. 1 row filed, L430 corrected twice (count + verdict). |
 | 753 | §1306 | **§1307** | **THE SIBLING AGENT THAT STOPPED ONE LINE SHORT.** The exceptions queue LANDED (WP-10, REQ-082) and is a durable read over `exception.raised + osd.captured`; the DLQ consumer did NOT, and REQ-169 is the Biller sweep, not a DLQ reader. So an outcome is visible iff it WRITES one of those kinds. `pod.signed` runs TWO jobs under one message: the Biller (backstopped) and the interline split (**not** — the anti-join self-clears on `invoice.issued`, and no predicate reads `split.computed`). `interline-split.ts` has **0 hold markers vs the Biller's `emitTerminalHoldMarker`**, and `below_floor` is *always* taken (approvals unwired), so every below-floor AP settlement holds into a `console.log`. Corrected: `biller.ts:115` claims its marker surfaces on the exceptions queue — its kind is `message.received`, which that filter excludes. **A backstop is only as wide as its predicate.** 2 items filed, 0 behaviour changed. |
@@ -77148,7 +77149,8 @@ of them under either ordering.
 `runRetentionSweep` · `runAllTenants` each wrap their per-tenant body in the identical catch, with the identical
 comment. No cron test injects a failing TENANT. The technique already exists in this repo —
 `watchtower-cron.test.ts` pins a per-MODULE catch with an `errSpy` and asserts the error was contained — so
-this is a gap in application, not in method. Recorded rather than built out across seven wrappers in one phase.
+this is a gap in application, not in method. ~~Recorded rather than built out across seven wrappers in one
+phase.~~ **CLOSED the next phase — §1310.**
 
 **Running tally: 139 of 139 load-bearing claims probed — 91 verified, 37 gaps closed, 12 claims corrected;
 9 operational items recorded.**
@@ -77157,3 +77159,61 @@ this is a gap in application, not in method. Recorded rather than built out acro
 keeping: **a documented gap is still a gap.** This one carried a date, a measurement, and an honest reason it
 had not been closed — and three later phases then reasoned *from the behaviour it left unproven*. Prose saying
 "not tested" earns no credit that prose saying "tested" would not have earned falsely.
+
+
+## §1310 — PHASE GATE: the non-vacuity assertion is what found the architecture
+
+§1309 closed the per-PARTY containment and left its sibling open: eight cron wrappers carrying the identical
+*"a per-tenant fault is contained + logged so one tenant never stalls the rest"*, with no test injecting a
+failing tenant. Closed here — nine tests, table-driven over every wrapper, `workers/agents` 131 → 140 green.
+
+### The design decision that makes it mean anything
+
+Break **tenant-a, not tenant-b.** `TENANT_SLUGS = Object.keys(TENANT_BINDINGS)` is insertion-ordered, so
+`tenant-a` is iterated first. Breaking the LAST tenant would leave every assertion passing **with the catch
+deleted** — the throw would land after the healthy tenant had already been swept. That is §1281's shared-outcome
+blindness in its most tempting form, because breaking either tenant *looks* equally valid. A ninth test pins the
+premise itself (`TENANT_SLUGS[0] === "tenant-a"`), so a future reorder of the binding map fails loudly instead
+of silently degrading the other eight into tautologies.
+
+Each wrapper asserts two different things: that it RESOLVES rather than rejects (the containment, order-
+independent), and that the healthy tenant's log still appears (the CONTINUATION, which the first cannot
+distinguish).
+
+### The assertion that corrected me
+
+Every test also demands the FAULT ACTUALLY FIRED — `errSpy` must carry the broken tenant's error. Without it a
+wrapper that never touched the broken binding passes trivially, which is the `assertions: 0 over an empty
+corpus` shape this audit keeps meeting.
+
+It fired immediately, on the daily anchor: *"the broken tenant was never reached — this test proves nothing."*
+The probe explained why, and it was **my test that was wrong, not the code**:
+
+> `[REQ-014] anchor run (tenant tenant-a) could not determine its work at stage 'first_day' — NOTHING was
+> anchored: D1_DOWN`
+> `[REQ-014] anchor run: the scan failure could not be recorded`
+
+`runDailyAnchor` contains its own faults and RETURNS rather than throwing, so `runAllTenants`'s catch is a
+backstop for a narrower class (a `resolveTenantDb`/`tsaFor` fault) and is correctly not exercised by a broken
+D1. The containment claim holds for that wrapper — the observable signal simply comes from one layer lower, and
+the second line is the correlated-fault case: the same broken D1 owns both the day and the failure record, so
+the recorder fails too, loudly. The row now asserts the real signal and states that continuation is not
+observable through logs there, since the anchor emits no per-tenant success line.
+
+**Had the test asserted only "it resolves", the anchor would have gone green and pinned nothing.** The
+non-vacuity check is what surfaced a genuine architectural difference between the eight wrappers.
+
+### Mutation proof: the class, then its members
+
+Adding `throw err` to all seven per-tenant catches at once turned **exactly seven tests red — one per wrapper**,
+never a shared failure, so each member is individually pinned rather than the group passing on one instance.
+The anchor's test stayed GREEN under the same mutation, which independently confirms its containment is not
+that catch. The roster-premise test stayed green too. `index.ts` restored byte-identical.
+
+**Running tally: 140 of 140 load-bearing claims probed — 92 verified, 38 gaps closed, 12 claims corrected;
+9 operational items recorded.**
+
+**STOP.** 140/140 green in `workers/agents`, lint and typecheck clean, zero source changed. The lesson is about
+test design rather than this code: **a containment test's non-vacuity check is not paperwork — it is the part
+that can discover you are wrong about the system.** Both real findings this phase came from it, and neither
+would have appeared in a suite that asserted only the happy outcome.
