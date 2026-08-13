@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 798 | §1351 | **§1352** | **THE LAST COPY-SET — AND A MUTATION SHOWING WHY PARITY ALONE IS NOT ENOUGH.** Read `tsaFor`/`tsaClientFor` rather than assuming §1351's verdict transferred: byte-identical factories choosing the REQ-014 timestamping authority, gated on `ENVIRONMENT !== "prod"` → `FakeTsaClient`. **Opposite failure direction from §1351**: that one fails CLOSED (an abstention); this can fail **OPEN** — prod gets a fake timestamper and the anchor emits receipts that are not timestamps, every gate green. §1066 covered a different question (doubles absorbing duplicates); **0 test files named either factory**. Gate built with identity + a property. **M1** drift one copy → identity REDs. **M2** invert the gate in BOTH → identity stays **GREEN**, only the PROPERTY REDs — §786's warning made concrete. Enumeration complete: 5 sets, all held. |
 | 797 | §1350 | **§1351** | **SEARCHED FOR COPIED LOGIC — 5 COPY-SETS, AND CLOSED THE ONE HELD BY NOTHING.** §1350's refinement (SHARED vs COPIED) makes "find the copies" mechanical, and it had never been run: normalising every shipped function body and grouping across files yields **five copy-sets**. Three are already held (`uuidFromSeed`/`deterministicUuid` ×7 by `id-determinism`, the recipient pair by §786's parity test). **`readModelText` is byte-identical in ALL THREE LLM consumers — 476 chars, zero tests naming it.** A drift fails CLOSED (every copy returns `undefined`, callers abstain), which is exactly why it would go unnoticed: the symptom is an abstention RATE, not an error. Closed with §786's own pattern + its two guards (non-vacuity ≥120 chars; the fail-closed property). **Mutation-proved.** `tsaFor`/`tsaClientFor` left recorded, not assumed. |
 | 796 | §1349 | **§1350** | **§1349's METHOD RUN AS A SEARCH — LOWEST-ATTENTION MONEY SYMBOL, AND WHY ITS SILENCE IS FINE.** Ranked money-path symbols by record verdicts vs code references: `composeInvoice` 14, `allocateCents` 12, `apportion` 11 … **`decideSplit` 1** — an order-of-magnitude outlier implementing CLAUDE.md rule 5 ($222,084 regression, REQ-040). The LAW has 36 verdicts, but they audit the **Biller/AR** path; `decideSplit` is the **AP** sibling. Both halves check out: `executingShare` is **single-sourced** in `@shuddl/rater` and imported by both (the AP path calls the law rather than re-implementing it), AND the split is independently pinned (*"HOLDS below-floor on the EXECUTING SHARE, never the gross"*). **Refinement: rank by attention, then ask whether the logic is SHARED or COPIED** — §1348's recipient rule was copied, and both copies needed pinning. |
 | 795 | §1348 | **§1349** | **THE SIBLING OF §787's TITLE — A CLEAN NEGATIVE, VIA TWO OF MY OWN MEASUREMENT ERRORS.** §787 is titled for the RECIPIENT; the sibling is the CONTENT — and §785's own opening names both (*"a wrong recipient OR a wrong document"*) then audits one. Record attention is 15 verdicts vs **1**. **Error 1:** I read that as "unaudited" — `recall` measures the RECORD, not the code, which has 2 test files and a CR/LF header-injection guard (the catastrophic case, pinned as §1347 predicts). **Error 2:** grepping the test for a money alternation ending in `\$` (escaped out of this cell — 4th pipe-split this session) returned 26 hits — the `\$` was matching **template interpolation**; the source's real count is **zero**. The email carries NO money figure (a proof artifact; the invoice is named in the subject), so the sibling closes structurally: nothing to be wrong about, and the details it does render are asserted. |
@@ -79144,3 +79145,49 @@ concierge and migrator"*. Source restored byte-identical.
 it is left for a phase that can read what those two actually do rather than assume the `readModelText` verdict
 transfers. **The search itself is the durable part** — five copy-sets, mechanically derived, is a list this
 repo did not have, and three of the five were already held by exactly the kind of test §786 invented.
+
+
+## §1352 — PHASE GATE: the last copy-set, and a mutation that shows why parity alone is not enough
+
+§1351 left `tsaFor`/`tsaClientFor` recorded rather than assumed — *"left for a phase that can read what those
+two actually do."* Read: they are byte-identical factories deciding which timestamping authority the REQ-014
+daily anchor talks to, and their first line is
+
+    if (env.ENVIRONMENT !== "prod") return new FakeTsaClient();
+
+**This pair is not §1351's case, and the difference is the failure direction.** `readModelText` fails CLOSED —
+every copy returns `undefined`, every caller abstains, and a drift costs an abstention. This one can fail
+**OPEN**: a drift that widened either copy's non-prod branch hands prod a `FakeTsaClient`, and the anchor keeps
+emitting receipts that are not timestamps. REQ-014 tamper evidence, silently synthetic, with every gate green
+because the anchor still "succeeds".
+
+**What the record already had, and what it did not.** `recall "FakeTsaClient"` → §1066, the test-double sweep,
+which classified it as unable to mask a duplicate (*"no dedupe path"*). That is a different question from
+whether the FACTORY picks it correctly. Measured: **zero test files name `tsaFor` or `tsaClientFor`.**
+
+### Two mutations, and the second is the point
+
+`tsa-client-parity.test.ts` asserts identity plus a PROPERTY, and both halves were proved to fire:
+
+| mutation | identity case | property case |
+|---|---|---|
+| **M1** — drift ONE copy (`TSA_URL_MISSING` → `TSA_URL_ABSENT`) | **RED** | green |
+| **M2** — invert the gate in **BOTH** (`!==` → `===`) | **green** | **RED** |
+
+M2 is §786's warning made concrete: *"a parity test alone would happily certify two copies that are identically
+WRONG."* Two copies that agree on `=== "prod"` are in perfect parity and hand production a fake timestamper.
+**The identity assertion cannot see it; the property assertion is the only thing that can** — and it is the
+same relationship §1312 found between "the sweep resolves" and "the loop continues", where the weaker assertion
+stays green under the mutation that matters.
+
+**The copy-set enumeration is now complete: five sets, all held.** Three were already covered
+(`uuidFromSeed`/`deterministicUuid` ×7, the recipient pair), and §1351/§1352 closed the two that were not.
+
+**Running tally: 265 of 265 load-bearing claims probed — 183 verified, 48 gaps closed, 23 claims corrected;
+12 operational items recorded.**
+
+**STOP.** The durable lesson is about what a parity test is FOR: **parity pins that copies cannot diverge; it
+says nothing about whether what they agree on is right.** Every duplicate-body gate therefore needs a second
+assertion aimed at the property whose failure direction actually matters — fail-closed for §1351's envelope
+reader, fail-OPEN for this one — and picking that property requires knowing which way the code breaks, which a
+diff cannot tell you.
