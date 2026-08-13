@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 692 | §1244 | **§1245** | **§1244'S CLASS SWEPT — 25 DEPLOYMENT CLAIMS IN SOURCE, AND THE ONE REAL GAP WAS A CORS ALLOWLIST BOUND BY PROSE.** A source comment asserting a DEPLOYMENT fact can be falsified by an edit no TypeScript gate reads; 25 exist. Verified the checkable ones against the configs: `workers_dev = false` holds for all five workers in every scope, and §1218's absent-flag claims re-confirmed. **The gap:** `CORS_ALLOWED_ORIGINS` and the apps' `custom_domain` routes are two copies of *which hostnames a browser loads a surface from* — they agree exactly (command, driver, portal, and `track`, a SECOND custom domain on the portal worker, which is why 4 origins fit doc 00's 3 surfaces) and **nothing compared them**. Failure is one-way: a new origin missing from the list boots the surface then fails every API read with a causeless CORS error. New gate is an **inclusion** check, never equality — the list deliberately keeps RFC 2606 placeholders. Mutation-proved both ways plus a positive control on its own parser. |
 | 691 | §1243 | **§1244** | **§1243'S RULE ON THE CONSTITUTIONAL CHOKEPOINT — AND IT REACHED OUT OF THE CODE.** REQ-025 says *the tenant resolves from the JWT claim ONLY*, which is a chokepoint claim, so all **49** tenant-db resolutions were classified by SLUG SOURCE rather than by call shape: **33** JWT `session.tenant`, **12** server-side cron enumeration, 2 host-map/DO-self, 1 server-authored queue trigger, 1 MAC-verified capability claim — **0 client-supplied**. The one unauthenticated selection (`pub/quote.ts`) uses a server-side host map whose comment claims *never the client-forgeable Host header* — **an assertion about the DEPLOYMENT, not the file**. Verifying it meant leaving TypeScript for `wrangler.toml`: exact zone-bound routes and `workers_dev = false`, so a forged Host cannot route here. **The least-controlled input to this chokepoint is a routing rule.** Consequence stated: `HOST_TENANTS` holds only synthetic placeholders (REQ-167), so the route 404s by construction in prod until onboarding provisions the host — the recorded design (genesis/13). |
 | 690 | §1242 | **§1243** | **WHAT REACHES A CLIENT IN AN ERROR BODY — A FOUR-HOP CHAIN, CLEAN AT EVERY HOP.** New surface: the client-facing analogue of §1225's wrong operator messages is a LEAK. Traced end to end because a leak analysis is a chain and any hop can launder the previous one's guarantee. (1) The catch-all logs `err.message` but returns a fixed `"INTERNAL ERROR"` — **mutation-proved**, leaking it REDs a test named exactly for the property. (2) `extras` has ONE caller, typed to a two-member union — closed by the compiler. (3) 15 of 16 messages are literals; the one variable has two callers, both literals. (4) `error.ts:48` DOES pass `err.message` for `ApiError` by design — and **reading only hop 1 would have called that a leak** — but all three non-literal constructions are safe: a table keyed by an enum, and `dunning`'s detail interpolating CLIENT-SUPPLIED ids + a status enum on an authenticated route. **A guarantee stated at a chokepoint is only as strong as the least-controlled input reaching it.** |
 | 689 | §1241 | **§1242** | **§1241'S DISCIPLINE GENERALISED TO IDEMPOTENCY — THE MONEY PATHS ALREADY WRITE THE SECOND CALL.** *Running twice changes nothing* is unfalsifiable without running twice, and a false claim here is a double invoice. 98 files carry such a claim; narrowed to the five entry points where failure moves money and checked mechanically (idempotency-NAMED test + ≥2 invocations in its body): **5 of 5**, with 3–5 calls each — biller, booking, Stripe credits, sequencer, dunning. The credits case asserts *exact-redelivery of both **in either order***, i.e. **commutativity**, which is what a webhook redelivery actually needs since Stripe promises no ordering. **Mutation-proved rather than read**: neutralising the sequencer's by-event-id dedup REDs two tests. Thread closes — §1240's `stripe_refs` gap was the EXCEPTION (1 of 4 accumulators, 0 of 5 idempotency paths), and its cause is visible: seeding `'{}'` is the one start where the second call is not needed to write the test. Scope: 5 of 98 checked. |
@@ -73945,3 +73946,49 @@ provisioning as an onboarding step (genesis/13), and the audit already names the
 traced to a server-controlled origin with none client-supplied, the single unauthenticated selection's guarantee
 followed out of the code into the deployment config that actually enforces it, and its dark-in-production
 posture confirmed as the recorded design rather than an omission.
+
+## §1245 — PHASE GATE: §1244's class swept — 25 deployment claims in source, and the one real gap was a CORS allowlist bound by prose
+
+**§1244 found a code comment whose truth lived in `wrangler.toml`.** That is a class: a source comment asserting
+a **deployment** fact can be falsified by an edit no TypeScript gate reads. **25** such comments exist in shipped
+source. The checkable, security-relevant ones were verified against the configs:
+
+| Claim | Verified against | Result |
+|---|---|---|
+| `workers_dev = false` keeps billing/mcp off the auto subdomain | all five worker configs | **true** — every worker sets it false in every scope |
+| the flag is "absent from every wrangler.toml" | §1218's four capability seams | **true**, re-confirmed |
+| the CORS list is "the real deploy origins" | `apps/*/wrangler.toml` custom domains | **true today** — and bound by nothing |
+
+### The gap: two copies of one fact, with no mechanism between them
+
+`CORS_ALLOWED_ORIGINS` and the app workers' `custom_domain` routes both answer *which hostnames a browser loads
+a SHUDDL surface from*. Measured, they agree **exactly**:
+
+```
+command.shuddl.tech   driver.shuddl.tech   portal.shuddl.tech   track.shuddl.tech
+```
+
+— the fourth being a **second custom domain on the portal worker** for the public status page, which is why four
+origins are consistent with doc 00's three surfaces. Nothing compared them. `cors.test.ts` pins the list against
+the middleware that mounts it; no test pins it against the routes that create the need for it. That is §1226's
+shape exactly: **duplicated claims are debt precisely when no mechanism would notice them diverging.**
+
+**The failure mode is one-way and unpleasant.** A newly deployed origin missing from the allowlist gives a
+surface that boots and then fails every API read in the browser with a CORS error naming no cause. The reverse —
+an allowlisted origin with no deployment — is harmless and here **deliberate**: the list keeps two RFC 2606
+`.example` placeholders the screenshot harness asserts against, plus localhost.
+
+**So the new gate is an INCLUSION check, never equality** — asserting equality would fail on the placeholders on
+day one and be deleted by the first person it inconvenienced ([[semantic-false-positives-need-a-marker]]).
+
+`tools/deploy/cors-origin-parity.test.ts`, mutation-proved both ways: dropping `driver.shuddl.tech` REDs the
+inclusion test; adding `https://*.shuddl.tech` REDs the wildcard test, which pins `cors.ts`'s own sentence
+*"There is no wildcard fallback."* A fourth case is a **positive control** on the parser itself — every parsed
+host must look like a hostname, and the three named surfaces must each be found — so the inclusion check cannot
+pass because the toml parser returned nothing.
+
+Suite 111 → **112** files, 1,303 → **1,307** tests, failures unchanged at the 3 owner-held REQ-289 ones.
+
+**STOP.** §1244's deployment-claim class enumerated at 25 and its checkable members verified against the configs,
+the one pair bound by nothing but prose given a gate, that gate shaped as an inclusion check so the deliberate
+placeholders do not make it a nuisance, and both its directions plus its own parser mutation-proved.
