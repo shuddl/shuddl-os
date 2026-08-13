@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 789 | §1342 | **§1343** | **POINTED §1342's INSTRUMENT AT THIS SESSION'S OWN FINDINGS.** The honest way to act on "I never used `recall`" is to run it against what I claimed to find. `recall ack990Key` returns **only §1330 and the row it amended** — so the 990 double-send is genuinely new, confirmed by the record's instrument rather than by my confidence, which matters because it sits in a file with **10 prior verdicts**. And the tool already encodes the discipline: on an exact-phrase miss it prints *"the exact phrase is absent, but ITS TERMS ARE NOT. **This is not novelty**"* with term counts and owning sections — a built-in guard against the precise inference I nearly made at §1325 and did make at §1311/§1317. Reaching for it would have corrected the REASONING, not just the search. |
 | 788 | §1341 | **§1342** | **THE REPO SHIPS THE INSTRUMENT I FAILED TO USE, TWICE.** Chasing §1341's undeclared-corpus discriminator to its last instance found `recall.ts@SOURCES` — not a gate, but the repo's **`pnpm recall`**, which searches the record and returns each hit WITH THE SECTION THAT OWNS IT. **I did not use it once in 37 phases**, while failing twice at exactly its task: `recall "how many are open"` returns §945 (which §1317 re-derived), and `recall "per-tenant containment"` returns **§410** (the work §1311 duplicated). Both misses were inside its corpus; both cost a phase. A grep searches STRINGS; recall searches the RECORD and names the owning verdict. Corpus limit now stated in the tool: 3 files of ~45, kept narrow deliberately (§1053 noise). |
 | 787 | §1340 | **§1341** | **AUDITED THE FOUR GATES I BUILT THIS SESSION — ZERO DEFECTS — AND REVERTED A "FIX" THE FIRST RESULT DISPROVED.** No fixed windows in any. Their hand-kept lists are safe for a nameable reason: a list is safe as the SUBJECT of an equality assertion (drift REDs it) or as a declared subset with a **derived completeness check** (`r2-before-row` does exactly this); it is dangerous only as an undeclared CORPUS — which is what `SWEEP_COUNT_FILES` is, and why that one gate produced three defects while these four produced none. So I applied `r2-before-row`'s pattern to it — and it **fired on `sweep-214.ts`, whose text is *"driving two sweeps concurrently"***: two INVOCATIONS, not a population. Reverted; the roster's own comment had already measured this. **The transfer test is whether the predicate is MECHANICAL or SEMANTIC.** |
 | 786 | §1339 | **§1340** | **FINISHED THE FIXED-WINDOW ENUMERATION — THE BLIND ZONE WAS IN MY OWN GATE.** Measured all five verdict-by-window gates. **The dangerous direction INVERTS between them**: `api-conventions` is unsafe when the window is too LONG (borrows a neighbour's `redirect:`), `cors-origin-parity` when too SHORT (drops a host from the browser-origin set, so a deployed origin missing from the CORS allowlist passes) — margins 4 and 2 lines. `ci-contract`/`list-endpoint-pagination` are structural in practice. **`checklist-figures` — the gate I wrote at §1313 — fell back to 3000 chars when a function is last in its file**, and **ten** last-in-file exports already exceed that (largest **31,972**): the §1313 under-detection reproduced inside the gate built to prevent it. 0 missed today (both counts yield 11); fallback now end-of-file. |
@@ -78761,3 +78762,40 @@ practice: **the repo already contained the instrument for the discipline I kept 
 mis-executing.** "Search the record before the code" failed twice not because the rule is hard but because I
 implemented it by hand each time, with a scope guessed per attempt, while a purpose-built command sat unused in
 `package.json`.
+
+
+## §1343 — PHASE GATE: applying §1342's instrument retroactively to this session's own findings
+
+§1342 found that the repo ships `pnpm recall` and that I had never used it. The sharpest way to act on that is
+not to promise to use it — it is to point it at **my own findings from this session** and ask whether the
+record already held them.
+
+| query | result |
+|---|---|
+| `ack990Key` | **2 verdicts: §1330 and the row §1330 amended.** Nothing prior — the 990 double-send finding is genuinely new |
+| `"990 ack"` | 14 mentions across 10 verdicts, all about OTHER aspects (EDI send-time date stamping, storage guards) — a well-trodden file, an untouched mechanism |
+| `"interline split hold"` · `"import row cap"` | exact phrase absent; the tool volunteers the term frequencies instead |
+
+So §1330 survives its own audit. That is worth knowing with certainty rather than assuming, because it was the
+session's most consequential finding and the one most likely to be a re-derivation, sitting as it does in a
+file with ten prior verdicts.
+
+### The tool already encodes the discipline I spent the session re-deriving
+
+When an exact phrase misses, `recall` does not report absence. It prints:
+
+> *"the exact phrase … is absent, but ITS TERMS ARE NOT. **This is not novelty**"*
+
+…followed by each term's mention count and first owning section. That is a built-in guard against exactly the
+error I nearly committed at §1325 (nearly publishing SHA-pinning as a new finding until a grep found §594) and
+did commit at §1311 and §1317. **The instrument does not merely search the record — it refuses to let an empty
+exact-match read as novelty**, which is the specific inferential mistake this session made three times.
+
+**Running tally: 238 of 238 load-bearing claims probed — 162 verified, 46 gaps closed, 23 claims corrected;
+12 operational items recorded.**
+
+**STOP.** Two things settled. §1330's finding is confirmed novel by the record's own instrument rather than by
+my confidence. And the more uncomfortable one: **the discipline I have been deriving lesson-by-lesson for
+thirty-eight phases was already implemented, in a command, with the anti-novelty inference built in.** The gap
+was never knowledge — §1342 established the tool existed and I did not reach for it. This phase establishes
+that reaching for it would also have corrected the reasoning, not just the search.
