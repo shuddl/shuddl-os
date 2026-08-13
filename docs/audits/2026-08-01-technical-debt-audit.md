@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 801 | §1354 | **§1355** | **THE SECOND UNUSED INSTRUMENT — AND THE OBVIOUS FIX WOULD HAVE MADE §1354 PERMANENT.** §1354's blindness has a purpose-built tool: `pnpm delta` (§1081), written for the identical failure (*"reproducing a number is not the same as IDENTIFYING it"*). **Never used** — the second such instrument after `recall` (§1342). Its baseline was **inverted from reality**: 3 entries blaming the REQ-289 row, all HEALED (those suites are 34/34 green, both gates PASS), while the one live failure was unlisted. **The tempting fix — baseline `citation-links` — would make §1354 PERMANENT**, since that test asserts an ARRAY and marking it expected-failing absorbs every future rot. **`delta` is TEST-granular; the defect is SUB-test.** Baseline emptied with both decisions recorded. |
 | 800 | §1353 | **§1354** | **STOPPING POINT — BOARD RE-MEASURED AT `4a201a0`: 21 PASS · 2 FAIL · 5 BLOCKED, AND ONE FAIL WAS MINE.** 40 commits since §1314; both new gates verified WIRED via `vitest list` before reading the board (§1304). `citations` reported **2 rotted citations, not 1** — the standing `coverage.ts` rot plus a **DANGLING PATH I wrote at §1327** (`contracts/copilot.ts` instead of `packages/contracts/src/copilot.ts`). **It survived ~25 phases because `citation-links.test.ts` asserts an ARRAY inside ONE test**: the summary reads `1 failed` whether one citation is rotted or two, so the file-level count is invariant under what it counts — §1281's shared-outcome shape as **N defects → one failing test**. Fixed and anchored; back to 1. **When a gate aggregates N findings into one assertion, read the count it prints, not its pass/fail line.** |
 | 799 | §1352 | **§1353** | **APPLIED §1352's LESSON TO THE PRE-EXISTING PARITY GATES.** Swept every parity-shaped gate for a PROPERTY beyond identity. **My detector was wrong on the first file it flagged**: `stream-id-parity` scored 0 yet asserts *"the pattern admits the three real stream shapes and nothing else"* — a property written with `.toBe(true/false)`, invisible to a `toMatch`/`toContain` counter (slash, not a pipe — 5th pipe-split this session). **An assertion's SYNTAX cannot tell you whether it is a property**; they had to be read. `gl-accounts-parity` is fine (four *"only canonical accounts"* cases). **`tenants-parity` is pure identity in all three workers** — two rosters that both drop a tenant stay green. It IS caught, but by `tenant-resolution.test.ts` and by the premise assertions I added at §1311/§1312 for a different purpose. §1335's split-property shape; all three annotated. |
 | 798 | §1351 | **§1352** | **THE LAST COPY-SET — AND A MUTATION SHOWING WHY PARITY ALONE IS NOT ENOUGH.** Read `tsaFor`/`tsaClientFor` rather than assuming §1351's verdict transferred: byte-identical factories choosing the REQ-014 timestamping authority, gated on `ENVIRONMENT !== "prod"` → `FakeTsaClient`. **Opposite failure direction from §1351**: that one fails CLOSED (an abstention); this can fail **OPEN** — prod gets a fake timestamper and the anchor emits receipts that are not timestamps, every gate green. §1066 covered a different question (doubles absorbing duplicates); **0 test files named either factory**. Gate built with identity + a property. **M1** drift one copy → identity REDs. **M2** invert the gate in BOTH → identity stays **GREEN**, only the PROPERTY REDs — §786's warning made concrete. Enumeration complete: 5 sets, all held. |
@@ -79284,3 +79285,51 @@ most practical one this session has produced about reading gates: **when a gate 
 assertion, its pass/fail line is not a measurement — read the count it prints.** I had a periodic full-board
 practice precisely so drift could not accumulate, and the drift still accumulated for twenty-five phases inside
 a line I had learned to skip.
+
+
+## §1355 — PHASE GATE: the second unused instrument, and why the obvious fix would have made §1354 permanent
+
+§1354's blindness — reading `1 failed` for twenty-five phases without asking whether it was the SAME one — has
+a purpose-built tool in this repo. `tools/testing/delta.ts`, `pnpm delta`, written at §1081 for the identical
+failure:
+
+> *"§1080 reproduced it — three runs, four failures against a baseline of three — and committed anyway,
+> because reproducing a number is not the same as IDENTIFYING it … It answers exactly one question: is anything
+> failing that was not already failing?"*
+
+**I never used it.** That is the second instrument this session has found unused after failing at the task it
+performs — `recall` was the first (§1342). Both were built because a discipline failed repeatedly, and both sat
+in `package.json` while I re-implemented the discipline by hand and failed at it again.
+
+### Its baseline was exactly inverted from reality
+
+Three entries, all blaming the owner's uncommitted REQ-289 register row. Re-run: `coverage.test.ts` and
+`traceability.test.ts` are **34/34 GREEN**, and the board reports both gates PASS. **All three had healed** —
+the register now classifies that row (292 rows, 100% accounted). §1081 reports healed entries precisely because
+*"a silently-fixed entry is news too"*, and leaving them would let a genuine future regression in those files
+read as expected.
+
+### The obvious fix was wrong, and the reason is the finding
+
+The tempting move is to baseline the one live failure — `citation-links`, rotted into another workstream's
+uncommitted file. **That would make §1354's defect permanent rather than fix it.** That test asserts an ARRAY
+of rotted citations, so marking it expected-failing absorbs every FUTURE rot into the same green-looking line
+— which is precisely how a dangling path of mine survived twenty-five phases.
+
+**`delta` is TEST-granular; that failure is SUB-test.** A baseline keyed on (file, title) cannot distinguish
+"the same test failing for the same reason" from "the same test failing for one more reason", and the
+citation gate is the exact shape where those differ. The right instrument there is the count the gate itself
+prints — *N rotted citation(s) of M checked* — which is what §1354 concluded and what no baseline can replace.
+
+Baseline emptied, with both decisions recorded in the file: what healed, and why the live failure is
+deliberately absent.
+
+**Running tally: 274 of 274 load-bearing claims probed — 190 verified, 50 gaps closed, 25 claims corrected;
+12 operational items recorded.**
+
+**STOP.** The pattern across §1342 and §1355 is worth stating as a property of this session rather than two
+anecdotes: **when a discipline in this repo has failed often enough to be written down, someone has usually
+already built the tool — and the tool is the thing I do not reach for.** The corollary is sharper: reaching for
+it would not merely have saved the phase, it would have prevented the specific error, because both tools encode
+the inference (`recall`'s *"this is not novelty"*, `delta`'s *"is anything failing that was not already
+failing"*) that I got wrong by hand.

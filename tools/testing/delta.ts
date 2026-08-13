@@ -31,24 +31,21 @@ import { repoRoot } from "../checks/repo-root.js";
 interface Known { readonly file: string; readonly title: string; readonly why: string; readonly until: string }
 
 const BASELINE: readonly Known[] = [
-  {
-    file: "tools/traceability/coverage.test.ts",
-    title: "1) classifies every row of the real register → 100%, zero unaccounted",
-    why: "the owner's uncommitted REQ-289 row (status ACTIVE, wp GTM-0) is unaccounted",
-    until: "the owner commits genesis/09 with a classifying status for REQ-289",
-  },
-  {
-    file: "tools/traceability/coverage.test.ts",
-    title: "3) disposition is pure + total: every (status,wp) → exactly one known bucket, deterministically",
-    why: "same uncommitted row — its (status,wp) pair falls in no known bucket",
-    until: "the owner commits genesis/09 with a classifying status for REQ-289",
-  },
-  {
-    file: "tools/traceability/traceability.test.ts",
-    title: "keeps the authoritative register contiguous through its approved terminal ID",
-    why: "the register carries 289 rows against an approved terminal id of REQ-288",
-    until: "the terminal id advances, or the uncommitted row is removed",
-  },
+  // §1355 — EMPTY, and that is a measurement rather than an omission.
+  //
+  // This list held three entries, all blaming the owner's uncommitted REQ-289 register row. Re-run 2026-08-13:
+  // `tools/traceability/coverage.test.ts` and `traceability.test.ts` are **34/34 GREEN**, and the merge board
+  // reports `coverage` and `traceability` as PASS. All three HEALED — the register now classifies that row
+  // (292 rows, 100% accounted). §1081 reports healed entries precisely because "a silently-fixed entry is news
+  // too", and leaving them here would have let a genuine future regression in those files read as expected.
+  //
+  // THE ONE LIVE FAILURE IS DELIBERATELY NOT LISTED. `citation-links.test.ts` fails on a rot into another
+  // workstream's uncommitted `coverage.ts` (valid at HEAD, proved at §1314/§1354). Baselining it would make
+  // §1354's defect PERMANENT rather than fix it: that test asserts an ARRAY of rotted citations, so marking it
+  // expected-failing absorbs every FUTURE rot into the same green-looking line — which is exactly how a
+  // dangling path of mine survived ~25 phases. **`delta` is TEST-granular; that failure is SUB-test.** The
+  // right instrument for it is the gate's own printed count ("N rotted citation(s) of M checked"), not this
+  // baseline.
 ];
 
 export interface Failure { readonly file: string; readonly title: string }
