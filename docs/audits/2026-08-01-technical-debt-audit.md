@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 774 | §1327 | **§1328** | **THE SECOND REACH CLAIM — APPROVALS HAVE ONE HOME, ENUMERATED.** Swept source for chokepoint claims: **7 exist**; the sequencer's is already gated by `append-chokepoint`, and `approve.ts` has §1327's exact two-surface shape (*"ONE home, every caller — browser or MCP — goes through it"*). Four links all verified: the general route **403s the kind for every role**; **exactly ONE append site** exists (`approvals.ts:96` — every other hit is schema/projection/visibility); MCP reaches it via `POST /…/approval-decision`; and the route re-checks `required_role` server-side. **The role check is SYMMETRIC** — finance→ops-required is ALSO 403, segregation of duties both ways rather than a privilege ladder. Both §1327 and §1328 found the prose UNDERSTATED the guarantee. |
 | 773 | §1326 | **§1327** | **THE COPILOT'S HONESTY GATE IS NOT MERELY SHARED — IT IS THE ONLY WAY TO BUILD AN ANSWER.** Targeted by RECENCY per §1323. §1255 proved the gate's LOGIC (3 layers, layer 2 mutation-proved) and described its REACH in prose (*"SHARED by every adapter"*) — a call-site claim, the class that breaks one import away. Enumerated: 3 adapters, 3 call sites, and **only 2 `AnswerResult` constructions repo-wide**, both inside the gate module (`:43` abstain, `:60` grounded). **A non-abstained answer is UNCONSTRUCTIBLE outside the gate** — an adapter cannot forget to call it because there is nothing else to return. Adds a 4th layer §1255 did not claim: universality by construction. Both §1255 construction claims re-verified (`EventRef` `.strict()` + required `kind`). |
 | 772 | §1325 | **§1326** | **SWEPT THE REOPEN TRIGGERS, PRIORITISED BY WHICH ONES FIRED.** Of the OPEN rows, **17 carry a locally-runnable expiry**; the rest name decisions. The refinement that makes the sweep nearly free: don't run all of them — **find the ones whose CONDITION fired**, decidable in one `git status`. Two name `genesis/09`, which IS modified by the concurrent workstream, so their conditions had fired unrun. Both clean: `check:coverage` exit 0 with **100%, 292 of 292 register rows**, and **11 status-drift rows — identical to 2026-08-12**. Two more checked and NOT fired (no denylist file, `identity-leak.ts` untouched since 08-08; `captures.ts` not among the concurrent edits though its siblings are). The prose's *"288 rows"* is correct dated history, not drift — no LIVE claim states a register count. |
 | 771 | §1324 | **§1325** | **RAN A FILED ROW'S OWN REOPEN TRIGGER.** External claims that leave a LOCAL trace are decidable here even when their external half is not. Converted three INHERITED claims to measured ones: `ci.yml`'s triggers (**§1316 argued FROM this and had it from a row, not the file**), L355's *"no `permissions:` block"* (still true), and §594's SHA-pinning (all five `uses:` 40-hex, zero mutable tags — nearly published as NEW until searching the record). **The non-re-verification part:** L355's expiry names a LOCAL condition never run — *"whenever a workflow gains a step that writes to the repo"*. Run: **zero** write-shaped steps; the only artifact steps are SHA-pinned `upload-artifact`, needing no repo write scope. The row's "safe today" now measured. |
@@ -78092,3 +78093,43 @@ guard's LOGIC and described its REACH in prose. Logic is what mutation testing v
 enumeration verifies, and the two need different instruments. **The sentence most worth re-checking in a
 finished audit is the one describing where a verified mechanism applies** — and in this case it was not merely
 true, it was understated.
+
+
+## §1328 — PHASE GATE: the second reach claim — approvals have ONE home, verified by enumeration
+
+§1327's method: in already-audited code, the sentence worth re-checking is the one describing a mechanism's
+REACH, because logic is verified by mutation and reach only by call-site enumeration. Swept the source for
+chokepoint claims — **seven** exist. The sequencer's (*"the single chokepoint EVERY append traverses"*) is
+already gated by `append-chokepoint.ts` with a named allowlist. The one with §1327's exact two-surface shape is
+`approve.ts`: *"the check has ONE home, and every caller — browser or MCP — goes through it."*
+
+It guards an authority decision reachable from two surfaces, which is where a bypass would actually pay.
+**Four links, all verified:**
+
+| link | measured |
+|---|---|
+| the general events route REFUSES the kind | `BLESSED_DECISION_KINDS = ["approval.decided"]` → **403 for every role**, before the DO append |
+| exactly ONE appender exists | `git grep '"approval.decided"'` non-test → **`approvals.ts:96` is the only append site**; every other hit is schema, projection, visibility, or the refusal set itself |
+| MCP reaches it through that route | `mutatingCallApi` → `POST /v1/shipments/{id}/approval-decision` — the blessed path, not a general write |
+| the blessed route re-checks the matrix | `required_role` enforced SERVER-SIDE from the loaded OPEN approval, so an ops principal cannot record a finance-required decision |
+
+### The role check is symmetric, which is stronger than it needed to be
+
+The obvious implementation is a privilege ladder — higher roles clear lower requirements. This is not that:
+*"ops→finance-required is 403, and finance→ops-required is LIKEWISE 403"*, with only admin clearing any. That
+is segregation of duties in **both** directions: finance cannot quietly absorb an ops decision either. A ladder
+would have satisfied the REQ and been weaker in the direction nobody tests.
+
+**Running tally: 193 of 193 load-bearing claims probed — 133 verified, 46 gaps closed, 20 claims corrected;
+10 operational items recorded.**
+
+**STOP.** No defect. Two reach claims enumerated in two phases (§1327 copilot, §1328 approvals), both true and
+both understated by their own prose — the copilot's guard is unconstructible-around rather than merely shared,
+and the approvals role check is bidirectional rather than a ladder. **A codebase that understates its own
+guarantees is the opposite failure from the one this audit usually finds**, and it is worth recording that the
+distribution has flipped: the record's errors this session were in COUNTS and SCOPES, never in a claim that
+promised more than the code delivered.
+
+A process note, because it is now five occurrences: the `packages/*/src` pathspec matches nothing in this
+repo's git, and I have re-made that error in five separate phases. Plain tree paths (`-- packages workers`)
+work. The tell is a zero-hit grep on a pattern that obviously exists.
