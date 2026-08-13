@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 777 | §1330 | **§1331** | **ENUMERATED THE CLASS BY MECHANISM — AND IT CLOSES.** §1330 showed a TRIGGER-titled row hides its own class, so this names the mechanism (**presence-check → effect → mark-on-success**) and sweeps both idioms (R2 `head()`, KV `get()`). **Five sites**: three are external emissions (214 sweep, webhook POST, and §1330's 990 ack) — all now on one row; `watchtower-snapshot` is **benign**; the Biller's `evidence.head` is a different class (a precondition REQUIRING presence). **The discriminator, now added to the row:** harm exists iff the guarded effect is an **un-dedupable EXTERNAL emission** — an idempotent write to a DETERMINISTIC key is harmless under the identical race, which is why the snapshot is fine and the three sends are not. No fourth instance. |
 | 776 | §1329 | **§1330** | **THE FOURTH REACH CLAIM FOUND A THIRD INSTANCE OF A HIGH-SEVERITY CLASS.** `sweep-214.ts`'s *"only path where a send can happen"* is correctly scoped to its own branch; enumerating transport sends found TWO — `send214` (cron) and `send990` (inbound ack). **The 990 ack has the filed defect**: the 990 ack in `inbound.ts` gates on `evidence.head(...) === null` (presence CHECK, not a claim), then allocates FRESH monotonic ISA/GS and marks only after success — so two concurrent 204 deliveries emit two 990s with DIFFERENT ISA13/GS06 that the partner cannot dedupe. **The standing hold is titled "CRON sweeps"**, so this path is scoped out by its own title: fixing "the two sweeps" when wiring a transport leaves it open. STRUCTURAL (read), not measured. Filed on the same row — same dormancy, same activation event. |
 | 775 | §1328 | **§1329** | **THE THIRD REACH CLAIM — AND THE SHAPE THE ENUMERATION SURFACED NEXT DOOR.** `money.ts` claims narrowing `total_cents >= 0` *"removes the only path by which a negative could reach `allocateCents`"*. Verified: **exactly ONE non-test call site** (`projection/money.ts:192`), consuming a parsed `SplitComputedPayload`, so the refine stands between every real input and the allocator. **The yield was the neighbourhood**: reading that call site exposed `mapMoneyProjectionError`, which classifies failures by REGEX over the error message (`allocateCents` → 4xx not 500) — the lockstep-rot shape. It is pinned properly: the tests drive **REAL throws** (not synthesised messages), plus a negative control and §919's kind-gate precision case, so a rename or reword reds them. |
 | 774 | §1327 | **§1328** | **THE SECOND REACH CLAIM — APPROVALS HAVE ONE HOME, ENUMERATED.** Swept source for chokepoint claims: **7 exist**; the sequencer's is already gated by `append-chokepoint`, and `approve.ts` has §1327's exact two-surface shape (*"ONE home, every caller — browser or MCP — goes through it"*). Four links all verified: the general route **403s the kind for every role**; **exactly ONE append site** exists (`approvals.ts:96` — every other hit is schema/projection/visibility); MCP reaches it via `POST /…/approval-decision`; and the route re-checks `required_role` server-side. **The role check is SYMMETRIC** — finance→ops-required is ALSO 403, segregation of duties both ways rather than a privilege ladder. Both §1327 and §1328 found the prose UNDERSTATED the guarantee. |
@@ -78225,3 +78226,47 @@ every inbound 204.
 search: **enumerate a reach claim, then read the OTHER call site.** The lesson to carry is about how holds are
 titled — **a row named for a TRIGGER (`cron`) scopes its own class out of view**, while the same row named for
 the MECHANISM (presence-check-then-send) would have pulled the 990 path in on the day it was written.
+
+
+## §1331 — PHASE GATE: enumerating the class by MECHANISM, which is what §1330 said the row should have done
+
+§1330's finding was that a hold titled for a TRIGGER (*"Cron sweeps double-fire"*) scoped its own class out of
+view, and the third instance sat on an HTTP path. The remedy is to name the class by its MECHANISM and
+enumerate that: **presence-check → effect → mark-on-success**, with no claim and no serialization between the
+check and the effect.
+
+Two idioms implement it here — an R2 `head()` and a KV `get()`. Five sites, and the enumeration closes:
+
+| site | guarded effect | verdict |
+|---|---|---|
+| `sweep-214.ts` — R2 sent-marker | `transport.send214` | **filed** (the original row; race reproduced) |
+| `webhooks.ts` — `KvDeliveryMarkers` | outbound webhook POST | **filed** (named in the same row) |
+| the 990 ack in `inbound.ts` — R2 ack-marker | `transport.send990` | **filed §1330** — the one the title hid |
+| `watchtower-snapshot.ts` — R2 snapshot key | `r2.put(snapshotKey)` | **benign** — see below |
+| `biller.ts` — `evidence.head(document.r2_key)` | nothing; it REQUIRES presence | **different class** — a precondition read, not a marker |
+
+### The discriminator, which is the part worth keeping
+
+The race is identical in all four marker cases: two workers read absence, both proceed. What differs is the
+**effect**:
+
+> Harm exists iff the guarded effect is an **un-dedupable external emission.** An idempotent write to a
+> DETERMINISTIC key is harmless under the same race.
+
+`persistWatchtowerSnapshot` computes a weekly snapshot and `put`s it at `snapshotKey(tenant, week)`. Two
+concurrent runs waste one computation and overwrite the same key — the end state is one object, and no
+counterparty ever saw two. The three filed cases each emit to a PARTNER, and two of them allocate fresh
+monotonic control numbers per attempt, so the duplicates are not even byte-identical: the receiver cannot
+collapse them.
+
+That is why the row's title mattered. `cron` names neither the mechanism nor the harm; **"presence-check before
+an external emission"** names both, and would have pulled in the 990 path on the day the row was written while
+correctly leaving the snapshot alone. The discriminator is now on the row, so the next reader can classify a
+new site without re-deriving it.
+
+**Running tally: 202 of 202 load-bearing claims probed — 140 verified, 46 gaps closed, 20 claims corrected;
+11 operational items recorded.**
+
+**STOP.** The class is closed: three external-emission instances, all filed on one row; one benign; one
+different class. **A defect found by a method is worth less than the enumeration that follows it** — §1330
+found the third instance, and only this phase can say there is no fourth.
