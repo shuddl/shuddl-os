@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 802 | §1355 | **§1356** | **THE THIRD UNUSED INSTRUMENT — 325 ORPHANS REAPED, AND A BELIEF CORRECTED.** Enumerating question-answering tools (vs gates) yields three: `recall`, `delta`, **`reap`**. **`pnpm reap` is the tool for the diagnosis I did BY HAND at §1314** — §1061 had already measured it (*a suite that completes leaks **0**; a runner killed mid-flight leaks 1+; workerd reparents to PPID 1*). Ran it: **325 orphans signalled, 0 remain.** Its output corrects a belief I held as settled — *"state S and SIGTERM sufficed — no -9 and no reboot, which corrects the note that called this an uninterruptible wedge"* — a note that conflated a WEDGED process (state `UE`, signal-proof) with an ORPHANED one (state `S`). **Three for three: each instrument encodes the exact inference I attempted unaided.** |
 | 801 | §1354 | **§1355** | **THE SECOND UNUSED INSTRUMENT — AND THE OBVIOUS FIX WOULD HAVE MADE §1354 PERMANENT.** §1354's blindness has a purpose-built tool: `pnpm delta` (§1081), written for the identical failure (*"reproducing a number is not the same as IDENTIFYING it"*). **Never used** — the second such instrument after `recall` (§1342). Its baseline was **inverted from reality**: 3 entries blaming the REQ-289 row, all HEALED (those suites are 34/34 green, both gates PASS), while the one live failure was unlisted. **The tempting fix — baseline `citation-links` — would make §1354 PERMANENT**, since that test asserts an ARRAY and marking it expected-failing absorbs every future rot. **`delta` is TEST-granular; the defect is SUB-test.** Baseline emptied with both decisions recorded. |
 | 800 | §1353 | **§1354** | **STOPPING POINT — BOARD RE-MEASURED AT `4a201a0`: 21 PASS · 2 FAIL · 5 BLOCKED, AND ONE FAIL WAS MINE.** 40 commits since §1314; both new gates verified WIRED via `vitest list` before reading the board (§1304). `citations` reported **2 rotted citations, not 1** — the standing `coverage.ts` rot plus a **DANGLING PATH I wrote at §1327** (`contracts/copilot.ts` instead of `packages/contracts/src/copilot.ts`). **It survived ~25 phases because `citation-links.test.ts` asserts an ARRAY inside ONE test**: the summary reads `1 failed` whether one citation is rotted or two, so the file-level count is invariant under what it counts — §1281's shared-outcome shape as **N defects → one failing test**. Fixed and anchored; back to 1. **When a gate aggregates N findings into one assertion, read the count it prints, not its pass/fail line.** |
 | 799 | §1352 | **§1353** | **APPLIED §1352's LESSON TO THE PRE-EXISTING PARITY GATES.** Swept every parity-shaped gate for a PROPERTY beyond identity. **My detector was wrong on the first file it flagged**: `stream-id-parity` scored 0 yet asserts *"the pattern admits the three real stream shapes and nothing else"* — a property written with `.toBe(true/false)`, invisible to a `toMatch`/`toContain` counter (slash, not a pipe — 5th pipe-split this session). **An assertion's SYNTAX cannot tell you whether it is a property**; they had to be read. `gl-accounts-parity` is fine (four *"only canonical accounts"* cases). **`tenants-parity` is pure identity in all three workers** — two rosters that both drop a tenant stay green. It IS caught, but by `tenant-resolution.test.ts` and by the premise assertions I added at §1311/§1312 for a different purpose. §1335's split-property shape; all three annotated. |
@@ -79333,3 +79334,45 @@ already built the tool — and the tool is the thing I do not reach for.** The c
 it would not merely have saved the phase, it would have prevented the specific error, because both tools encode
 the inference (`recall`'s *"this is not novelty"*, `delta`'s *"is anything failing that was not already
 failing"*) that I got wrong by hand.
+
+
+## §1356 — PHASE GATE: the third unused instrument, 325 orphans, and a belief it corrected
+
+§1355 named a pattern from two instances — `recall` (§1342) and `delta` (§1355), both purpose-built for a
+discipline I kept failing, both unused. The obvious next question is how many others exist. Enumerating the
+question-answering tools (as opposed to gates) in `package.json` yields three: `recall`, `delta`, and **`reap`**.
+
+**`pnpm reap` is the tool for a diagnosis I performed BY HAND at §1314.** There, mid-board, I found `workerd`
+processes at PPID 1 and reasoned carefully about whether they were this repo's known unrecoverable wedge.
+`reap-orphans.ts` had already measured the whole thing at §1061:
+
+> *"a workerd suite that RUNS TO COMPLETION → **0** leaked; the runner killed mid-flight → **1+**. … The chain
+> is `pnpm` → `node (vitest)` → `workerd`, and killing the `pnpm` wrapper leaves the node process alive holding
+> workerd; when that node later dies, workerd reparents to `launchd` (PPID 1)."*
+
+That is precisely the population I was staring at, with the cause already established and §1054's wrong cause
+already corrected. **Three for three: each instrument encodes the exact inference I attempted unaided.**
+
+### Run: 325 orphans, and the tool corrected a belief
+
+`pnpm reap` signalled **325** orphaned processes accumulated across this session's suite runs; **0 remain.**
+And its closing line corrects something I had been carrying as settled:
+
+> *"They were state S at §1061 and SIGTERM sufficed — **no -9 and no reboot**, which corrects the note that
+> called this an uninterruptible wedge."*
+
+The note it corrects conflates two conditions that look identical in `ps` output: a genuinely wedged process
+(state `UE`, signal-proof) and an ORPHANED one (state `S`, reaped by a plain SIGTERM). §1314 nearly acted on
+the conflation — I checked the state letter and the PPID and concluded correctly, but only because the wedge
+note's specificity happened to include the state letter. **A belief that names a symptom without its
+discriminator will eventually be applied to the wrong condition.**
+
+**Running tally: 277 of 277 load-bearing claims probed — 193 verified, 50 gaps closed, 26 claims corrected;
+12 operational items recorded.**
+
+**STOP.** The session's clearest finding about its own conduct is now at three instances and can be stated
+without hedging: **this repo's hardest-won lessons are already executable, and I reached for none of them until
+a phase went wrong.** `recall` answers "has this been found before", `delta` answers "is this failure new",
+`reap` answers "is this process debris or a wedge" — and each was written immediately after someone got that
+exact question wrong. The tools are the record's most compressed form, and the audit that produced them is the
+one that forgot to run them.
