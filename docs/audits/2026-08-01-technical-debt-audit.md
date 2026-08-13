@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 695 | §1247 | **§1248** | **THE DRIVER'S DURABILITY CONTRACT WAS HONOURED AND PINNED BY NOTHING — AND A TEST COULD NOT HAVE PINNED IT.** `queue.ts` states that `put`/`remove` must resolve only after the IDB transaction commits, or a tab-kill loses a signed airplane-mode POD. `idb-queue-store.ts` honours it; the only mention outside the source comments was a **comment in a test**. **Why no test could catch it, demonstrated:** a request's `onsuccess` fires BEFORE commit, so planting that refactor left the driver's own suite **101/101 PASS** while the new gate REDs with file, line and cause. The shape of the code IS the evidence — an ungated law whose violation has no observable failure needs a lint, not a fixture. **The gate flagged CORRECT code on its first run**: bounding blocks at the next READWRITE transaction made `put`'s block swallow the read-only `all()`, which legitimately settles from a request. Bounded at the next transaction of ANY kind — §1211's lesson, the block boundary decides what the rule can see. |
 | 694 | §1246 | **§1247** | **THE DRIVER'S OFFLINE DURABILITY CONTRACT — STATED AT AN INTERFACE, HONOURED ON BOTH SIDES.** An unaudited surface, and the one where a defect strands real work: a `device_seq` that resets on reboot re-emits `(device_id, seq)` with DIFFERENT content, so first-wins merge and the sequencer's unique index **silently drop the later signed capture** — CLAUDE.md rule 6 territory. The port is SYNCHRONOUS while IndexedDB is async, so `durable-seq.ts` persists a **reservation block** and mints from inside it; what makes that sound is one guard — `next >= ceiling` throws, and a failing refill leaves the ceiling PUT, so capture() fails LOUD rather than minting an unreserved seq a restart would reuse. **Both obligations are pinned in their owning packages**: driver-core proves a rejected capture does not burn a seq (next valid still gets seq 0); apps/driver's ceiling guard is **mutation-proved** — `>=` → `>` reds it. §1243's chain lesson applied to an INTERFACE: a test on one side proves nothing about the other. |
 | 693 | §1245 | **§1246** | **§1235'S LESSON APPLIED BEFORE THE FAILURE — AND WHY 70 FILES SHARE ONE D1 WITHOUT CHAOS.** §1239 added a **55-shipment seed** to `watchtower.test.ts`, which writes the SHARED tenant D1; I had verified that file alone (21/21) and not the suite around it — §1235's shape in reverse, a test GROWING a corpus siblings measure. Checked before assuming: **70 files, 832 tests, zero failures.** Safe because every consumer is **scoped** (`{ scope }` on each sweep, alarm ids derived from it), so 55 shipments land in a partition nothing else reads. The transferable rule: **the shared D1 is safe for tests that SCOPE and unsafe for tests that MEASURE.** Every §1235 failure was in the second category; §1234's sweep found only 7 measuring sites and the two asserting an ABSENCE now carry premises. Narrows §1236's config warning from *file order is part of the fixture* to *scope your reads and ordering cannot reach you*. |
 | 692 | §1244 | **§1245** | **§1244'S CLASS SWEPT — 25 DEPLOYMENT CLAIMS IN SOURCE, AND THE ONE REAL GAP WAS A CORS ALLOWLIST BOUND BY PROSE.** A source comment asserting a DEPLOYMENT fact can be falsified by an edit no TypeScript gate reads; 25 exist. Verified the checkable ones against the configs: `workers_dev = false` holds for all five workers in every scope, and §1218's absent-flag claims re-confirmed. **The gap:** `CORS_ALLOWED_ORIGINS` and the apps' `custom_domain` routes are two copies of *which hostnames a browser loads a surface from* — they agree exactly (command, driver, portal, and `track`, a SECOND custom domain on the portal worker, which is why 4 origins fit doc 00's 3 surfaces) and **nothing compared them**. Failure is one-way: a new origin missing from the list boots the surface then fails every API read with a causeless CORS error. New gate is an **inclusion** check, never equality — the list deliberately keeps RFC 2606 placeholders. Mutation-proved both ways plus a positive control on its own parser. |
@@ -74078,3 +74079,50 @@ the other**, and here each side is pinned where it is owned.
 **STOP.** The driver's offline durability contract read as stated, the reservation-block design confirmed sound
 by the guard that makes it non-optimistic, both cross-package obligations found pinned in their owning packages,
 and the boundary case mutation-proved rather than taken on the strength of a test name.
+
+## §1248 — PHASE GATE: the driver's durability contract was honoured and pinned by nothing — and a test could not have pinned it
+
+**§1247 found the `device_seq` half of the driver's offline contract defended on both sides.** Its sibling is
+the queue itself: `queue.ts` states a **DURABILITY CONTRACT** on the `QueueStore` port —
+
+> *`put`/`remove` MUST resolve only AFTER the write is durable … a tab-kill between `enqueue()` and the IDB
+> write would lose a signed airplane-mode POD (CLAUDE.md rule 6).*
+
+`idb-queue-store.ts` **honours it** — both writes settle on `tx.oncomplete`, with `onerror`/`onabort` handled.
+**And nothing pinned that.** The only mention outside the two source comments was a *comment* in
+`storage.test.ts` (`// resolves on tx.oncomplete`) — prose, not an assertion. §1226's shape, on the guarantee the
+Driver PWA exists to provide.
+
+### Why a test could not have caught it, demonstrated rather than argued
+
+In IndexedDB a request's `onsuccess` fires **before** the transaction commits, so a store that resolved on the
+request still writes the row and still passes every read-back assertion. Measured, by planting exactly that
+refactor in `put()`:
+
+| | Result |
+|---|---|
+| the driver's own suite | **101/101 PASS** — it cannot see the difference |
+| the new gate | **RED** — names the file, the line, and the cause |
+
+The failure is only observable by killing the process between two moments no unit test separates. **So the shape
+of the code IS the evidence, and a static check is the honest instrument** — an ungated law whose violation has
+no observable failure needs a lint, not a fixture.
+
+### The gate reported its own first run as a violation
+
+Its first version bounded each transaction's block at the next **readwrite** transaction. In
+`idb-queue-store.ts` that made `put()`'s block swallow the read-only `all()` method sitting between `put` and
+`remove` — and `all()` legitimately settles from `req.onsuccess`, because a read has nothing to make durable.
+**The gate flagged correct code on the corpus it was written for.** Bounding at the next transaction of *any*
+kind fixes it. Same class as §1211's brace matcher: **the block boundary decides what the rule can see**, and a
+lint that ships with one false positive is deleted by the first person it inconveniences.
+
+Four cases, both directions pinned: the corpus floored (≥2 files, ≥1 readwrite transaction), a **positive
+control** on both bad shapes, and a negative control asserting read-only transactions and the correct shape stay
+clean.
+
+Suite 112 → **113** files, 1,307 → **1,311** tests, failures unchanged at the 3 owner-held REQ-289 ones.
+
+**STOP.** The queue half of the driver's offline contract found correct but unpinned, the reason no test could
+pin it demonstrated by a mutation that left 101 driver tests green while the new gate reds, the gate's own
+false positive on real code found and its cause named, and both directions plus the corpus floor controlled.
