@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 767 | §1320 | **§1321** | **STOPPING POINT — THE FIVE ACCEPTANCE DEMOS AUDITED LINK BY LINK.** `demos.ts` carries five and they match CLAUDE.md verbatim; 7 spine files, 4 packages. The chain holds at all three links: **EXIST** (`missingSpineFiles`, fail-closed — closing a measured hole where one renamed file among four dropped out at exit 0), **cannot be SKIPPED** (`no-focused-tests` scans repo-wide `*.test.ts`/`*.test.tsx`, covering all seven including the `.tsx`), **actually RUN** (per-package vitest configs, since the pools differ). The middle link is the one I expected missing — it holds only because a DIFFERENT gate bans skips repo-wide. Boundary stated honestly: the FILMED half (<5s, <10min, real driver, real Claude, visual dim) is the manifest's job and is never claimed from a test run. |
 | 766 | §1319 | **§1320** | **SWEPT THE CURATED-VOCABULARY CLASS REPO-WIDE — 9 CLOSED, 2 OPEN, 1 RESIDUAL.** After three curated lists in one file, counted the class across all gates: **12 carry a word alternation**, and the discriminator is CLOSED-by-contract vs OPEN-to-rewording. Nine are closed (HTTP verbs, vitest modifiers, the event `source` enum, file extensions, storage APIs). `motion.ts` bans animation NAMES but is safe by design — its real detectors are STRUCTURAL (`isSpringBezier`, `hasNonZeroRotate`), so a rename still trips it. The residual is `gate-wiring`'s script-PREFIX filter: **widening it was measured and REJECTED** (`pnpm backup` is a defined script and an operational job — pure noise). Bounds written into the source: 16 prefixes exist, 5 recognised, and **4 of 30 merge scripts are bare-named**; the convention is enforced nowhere. |
 | 765 | §1318 | **§1319** | **THE THIRD CURATED LIST IN ONE FILE — AND A PROBE THAT NEARLY LIED.** Applied §1318's rule to the sibling matcher: `statedSweepCounts` hard-coded a six-to-ten alternation (escaped out of this cell — a regex alternation's pipes split a markdown row, which is now twice in three phases) beside the `WORD` table its own `.map` already used. Blind to **`eleven` AND `five`** — so it could not see growth past ten OR a shrink below six. Now built from `Object.keys(WORD)`. **The first probe reported all three plants GREEN**, which reads as "the gate is broken" — but `sla-sweep.ts` states NO count, so the substitution matched nothing; re-aimed at `sequencer.ts` (which states `eight sweeps`) both wrong counts RED. A uniform 3-for-3 result was the tell. Also found: of the roster's 2 files only **1** carries a live claim. |
 | 764 | §1317 | **§1318** | **ADVERSARIALLY PROBED MY OWN §1313 GATE — BLIND ON TWO OF NINE REWORDINGS.** Started from the riskiest thing ADDED rather than hunting new debt. The worker-count matcher survived digits, capitals, a comma and a struck number, and went blind on `spanning four workers` and `in four workers`: it hard-coded the preposition `across`. **That is §1077's curated-vocabulary bug one level down** — §1313 curated the NUMBER WORDS and its fix curated the PREPOSITION, in the same edit. Fixed by REMOVING the dependency (a window already names the population, so `<N> workers` is the claim), not by extending a list: all three wordings now RED, real tree 9/9 with no FP. Residual written into the source: both readers still anchor on the literal phrase `per-tenant sweep`. |
@@ -77793,3 +77794,50 @@ and that is the point: **nine of twelve curated lists are closed sets and need n
 which took one measurement each.** The class that bit three times in one file is rare elsewhere in this repo,
 because most of these alternations enumerate something a protocol or a schema already froze — and the one that
 does not is doing a judgement no derivation could replace.
+
+
+## §1321 — PHASE GATE / STOPPING POINT: the five acceptance demos, audited link by link
+
+With the repo-owned failure set empty (§1314) and the curated-vocabulary class swept (§1320), the remaining
+question is the biggest one: **is the claim that defines "done enough to show" actually gated?** CLAUDE.md names
+five acceptance demos. `tools/acceptance/demos.ts` carries five, and they match it verbatim — POD → invoice +
+evidence email the same second · a stranger signs up and quotes in <10 min · a real driver completes a gated
+stop with zero instruction · a booking placed from Claude via MCP · the exception pulse dimming the map while
+everything else stays quiet. Seven spine files across four packages.
+
+### The chain has three links, and all three hold
+
+| link | mechanism | verified |
+|---|---|---|
+| the spine files EXIST | `missingSpineFiles()`, fail-closed | ✅ and it closes a measured hole: `@shuddl/api` carries FOUR spine files, so one renamed file dropped out while its three siblings held the package at exit 0 — *"pointing demo 1's spine at a non-existent file left the gate GREEN"* |
+| they cannot be SKIPPED | `no-focused-tests` | ✅ its corpus is `git ls-files "*.test.ts" "*.test.tsx" "*.spec.ts"` — repo-wide, no directory restriction, so all seven are covered including the one `.tsx` |
+| they actually RUN | `runPackage()` per package | ✅ each spine file runs in its OWN vitest config, because the pools genuinely differ (api/mcp are workers, driver node, map jsdom) |
+
+The middle link is the one I expected to be missing, since existence checks and execution checks both pass over
+a file whose tests are all skipped. It holds only because a *different* gate bans skips repo-wide — two
+mechanisms meeting, which is the shape this audit usually finds diverging.
+
+### The honest boundary, which is the point
+
+`run.ts` states its own scope: *"Green here === the code-provable half of the two-tier DoD holds on the current
+tree. The FILMED half — the <5s / <10min wall-clock, the real driver, the real Claude booking, the visual
+map-dim — is the manifest's job."* The checklist agrees, requiring an *"Observed human run (never claimed from a
+test run)"* for the pilot rows.
+
+That division cannot be closed by more gating, and pretending otherwise would be the worst failure available
+here: a green that reads as "the demos work" when what is proved is that their causal chains hold in code. The
+two halves are named, separated, and each assigned to a mechanism that can actually carry it.
+
+**Running tally: 171 of 171 load-bearing claims probed — 111 verified, 46 gaps closed, 19 claims corrected;
+10 operational items recorded.**
+
+**STOP — and this is the session's stopping point.** Seventeen phases (§1305–§1321). Zero product source
+changed: every source edit was a comment correction or a test addition, and every mutation restored
+byte-identical. What moved is evidence — eleven per-tenant sweeps gained a continuation assertion, the
+per-party containment gained its first test, three curated lists in one gate were derived instead of typed, and
+the register's own claims were re-measured with one found inverted.
+
+What remains is not mine to close: nine `pending` engagement fixtures (5 BLOCKED gates), an unset
+`IDENTITY_DENYLIST`, register rows for ten filed operational items, and one API-contract decision. The
+repo-owned failure set is empty, and the top-level claim is gated as far as a repository can gate it — the rest
+is a camera and a human.
