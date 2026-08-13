@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
+import { execSync } from "node:child_process";
 import { repoRoot } from "./repo-root.js";
 
 // §933 — A CHECKLIST FIGURE THAT NOBODY RE-DERIVES IS A CLAIM WITH AN EXPIRY AND NO ALARM.
@@ -72,7 +73,125 @@ const SWEEP_COUNT_FILES = [
 // and no filter distinguishes a stale claim from a quoted one. A gate at a 50% false-positive rate is a gate
 // people silence (§1053), so this one is scoped to where the count is a LIVE assertion rather than a citation.
 
-const WORD: Readonly<Record<string, number>> = { six: 6, seven: 7, eight: 8, nine: 9, ten: 10 };
+// §1313 — ONE THROUGH TWELVE, not "the words that appear today".
+//
+// This table began at six–ten, and that ceiling was a live blind spot twice over: `eleven` is the number two
+// files actually state, so the matcher could not see the claim at all. I then extended it to twelve and wrote
+// a WORKER-count check against it — and PLANTING §1312's original defect (`across four workers`) left the gate
+// GREEN, because `four` was still missing. That is verbatim the §1077 lesson recorded forty lines above ("a
+// class chosen from the names that exist today, excluding one the generator can emit"), reproduced in the
+// gate written to enforce it. The fix is not to add `four`; it is to stop curating the range.
+const WORD: Readonly<Record<string, number>> = {
+  one: 1, two: 2, three: 3, four: 4, five: 5, six: 6,
+  seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12,
+};
+
+// §1313 — STRUCK TEXT IS HISTORY, NEVER A LIVE CLAIM.
+//
+// This repo corrects a number by STRIKING it and writing the new one beside it (`~~four~~ THREE`), so every
+// corrected count leaves its own wrong value in the file forever. Line 118 already works around that with a
+// hand-written `~~\*\*\d+\*\*~~` alternation at one site; this generalises it, because the alternative is a
+// new bespoke alternation at every future site. Mechanical, not semantic: `~~…~~` is a syntactic marker the
+// convention already assigns exactly this meaning, which is why it can be filtered where prose cannot (the
+// irreducible false-positive floor the SWEEP_COUNT_FILES note describes is about UNMARKED historical quotes).
+function stripStruck(text: string): string {
+  return text.replace(/~~[\s\S]*?~~/g, " ");
+}
+
+/**
+ * §1313 — the repo-wide per-tenant orchestrator population, derived by the SAME rule
+ * `sweep-containment-coverage.test.ts` uses: a function whose body reaches `allTenantSlugs`.
+ *
+ * This is a DIFFERENT population from `containedSweeps()` above — that one counts the `contain("…")` calls in
+ * the agents cron (8); this one counts per-tenant sweeps across the repo (11). The two were conflated in the
+ * SWEEP_COUNT_FILES note ("a different population — the repo-wide count"), and only the first had a gate.
+ */
+function perTenantOrchestrators(root: string): { total: number; workers: string[] } {
+  const files = execSync('git ls-files "workers/*/src/*.ts" "workers/*/src/**/*.ts"', { cwd: root, encoding: "utf8" })
+    .trim()
+    .split("\n")
+    .filter((f) => f !== "" && !f.includes(".test."));
+  const byWorker = new Map<string, Set<string>>();
+  for (const f of files) {
+    const src = readFileSync(`${root}/${f}`, "utf8");
+    for (const m of src.matchAll(/export async function (\w+)\s*\(/g)) {
+      if (m[1] === "allTenantSlugs") continue;
+      const next = src.indexOf("\nexport ", m.index + 10);
+      if (!/allTenantSlugs\s*\(/.test(src.slice(m.index, next > 0 ? next : m.index + 3000))) continue;
+      const w = f.split("/")[1]!;
+      if (!byWorker.has(w)) byWorker.set(w, new Set());
+      byWorker.get(w)!.add(m[1]!);
+    }
+  }
+  return { total: [...byWorker.values()].reduce((n, s) => n + s.size, 0), workers: [...byWorker.keys()].sort() };
+}
+
+/** Every file that states the PER-TENANT sweep population, derived rather than hand-kept. */
+function perTenantCountClaims(root: string): { file: string; stated: number }[] {
+  const files = execSync('git ls-files "workers/**/*.ts" "packages/**/*.ts" "tools/**/*.ts"', { cwd: root, encoding: "utf8" })
+    .trim()
+    .split("\n")
+    // This gate necessarily CONTAINS the vocabulary it matches (the WORD table, the probe strings), so it
+    // cannot be its own subject. Everything else in the three source trees is in scope — the hand-kept list
+    // above is exactly the shape that let §1312's wrong count survive unseen.
+    .filter((f) => f !== "" && !f.endsWith("tools/checks/checklist-figures.test.ts"));
+  const N = `(${Object.keys(WORD).join("|")}|\\d+)`;
+  const out: { file: string; stated: number }[] = [];
+  for (const f of files) {
+    const text = stripStruck(readFileSync(`${root}/${f}`, "utf8"));
+    if (!/per-tenant sweep/i.test(text)) continue;
+    // SHAPE A — self-anchoring: "Eleven per-tenant sweeps across …". The phrase is in the match, so this is
+    // safe to run over the whole file.
+    for (const m of text.matchAll(new RegExp(`\\b${N}\\s+per-tenant\\s+sweeps?`, "gi"))) {
+      const n = WORD[m[1]!.toLowerCase()] ?? Number(m[1]);
+      if (Number.isFinite(n)) out.push({ file: f, stated: n });
+    }
+    // SHAPE B — "Every per-tenant sweep in this system — eleven of them …". WINDOW-SCOPED, and that is not
+    // fastidiousness: run file-wide with a complete WORD table it matches the ordinary English "one of them",
+    // which produced three false positives across two workers the moment the vocabulary was completed. A
+    // count only means THIS population when it sits beside the phrase naming it — the same discipline the
+    // worker check below needs, for the same reason, and independent of which number words exist.
+    for (const anchor of text.matchAll(/per-tenant sweep/gi)) {
+      for (const m of text.slice(anchor.index, anchor.index + 120).matchAll(new RegExp(`\\b${N}\\s+of\\s+them\\b`, "gi"))) {
+        const n = WORD[m[1]!.toLowerCase()] ?? Number(m[1]);
+        if (Number.isFinite(n)) out.push({ file: f, stated: n });
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * §1313 — the WORKER count stated alongside that population.
+ *
+ * This is the half that matters most, and the reason is uncomfortable: §1312's actual defect was here, not in
+ * the sweep count. Both files said "eleven per-tenant sweeps across FOUR workers" — the eleven was right, the
+ * four was wrong (three: `api` carries tenant bindings but iterates no roster). A gate checking only the
+ * population would have stayed green through the exact drift that motivated it.
+ *
+ * SCOPED TO THE SENTENCE, because "four workers" is a TRUE and common statement elsewhere in this repo — four
+ * workers do carry tenant bindings. Only a worker count bound to the per-tenant-sweep phrase is a claim about
+ * THIS population, so the match is taken from a window around that phrase rather than from the file.
+ */
+function perTenantWorkerClaims(root: string): { file: string; stated: number }[] {
+  const files = execSync('git ls-files "workers/**/*.ts" "packages/**/*.ts" "tools/**/*.ts"', { cwd: root, encoding: "utf8" })
+    .trim()
+    .split("\n")
+    .filter((f) => f !== "" && !f.endsWith("tools/checks/checklist-figures.test.ts"));
+  const N = `(${Object.keys(WORD).join("|")}|\\d+)`;
+  const out: { file: string; stated: number }[] = [];
+  for (const f of files) {
+    const text = stripStruck(readFileSync(`${root}/${f}`, "utf8"));
+    for (const anchor of text.matchAll(/per-tenant sweep/gi)) {
+      const window = text.slice(anchor.index, anchor.index + 200);
+      for (const m of window.matchAll(new RegExp(`\\bacross\\s+${N}\\s+workers\\b`, "gi"))) {
+        const n = WORD[m[1]!.toLowerCase()] ?? Number(m[1]);
+        if (Number.isFinite(n)) out.push({ file: f, stated: n });
+      }
+    }
+  }
+  return out;
+}
 
 /** Stated counts of the form "EIGHT sweeps" / "seven crons" / "8 contained sweeps". */
 function statedSweepCounts(root: string, rel: string): number[] {
@@ -98,6 +217,56 @@ function canonicalViews(root: string): { declared: number; max: number } {
     max: max === null ? -1 : Number(max[1]),
   };
 }
+
+describe("§1313: the PER-TENANT sweep population is re-derived, not remembered", () => {
+  const root = repoRoot();
+  const derived = perTenantOrchestrators(root);
+  const claims = perTenantCountClaims(root);
+
+  it("the derivation and the corpus are both real (non-vacuity)", () => {
+    // A renamed roster helper yields 0 orchestrators, and "every stated count matches" would hold over nothing
+    // — the exact shape §487/§554/§572 met. And a broken glob yields no claims, which passes just as quietly.
+    expect(derived.total, "no tenant-iterating orchestrators found — the derivation is stale, not the tree").toBeGreaterThanOrEqual(8);
+    expect(derived.workers, "the orchestrator workers changed — update the claims, not this expectation").toEqual(["agents", "billing", "translator"]);
+    expect(claims.length, "no file states the per-tenant sweep population — this gate has no subject").toBeGreaterThanOrEqual(2);
+  });
+
+  it("every stated per-tenant sweep count equals the derived population", () => {
+    // §1312 corrected two files by hand that stated this population. NOTHING would have caught them: the
+    // hand-kept SWEEP_COUNT_FILES lists neither, and `eleven` was absent from WORD, so the matcher was blind
+    // to the very number in use. Both holes are closed here — the file list is derived, and the vocabulary
+    // reaches twelve.
+    const wrong = claims.filter((c) => c.stated !== derived.total).map((c) => `${c.file} states ${c.stated}, derived ${derived.total}`);
+    expect(
+      wrong,
+      `per-tenant sweep count(s) out of date. The population is derived from the code (a body reaching ` +
+        `allTenantSlugs), so the prose is what drifted:\n  ${wrong.join("\n  ")}\n\nCorrect by STRIKING the old ` +
+        "number and writing the new one beside it — struck text is ignored by this gate on purpose.",
+    ).toEqual([]);
+  });
+
+  it("every stated WORKER count equals the derived one — the drift §1312 actually made", () => {
+    // Replaying the real defect: both files read "eleven per-tenant sweeps across FOUR workers", and the
+    // eleven was correct. A gate on the population alone would have been green through it.
+    const wrong = perTenantWorkerClaims(root)
+      .filter((c) => c.stated !== derived.workers.length)
+      .map((c) => `${c.file} states ${c.stated} workers, derived ${derived.workers.length} (${derived.workers.join(", ")})`);
+    expect(
+      wrong,
+      `per-tenant sweep WORKER count(s) out of date:\n  ${wrong.join("\n  ")}\n\nNote that "four workers" is ` +
+        "TRUE elsewhere — four workers carry tenant bindings — which is why this reads only a count bound to " +
+        "the per-tenant-sweep phrase.",
+    ).toEqual([]);
+  });
+
+  it("struck numbers are ignored — the repo's own correction convention cannot trip this gate", () => {
+    // Positive control in BOTH directions: without stripStruck, `~~four~~ THREE` reads as a live "four".
+    expect(stripStruck("across ~~four~~ THREE workers")).not.toContain("four");
+    expect(stripStruck("across ~~four~~ THREE workers")).toContain("THREE");
+    // …and the stripper must not eat live text either.
+    expect(stripStruck("eleven per-tenant sweeps")).toContain("eleven per-tenant sweeps");
+  });
+});
 
 describe("§933: the checklist's numeric claims are re-derived, not remembered", () => {
   const root = repoRoot();

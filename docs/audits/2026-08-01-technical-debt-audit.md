@@ -632,12 +632,13 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 759 | §1312 | **§1313** | **I REPRODUCED THE BUG THE GATE DOCUMENTS, IN THE GATE WRITTEN TO PREVENT IT.** Three phases corrected COUNTED claims, so I extended `checklist-figures` — hand-kept `SWEEP_COUNT_FILES` (2 of 4 files) and a vocabulary stopping at `ten` (so `"Eleven per-tenant sweeps"` matched NOTHING) both closed, file list now DERIVED. Then I planted §1312's real defect (`across four workers`) and **the new gate stayed GREEN** — `four` was not in the table, verbatim the §1077 lesson written forty lines above the code I was editing. Completing the vocabulary then made `"N of them"` match ordinary English (3 FPs), so the shape is now window-scoped. Replay: 1 RED naming the exact drift. **Also ran the FULL tools suite for the first time in six phases: 4 red, 3 of them MINE** (bare `biller.ts:NNN` into a high-churn file; a backticked Cloudflare metrics field; §1313 refs). |
 | 758 | §1311 | **§1312** | **THE ELEVEN CLOSED — AND TWO NEEDED A DIFFERENT PROOF.** All eleven per-tenant sweeps now assert CONTINUATION, not just non-rejection. §409's counted bound re-measured: eleven is right, **"four workers" is wrong — THREE** (agents 9, billing 1, translator 1; `api` has tenant bindings but iterates no roster), and the coverage gate had asserted three all along, so a doc claim and a green gate disagreed. The agents pattern (poison tenant-a, assert tenant-b's SUCCESS log) does not transfer to two members — translator poisons a SHARED R2 binding, billing's suite migrates only tenant-a — so **tenant-b's own FAILURE line is the proof**, since it can only exist if the loop continued. Declined to migrate tenant-b: the same file's live meter-identity assertion would silently change subject. **Mutation `continue→break`: 1 RED per worker on the continuation line, billing's pre-existing RESOLVES case GREEN.** |
 | 757 | §1310 | **§1311** | **A DOCUMENTED GAP CAN ALSO BE ALREADY CLOSED — §1309 AND §1310 WERE BOTH WRONG.** `sweep-containment.test.ts` has poisoned a tenant across NINE sweeps since §409, with a non-vacuity errSpy check materially identical to §1310's. The absence claim came from a grep scoped to `*cron*.test.ts`; the owning file has no "cron" in its name — **scoping the corpus by FILENAME is the same error as scoping it by MECHANISM (§1308)**. What WAS missing is the CONTINUATION half, which §409 deferred on the record (*"the property we want … entangled with slug order and log spies"*). Closed in the owning file; my duplicate DELETED. **Isolating mutation:** `continue → break` leaves containment intact — old assertion GREEN, only the new line reds. 131→132 (not 140: 8 were duplicates), 8 of 9 sweeps now assert continuation. |
 | 756 | §1309 | **§1310** | **THE NON-VACUITY ASSERTION IS WHAT FOUND THE ARCHITECTURE.** Closed §1309's open sibling: 8 cron wrappers × *"one tenant never stalls the rest"*, now 9 table-driven tests (131 → 140 green). The decision that makes it mean anything: break **tenant-a (FIRST)**, since breaking the LAST tenant passes with the catch DELETED (§1281 shared-outcome blindness) — plus a 9th test pinning `TENANT_SLUGS[0]` so a reorder cannot silently make the other 8 tautologies. **The errSpy non-vacuity check fired on the anchor and corrected ME, not the code**: `runDailyAnchor` contains its own faults and RETURNS, logging `[REQ-014] … NOTHING was anchored` + a correlated-fault line when the failure-record write also fails; the wrapper's catch covers a narrower class. **Mutation: 7 catches → exactly 7 REDs, one per wrapper**, anchor stayed green. Zero source changed. |
 | 755 | §1308 | **§1309** | **THE CONTAINMENT THREE PHASES REASONED FROM, FINALLY PINNED.** §1306–§1308 all leaned on *"a per-party fault is contained + logged, never fatal to the rest"*; nothing asserted it, and the test file SAID SO in a §791 header (*"STILL UNEXERCISED … this suite has no seam for one"*) — an honest dated gap that survived because it reads as resolved. Built the seam (argument-scoped `faultSeam` from `anchor.test.ts`; the sweep's SELECT binds the RULE not a party, so it still returns every gap and *"the others reconcile"* is observable). **Mutation-proved:** `throw err` after the log reds ONLY the new test. Continuation asserted with its weakness stated — no `ORDER BY`, so the poison is bracketed by reconcilable parties on both sides. The per-TENANT catch in 7 wrappers is still unpinned (technique exists in `watchtower-cron.test.ts`). 131/131 green, source unchanged. **A documented gap is still a gap.** |
 | 754 | §1307 | **§1308** | **"SELF-HEALING BUT CAPPED" IS A PROPERTY OF THE CANDIDATE SET, NOT THE SWEEP.** Re-measured L430's BOUNDED COUNT: the population is **four, not two** — the original probe enumerated by MECHANISM (`queue.send`/`r2.delete`/`fetch`) and missed that a plain D1 `.run()` is a subrequest too. The new deciding property: **does a processed row LEAVE the candidate set?** retention (tombstone) and recon (invoice/marker) YES, so a truncated tick advances; **collector NO** — it writes to `messages` and never touches the invoice, so every open overdue invoice costs 2 subrequests EVERY tick and a truncated tick re-spends on the same prefix: **the tail never gets a draft, permanently.** Budget is per INVOCATION while every tenant loops inside one, so one tenant's book starves later slugs — silently, because the per-tenant catch reports success. 1 row filed, L430 corrected twice (count + verdict). |
-| 753 | §1306 | **§1307** | **THE SIBLING AGENT THAT STOPPED ONE LINE SHORT.** The exceptions queue LANDED (WP-10, REQ-082) and is a durable read over `exception.raised + osd.captured`; the DLQ consumer did NOT, and REQ-169 is the Biller sweep, not a DLQ reader. So an outcome is visible iff it WRITES one of those kinds. `pod.signed` runs TWO jobs under one message: the Biller (backstopped) and the interline split (**not** — the anti-join self-clears on `invoice.issued`, and no predicate reads `split.computed`). `interline-split.ts` has **0 hold markers vs the Biller's `emitTerminalHoldMarker`**, and `below_floor` is *always* taken (approvals unwired), so every below-floor AP settlement holds into a `console.log`. Corrected: `biller.ts:115` claims its marker surfaces on the exceptions queue — its kind is `message.received`, which that filter excludes. **A backstop is only as wide as its predicate.** 2 items filed, 0 behaviour changed. |
+| 753 | §1306 | **§1307** | **THE SIBLING AGENT THAT STOPPED ONE LINE SHORT.** The exceptions queue LANDED (WP-10, REQ-082) and is a durable read over `exception.raised + osd.captured`; the DLQ consumer did NOT, and REQ-169 is the Biller sweep, not a DLQ reader. So an outcome is visible iff it WRITES one of those kinds. `pod.signed` runs TWO jobs under one message: the Biller (backstopped) and the interline split (**not** — the anti-join self-clears on `invoice.issued`, and no predicate reads `split.computed`). `interline-split.ts` has **0 hold markers vs the Biller's `emitTerminalHoldMarker`**, and `below_floor` is *always* taken (approvals unwired), so every below-floor AP settlement holds into a `console.log`. Corrected: that same note claims its marker surfaces on the exceptions queue — its kind is `message.received`, which that filter excludes. **A backstop is only as wide as its predicate.** 2 items filed, 0 behaviour changed. |
 | 752 | §1305 | **§1306** | **THE ONE GROWTH ITEM THAT CANNOT HEAL ITSELF.** Second unseen limit: **memory, 128 MB on BOTH tiers — and unlike subrequests it cannot be raised.** `dayLeaves` selects every `events.hash` and every `positions` row for the day (**zero `LIMIT` in the whole file**), holds both result sets AND the derived `leaves` array alive together, and builds a Merkle root over all of them. Positions dominate: ~2,880 rows/vehicle/day, so ~100 vehicles is hundreds of thousands of leaves. **Why it differs from every other growth item:** §1294 merely slows, §1305 throws but keeps processed rows, §1293/§1295 only cost — **§1306 OOMs, and a Merkle root is ALL-OR-NOTHING**, so there is no progress to keep. The day returns `unanchored`, the next run reads the same day, and OOMs again **forever**; REQ-014's tamper evidence for that day is permanently absent. **The counter-example to §1305's closing note:** there, recoverability kept bounding blast radius — here the retry is correct for every OTHER failure this function has (TSA refusal, boundary race, mid-write crash) and turns a memory ceiling into an unrecoverable one. **A retry loop is only as safe as the assumption that the next attempt differs from the last.** |
 | 751 | §1304 | **§1305** | **A SIXTH INVISIBLE MECHANISM — THE PER-ITEM SUBREQUEST.** §1304 named five reasons a gap escapes the owning suite; enumerating by mechanism gives a sixth: **a platform resource limit** — tests run ten fixtures, production runs the backlog. Six loops make an awaited I/O call per iteration; four are paginated `r2.list` walks (bounded, correct). **Two are sweeps over an unbounded row set:** `retention.ts` (`CANDIDATES_SQL` has **no LIMIT**; the loop does `r2.delete` **plus** a tombstone UPDATE per row = 2 subrequests each) and `recon-sweep.ts` (one `queue.send` per unbilled shipment). **The ceiling was VERIFIED, not recalled** — the Workers limits doc: **1,000 Cloudflare-service subrequests on Free, 10,000 default on Paid**, raisable via `[limits] subrequests`, which **no worker here sets**. So a tick throws `Too many subrequests` past ~500 docs (Free) / ~5,000 (Paid) — a **ceiling, not a slope**: §1294 gets slower forever, this one stops. **§1274's R2-before-row ordering makes it self-healing** (processed rows stay tombstoned, the rest wait), so the repair is a register choice: a LIMIT (page size) or a raised knob (cost). **Third time this stretch a correct design made an adjacent problem benign** — the properties that make a system recoverable also bound the blast radius of what is still wrong with it. |
 | 750 | §1303 | **§1304** | **STOPPING POINT — 19 PASS · 2 FAIL · 5 BLOCKED at `3430e5d`, and the four new gates were checked for WIRING first.** Both FAILs are the same single citation (`scanRecordedHomes` at `:201` committed, `:209` only in another author's uncommitted file — re-verified both sides). **Repo-owned failure set empty, with nothing of mine to fix first.** **The wiring check had a trap:** `vitest run --root tools` collects the new gates, but that is **not what the merge gate runs** — `unit-tests` → `pnpm test` → `test:tools` → `vitest --config vitest.tools.config.ts`, a DIFFERENT selector. Running that config returns all four. §1289's rule applied to a gate rather than a test file. §1297–§1303: **4 gates built, 12 planted divergences all RED, 2 more framings of mine corrected.** **What changed about where risk lives:** every gap since §1274 was invisible to the suites owning the code, for one of five reasons — a crash between two writes, unbounded growth, deploy-only config, a contract that exists only when two workers talk, or a guard whose outcome another guard also produces. **None is a missing test in the ordinary sense.** |
@@ -77004,7 +77005,7 @@ retries lands in the DLQ nobody consumes, and the sweep's predicate reads as sat
 
 ### The defect the Biller already fixed, in the agent written beside it
 
-`biller.ts:114` documents it in the past tense — *"A PERMANENT hold (below_floor / no_quote /
+`biller.ts@emitTerminalHoldMarker`'s note documents it in the past tense — *"A PERMANENT hold (below_floor / no_quote /
 interline_unresolved / anomaly) used to append NOTHING — just a returned outcome + log line"* — and closes it
 with `emitTerminalHoldMarker`.
 
@@ -77017,7 +77018,7 @@ a log line, and there is no durable event, no exceptions row, and no sweep. REQ-
 
 ### A third artifact, corrected rather than deleted
 
-`biller.ts:115` names gap (1) as *"the hold was INVISIBLE on the ledger (nothing to surface on the exceptions
+that same note names gap (1) as *"the hold was INVISIBLE on the ledger (nothing to surface on the exceptions
 queue, REQ-036)"*. But `UNBILLED_HOLD_MARKER_KIND = "message.received"`, and the exceptions read filters to
 `exception.raised + osd.captured`. The marker genuinely makes the hold durable and queryable, and gap (2) — the
 unbounded per-tick re-drive — is genuinely closed. It does **not** reach the exceptions surface the comment
@@ -77328,3 +77329,68 @@ A measurement note worth keeping, because it is now three instances in one sessi
 `"(nothing above = X)"` label under a grep **three times**, and **twice the output directly above it contradicted
 the label.** A canned negative caption asserts the absence before the result is read, which is the same failure
 §1311 diagnosed one level up. State what a probe returned; conclude afterwards.
+
+
+## §1313 — PHASE GATE: I reproduced the bug the gate documents, in the gate written to prevent it
+
+Three phases in a row corrected a COUNTED claim (§1308 "two sweeps" → four; §1311 a false absence; §1312 "four
+workers" → three). A class that recurs three times deserves a gate, and one already existed:
+`checklist-figures.test.ts` — *"the checklist's numeric claims are re-derived, not remembered."* It did not
+catch any of the three, for two measurable reasons.
+
+| hole | measurement |
+|---|---|
+| `SWEEP_COUNT_FILES` is HAND-KEPT (2 entries) | four files state a sweep count; the two §1312 corrected are not listed — and the list's own comment predicted it: *"A copy not listed here is the next §1076"* |
+| the vocabulary stopped at `ten` | `"Eleven per-tenant sweeps"` matched **nothing** — the gate was blind to the exact number in use |
+
+Both are now closed: the file list is DERIVED (scan the three source trees, exclude only this gate, which
+necessarily contains the vocabulary it matches), and the population is derived by the same rule
+`sweep-containment-coverage.test.ts` uses.
+
+### The part worth recording is that I wrote the same defect again
+
+I widened the table to `twelve`, added a WORKER-count check, ran it — **9 green** — and then planted §1312's
+actual defect (`across four workers`) to see it fail. **It stayed green.** `four` was not in the table.
+
+That is verbatim the lesson recorded forty lines above the code I was editing:
+
+> *"MATCHER: `[^"]+`, NOT `[a-z-]+`. Measured at §1077 — a planted ninth sweep named `probe9` was INVISIBLE to
+> it… a class chosen from the names that exist today, excluding one the generator can emit."*
+
+The gate written to stop curated-vocabulary blindness was itself vocabulary-blind, and only a planted violation
+found it. **A gate that has never been shown failing is a hypothesis.** The fix was not to add `four` — it was
+to stop curating the range (one–twelve).
+
+### Completing the vocabulary then broke the matcher, which is the other half of the lesson
+
+With `one` in the table, the `"N of them"` shape matched ordinary English — *"one of them"* — producing three
+false positives across two workers instantly. That is the exact profile the file warns gets a gate silenced. A
+vocabulary fix demanded a SCOPE fix: `"N of them"` is now read only within 120 characters of the phrase naming
+the population, which is correct independent of which number words exist.
+
+**Replay proof:** with the corrected text restored, 9 green; with §1312's original wording planted, **exactly
+one red**, naming the file and the drift — *"states 4 workers, derived 3 (agents, billing, translator)"*.
+
+### And running the full suite found three failures I had been accumulating
+
+I had been running `check:citations` and `check:tables` per phase, never `vitest.tools.config.ts`. Four gates
+were red; **three were mine**, from earlier phases this session:
+
+- `citation-ratchet` — §1307's prose cited the Biller at bare lines 114 and 115 into a HIGH-CHURN file
+  (written here WITHOUT the `path:line` form, because describing the defect in its own syntax re-creates it —
+  §1268's trap, met twice more at §1284 and once more just now),
+  which is the one thing the ratchet exists to stop. De-formed to symbol references.
+- `checklist-symbols` — §1305's row backticked `exceededResources`, a Cloudflare METRICS field that exists in
+  no tracked source. Backticks were the wrong markup for an external name.
+- `section-refs` — five refs to §1313 from the gate I was writing, resolved by this section existing.
+
+The fourth is the standing `coverage.ts` rot from another workstream's uncommitted edit.
+
+**Running tally: 146 of 146 load-bearing claims probed — 92 verified, 44 gaps closed, 15 claims corrected;
+9 operational items recorded.**
+
+**STOP.** tools 119/119, lint and typecheck clean. Two lessons, and the second is the expensive one.
+**A gate is worth exactly what its planted violation proves** — mine passed its own review and was blind.
+And **CLAUDE.md's rule that "green" means the full gate run, not a chosen subset, is not bureaucratic**: six
+phases of targeted checks reported green while three gates I never ran were red, each on work I had just
+committed.
