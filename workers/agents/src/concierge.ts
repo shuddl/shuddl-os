@@ -331,7 +331,7 @@ export async function handleMessageReceived(message: MessageReceivedTrigger, dep
   //     it does NOT re-drive the send.
   //
   // LOAD-BEARING COUPLING — do not reorder without reading this. That net only works because
-  // `setInboundSla` runs BEFORE the appends (see the three call sites below): a reply that dies mid-flight
+  // `setInboundSla` runs BEFORE the appends (FOUR call sites below — the count read "three" until 2026-08-13, audit §1253): a reply that dies mid-flight
   // must already carry its due ts, or the SLA sweep cannot find it and this gap loses its only backstop.
   // Pinned by workers/api/test/concierge.test.ts "the reply SLA is durable BEFORE the append" (audit §97),
   // which stages exactly that crash. The two properties live in different files and only work together.

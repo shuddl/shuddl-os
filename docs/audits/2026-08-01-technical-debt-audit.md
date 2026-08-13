@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 700 | §1252 | **§1253** | **"LOAD-BEARING" AS A SEARCH TERM — THE PROPERTY PROVED ONCE AND ASSUMED THREE MORE TIMES.** §1252 named the correct-but-unpinned class; this codebase supplies the handle — authors write *load-bearing* on exactly the properties whose breakage is silent. **40** such claims; two ORDERING ones probed. `status-cache.ts`'s FK order (parent before children) REDs five tests — genuinely enforced, clean. `concierge.ts`'s SLA coupling is correct and **cites its own test**, which exists — but (1) the count read *three call sites* where there are **four**, and (2) that crash test exercises ONE branch: moving the stamp after the append at the FIRST site leaves it **25/25 green**. Proved once, assumed three times, and a fifth site covered by nothing. Closed by a source-shape gate, mutation-proved on the real file (names the site AND its offending predecessor) with both controls plus the comment-between case. §1251's coverage question asked of a CODE PATTERN. |
 | 699 | §1251 | **§1252** | **SECOND STOPPING POINT — BOARD RE-MEASURED, AND THE RESIDUE WAS CORRECT-BUT-UNPINNED.** All 26 gates at `0c9b87f`: **19 PASS · 2 FAIL · 5 BLOCKED, 4,647 tests passing, zero repo-owned failures**; `lint` PASS confirms §1249's config change holds under the full gate. §1238 predicted the yield had moved from code to record — **half right**. Thirteen phases (§1239–§1251) found a THIRD category: behaviour that is **right today, stated in a comment, and defended by nothing**. Three of the five gates added this session pin properties that were already CORRECT (IDB commit-durability, CORS↔route parity, lint coverage); two closed real gaps (secrets in 4 unscanned configs, workflow commands in a CI that has never run). The sharpest case is §1248, where a test is **structurally incapable** — the driver's suite stays 101/101 under the mutation because resolving on the request still writes the row. **A comment is not a gate, and "it works" is not evidence it will keep working.** |
 | 698 | §1250 | **§1251** | **THE COVERAGE QUESTION GATED — THE HOLE §1249 WALKED THROUGH, AND §705 BEFORE IT, IS NOW MECHANICAL.** §1250 named the gap: `lint-guards` proves the bans FIRE and is **silent about coverage**, because a rule nobody plants a violation against is a rule nobody notices missing. The same hole was found by hand twice — `apps/` at §705, `tools/` (the 50 files implementing every other gate) at §1249. New gate asks ESLint what it **resolves for a path** across all **327** non-test shipped sources in four trees, requiring `no-restricted-imports`, `no-explicit-any`, `no-floating-promises` at error. **Mutation-proved against the ORIGINAL hole**: pointing §1249's block at a non-matching glob reproduces the pre-§1249 state and the gate reports **50 pairs**, one per tools source. Floored two ways (≥250 files AND all four trees present, so a glob that stops matching `tools/` cannot go vacuously green), and the documented test exclusion is asserted — doubling as a positive control on the severity reader. |
 | 697 | §1249 | **§1250** | **THE CONSTITUTIONAL LINT SURFACE VERIFIED THREE WAYS — AND THE REPO ALREADY HAD THE STRONGER PROBE.** §1249's `--print-config` technique applied to every lint-enforced constitutional rule across six paths: `no-restricted-imports`, `no-explicit-any`, `no-floating-promises` all **2** everywhere, and §1249's new block disturbed none. **Severity is not enforcement**, so the OPTIONS were printed too — both bans intact for the ledger: REQ-163's prior-codebase patterns and REQ-024's LLM-import group, each naming its REQ. Then: `lint-guards.test.ts` does not read config at all — it runs `ESLint.lintText(code, {filePath})` on **planted violations at real paths, both directions**, including the `src/tsa/**` fetch carve-out pinned by its own negative case and §814's override-parity check. **Strictly stronger than my probe.** But the two answer different questions — *does it FIRE* vs *does it APPLY here* — and a suite of the first kind is **silent about coverage**, which is exactly the hole §1249 walked through. |
@@ -74337,3 +74338,48 @@ evidence and a lint is the honest instrument. That is a real limit on fixtures, 
 accounted for, five gates added and each proved to fail on the defect it exists for, and the category those
 phases actually surfaced — correct behaviour held together by prose — named with the reason a test could not
 have closed the hardest of them.
+
+## §1253 — PHASE GATE: "load-bearing" as a search term — the property proved once and assumed three more times
+
+**§1252 named the class (correct-but-unpinned); this codebase supplies the handle.** Authors write
+**"load-bearing"** deliberately, on exactly the properties whose breakage is silent. **40** such claims exist in
+shipped source. Two ordering claims were probed, because reordering two statements usually still "works" on
+clean fixture data — §1232's shape crossed with §1233's.
+
+**`status-cache.ts` — "Order is load-bearing: the shipments upsert FIRST"** (an FK parent before its children).
+Reordering REDs **five** tests: the FK is really enforced, so the violation has a named outcome and is covered.
+Clean.
+
+### `concierge.ts` — the coupling was correct, its count was wrong, and its coverage was one-quarter
+
+The comment is the best-written kind: it names the coupling (`setInboundSla` before the append), explains the
+failure (*a reply that dies mid-flight must ALREADY carry its `sla_due_ts`, or `sla-sweep.ts` cannot find it and
+a stranded inbound loses its only backstop*), and **cites the test that pins it**. The cited test exists — a
+whole describe block staging a real crash mid-append.
+
+Two findings behind that:
+
+1. **The count was stale.** *"see the three call sites below"* — there are **four**. Corrected.
+2. **Which matters more: the property was proved once and assumed three times.** The crash test exercises the
+   QUEUED branch — its own comment records that the author's first draft staged the wrong branch. Moving the
+   stamp after the append at the **first** site leaves that suite **25/25 green**. A fifth site would be
+   covered by nothing.
+
+**Closed by `tools/checks/sla-before-append.test.ts`** — every `appendQuoteRequested` must be immediately
+preceded by `await setInboundSla`, walking back over blanks and comments. Mutation-proved on the real file: the
+gate names the site *and* the offending predecessor (`preceding statement is \`if (ratingConfig === null) {\``)
+while the crash test stays green. Both controls pinned, plus the comment-between-statements case that would
+otherwise be a false positive.
+
+This is §1251's question — *does the rule apply at every site* — asked of a **code pattern** rather than a lint
+rule. And it lives in `tools/` for §1248's reason: the workers pool has no `node:fs`, and the failure needs a
+process death between two statements that no fixture separates.
+
+**The gate caught me mid-phase, again.** Citing §1253 in the source before writing this section failed
+`section-refs` — the third time this session (§1213, §1221). Each time it cost one command, which is what a
+working gate feels like from the inside.
+
+**STOP.** "Load-bearing" used as a search term across 40 claims, the FK ordering confirmed genuinely enforced,
+the SLA coupling found correct but proved at one of four sites with a stale count besides, the site-coverage gap
+closed by a gate that reds where the existing crash test cannot, and the forward-reference gate credited for
+firing on its author.
