@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 806 | §1359 | **§1360** | **TRIAGED §1359's POPULATION — AND DE-ESCALATED MY OWN FINDING.** §1359 measured *8 of 16 exemption lists lack a staleness assertion* and promised triage. **Four cannot go stale by construction** (marker STRINGS, build dirs, a mapping). **Two were false positives of my own heuristic**, which flagged anything containing a `/`: `test-collection`'s IGNORED is build globs, and `design`'s `ALLOWED_HEX` is **DERIVED** from `tokens.css` — the §1341 GOOD shape, misread as a roster. **The last is alive and correctly exempt** (`"21 used"`/`"11 used"` are RUNTIME figures other gates re-derive; both subjects verified present). Both remaining kinds fail SAFE; the narrow residual is a path-prefix later re-occupied by a different file — which is why the assertion belongs in `r2-before-row` and nowhere else. **"8 of 16" counted a SHAPE, not a risk.** |
 | 805 | §1358 | **§1359** | **EXEMPTIONS THAT OUTLIVE THEIR SUBJECTS — CLASS SWEPT, AND MY OWN GATE WAS IN IT.** §1357 selects by failure mode and an exemption has the purest: when its subject disappears it keeps excusing a site that no longer exists and **nothing fails**. `recall` → §672 established the rule; §835/§842/§1324 applied it. **Swept: 16 gates carry an exemption list, 8 assert its subject still exists, 8 do not** — not 8 defects (a design palette cannot go stale), but one was **`r2-before-row`, which I wrote this session**. Added the §672 assertion and mutation-proved it (an exemption pointed at a nonexistent path REDs: *"a standing excuse"*). Two self-inflicted errors on the way, both from anchoring on text that appears three times — **an anchor is only as good as its uniqueness**; reading 40 lines fixed it in one attempt. |
 | 804 | §1357 | **§1358** | **THE COLLECTION-SURFACE CLASS — ALL THREE RE-PROVED, PLUS A FALSE CLEAN OF MY OWN.** §1357's criterion (re-prove when the failure mode is SILENCE) picks §729's two named siblings: one finding per runner that COLLECTS. **TypeScript** (§729) → planted type errors exit 1; **vitest** (§728) → a planted `.test.ts` is collected; **playwright** (§727) → a planted unclaimed spec fails the gate by name. What §727 built is the interesting part: the e2e selector is **still an allowlist**, and that is fine because the gate asserts *"every spec file would actually RUN under some config"* — §1341's derived-completeness shape, arrived at independently: **don't forbid the roster, detect what it omits.** **My first probe was a FALSE CLEAN** — untracked, so the `git ls-files` corpus could not see it. §1315's lesson, re-learned in the session that recorded it. |
 | 803 | §1356 | **§1357** | **`recall` USED FIRST — AND A 600-SECTION-OLD FIX RE-PROVED BY ITS OWN METHOD.** Acted on §1356's commitment: targeted `tools/live/` (19 files, never opened) with the tool instead of a grep. `recall "tools/live"` returned **4 prior verdicts** in one command, including §729 *"files TypeScript never checked, and the two bugs they hid"* — the sweep I was about to run was already done. Re-proved §729's fix at HEAD with ITS method (plant `const __probe: number = "not a number"`, read the exit code, never read a config): **orphan A** (`tools/live/render-email.ts`) → exit 1; **orphan B** (nine package-level `vite`/`vitest.config.ts`) → exit 1. Clean typecheck exits 0; both restored byte-identical. **A closed finding is worth re-proving when its failure mode is silence.** |
@@ -79493,3 +79494,44 @@ wasted edits; the fix was to read forty lines.
 triage without re-deriving it. The selection rule keeps earning its keep: **§1357 says re-test what fails
 silently, and an exemption is the cleanest example in the repo** — it is written precisely because something was
 true once, and nothing in its design notices when that stops being so.
+
+
+## §1360 — PHASE GATE: triaging §1359's population, and de-escalating my own finding
+
+§1359 measured *"sixteen gates carry an exemption list, eight assert its subject still exists, eight do not"*
+and promised triage. Doing it shrinks the class to almost nothing, and the honest conclusion is that §1359
+overstated what it found.
+
+**Four of the eight cannot go stale by construction:** `IGNORE_MARKER` and `IGNORE` are marker STRINGS
+(`"citation-check: ignore"`), `SKIP_DIRS` and `projection-coverage`'s `ALLOWED` are build directories and a
+mapping. An unused marker excuses nothing.
+
+**Two more were false positives of my own triage heuristic**, which flagged anything containing a `/` or a file
+extension:
+
+- `test-collection`'s `IGNORED` is `["**/node_modules/**", "**/dist/**", "**/.wrangler/**"]` — build globs.
+- `design.test.ts`'s `ALLOWED_HEX` is `new Set(Object.values(readTokens(tokens.css)))` — **DERIVED from the
+  tokens file**, not hand-kept at all. It is the §1341 good shape, misread as a roster because it mentions a path.
+
+**The last one is alive and correctly exempt.** `claude-md-budgets`'s `EXEMPT` holds the literal phrases
+`"21 used"` and `"11 used"` — RUNTIME figures, exempt because other gates re-derive them (`check:invariants`
+recomputes the table count on every run; `checklist-figures` re-derives the view roster). Both phrases still
+appear in CLAUDE.md, and `check:invariants` still prints its recomputed count, so both subjects are alive.
+
+### Where that leaves §1359's fix
+
+Defensible but modest, and worth saying so. Both remaining exemption kinds fail **SAFE** if their subject
+disappears: a dead phrase matches nothing and the replacement phrase gets checked; a dead file path excuses a
+file that no longer writes. **The residual risk is narrow** — a path-prefix exemption could later be re-occupied
+by a DIFFERENT file at the same path, which is the one case where a stale entry excuses something real. That is
+why the assertion belongs in `r2-before-row` (path prefixes) and would add nothing in
+`claude-md-budgets` (exact phrases).
+
+**Running tally: 289 of 289 load-bearing claims probed — 204 verified, 51 gaps closed, 27 claims corrected;
+12 operational items recorded.**
+
+**STOP.** The correction is to my own previous phase, which is the point: **"8 of 16 lack an assertion" was a
+count of a syntactic shape, not of a risk.** Triage turned it into one narrow case, already fixed, plus one
+correctly-exempt list — and two of the eight were my heuristic misreading a derived set and a build glob as
+hand-kept rosters. A population measured by pattern needs triage before it becomes a work-list, and saying so
+costs less than the phase someone would spend closing six non-gaps.
