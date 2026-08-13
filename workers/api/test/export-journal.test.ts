@@ -239,7 +239,12 @@ describe("§1262 the journal's ORDER BY is exercised on all three components", (
   const W_TO = TIE_T + 5_000;
   // event_id is the SECOND clause, so the test must know which id sorts first — and ids are UUIDs (the schema
   // requires it), so they are sorted here rather than assumed.
-  const [EVT_LO, EVT_MID, EVT_HI] = [crypto.randomUUID(), crypto.randomUUID(), crypto.randomUUID()].sort();
+  // Indexed with `!` rather than destructured: under `noUncheckedIndexedAccess` a destructure of a sorted
+  // array is `string | undefined`, and the ordering premise is asserted at runtime below anyway.
+  const SORTED_EVT = [crypto.randomUUID(), crypto.randomUUID(), crypto.randomUUID()].sort();
+  const EVT_LO = SORTED_EVT[0]!;
+  const EVT_MID = SORTED_EVT[1]!;
+  const EVT_HI = SORTED_EVT[2]!;
 
   // Expected order E = [m0, m3, m2, m1]:
   //   m0  created_ts EARLIER            → first, by clause 1 (its event_id is the LAST — so dropping clause 1
