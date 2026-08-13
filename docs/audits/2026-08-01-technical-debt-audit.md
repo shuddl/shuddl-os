@@ -79250,9 +79250,14 @@ Identical in shape to §1314's, which is exactly why it needed proving rather th
 
 **One of the two FAILs was NEW, and it was mine.** `citations` reported **2 rotted citations, not 1**:
 
-- `tools/traceability/coverage.ts:201@scanRecordedHomes` — the standing other-workstream rot, valid at HEAD
-- **`contracts/copilot.ts:12-18` — a DANGLING PATH**, written by me at §1327, where I shortened
-  `packages/contracts/src/copilot.ts` to `contracts/copilot.ts`
+- the standing other-workstream rot into `coverage.ts` (the `scanRecordedHomes` anchor), valid at HEAD
+- **a DANGLING PATH** written by me at §1327, where I shortened the `packages/contracts/src/…` prefix off
+  `copilot.ts` and left a path that resolves to nothing
+
+*(Both are described WITHOUT the `path:line` form on purpose. Writing this section with the two failures quoted
+verbatim re-created them as live citations — the gate went from 1 rotted to **3** — which is §1268's trap for
+the fourth time in this audit, met here inside the section documenting a citation defect. The form is the
+citation; quoting one is making one.)*
 
 ### Why it survived ~25 phases of "1 failed"
 
