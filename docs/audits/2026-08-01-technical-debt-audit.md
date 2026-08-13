@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 733 | §1286 | **§1287** | **THE AUTHZ BOUNDARY IS 4-FOR-4, AND THE FIFTH GUARD IS A LIBRARY CONTRACT.** `middleware/auth.ts` decides who every caller is. Mutated: client-supplied tenant rejection (REQ-156) **1 RED**, `Bearer ` prefix **6 RED**, `SessionClaims.safeParse` **2 RED**, `requireRole` **3 RED** — all pinned, zero source changes. **The fifth is not what it looks like:** I labelled removing `"HS256"` an *alg-confusion* defence and got 6 REDs, which fits perfectly. Reading hono's source: `verify(token, key, algOrOptions)` **throws `JwtAlgorithmRequired` when the third argument is absent** — so dropping it widens nothing, it makes every token unverifiable, and the 6 failures are ordinary requests becoming 401s. **The hole I named cannot exist in this version.** Six REDs prove the argument is REQUIRED, not that it DEFENDS. That is the **fourth** framing of mine this stretch corrected by reading the mechanism rather than the result (§1280 heuristic, §1282 HMAC-forgery, §1285 reachability, this) — every one a plausible story the red/green pattern appeared to confirm, which is when a story is most dangerous. |
 | 732 | §1285 | **§1286** | **THE BYTE LAW IS 5-FOR-5 — AND ONE OF ITS TESTS IS THE FIX FOR §1281–§1285.** `canonical.ts` is the frozen-forever primitive (every stored hash digests its output). Five rules, five mutations: **key sort 6 RED**, undefined-filter RED, `-0` rejection 1 RED, sparse-hole 1 RED, unsupported-type throw 1 RED. Zero source changes. **The sparse-hole case is worth more than its tick:** removing that guard STILL throws (a hole reads `undefined`, which the unsupported-type branch rejects) — identical outcome, so by the logic that defeated four suites this stretch it should have been unpinnable. It is not, because the test asserts **`.toThrow(/sparse\|hole/)`** — the REASON, not the outcome. That one choice is the whole difference from `sign.test.ts` (`=== false`), `inbound.test.ts` (`status === 401`) and `chain.test.ts` (`ok === false`), each of which hid a real gap. **So the class has a cheap general fix: when several guards share an outcome, assert the distinguishing detail** — the message, the `reason`, the code not the class. §1282 solved it the expensive way with one-column fixtures; this gets there in one line. The generalisation was sitting in `canonical.test.ts` the whole time. |
 | 731 | §1284 | **§1285** | **THE HASH CHAIN, AND A SEQ CHECK THREE TESTS COULD NOT SEE.** `verifyChain` mutated five ways: `prev_hash` linkage **2 RED**, stored-hash comparison **1 RED**, `hashView` deleting `sig` **1 RED**, `expectedPrev = e.hash ?? recomputed` **equivalent** (they cannot differ while the hash check stands), and the **`seq` gap check → 726/726 GREEN**. **Why the existing test missed it:** `chain.test.ts` tampers `{ ...chain[1], seq: 3 }` and asserts `ok === false` — but **`seq` is INSIDE the hash view**, so the edit changes the recomputed hash and `hash_mismatch` rejects it; the seq comparison never runs. §1281's pattern, third occurrence, and the sharpest yet because the fixture NAMES the field it tampers. Isolated with a correct `trustedPrevHash` + stale `fromSeq` (only the seq check can reject that), plus the complement and a **no-op control**. **And the scope claim was wrong:** I wrote that `anchor.ts` resumes this way — it never calls `verifyChain`, and the only `verifyChain(` matches in src are a **different function** in `tsa/cms.ts`. The real caller is `restore-verify.ts`, which passes NO options — so this pins an exported CONTRACT, not a live path. Same-name-different-function is the trap that makes a grep look like an answer. |
 | 730 | §1283 | **§1284** | **STOPPING POINT — 19 PASS · 2 FAIL · 5 BLOCKED at `ea5519c`, and one red was MINE.** Same shape as §1273, different attribution — which is why the board is re-earned rather than assumed. `citation-ratchet` reported *GREW … sequencer.ts: 3 → 4 unanchored*: §1275 cited `sequencer.ts:471` as a bare path:line into the repo's highest-churn file, exactly what the ratchet exists to stop. Anchored to `:471@projectStatusCache`, 16/16. The other FAIL is the citation **correct at HEAD** (another author's uncommitted `coverage.ts`). **Repo-owned failure set empty again — after a fix, not by default.** **And a blind spot I nearly invented:** two more 'anchors' I added had no PATH, so they were prose the gate never saw; planting a properly-formed bad anchor takes it **1 FAIL → 2**, so the gate is fine and my probe was not — the third time this stretch a suspicion about a gate dissolved on measurement. **§1274–§1283: 6 gaps closed** (evidence ordering · commented-assertion floor · sweep counter · **signature fail-OPEN** · **EDI revocation** · **EDI kind-separation**), 2 gates built, ~45 mutations, and **4 claims of my own corrected**. |
@@ -76039,3 +76040,51 @@ in `canonical.test.ts` the whole time.
 **STOP.** The ledger's integrity core is now complete and measured end to end — `chain.ts` (§1285, one gap
 closed) and `canonical.ts` (here, 5 of 5 clean) — and the shared-outcome class that produced four of this
 stretch's findings has a named, one-line remedy with a working example in-tree. ledger 728/728.
+
+## §1287 — PHASE GATE: the authz boundary is 4-for-4, and the fifth "guard" is a library contract
+
+Every authenticated route passes through `middleware/auth.ts` — 35 lines that decide who the caller is and what
+they may do. Five elements, mutated:
+
+| element | removed → | verdict |
+|---|---|---|
+| client-supplied tenant rejection (REQ-156) | **1 RED** | pinned |
+| the `Bearer ` prefix requirement | **6 RED** | pinned |
+| `SessionClaims.safeParse` validation | **2 RED** | pinned |
+| `requireRole`'s role check | **3 RED** | pinned |
+| the `"HS256"` argument to `verify` | **6 RED** | **not what it looks like** |
+
+Zero source changes.
+
+### The algorithm argument is not an alg-confusion defence
+
+I labelled the fifth mutation *"alg confusion"* — the classic JWT forgery where an unpinned algorithm lets an
+attacker present `alg: none` or swap HS/RS. Six tests went red, which fits the story perfectly.
+
+It is the wrong story. Reading the installed hono source: `verify(token, key, algOrOptions)` **throws
+`JwtAlgorithmRequired` when the third argument is absent**. So dropping it does not widen anything — it makes
+*every* token unverifiable, and all six failures are ordinary requests turning into 401s. The library refuses to
+verify without an explicit algorithm, so **the hole I named cannot exist in this version**, and the argument is
+a required parameter rather than a guard this codebase chose.
+
+The measurement was right and its meaning was mine to get wrong. Six REDs prove the argument is *required*, not
+that it *defends*. Recorded at that size.
+
+That is the **fourth** framing of mine this stretch corrected by reading the mechanism instead of the result:
+§1280's targeting heuristic, §1282's HMAC-forgery hypothesis, §1285's reachability claim, and this. Every one
+was a plausible story that a green/red pattern appeared to confirm — which is exactly when a story is most
+dangerous, because the evidence *is* consistent with it.
+
+### Where the shared-outcome lesson applies here
+
+Three of these five exits produce the same `UNAUTHORIZED 401` — the §1286 shape. It did not bite, because the
+suite happens to separate them by *input* (no header, malformed header, bad claims are three different
+requests), which is §1282's expensive route arrived at naturally. The cheap route from §1286 is still available
+if these ever converge: `ApiError` carries a distinct `code`, so asserting the code rather than the status would
+pin each exit in one line.
+
+**Running tally: 94 of 94 load-bearing claims probed — 66 verified, 25 gaps closed, 5 claims corrected.**
+
+**STOP.** The authz boundary measured element by element and found fully defended — four guards pinned, the
+fifth identified as a library requirement rather than a defence, and the framing corrected by reading hono's
+source instead of trusting a red that agreed with me.
