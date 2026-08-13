@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 741 | §1294 | **§1295** | **STORAGE THAT IS DEAD BY CONSTRUCTION — AND THE TAXONOMY THAT SEPARATES IT FROM §1293's.** Third form of the growth axis: **DO storage**. Both cap meters write `applied:PERIOD:id` per metered action, and the lookup key is always built from `currentPeriod(now)` = the UTC month — so when a month turns, every prior key is **unreachable by construction**. Neither DO has an `alarm`, `delete` or `deleteAll` (measured: zero `alarm` occurrences). One key per booking, forever, readable never. **Permanent by DESIGN vs by OMISSION:** §1293's markers are permanent because a *delivered* record that expires re-delivers — still readable, and a reaper would be UNSAFE. These are permanent because nothing removes them — **not readable**, and a reaper is **provably safe**, since a lookup for a past period is unconstructible. The usual objection to reaping an idempotency marker cannot apply. **Three forms, one instrument:** R2/KV list (§1293), D1 scan (§1294), DO storage (§1295) — none findable by a test, all found by **reading the write and asking what removes it; reading the query and asking what bounds it**. |
 | 740 | §1293 | **§1294** | **EVERY KPI SCANS THE TENANT'S WHOLE HISTORY, FOREVER.** §1293's axis — *correct, and slower forever* — swept at its sharpest form: **11** unbounded SELECTs over append-only tables, **9 refuted** (PK predicate, `created_ts` range, `IN (…)`, or a LIMIT inside a template my matcher missed). **Two real:** `computeDwellMinutes` reads every `stop.arrived`/`stop.departed` ever recorded and `computeCostRatioBps` every `quote.priced`, then materialise the whole result in Worker memory. **And there is no window to push down** — `KpiOpts`/`MetricOpts` carry ONLY a `scope` whose own comment says *test-only*, and a grep for a `ts`/`recorded_at` lower bound returns **zero** in both files. So `/v1/kpis` costs O(tenant lifetime) per request, always. **Filed, not fixed, and the reason matters:** a `LIMIT` on a query feeding a MEAN silently truncates the population — the dwell figure becomes *the mean of the most recent N* wearing the same label. The honest repair is a DECLARED WINDOW, which changes the published number from all-time to trailing-N and is **visible to a customer on the board** — a product decision. **The axis named:** three sections have now found things no test could (§1274 crash-ordering, §1293 marker growth, this) — **a test asserts what the system DOES; none of these is about what it does.** |
 | 739 | §1292 | **§1293** | **THE SEAM SURVEY NARROWED — AND WHAT IT FOUND WAS NOT A MISSING TEST.** Narrowed to §1291's exact shape (a production impl behind an injectable seam, tests only building the double): of **28** `class X implements Y` pairs, **26 are referenced** (incl. `SequencerPlatformLedger`, now covered by §1291's suite). The two that are not — `NotConfiguredFeedReader`, `KvDeliveryMarkers` — are **4–8 line adapters**, where the method stops paying: testing `async read() { return null; }` asserts the language (§1283's rule). **But reading the second produced a real finding:** `mark` is `kv.put(key, "1")` with **no TTL**, and nothing anywhere deletes either marker store (measured — `expirationTtl` in neither file, no `delete` call). Permanence is CORRECT (a *delivered* record that expires would re-deliver) — but `run214Sweep` calls `listSentMarkerKeys`, which **pages EVERY sent marker into a Set on EVERY tick**, so per-tick cost grows with **lifetime transmissions**, not with outstanding work. Filed as a GO-LIVE row with two candidate shapes; **not built — both are register decisions.** The section's shape is the lesson: the survey pointed at a module whose tests were not worth writing, and READING it because the survey pointed there found a cost no test would catch, because nothing is *wrong* — the system is correct and gets slower forever. |
 | 738 | §1291 | **§1292** | **THE SURVEY RUN REPO-WIDE — 24 CANDIDATES, 0 REAL, AND THE RULE THAT SAYS WHY.** §1291's method applied to every package: which modules have NO export referenced by any test? **Twenty-four**, ≥40 LOC each. **All twenty-four are FALSE POSITIVES** — re-run against what tests actually name (the route PATH, the tool NAME), every one is present and spot-checks confirm they are DRIVEN inside `SELF.fetch`, not merely mentioned. **The rule both runs give together: the ownership survey is valid exactly when dispatch is BY SYMBOL, and blind when dispatch is by STRING.** `platformLedgerFor` is called by symbol from `webhook.ts`, so its empty row was a true signal; `mountBoardRoutes` is called once at composition and thereafter reached by PATH, so its absent symbol says nothing. This is *find the dispatch, not the string* from the other direction — there, concluding *unreferenced* from an absent literal; here, *untested* from an absent symbol. **Same mistake: measuring a name when the call is made some other way.** Cost stated honestly: two commands, one real module (11 tests), 24 leads worth zero — a good trade AND a bad hit rate, and chasing them one at a time would be a day that finds nothing. |
@@ -76415,3 +76416,50 @@ suites that are otherwise thorough enough to catch a fail-open signature check.
 
 **STOP.** The unbounded-growth axis swept at its sharpest form: 11 candidates, 9 refuted by measurement, 2 real
 and filed to the register with the reason a `LIMIT` would be the wrong fix. Zero source changes.
+
+## §1295 — PHASE GATE: storage that is dead by construction, and the taxonomy that separates it from §1293's
+
+The unbounded-growth axis, third form: **Durable Object storage**. Both cap meters write, per metered action:
+
+```
+tally:2026-08                 the period's running tally
+applied:2026-08:<idemKey>     the per-action replay marker
+```
+
+and the lookup key is always assembled from `currentPeriod(now)` — the **UTC calendar month**. So the instant a
+month turns, every prior-period key becomes **unreachable by construction**: no code path can produce that key
+again. Neither DO has an `alarm` handler, a `delete`, or a `deleteAll` — measured, zero occurrences of `alarm`
+in either file. One key per booking (MCP caps) or per convenience (spark), retained forever, readable never.
+
+### Permanent by DESIGN versus permanent by OMISSION
+
+§1293 found marker stores with no expiry and called permanence correct. This looks identical and is not, and
+the distinction is worth carrying:
+
+| | §1293 markers | §1295 meter keys |
+|---|---|---|
+| why permanent | **by design** — a *delivered* record that expires re-delivers | **by omission** — nothing was written to remove them |
+| still readable? | **yes**, forever — presence is the answer | **no** — the key embeds a period that can never recur |
+| what it costs | a per-tick `list` proportional to lifetime | storage only |
+| is a reaper safe? | **no** — deleting a marker re-delivers an event | **yes, provably** — the keys are unreachable, not merely stale |
+
+That last row is why this one is worth filing separately: the usual objection to reaping an idempotency marker
+— *you will break dedupe* — **cannot apply here**, because a lookup for a past period is unconstructible. It is
+the rare cleanup whose safety argument is structural rather than probabilistic.
+
+Filed with its measurement and that argument. **Not built** — an `alarm` handler is new code, and new code needs
+a register row before it exists.
+
+### Three forms, one axis, one instrument
+
+Unbounded growth has now surfaced as an R2/KV list (§1293), a D1 scan (§1294), and DO storage (§1295). None was
+findable by a test, and all three were found the same way: **read the write, then ask what removes it; read the
+query, then ask what bounds it.** Two questions, applied to every persistence call in the system — which is a
+finite list, and now a swept one.
+
+**Running tally: 119 of 119 load-bearing claims probed — 82 verified, 32 gaps closed, 5 claims corrected;
+3 operational items recorded.**
+
+**STOP.** The unbounded-growth axis closed across all three storage layers, with the design/omission taxonomy
+that says which are tradeoffs and which are waste — and the one provably-safe cleanup handed to the register
+rather than written. Zero source changes.
