@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 712 | §1265 | **§1266** | **FOUR UNEXERCISED GUARDS IN THE GATEKEEPER — EXACTLY TWO COULD EVER FIRE.** 109 `typeof` guards across 42 files; swept the sharpest surface, `transition-gates.ts`. All four string guards were unexercised — dropping each `typeof` left **56/56 GREEN** (the suite varies every field's VALUE, including *a photo_hash that is not 64-hex*, and never its TYPE). **A green mutation has two explanations and BOTH were true here, in different guards:** the two on `exception.raised` — doc 10's deliberately LOOSE payload — were real gaps; the two on `custody.transferred`/`delivery.evidenced` are **redundant**, because those payloads are strictly typed and Zod refuses the bad type first (measured, not argued). **Cost of the two live ones:** `photo_hash` as an ARRAY holding a valid hash PASSES `HASH64.test()` by coercion — REQ-050's evidence pillar clears carrying no hash at all; `reason_code` as a NUMBER makes `.trim()` throw a **TypeError instead of blocking** — a gate that 500s is not a gate that refuses (REQ-030). The redundant pair got a gate on their **PRECONDITION** rather than a prose note: both typed payloads asserted to REJECT the bad type, the loose one to ACCEPT it, so the test dies the day the assumption does. **Hand-written type guards matter exactly where the schema stops** — and that boundary is documented, so it can be swept. ledger 714/714. |
 | 711 | §1264 | **§1265** | **TWO CLEAN NEGATIVES AT THE UNTRUSTED BOUNDARIES — AND A LAW UNDEFENDED IN THE ONE PLACE IT APPLIED.** MCP (demo #4) returns **5 mutations, 5 REDs**: `kind='mcp'`, **revocation** (`status !== active`), the lane allow-list, the `caps_unconfigured` refusal, and — the one worth naming — the **REQ-105 cap bypass fix REVERTED to its pre-fix form**, which REDs, so *mutate the pin, not just the fix* answers clean. On `pub/status.ts`, REQ-188's always-coarse geo is solid, but two lines above it `state: … : "unknown"` swapped for a fabricated `"in_transit"` left the file **13/13 GREEN** — and the same file states the honest-instrument law explicitly for `eta`, **a field that does not exist yet**, while the one field that actually degrades was defended by nothing. Closed as **PS-7** (an unused slot in the suite's own numbering). **It took two tries:** the first two cases both have `state` ABSENT, so dropping the `typeof === "string"` check stayed GREEN; the discriminating input is `state` present with the WRONG TYPE, whose consequence is a `z.string()` throw into the outer catch → **401**, one bad projection field making a real shipment look like a forged cap. §1258 one level down: **absent ≠ present-but-wrong.** 4 mutations RED, api 839/839. Also corrects this record's own arithmetic: §1264's tally summed to 19, not 17. |
 | 710 | §1263 | **§1264** | **ONE RULE WRITTEN TWICE, DEFENDED IN NEITHER COPY.** §1258's family generalised from orderings to multi-condition `WHERE` clauses: 13 queries carry 3+ AND-ed conditions; the 4 sharpest were mutated condition by condition. **Two fully defended** (the invoice-settle amount cap REDs 3, `status='issued'` REDs 1 — clean negative). **The gap:** `kind = 'quote.priced'` in BOTH `portal-actions.ts` and `booking.ts` GUARD 2 — deleting it left the full api suite at **834/834** and **835/835** respectively, while each side's `stream_id`/`id` clauses RED 3–8. Both suites already had a test that READS as though it covers this; both name a `crypto.randomUUID()`, an id that exists NOWHERE, so `id = ?` refuses it and the `kind` clause never runs — **the fixture cannot distinguish DANGLING from WRONG-KIND**, which both guards' comments name as separate faults. **Damage:** an UNTRUSTED portal party gets **201** and writes a `quote.accepted` naming a non-quote onto an **append-only** ledger (I3/I7 — never removable), and the freight then silently never books. Closed both sides, 6 mutations RED, api 836/836. **And a recorded measurement error:** the first booking probe ran `workers/agents`, where the file LIVES → **130/130 false green**; it is owned by `workers/api/test/booking.test.ts` across a package boundary. Stopping there would have recorded *the mirror defends it* — a wrong finding that made the gap look survivable. |
 | 709 | §1262 | **§1263** | **THE BOARD CAUGHT TWO DEFECTS OF MINE THAT EVERY SUITE I RAN HAD PASSED.** Re-earned at `7ef7d34`: **18 PASS · 3 FAIL · 5 BLOCKED**, all three attributed. **(1) typecheck — MINE:** §1262's fixture destructures a sorted array, which is `string \| undefined` under `noUncheckedIndexedAccess`; 11 errors in the file I had just proved five ways, while `vitest` reported **16/16 GREEN on that exact file** — vitest does not typecheck. The companion to *run the suite that owns the file*: the owning suite is NECESSARY, not SUFFICIENT. **(2) phase-index — MINE:** the §4 index lists phase gates ONLY and I indexed §1261, a finding section; unindexed. **(3) evidence-expiry — MINE BY TRIGGER:** §1259 changed `anchor.test.ts`, expiring a row dated 2026-08-11; re-verified, substance HOLDS — and the clearance shape is the finding: the prior note anchored the two CONSTRUCTORS `path:line@symbol` and left the two CONSUMPTION sites bare, and **those are exactly the citations that rotted, by +32**, same file, same note, same day. **(4) coverage — NOT MINE, proved by EXIT CODE:** HEAD's register → **exit 0**; owner's working register → **exit 1**. That swap also demoted the **status-drift list to ADVISORY** (all 11 rows print at exit 0), so L423's 8 → 10 → 11 history has been tracking an advisory signal; the new row REQ-267 is a **deferral marker, not an implementation**. Plus a re-derivation logged as one: I re-proved Law 5, which the record already held **three times**. |
@@ -74989,3 +74990,59 @@ figure at §1264 was **19 of 40**.
 previously-exploitable bypass whose fix is genuinely pinned; the public status page gave up one gap where the
 honest-instrument law was stated for a hypothetical field and undefended on the live one, now closed with the
 wrong-type case that the first fixture could not see. Own tally corrected.
+
+## §1266 — PHASE GATE: four unexercised guards in the Gatekeeper, of which exactly two could ever fire
+
+§1265's mechanism — *a fixture that only omits cannot speak for a type check* — is mechanically sweepable. There
+are **109 `typeof x === "…"` guards** across 42 shipped files, and the exposed ones are wherever code
+hand-parses a blob written elsewhere in the system, because a shape change yields a WRONG TYPE, not an absent
+field. The sharpest such surface is the **Gatekeeper** — `transition-gates.ts` decides whether freight moves.
+
+Its four string guards were **all unexercised**: dropping the `typeof` from each left `transition-gates.test.ts`
+at **56/56 GREEN**. The suite varies the *value* of every one of these fields (there is even a case for *"a
+photo_hash that is not 64-hex"*) and never the *type*.
+
+**But a green mutation has two explanations, and here both were true — in different guards.** Measured, not
+argued:
+
+| guard | payload | dropping `typeof` | verdict |
+|---|---|---|---|
+| `photo_hash` (`assertException`) | **loose** | **1 RED** once covered | real gap — closed |
+| `reason_code` (`assertException`) | **loose** | **1 RED** once covered | real gap — closed |
+| `cosig` (`assertInterline`) | typed | still green | **redundant** — schema refuses it first |
+| `placed_photo_hash` (`assertDelivery`) | typed | still green | **redundant** — same |
+
+The discriminator is not a coincidence: it is **doc 10's deliberate asymmetry**. `exception.raised` is
+intentionally a loose `JsonObject` — the gate's own comment says its fields must be *"read DEFENSIVELY off an
+unknown payload"* — while `custody.transferred` and `delivery.evidenced` are strictly typed. So a caller can
+control the type on exactly one of these payloads, and **that is precisely where the two live gaps were.**
+
+### What the two live gaps would have cost
+
+Not symmetrical, which is why both cases are seeded rather than one:
+
+- **`photo_hash` as an ARRAY holding a valid hash.** `HASH64.test()` COERCES its argument, so `test([HASH])`
+  stringifies to the hash and **passes**. Without the `typeof`, REQ-050's evidence pillar clears while the event
+  carries no photo hash at all — a gate that says yes to nothing.
+- **`reason_code` as a NUMBER.** `.trim()` is undefined on it, so the guard **throws a `TypeError`** instead of
+  blocking. A gate that 500s is not a gate that refuses (REQ-030): the caller receives a fault rather than a
+  required-evidence list, and the block never reaches the ledger as a decision.
+
+### The redundant pair got a gate on their PRECONDITION, not a comment
+
+The tempting move is to write *"redundant, the schema covers it"* in prose. Prose cannot fail. What is fragile
+here is not the guard but the **assumption underneath it**: if either typed payload is ever loosened the way
+`exception.raised` deliberately is, those `typeof`s become load-bearing that same day, and their absence would
+be a `TypeError` out of a gate. So the asymmetry itself is now a test — both typed payloads asserted to REJECT
+the bad type, and the loose one asserted to ACCEPT it. It fails the moment the premise dies. (§1254's shape:
+when a guard is unreachable, gate the thing that makes it unreachable.)
+
+**Mutation-proved:** the two loose-payload guards RED; the two typed ones stay green **with the reason on the
+record** rather than filed as blindness. ledger **714/714**.
+
+**Running tally: 27 of 40 load-bearing claims probed — 14 verified, 12 gaps closed, 1 claim corrected.**
+
+**STOP.** The Gatekeeper's type guards swept: four unexercised, two reachable and closed, two redundant for a
+measured reason with their precondition now gated. The exposure mapped exactly onto doc 10's loose-payload
+asymmetry, which is the useful generalisation — **hand-written type guards matter exactly where the schema
+stops**, and that boundary is documented, so it can be swept rather than guessed.

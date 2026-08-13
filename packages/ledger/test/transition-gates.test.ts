@@ -308,6 +308,29 @@ describe("REQ-045 assertInterline — interline handoff needs a seal + the RECEI
     expect(() => assertInterline([], custodyUnwitnessed(), true, { override: OK_OVERRIDE })).not.toThrow();
   });
 
+  // §1266 — WHY the cosig guard's `typeof` half is REDUNDANT here, pinned as a precondition rather than
+  // asserted in prose. Dropping `typeof cosig === "string"` leaves this file green, and the tempting reading is
+  // "the gate is blind". It is not: unlike `exception.raised`, `custody.transferred` carries a STRICTLY TYPED
+  // payload, so Zod rejects a numeric cosig before the gate is ever called — the state the typeof defends
+  // against is unreachable. A green mutation has two explanations and this is the other one.
+  //
+  // What is fragile is the PRECONDITION, not the guard. If that payload is ever loosened to a JsonObject (the
+  // way `exception.raised` deliberately is), the typeof becomes load-bearing immediately — and its absence
+  // would be a TypeError out of a gate instead of a refusal. This case fails the moment that assumption dies.
+  it("§1266 REQ-045: the doc-10 ASYMMETRY is what decides which typeof guards can fire", () => {
+    // TYPED payloads refuse the bad type before any gate runs — so their `typeof` guards defend an
+    // unreachable state. Both are asserted, because both mutated GREEN and the reason must be on the record.
+    expect(() =>
+      eventFixture("custody.transferred", { payload: { from_party: "party-shipper", to_party: "party-carrier", cosig: 42 } }),
+    ).toThrow(/expected string/);
+    expect(() =>
+      eventFixture("delivery.evidenced", { payload: { placed_photo_hash: [HASH], geo: { lat_e6: 1, lon_e6: 1 } } }),
+    ).toThrow();
+    // The LOOSE payload accepts it — which is exactly why the two `exception.raised` guards above are the only
+    // ones a caller can actually reach, and the only two that were genuinely undefended.
+    expect(() => exceptionRaised({ photo_hash: [HASH], reason_code: 42 })).not.toThrow();
+  });
+
   it("a malformed override THROWS GateValidationError", () => {
     expect(() => assertInterline([sealApplied()], custodyWithCosig(), true, { override: { by: "x", reason: "" } }))
       .toThrow(/VALIDATION_FAILED/);
@@ -342,6 +365,30 @@ describe("REQ-050 assertException — an exception/OS&D needs a photo + a reason
   it("a photo_hash that is not 64-hex is treated as no photo → blocks ['exception_photo']", () => {
     expect(blockedEvidence(() => assertException(exceptionRaised({ photo_hash: "not-a-hash", reason_code: "damage" }))))
       .toEqual([REQUIRED_EVIDENCE.exception_photo]);
+  });
+
+  // §1266 — WRONG TYPE, not merely wrong value. Every case above varies the VALUE of a string field; none
+  // supplies a NON-string, so the `typeof … === "string"` half of each guard was exercised by nothing
+  // (measured: dropping it from all four gate guards left this file at 56/56 GREEN).
+  //
+  // This payload is the one place a client controls the type. Doc 10 makes `exception.raised` a DELIBERATELY
+  // loose JsonObject — the gate's own comment says its fields must be "read DEFENSIVELY off an unknown
+  // payload" — so the gate is the only thing between a caller and REQ-050's evidence pillar.
+  //
+  // The two shapes are not interchangeable, which is why both are here:
+  //   · an ARRAY holding a valid hash — `HASH64.test()` COERCES its argument, so `test([HASH])` stringifies to
+  //     the hash and PASSES. Without the typeof, the exception gate clears carrying no photo hash at all.
+  //   · a NUMBER where a trimmed string is expected — `.trim()` is undefined on it, so the guard THROWS a
+  //     TypeError instead of blocking. A gate that 500s is not a gate that refuses (REQ-030): the caller gets
+  //     a fault instead of a required-evidence list, and `blockedEvidence` fails its `instanceof GateError`.
+  it("§1266 REQ-050: photo_hash as an ARRAY holding a valid hash is NOT a photo → blocks ['exception_photo']", () => {
+    expect(blockedEvidence(() => assertException(exceptionRaised({ photo_hash: [HASH], reason_code: "damage" }))))
+      .toEqual([REQUIRED_EVIDENCE.exception_photo]);
+  });
+
+  it("§1266 REQ-050: reason_code as a NUMBER blocks with a GateError — never a TypeError", () => {
+    expect(blockedEvidence(() => assertException(exceptionRaised({ photo_hash: HASH, reason_code: 42 }))))
+      .toEqual([REQUIRED_EVIDENCE.reason_code]);
   });
 
   it("a whitespace-only reason_code is treated as no reason → blocks ['reason_code']", () => {
