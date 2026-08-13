@@ -208,8 +208,16 @@ export function parseTenantPolicy(raw: string | null | undefined): Record<string
   } catch {
     return null;
   }
-  // `typeof [] === "object"`, so Array.isArray is load-bearing: a JSON array behaves exactly like `{}` and
-  // would widen silently. A first cut of this check omitted it and `[1,2]` appended 201.
+  // `typeof [] === "object"`, so a JSON array behaves exactly like `{}` and would widen silently. A first cut
+  // of this check omitted it and `[1,2]` appended 201 — which is why the guard was written.
+  //
+  // §1256 — IT IS NO LONGER LOAD-BEARING, and saying so is the point. The `TenantPolicyShape.safeParse`
+  // below was added after, and MEASURED: with this `Array.isArray` clause deleted, `parseTenantPolicy("[1,2]")`
+  // still returns null, because a Zod object schema rejects an array. So the clause is belt-and-braces today
+  // and its removal is SILENT — the state in which a guard eventually gets deleted by someone who mutates it,
+  // sees green, and concludes the comment was wrong. It is KEPT because it makes the refusal explicit at the
+  // point of the type confusion, and because it becomes load-bearing again the moment the shape below is
+  // loosened (a passthrough, a record type, a narrower parse) — the precondition, not the property.
   if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) return null;
   // Zod at the boundary (CLAUDE.md): the object check alone accepts `{"gates":[1,2]}` and a `{"gate":{…}}`
   // typo, both of which then produce EXACTLY the `{}` widening this predicate exists to refuse.

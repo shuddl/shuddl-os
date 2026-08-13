@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 703 | §1255 | **§1256** | **TWO MORE LOAD-BEARING CLAIMS — ONE EXEMPLARY, ONE THAT STOPPED BEING TRUE.** The geofence accuracy band (*the ± band that decides `ambiguous`*) is exemplary: zeroing it REDs five tests, two of which pin **both sides** of the boundary (197 m inside-and-ambiguous, 205 m outside-and-ambiguous) — a threshold tested one side only would miss half its definition. `platform-tenant.ts`'s *Array.isArray is load-bearing* is **no longer true**: deleting it leaves contracts 331/331, and one probe separated the two explanations — `parseTenantPolicy("[1,2]")` returns **null** anyway, because the Zod `safeParse` added AFTER it rejects arrays. The green was correct, not a gap. **The defect is the word**: a guard whose removal is silent gets deleted by whoever mutates it and concludes the comment lied. Comment corrected with the measurement and the **precondition** that would restore it. Tally: 9 of 40 probed, 7 verified, 1 gap, 1 claim corrected. |
 | 702 | §1254 | **§1255** | **THE COPILOT'S ANTI-FABRICATION PROPERTY — THREE LAYERS, AND THE STRONGEST ONE HAS NO TEST.** The highest-stakes cluster in §1253's queue: a break here is a **fabricated citation** on a REQ-038 surface. Layer 1, the contract, makes a claim-with-no-citation **unrepresentable** (tested). Layer 2, `groundOrAbstain`, abstains the WHOLE answer on any id outside the retrieved set — **mutation-proved both ways**: turning the guard into a silent `continue` (the plausible refactor) and allowing zero citations each red a test named for it. Layer 3, provenance, has **no assertion and needs none**: the model's schema reads only `event_id` while `EventRef` is `.strict()` and REQUIRES `kind`, a field the model is never asked for — so the only way to build a valid ref is to copy it off the retrieved row. **Enforcement by construction: the bad state is inexpressible rather than detected**, and a required field cannot be forgotten without a type error. Tally: 7 of 40 probed, 6 verified, 1 gap. |
 | 701 | §1253 | **§1254** | **TWO MORE LOAD-BEARING CLAIMS — A COMMENT THAT RE-RUNS, AND A GATE ON A PRECONDITION.** The sequencer mutex does not assert it matters, it **reports the measurement** (*deleting it reds the 100-concurrent test with SQLITE_CONSTRAINT*) — re-run, and it reds **exactly the named test** with exactly the predicted symptom. A comment recording a reproducible experiment is the strongest documentation form here: falsifiable, self-naming, one command to check. The meter DOs' mutexes are **redundant today** and become load-bearing the instant a non-storage await enters; §318's gate checks **the PRECONDITION, not the property**, and fires when one is planted. Two instrument errors of my own: `invariants.test.ts` gave 202/202 GREEN because the check lives in the **script**; and `git grep -l` for the class matched `invariants.ts` itself, which BUILDS that regex as a string. Tally: 4 of 40 probed, 3 verified, 1 gap (closed at §1253). |
 | 700 | §1252 | **§1253** | **"LOAD-BEARING" AS A SEARCH TERM — THE PROPERTY PROVED ONCE AND ASSUMED THREE MORE TIMES.** §1252 named the correct-but-unpinned class; this codebase supplies the handle — authors write *load-bearing* on exactly the properties whose breakage is silent. **40** such claims; two ORDERING ones probed. `status-cache.ts`'s FK order (parent before children) REDs five tests — genuinely enforced, clean. `concierge.ts`'s SLA coupling is correct and **cites its own test**, which exists — but (1) the count read *three call sites* where there are **four**, and (2) that crash test exercises ONE branch: moving the stamp after the append at the FIRST site leaves it **25/25 green**. Proved once, assumed three times, and a fifth site covered by nothing. Closed by a source-shape gate, mutation-proved on the real file (names the site AND its offending predecessor) with both controls plus the comment-between case. §1251's coverage question asked of a CODE PATTERN. |
@@ -74478,3 +74479,49 @@ instruments.**
 **STOP.** The anti-fabrication property traced through all three of its layers, the membership guard
 mutation-proved in both directions, the contract floor confirmed tested, and the provenance layer identified as
 enforced by construction — with the reason that makes an untested guarantee the strongest one here.
+
+## §1256 — PHASE GATE: two more load-bearing claims — one exemplary, one that stopped being true
+
+**Continuing §1253's queue** (7 of 40 probed). Two claims whose failure is silent by nature: a **threshold** and
+a **type guard**.
+
+### The geofence accuracy band — exemplary, both sides pinned
+
+`fence.ts` calls the disclosed GPS uncertainty *"the ± band that decides `ambiguous`"*. Zeroing it — so an
+imprecise reading becomes decisive, which is the silent direction and the REQ-065 auto-stamp path — REDs **five**
+tests, and the two that matter pin **both sides of the boundary**:
+
+- *INSIDE but within the boundary band (≈197 m, radius 200, accuracy 10) → inside AND ambiguous*
+- *near the boundary within accuracy (≈205 m, radius 200, accuracy 10) → AMBIGUOUS, no auto-stamp*
+
+A threshold tested on one side only would miss half of its own definition. This one is not.
+
+### `Array.isArray` — the claim was true when written and is not any more
+
+`platform-tenant.ts` says *"Array.isArray is load-bearing"*, and records why: *"a first cut of this check omitted
+it and `[1,2]` appended 201."* Deleting it leaves `packages/contracts` **331/331 green** — which has the two
+standard explanations, so one probe separated them:
+
+```
+parseTenantPolicy("[1,2]")   with the guard deleted   =>   null
+```
+
+**Zod rejects the array.** The `TenantPolicyShape.safeParse` on the next line was added *after* the guard, and
+made it redundant. The green mutation was correct, not a coverage gap.
+
+**So the defect is the word "load-bearing", and it is not cosmetic.** A guard whose removal is silent gets
+deleted eventually — by someone who mutates it, sees green, and concludes the comment was lying. The comment now
+says it is belt-and-braces behind the Zod parse, that this was **measured**, and — borrowing §1254's shape —
+names the **precondition** under which it becomes load-bearing again: any loosening of the shape below (a
+passthrough, a record type, a narrower parse).
+
+**The pattern across §1253–§1256:** four of the nine claims probed said "load-bearing" about something that was
+enforced elsewhere or already covered, and the one real gap (§1253's SLA coupling) was a claim that was *true*
+and proved at only one of four sites. **"Load-bearing" marks where an author worried, which is correlated with —
+but not the same as — where the guard actually carries load.**
+
+**Running tally: 9 of 40 probed — 7 verified, 1 gap closed (§1253), 1 claim corrected (here).**
+
+**STOP.** A threshold confirmed pinned on both sides of its own boundary, a type guard measured redundant rather
+than assumed load-bearing, its comment corrected with the measurement and the precondition that would restore
+it, and the difference between where an author worried and where load is actually carried named.
