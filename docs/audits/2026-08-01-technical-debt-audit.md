@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 750 | §1303 | **§1304** | **STOPPING POINT — 19 PASS · 2 FAIL · 5 BLOCKED at `3430e5d`, and the four new gates were checked for WIRING first.** Both FAILs are the same single citation (`scanRecordedHomes` at `:201` committed, `:209` only in another author's uncommitted file — re-verified both sides). **Repo-owned failure set empty, with nothing of mine to fix first.** **The wiring check had a trap:** `vitest run --root tools` collects the new gates, but that is **not what the merge gate runs** — `unit-tests` → `pnpm test` → `test:tools` → `vitest --config vitest.tools.config.ts`, a DIFFERENT selector. Running that config returns all four. §1289's rule applied to a gate rather than a test file. §1297–§1303: **4 gates built, 12 planted divergences all RED, 2 more framings of mine corrected.** **What changed about where risk lives:** every gap since §1274 was invisible to the suites owning the code, for one of five reasons — a crash between two writes, unbounded growth, deploy-only config, a contract that exists only when two workers talk, or a guard whose outcome another guard also produces. **None is a missing test in the ordinary sense.** |
 | 749 | §1302 | **§1303** | **THE FOURTH SEAM, WHOSE DRIFT IS SILENT — AND THE FAMILY ENUMERATED BY MECHANISM.** §1302 closed three seams and I nearly stopped; §1301's rule says enumerate by **mechanism**, not by instances found. Two workers talk four ways — service-binding HTTP, DO RPC, **queues**, shared storage. Three were gated. **The queue was not:** the sequencer HAND-BUILDS triggers as object literals, the agents worker parses them with a `.strict()` Zod union, and the api cannot import those schemas. **The failure mode is the worst of the four** — a path mismatch 404s, a header mismatch 403s, an RPC drift throws, but a trigger that fails `safeParse` is **ACKed and discarded**, and §1275 measured that **two of these three triggers have no recovery sweep**: a permanently lost booking or an unanswered customer email, with nothing reporting it. Gated on kinds + field sets; **three drifts planted RED** (producer adds a field `.strict()` forbids, consumer adds a required field, producer sends a kind with no schema). **Four mechanisms, four gates, 12 planted divergences** — and the silent one found LAST, because the loud ones are what you think of first. |
 | 748 | §1301 | **§1302** | **SIX HAND-WRITTEN COPIES OF THE APPEND CONTRACT — AND A CAST IS NOT A CHECK.** §1301's rule applied to my own set-claim: agents/translator have no PATH literals, but they reach the sequencer by **DO RPC** — same family, different surface. `AppendReq` is declared ONCE, and **no caller uses it**: the DO's comment explains that `LedgerEvent`'s recursive `payload` explodes Workers-RPC's type mapper (TS2589) at every call site, so every caller **casts** to a hand-written surface — **six of them, in five packages**. They agree today, measured field by field; nothing kept them agreeing, because **a cast is not a check**. Rename a field in `AppendReq` and every caller still compiles, failing at runtime on the chokepoint every event passes through. Gated on declared required-field names; **three drift shapes planted RED** (DO renames `streamId`, a caller renames `input`, the DO adds a required field). **The gate's floor caught my own matcher again** — `'workers/*/src'` matched nothing, so it found <4 surfaces and would have compared an empty set: a green meaning nothing (§1274's shape, 2nd occurrence). **Three seams, one family:** §1300 paths+header, §1301 `/v1` paths, §1302 RPC shape — each *one fact written twice* at a boundary no unit suite crosses. |
 | 747 | §1300 | **§1301** | **"THE LAST MEMBER" WAS WRONG, AND CHECKING THE SENTENCE FOUND THE SECOND ONE.** §1300 called the billing↔api contract the *fifth and last member* of the unobservable family. One command falsified it: **the MCP worker POSTs four `/v1/*` paths as bare literals** (`/v1/rate`, `/v1/parties`, `/v1/shipments`, `/v1/whoami`) — identical shape, identically unwatched. **The gate that exists there proves something ADJACENT:** `mcp-api-seam` (§983) proves every tool routes THROUGH the binding and issues no raw `fetch` — *how* the call is made — and says nothing about **whether the path exists**. Rename `/v1/whoami` and MCP's identity call 404s with both suites green. **§1289's lesson past test files: an adjacent gate is the easiest thing to mistake for coverage**, because its subject IS the same seam; the separating question is not *is this seam tested* but *is THIS PROPERTY of the seam tested*. Closed by extending §1300's gate (prefix comparison so a parameterised mount still covers a concrete call, while a RENAME fails); both directions planted RED. §1300's sentence **corrected in place, not dropped**. **Third over-claim of COMPLETENESS this stretch** — a claim about a SET is the one kind re-reading cannot check; it needs the enumeration re-run. |
@@ -76829,3 +76830,51 @@ talk would be a new binding type in a `wrangler.toml`, which is a visible change
 **STOP.** The cross-worker family closed by enumerating mechanisms rather than instances: four seams, four
 gates, twelve planted divergences all RED — and the one whose drift is silent found last, because the loud ones
 are the ones you think of first.
+
+## §1304 — PHASE GATE: STOPPING POINT — four new gates, verified WIRED before the board was read
+
+Board re-earned at `3430e5d`: **19 PASS · 2 FAIL · 5 BLOCKED**. Both FAILs are the **same single citation** —
+`scanRecordedHomes`, at `:201` in the committed tree and `:209` only in another author's uncommitted
+`coverage.ts` (re-verified here, both sides). **Repo-owned failure set: empty**, and this time nothing of mine
+had to be fixed first.
+
+### The gates were checked for wiring, not assumed
+
+Four gates were added in §1300–§1303. A gate nobody runs is the purest form of the green-that-means-nothing this
+stretch has chased, so the wiring was measured before the board was read — and the check had a real trap in it.
+`vitest run --root tools` collects them; that is **not what the merge gate runs.** The `unit-tests` gate runs
+`pnpm test` → `test:tools` → `vitest run --config vitest.tools.config.ts`, a **different selector**. Running
+*that* config and grepping for the four names returns all four. Verified, not inferred — §1289's rule applied to
+a gate rather than to a test file.
+
+### §1297–§1303 in one line each
+
+| | |
+|---|---|
+| §1297 | four surfaces measured, four clean — and the three structural shapes that explain every gap |
+| §1298 | 247 status-only assertions, and why **44 of them are correct because the law is indistinguishability** |
+| §1299 | config vs code — a scanner that nearly reported three deploy-breaking DO bindings |
+| §1300 | the billing↔api money contract, **watched by nothing** |
+| §1301 | *"the last member"* was wrong — checking my own sentence found the mcp seam |
+| §1302 | **six** hand-written copies of the append contract; a cast is not a check |
+| §1303 | the queue seam, whose drift is **ACKed and discarded** rather than thrown |
+
+**Four gates built, twelve divergences planted and all RED, three operational items already filed, and two more
+framings of mine corrected** (the "last member" over-claim, and a pathspec that would have compared an empty
+set).
+
+### What this stretch changed about where risk lives
+
+Every gap found from §1274 onward was **invisible to the suites that own the code**, and for one of five
+reasons: a crash between two writes, unbounded growth, a config that only exists at deploy, a contract that only
+exists when two workers talk, or a guard whose outcome another guard also produces. **None of them is a missing
+test in the ordinary sense** — each is a property no unit test is positioned to observe, and each needed either
+a mutation or a gate that reads two artifacts at once.
+
+**Running tally: 130 of 130 load-bearing claims probed — 89 verified, 36 gaps closed, 6 claims corrected;
+3 operational items recorded.**
+
+**STOP.** Board re-earned with both failures attributed to one uncommitted file that is not mine, four new gates
+confirmed to run in the profile that matters, and the seven phases since §1296 summarised. Owner-held and
+unchanged: the five BLOCKED private inputs, the two lost-trigger REQ rows, the three filed operational items,
+and the first push.
