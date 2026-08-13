@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 720 | §1273 | **§1274** | **AN ORDERING NO TEST CAN WATCH — 3 INSTANCES OF ONE RULE, ONE UNHELD.** A new axis: not what the input looks like, but what happens if the process **dies mid-operation**. Where a write spans R2 and D1 it cannot be atomic, so ORDER is the whole guarantee — stated in the same words in `anchor.ts`, `evidence.ts`, `retention.ts`. Reversing each: anchor **3 RED**, retention **2 RED**, **evidence 19/19 GREEN** — including its own *TORN-STATE HEALING* and *ROW-IFF-BYTES* cases, because a pre-seeded torn state does not depend on the source order that produced it. **The order is not stylistic: the RECOVERY IS ASYMMETRIC.** Documented order → bytes with no row, healed by `INSERT OR IGNORE` + a byte-identical re-put. Reversed → a row citing an `r2_key` holding nothing, and NOTHING heals it, because the upload route returns the stored key without re-checking the bytes; the POD evidence email would cite evidence that does not exist. Closed with a static gate (§1248's precedent — the failure has no observable symptom, so the code's SHAPE is the evidence); both violations planted RED. **And the gate's first run corrected the sweep that produced it:** `TOMBSTONE_SQL` matched a DECLARATION not a use, and the corpus grep returned **zero** on a `\b` git grep -E ignores — the floor caught it, and the count went **3 → 6 sites**, the missing two including `anchor.ts`, *the file every other comment names as the pattern's origin*. |
 | 719 | §1272 | **§1273** | **STOPPING POINT — 19 PASS · 2 FAIL · 5 BLOCKED at `d88be0c`; repo-owned failure set EMPTY.** Both FAILs are **ONE citation** (`citations` directly, `unit-tests` via the citation-links regression lock — one defect, two gates agreeing), and it is **correct at HEAD**: the symbol is at `:201` committed, `:209` only in another author's uncommitted edit. It stays deliberately. All 5 BLOCKED are absent private inputs. `coverage` + `traceability` moved to PASS with no work from this loop (owner's register commits). **Fifteen phases: 1 live source defect fixed (`parked` double-counting a driver's screen), 17 gaps closed, ~70 mutations, the ordering class closed in BOTH languages, the loose-payload boundary swept end to end and gated.** Nine sections corrected something I had written — two wrong counts, a mis-attributed RED, a false green from the wrong package, an over-broad closure claim, a duplicate citation the record itself minted. **The through-line: every gap was a guarantee that only shows up on UNINTERESTING data** — a tiebreak when timestamps collide, a `typeof` when a field is present but wrong, a divisor when every weight is zero. A fixture author invents data that demonstrates the feature; these branches exist for data nobody would demonstrate, which is why *mutate it and see* found them and reading did not. |
 | 718 | §1271 | **§1272** | **BORING DATA ON THE MONEY PATH — THE LEG SET WITH NOTHING TO SPLIT.** §1271's lens applied to money. The remainder tiebreak is PINNED (reversing REDs 3, flipping the remainder direction REDs 5) but dropping it is silent — the **third** site hand-implementing stable-sort semantics the language guarantees, which is why it goes green for a reason unrelated to coverage. **The gap:** `derive-split.ts` writes the contract down — *apportion THROWS on an all-zero weight set … a leg set with no split anywhere is malformed* — and it is REACHABLE (`split_bps: 0` passes the per-leg check), yet deleting the `divisor === 0n` guard left ledger **719/719 GREEN**. Without it the next line is a BigInt divide: **`RangeError: Division by zero`** on the interline money path instead of the promised refusal. Closed at the layer owning each contract — `deriveSplitFromLegs` has its OWN empty-legs guard so the empty case never reaches `apportion`; `apportion`'s branches are pinned via its exported API, **including that the two messages stay DISTINCT** (making them identical REDs), since *no weights* is a caller bug and *all-zero weights* is malformed freight data. 4 mutations RED, 724/724. **And a mis-attributed RED caught:** the first draft's loose regex failed CLEAN as well as mutated — a non-zero exit says something failed, never that YOUR subject did. |
 | 717 | §1270 | **§1271** | **§1262 DECLARED THE ORDERING CLASS CLOSED; IT HAD SWEPT ONE LANGUAGE.** All 20 `.sort()` sites enumerated; two more four-clause comparators found **1/4 exercised**, the same ratio as `merge.ts`. **`iif.ts compareLines`** (the QB export, *reconciles to the penny*): its existing case is named *is order-insensitive* and carries **four DISTINCT accounts**, so clause 1 decides everything and the other three never engage — an unstable line order changes no TOTAL, which is exactly why it survives review, while turning a diff of two exports of one period into noise. Closed with all lines on ONE account and money_line ids **deliberately ordered against** event ids (else dropping `event_id` matches by accident). 4 RED. **`queue.pending`** (the driver drain order, rule 6): undefined-last REDs 1 and 2, seq direction REDs 4 — but both **index tiebreaks stay GREEN because `Array.prototype.sort` is STABLE by spec**, so the `.map((item, index))` wrapper reimplements a language guarantee (§1267's union pattern: behaviour pinned, neither mechanism individually). **What all three share:** the primary clause has a test, the tiebreaks have none, and each existing test is NAMED for the whole property. **A tiebreak only matters when the data is boring — and boring data is what a hand-written fixture never has.** |
@@ -75367,7 +75368,7 @@ explained by the third stable-sort redundancy), the all-zero leg set closed wher
 documented, each layer's refusal pinned against its own message, and a mis-attributed RED caught before it
 became a recorded verdict.
 
-## §1273 — STOPPING POINT: fifteen phases, board re-earned, repo-owned failure set EMPTY
+## §1273 — PHASE GATE: STOPPING POINT — fifteen phases, board re-earned, repo-owned failure set EMPTY
 
 Board re-measured at `d88be0c`: **19 PASS · 2 FAIL · 5 BLOCKED**, every verdict attributed.
 
@@ -75417,3 +75418,54 @@ reverts `coverage.ts` · the five BLOCKED clear only when the private inputs are
 
 **STOP.** Fifteen phases closed, board re-earned with every failure attributed by measurement, repo-owned
 failure set empty, and the remaining reds owned by another author's in-flight edit and by absent private inputs.
+
+## §1274 — PHASE GATE: an ordering no test can watch — three instances of one rule, one of them unheld
+
+A different axis from everything since §1258: not what the input looks like, but **what happens if the process
+dies mid-operation**. Where a write spans R2 and D1 it cannot be atomic, so the ORDER is the whole guarantee —
+and the codebase states it three times, in three files, in the same words:
+
+```
+anchor.ts     "R2 FIRST (raw .tsr + manifest), documents row LAST — so the row exists iff fully anchored"
+evidence.ts   "R2 FIRST, documents row LAST (anchor.ts pattern): the row exists iff the bytes are stored"
+retention.ts  "DELETE bytes FIRST (idempotent), THEN tombstone — the crash-safe, self-healing ordering"
+```
+
+**Measured by reversing each**: `anchor` REDs 3, `retention` REDs 2, and **`evidence` stays 19/19 GREEN** —
+including its own cases named *"TORN-STATE HEALING"* and *"ROW-IFF-BYTES"*, because a pre-seeded torn state
+does not depend on the source order that produced it. One rule, three copies, and the two that happen to be
+observable are held while the third is not.
+
+### The order is not stylistic — the recovery is ASYMMETRIC
+
+In the documented order, a crash between the two writes leaves **bytes with no row**, and the next upload heals
+it: `INSERT OR IGNORE` lands the row and the re-put is byte-identical (same verified hash). Reversed, a crash
+leaves **a row citing an `r2_key` that holds nothing** — and nothing heals that, because the upload route's
+`retention_status === 'active'` branch returns the stored key **without re-checking the bytes**. The lie is
+permanent, and the POD evidence email (acceptance demo #1) would cite evidence that does not exist.
+
+### Why a static gate is the honest instrument
+
+Observing this requires dying **between two awaits**. No fixture can; the measurement above proves it — the
+functional suite is comprehensive here (deleting the R2 write outright REDs 3, so *presence* is well covered)
+and it is structurally blind to *order*. That is §1248's argument, and its precedent: when the failure has no
+observable symptom, the shape of the code is the evidence.
+
+`tools/checks/r2-before-row.test.ts` pins all three sites, floors its own corpus, and carries the two
+non-pairing R2 writes as **named exemptions with reasons** rather than silent omissions. **Both violations
+planted:** reversing `evidence.ts` → RED, adding a new undeclared R2 write → RED.
+
+### The gate found my own enumeration wrong before it found anything else
+
+Its first run reported two failures, **both mine**. `TOMBSTONE_SQL` matched the constant's *declaration*
+rather than its use, so retention looked reversed when it is not. And the corpus grep returned **zero** — a
+`\b` that `git grep -E` did not honour — which the non-vacuity floor caught. Fixing it changed the count from
+**3 R2 write sites to 6**, and the two I had missed included **`anchor.ts` — the file every other comment
+names as the pattern's origin.** My original sweep required an R2-ish token and a D1 write within 20 lines;
+that is a heuristic, and a heuristic that under-matches looks exactly like a small problem.
+
+**Running tally: 42 of 42 load-bearing claims probed — 23 verified, 18 gaps closed, 1 claim corrected.**
+
+**STOP.** The crash-ordering invariant is enumerated at all three sites, measured at each, the one unheld
+instance closed by the only instrument that can see it, and the two unpaired R2 writes exempted by name. A gate
+whose own first run corrected the sweep that produced it.
