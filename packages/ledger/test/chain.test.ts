@@ -26,6 +26,48 @@ describe("REQ-002 DoD: chain verifies after 10K events", () => {
   it("seq gap and bad genesis are distinct failures", async () => {
     const chain = await buildChain([eventFixture("quote.requested", { seq: 0 }), eventFixture("quote.priced", { seq: 1 })]);
     expect((await verifyChain([chain[0]!, { ...chain[1]!, seq: 3 }])).ok).toBe(false);
+  });
+
+  // §1285 — THE SEQ CHECK, ISOLATED. The case above tampers `seq`, but `seq` is INSIDE the hash view, so the
+  // edit changes the recomputed hash and `hash_mismatch` rejects it — the seq comparison never runs. Measured:
+  // deleting `if (e.seq !== expectedSeq)` left packages/ledger at 726/726 GREEN.
+  //
+  // The seq check's own failure is a RESUMED verification pointed at the wrong range: a caller that supplies a
+  // correct `trustedPrevHash` but a stale `fromSeq` links perfectly and hashes perfectly. Without the seq
+  // comparison that returns `ok: true` with a count and a head — a segment verified while the caller believes
+  // it verified from somewhere else.
+  //
+  // SCOPE, checked rather than assumed: the only production caller is `tools/deploy/restore-verify.ts`
+  // (`verifyChainOfRows`, the backup-restore verdict), and it calls `verifyChain(events)` with NO options. So
+  // the resume path is an exported CONTRACT with no consumer today, not a live code path — this pins the
+  // package's public API against a future resumer, which is worth doing and is a smaller claim than "reachable".
+  // (The first draft of this comment said `anchor.ts` resumes this way. It does not; anchor.ts never calls
+  // verifyChain at all, and the only `verifyChain(` matches in src are a DIFFERENT function in tsa/cms.ts.)
+  it("§1285: a correct prev_hash with the WRONG fromSeq is refused (seq_gap), not silently verified", async () => {
+    const chain = await buildChain([
+      eventFixture("quote.requested", { seq: 0 }),
+      eventFixture("quote.priced", { seq: 1 }),
+      eventFixture("quote.sent", { seq: 2 }),
+    ]);
+    // Resume at the events starting at seq 1, handing verifyChain the RIGHT trusted prev_hash for them…
+    const res = await verifyChain([chain[1]!, chain[2]!], { fromSeq: 0, trustedPrevHash: chain[1]!.prev_hash });
+    // PREMISE: the link and the hashes are genuinely intact — only the sequence number disagrees.
+    expect(chain[1]!.prev_hash).toBe(chain[0]!.hash);
+    expect(res.ok, "a segment verified against the wrong fromSeq must not report ok").toBe(false);
+    if (res.ok) throw new Error("unreachable");
+    expect(res.failure.reason).toBe("seq_gap");
+  });
+
+  it("§1285: the SAME segment with the matching fromSeq verifies (the complement — the guard is not just strict)", async () => {
+    const chain = await buildChain([
+      eventFixture("quote.requested", { seq: 0 }),
+      eventFixture("quote.priced", { seq: 1 }),
+      eventFixture("quote.sent", { seq: 2 }),
+    ]);
+    const res = await verifyChain([chain[1]!, chain[2]!], { fromSeq: 1, trustedPrevHash: chain[1]!.prev_hash });
+    expect(res.ok).toBe(true);
+    if (!res.ok) throw new Error("unreachable");
+    expect(res.count).toBe(2);
     expect((await verifyChain([{ ...chain[0]!, prev_hash: "1".repeat(64) }])).ok).toBe(false);
   });
   it("genesis sentinel is 64 zeros; hashEvent reproduces the stored hash", async () => {

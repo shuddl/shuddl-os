@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 731 | §1284 | **§1285** | **THE HASH CHAIN, AND A SEQ CHECK THREE TESTS COULD NOT SEE.** `verifyChain` mutated five ways: `prev_hash` linkage **2 RED**, stored-hash comparison **1 RED**, `hashView` deleting `sig` **1 RED**, `expectedPrev = e.hash ?? recomputed` **equivalent** (they cannot differ while the hash check stands), and the **`seq` gap check → 726/726 GREEN**. **Why the existing test missed it:** `chain.test.ts` tampers `{ ...chain[1], seq: 3 }` and asserts `ok === false` — but **`seq` is INSIDE the hash view**, so the edit changes the recomputed hash and `hash_mismatch` rejects it; the seq comparison never runs. §1281's pattern, third occurrence, and the sharpest yet because the fixture NAMES the field it tampers. Isolated with a correct `trustedPrevHash` + stale `fromSeq` (only the seq check can reject that), plus the complement and a **no-op control**. **And the scope claim was wrong:** I wrote that `anchor.ts` resumes this way — it never calls `verifyChain`, and the only `verifyChain(` matches in src are a **different function** in `tsa/cms.ts`. The real caller is `restore-verify.ts`, which passes NO options — so this pins an exported CONTRACT, not a live path. Same-name-different-function is the trap that makes a grep look like an answer. |
 | 730 | §1283 | **§1284** | **STOPPING POINT — 19 PASS · 2 FAIL · 5 BLOCKED at `ea5519c`, and one red was MINE.** Same shape as §1273, different attribution — which is why the board is re-earned rather than assumed. `citation-ratchet` reported *GREW … sequencer.ts: 3 → 4 unanchored*: §1275 cited `sequencer.ts:471` as a bare path:line into the repo's highest-churn file, exactly what the ratchet exists to stop. Anchored to `:471@projectStatusCache`, 16/16. The other FAIL is the citation **correct at HEAD** (another author's uncommitted `coverage.ts`). **Repo-owned failure set empty again — after a fix, not by default.** **And a blind spot I nearly invented:** two more 'anchors' I added had no PATH, so they were prose the gate never saw; planting a properly-formed bad anchor takes it **1 FAIL → 2**, so the gate is fine and my probe was not — the third time this stretch a suspicion about a gate dissolved on measurement. **§1274–§1283: 6 gaps closed** (evidence ordering · commented-assertion floor · sweep counter · **signature fail-OPEN** · **EDI revocation** · **EDI kind-separation**), 2 gates built, ~45 mutations, and **4 claims of my own corrected**. |
 | 729 | §1282 | **§1283** | **THE THIRD FAIL-CLOSED CHAIN, AND THE RULE THAT ENDS THE SWEEP.** `resolveRecipient` decides **who receives an invoice and its evidence photos** — a wrong answer is a privacy breach. Five elements: the **billing-contact preference**, the `kind === "billing"` predicate, and the non-array guard each **RED 1**; the missing-party guard and the unparseable-JSON catch stay green because they are **redundant for a MEASURED reason** — deleting the guard makes `row.contacts` throw INSIDE the try, and neutering the catch reaches the same `undefined` via an empty find. (One reading was void first: my initial mutation was `return undefined as never` — still undefined, a **no-op** that read as *unpinned*.) **Three chains, one rule:** §1281 `verifyEventSig`, §1282 `authenticate`, §1283 `resolveRecipient` partition identically — **the guards that change the ANSWER get pinned; the guards that only change the PATH to the same answer cannot be, by construction.** That is the stopping rule: **an unpinnable branch is not a coverage gap.** Chasing every `return null` to a red test would have produced tests that assert nothing and read as diligence. 3 of 4, 3 of 5, 3 of 5 pinned; five redundancies recorded with their mechanisms. |
 | 728 | §1281 | **§1282** | **FIVE REFUSALS THAT ALL RETURN `null`, ONE PINNED.** §1281's mechanism swept: 17 functions carry 3+ identical fail-closed returns; the sharpest is `authenticate()` on the inbound EDI seam — **five exits, all `return null`**, all surfacing as 401, so no outcome test can attribute a refusal. Measured one at a time: dropping **`p.kind = 'edi'`** (an mcp/api pairing authenticates), dropping **`p.status = 'active'`** (**a REVOKED partner authenticates**), and allowing an **empty secret** each left translator **124/124 GREEN**; only the HMAC was defended. **Those two predicates are the same two §1265 found PINNED on the MCP boundary** — one rule, two trust boundaries, defended at one. Closed with fixtures differing from the passing request in EXACTLY ONE COLUMN (same body, same secret_ref, same HMAC), so a 401 can only come from the predicate under test. **And the runtime corrected me:** I predicted an empty secret was a forgeable shared secret; WebCrypto **refuses a zero-length HMAC key**, so nothing can sign with it — the guard's real job is turning a throw into a clean 401. The draft failed CLEAN as well as mutated, which is the tell (§1272, 2nd occurrence), and the corrected verdict is SMALLER than the one I set out to write. |
@@ -75944,3 +75945,50 @@ corrected** — a heuristic, a hypothesis about HMAC forgery, a no-op mutation, 
 **STOP.** Board re-earned with every verdict attributed, the one repo-owned red found and fixed by the gate that
 owns it, and the ten phases since §1273 summarised. Owner-held and unchanged: the private fixtures, the two
 lost-trigger REQ rows, and the first push.
+
+## §1285 — PHASE GATE: the hash chain, and a seq check that three tests could not see
+
+The ledger's integrity core — `verifyChain`, what makes the chain tamper-evident. Five elements, mutated:
+
+| element | dropped → |
+|---|---|
+| the `prev_hash` linkage check | **2 RED** (one named *"a forged chain verified — the prev_hash link check is not enforcing"*) |
+| the stored-hash comparison | **1 RED** |
+| `hashView` deleting `sig` | **1 RED** |
+| `expectedPrev = recomputed` → `e.hash ?? recomputed` | green — **equivalent, not blind** |
+| the **`seq` gap check** | **726/726 GREEN** |
+
+The fourth is genuinely equivalent: with the stored-hash comparison intact, `e.hash` and `recomputed` cannot
+differ when the hash is present, and `?? recomputed` is the same value when it is absent. Recorded, not chased.
+
+### The seq check, and why the existing test could not see it
+
+`chain.test.ts` already contains `verifyChain([chain[0], { ...chain[1], seq: 3 }])` asserting `ok === false`.
+That looks like a seq test and is not one: **`seq` is inside the hash view**, so editing it changes the
+recomputed hash and `hash_mismatch` rejects the chain — the seq comparison never runs. §1281's pattern, third
+occurrence in this stretch, and the sharpest instance yet, because the fixture *names the field it tampers*.
+
+Isolating it needs an input where everything else is intact: a segment with a **correct** `trustedPrevHash`,
+correct hashes, and a **stale `fromSeq`**. Only the seq check can reject that. Closed with it, plus the
+complement (matching `fromSeq` verifies, count 2) and a **no-op control** — `void expectedSeq;` — proving the new
+case fails for the mutation rather than for the edit. Removing the check now REDs; changing only its `reason`
+REDs too.
+
+### The scope claim was wrong, and checking it is the finding
+
+The first draft of that test comment said *"`anchor.ts` resumes exactly this way, which is what makes it
+reachable."* Checked: **`anchor.ts` never calls `verifyChain`**, and the only `verifyChain(` matches in shipped
+source are a **different function** in `tsa/cms.ts` (an X.509 chain). The real caller is
+`tools/deploy/restore-verify.ts` — the backup-restore verdict — and it calls `verifyChain(events)` with **no
+options at all**.
+
+So the resume path is an exported **contract with no consumer today**, not a live code path. The test still
+earns its place (it pins the package's public API against a future resumer, and the guard is real) but the claim
+is **smaller** than the one I wrote, and it is now the one I measured. Same-name-different-function is exactly
+the trap that makes a grep look like an answer.
+
+**Running tally: 84 of 84 load-bearing claims probed — 57 verified, 25 gaps closed, 4 claims corrected.**
+
+**STOP.** The chain's five elements measured: three pinned, one equivalent-by-construction, one gap closed with
+an isolating fixture and a no-op control — and its reachability claim corrected from *live path* to *exported
+contract* by reading the callers instead of assuming them. ledger 728/728.
