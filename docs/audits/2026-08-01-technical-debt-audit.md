@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 784 | §1337 | **§1338** | **FINISHED THE WORK-LIST — THE CANDIDATE SET REFINES DOWNWARD, 35 → 26.** §1334's scan bounded loop bodies with a fixed 30-line window; delimiting by **BRACE DEPTH** and excluding WebCrypto awaits (no subrequest) drops nine. Four "instances" were not: `board.ts:88`, `money.ts:342`, `money.ts:349` have **no awaits in the body at all** (pure transforms sitting above unrelated I/O), and `mirror-sweep.ts:198` has only `sha256Hex`. Nine of the surviving 26 are `index.ts`'s per-TENANT cron wrappers — bounded by the roster, their budget-sharing consequence already on the row. **§1334 predicted the count could only refine downward; it did.** The mechanical lesson: the same fixed-window parameter under-counted at §1332 and over-counted here. |
 | 783 | §1336 | **§1337** | **THE REGISTER CANNOT TELL YOU WHICH ROWS SHARE A MECHANISM — AND THE METHOD'S FAILURE IS THE FINDING.** To settle §1336's open question without guessing from prose, derived relatedness from the CODE each row cites. **34 OPEN rows share only 2 files, and BOTH overlaps are incidental** (a file cited as evidence; a shared `wrangler.toml`). Worse, it **misses the cluster I already know exists**: the unbounded-reads row does not cite its nine files inline — it delegates them to a roster TEST, which is the right engineering choice and makes the row's subject invisible to a reader of the row. So the four linked rows stand as a **hand-maintained** cross-reference with nothing deriving it and nothing to notice a fifth joining. Line of inquiry closed. |
 | 782 | §1335 | **§1336** | **MY OWN FIX TO "NO ROW OWNS THE CLASS" WAS ITSELF INCOMPLETE.** §1335 cross-linked three rows filing one mechanism; it **missed a fourth** — *"Unbounded list reads — 9 sites"*, which mentions subrequests **0** times and "per-row" **0** times — because I enumerated rows naming a LOOP and that one names a READ. **A framing, which is the exact error §1335 diagnosed.** The relationship is COMPOUNDING, not identity: the read costs a big scan, the loop costs a per-invocation ceiling that THROWS — but on **2 files they are the same code** (`watchtower.ts`, `dunning.ts`), where each failure arrives sooner than either row predicts and a `LIMIT` on the read also shrinks the loop. Linked with that stated rather than merged. **A cross-reference is itself an enumeration and inherits a scope the same way a count does.** |
 | 781 | §1334 | **§1335** | **WHY THE COUNT WAS WRONG FOUR TIMES — NO ROW OWNED THE CLASS.** Traced all ~30–35 loops to their sources. The bounded ones are genuinely bounded (4/3/1-element constants, a literal `parts`, a PAGED `r2.list`, and maps keyed by AGENT → the 13-agent roster). **The unbounded ones were already filed — across THREE different rows**: subrequests-per-row, *"every KPI scans the WHOLE event history"*, and *"markers are permanent"*. Measured: the subrequest row mentions KPI **0** times and the KPI row mentions subrequests **0** times. They are three FRAMINGS of one mechanism, differing only in which consequence they name. **No row owned the class, so no enumeration prompted by one could be complete.** All three now cross-reference each other. |
@@ -78541,3 +78542,49 @@ usually accepts, and stating it is better than a link that reads as complete.
 reached its floor: **a cross-reference between rows is prose, and prose is exactly what cannot be derived.**
 The productive move from here is not more cluster-hunting but the per-site classification §1334 left as a
 work-list, which is code-derived and finite.
+
+
+## §1338 — PHASE GATE: finishing the work-list, and the candidate set refines DOWNWARD as predicted
+
+§1337 closed the cluster-hunting line and named the productive move: the per-site classification §1334 left
+open. Doing it produced a methodological correction worth more than the classifications.
+
+### Four "instances" were not instances, and the reason was my window
+
+§1334's scan bounded each loop body with a **fixed 30-line window**. Re-checking the unclassified sites with the
+body delimited by **brace depth** — the actual boundary:
+
+| site | body | awaits IN the body |
+|---|---|---|
+| `routes/board.ts:88` | 5 lines | **none** |
+| `projection/money.ts:342` | 7 lines | **none** |
+| `projection/money.ts:349` | 11 lines | **none** |
+| `mirror-sweep.ts:198` | 15 lines | only `sha256Hex` — **WebCrypto, not a subrequest** |
+
+All four drop out. A fixed window reaches past the loop and counts a caller's `await` as the loop's own; the
+three "none" cases are pure transforms sitting above unrelated I/O.
+
+### The corrected scan
+
+Re-run over all shipped sources with brace-delimited bodies and WebCrypto excluded: **26 per-row-I/O loops
+across 14 files**, against §1334's 35. **§1334 predicted the count could only be refined downward, and it has
+been, by nine.**
+
+Nine of the 26 are in `workers/agents/src/index.ts` — the per-TENANT cron wrappers
+(`for (const slug of await allTenantSlugs(env))`). Those iterate the tenant roster, not a data set, so their
+bound is the tenant count; their real consequence — one invocation's subrequest budget shared across every
+tenant — is already stated on the row.
+
+### What the work-list now is
+
+The families were mapped to their filed rows at §1335 and none is unowned. What remains is per-site reading of
+the individual loops inside those families, which is refinement rather than discovery: every one is inside a
+file already named by a row.
+
+**Running tally: 223 of 223 load-bearing claims probed — 148 verified, 46 gaps closed, 23 claims corrected;
+12 operational items recorded.**
+
+**STOP.** The lesson is narrow and mechanical: **a loop's body ends where its braces close, and any fixed-window
+approximation over-counts in one direction and under-counts in the other.** §1332 hit the under-count (a
+12-line window missed a `.prepare(` 14 lines down) and this phase hit the over-count (a 30-line window counted
+four loops that do no I/O at all). The same parameter, wrong both ways, in the same investigation.
