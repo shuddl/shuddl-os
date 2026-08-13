@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 771 | §1324 | **§1325** | **RAN A FILED ROW'S OWN REOPEN TRIGGER.** External claims that leave a LOCAL trace are decidable here even when their external half is not. Converted three INHERITED claims to measured ones: `ci.yml`'s triggers (**§1316 argued FROM this and had it from a row, not the file**), L355's *"no `permissions:` block"* (still true), and §594's SHA-pinning (all five `uses:` 40-hex, zero mutable tags — nearly published as NEW until searching the record). **The non-re-verification part:** L355's expiry names a LOCAL condition never run — *"whenever a workflow gains a step that writes to the repo"*. Run: **zero** write-shaped steps; the only artifact steps are SHA-pinned `upload-artifact`, needing no repo write scope. The row's "safe today" now measured. |
 | 770 | §1323 | **§1324** | **RE-MEASURED §895's DESIGN CORPUS — UNCHANGED, AND THE FOURTH CONSECUTIVE NEGATIVE.** §895's count (**apps 62 · packages 16 · docs 2**) is the kind that silently drifts, and two new untracked directories appeared this session. It has NOT moved: 62/16/2/0 today, identical. The one untracked style-bearing file (`docs/gtm/mission-control-board.html`) is outside the law twice over — concurrent GTM workstream, and §895's documented `docs` exemption. The exemption is NAMED with a reason and guarded by *"no EXEMPT row outlives its subject"* (the shrink direction). Residual, narrow and recorded not gated: the exemption is keyed by DIRECTORY while its justification is a CATEGORY, so a product file under `docs/` would be exempt by path while failing the reason. §1321–§1324 all sound. |
 | 769 | §1322 | **§1323** | **THE BUNDLE RATCHET — AND THREE CONSECUTIVE CLEAN NEGATIVES ON BOARD GATES.** Suspected a stale-high baseline (a ceiling that cannot catch growth); wrong twice. It **cannot pass over an unbuilt tree** — `readBundles` skips an unbuilt app and delegates, and the caller decides FIRST THING: *"a ratchet that reads no bundles reports clean. Every declared app must be built"*, so an unbuilt app is a VIOLATION (the same hole `playwright-guard` closes for "0 tests ran", closed independently). And the baselines are TIGHT: actual 382/94/377 kB against ~380/93/375 kB — each ~2 kB ABOVE baseline, riding mid-band with ~17/5/16 kB of headroom, the opposite of slack. Gzip is ratcheted (raw moves with minifier releases) and the baseline is exported so the test pins BY VALUE. §1321/§1322/§1323 all sound. |
 | 768 | §1321 | **§1322** | **THE GATES §1315 DID NOT MEASURE — AND THEY ARE FLOORED HARDER THAN THE ONES IT DID.** §1315's *"all 119 gate files"* corpus was `tools/**/*.test.ts`, which is NOT the merge board's gate set: the four BROWSER gates run through `playwright-guard.ts` and were outside it. Scope corrected in place. Measured now: the guard reads **machine-readable JSON stats** (Playwright exits 0 for both "42 passed" and "0 tests ran"); `MIN_ASSERTIONS` floors each at **exactly** the §1314 board's observed counts (5/4/6/1 — zero headroom); the floor is boundary-tested BOTH sides including a partial-skip case; and the completeness check **derives** its labels from `package.json` so a new browser gate cannot ship unfloored. Nothing to fix — the defect was my unstated corpus. |
@@ -77963,3 +77964,47 @@ repo's gates were built by the discipline that is auditing them, so the audit's 
 approaching zero** — the last four phases found one scope error, all of it mine, and confirmed four gates that
 had already asked themselves every vacuity question I arrived with. Remaining yield lives where it has lived
 all session: in the newest code, and in claims the record makes about the world outside this repo.
+
+
+## §1325 — PHASE GATE: running a filed row's own reopen trigger
+
+§1324 concluded that the remaining yield is in the newest code and in claims about the world OUTSIDE this repo.
+The second category has a subset worth separating: **external claims that leave a LOCAL trace.** Those are
+decidable here even when the external half is not.
+
+### Three inherited claims, converted to measured ones
+
+| claim, and where I got it | verified against |
+|---|---|
+| *"`ci.yml` triggers on `pull_request` + `push: [main]`"* — §1316 argued FROM this, sourced from a checklist row | the file: `on: pull_request` / `push: { branches: [main] }`. **§1316's argument stands on the primary source now, not on a row quoting it** |
+| *"Neither `ci.yml` nor `nightly.yml` declares a `permissions:` block"* (L355, measured 2026-08-11) | still true — zero blocks in both |
+| *"actions SHA-pinned"* (§594) | still true — all five `uses:` carry a 40-hex SHA with a version comment; zero mutable tags |
+
+The third was nearly published as a NEW finding. Searching the record first — the discipline this session has
+failed twice and now applied three times — turned it into a re-verification of §594's closed supply-chain line.
+
+### The part that is not re-verification
+
+L355's expiry field names two conditions. One needs the network (*"re-run the `gh api` command"*). **The other
+is local and had never been run**: *"re-verify … whenever a workflow gains a step that writes to the repo."*
+
+Run: zero write-shaped steps across both workflows — no `git push/commit/tag`, no `gh release/pr/issue create`,
+no commit action. The only artifact-producing steps are two SHA-pinned `actions/upload-artifact`, which write
+to the Actions artifact store and need no repo write scope. **So the row's "safe today" verdict holds for the
+reason the row gives**, and that is now measured rather than assumed.
+
+That matters more than the result. This audit's own finding is that a reopen trigger is *"the one sentence
+never measured"* — 3 of 4 were wrong when finally checked. This one was right, and it took one command.
+
+### And the row's reason survives contact
+
+L355 explicitly declines the in-repo hardening, and the reason is sharper than the obvious one: the account
+default `"read"` grants a SET of read scopes, while `permissions: contents: read` grants exactly one and
+**removes the others**. An audit reaching for "add a permissions block" as obvious hygiene would have narrowed
+the token and broken something. Recorded because it is the kind of reason that looks like inaction until read.
+
+**Running tally: 183 of 183 load-bearing claims probed — 123 verified, 46 gaps closed, 20 claims corrected;
+10 operational items recorded.**
+
+**STOP.** No new defects. Three inherited claims now rest on primary sources, one filed reopen trigger has
+actually been executed, and one near-miss novelty claim was caught by searching the record before writing.
