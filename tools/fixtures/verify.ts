@@ -106,7 +106,26 @@ function main(): void {
   // §1148's rule, on a constitutional gate whose PASS path has never run in anger: a floor must bound the
   // corpus the gate READ, not the violations it found. The named ids are the two CLAUDE.md rule 4 calls out
   // by name, so if the law's own examples vanish from the manifest this fails loudly rather than quietly.
-  const REQUIRED_IDS = ["rater-504-sweep", "rater-48-tests"] as const;
+  // §1397 — ALL NINE PENDING IDS, not the two CLAUDE.md happens to name. §1387 anchored this list to rule 4's
+// two examples, which is a defensible anchor and an incomplete one: `tools/rater/README.md` names THREE ids
+// that REQ-027/REQ-165 depend on, and the fourth and fifth back the invoice and concierge gates.
+//
+// MEASURED: dropping `zone-tariff-v1` from the manifest leaves 16 entries — above the floor — and BOTH
+// `check:fixtures` and `check:rater-parity` still exit 2, so the loss is masked by the OTHER pending fixtures
+// and by rater-parity checking filesystem paths rather than the registry. The hazard lands later: once the
+// owner vendors the tariff, an unregistered fixture's bytes are never hash-pinned, and `check:fixtures`
+// recomputes a sha256 it does not have. A fixture a gate consumes BY PATH must be registered BY ID.
+const REQUIRED_IDS = [
+  "rater-48-tests",
+  "rater-504-sweep",
+  "zone-tariff-v1",
+  "invoice-500-replay",
+  "concierge-parse-50",
+  "customer-roster",
+  "legacy-import-formats",
+  "legacy-export-replay",
+  "synthetic-blitz-3100",
+] as const;
   if (manifest.fixtures.length < 10) {
     console.error(
       `fixtures: BROKEN — the manifest lists ${manifest.fixtures.length} fixture(s); there were 17 at §1387. ` +
@@ -118,9 +137,12 @@ function main(): void {
   const missing = REQUIRED_IDS.filter((id) => !manifest.fixtures.some((f) => f.id === id));
   if (missing.length > 0) {
     console.error(
-      `fixtures: BROKEN — CLAUDE.md rule 4 names ${missing.join(", ")} as the private-fixture holds, and the ` +
-        "manifest no longer lists them. Either the law changed and this list must follow, or the manifest lost " +
-        "an entry the build claims to be waiting on.",
+      `fixtures: BROKEN — the manifest no longer registers ${missing.join(", ")}. These nine ids are what the ` +
+        "build declares itself BLOCKED on: two are named by CLAUDE.md rule 4, the rest are the pending set " +
+        "backing the rater, invoice, concierge, migrator and legacy gates. An id that leaves this manifest is " +
+        "a fixture nothing hash-pins — once vendored, its bytes ship unverified while the gate that consumes " +
+        "it BY PATH still passes. Either the hold genuinely ended (say so in the audit and drop the id here) " +
+        "or the manifest lost an entry the build claims to be waiting on.",
     );
     process.exit(1);
   }
