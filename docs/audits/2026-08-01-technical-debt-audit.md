@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| **855** | §1408 | **§1409** | **I QUOTED STRUCK TEXT AS CURRENT, AND THE REPO HAD SOLVED IT 380 SECTIONS EARLIER.** §1408 cited CLAUDE.md's account of `verify:dev` as *"a 16-step chain … reaches 4 of 16"*. Measured: **18 steps**. **But the drift is my quotation's, not the law's** — CLAUDE.md's current text says that reading held *"until audit §1029"*, was *"invalidated hours later by `7b61624`"*, and that **the total is stated no longer, only the position that matters: step 4, and nothing after it**. I quoted the struck half of a correction as the claim. **Eleventh measurement error, and the first where the artifact had already anticipated the failure I was about to report.** **§1029's move is exactly §1402's, reached 373 sections apart and independently:** faced with a number that rots, REMOVE the number and keep the invariant. A convention arrived at twice from opposite ends of the record is the closest this audit has to a law about documentation. Substantively: `verify:dev` is still an unaggregated `&&` chain at 18 steps, and that is **not** a defect — CLAUDE.md documents it, names `verify:merge` as the real verdict, and `wp-exit-audit.test.ts:19` records that a naive matcher yields *"4 of 16"* and *"reads as a serious constitutional finding and is an artifact"*. **Tenth clean negative** |
 | 854 | §1407 | **§1408** | **VERIFYING MY OWN DELIVERABLE IS WIRED, BY THE STANDARD §1304 SET.** Five gates were built this session and each reported as working; §1304's standard is **verified WIRED before the board is read**, because a gate that runs when I invoke it and not when CI does is decoration with a green tick. **First measurement said ZERO** — searching the merge log for the five names returns 0 mentions each, which reads as "they never ran". It is the §1362 reporter difference: the tools suite runs under vitest v4 (summary only) while worker suites at v3.2.7 print per-file. The same run reports **125 files passed**, 120 + 5. **Tenth measurement error avoided by not believing a zero.** Measured properly three ways: `vitest list` shows **21 cases** across the five; `run-gate.ts:46` wires `unit-tests` to the `test` script; and `test` is `test:tools; t=$?; … ; exit $(( t \|\| p ))`. **Proved end-to-end:** breaking `law-enforcers` makes `pnpm test:tools` exit 1, which propagates. Also worth noting: that script AGGREGATES rather than `&&`-chains — the defect CLAUDE.md records for `verify:dev`, which reaches 4 of 16 steps |
 | **853** | §1406 | **§1407** | **MY CARRY-FORWARD LIST WAS UNFOLLOWABLE, AND SIX STOPPING POINTS REPEATED IT.** Every stopping point since §1381 closed with the same carry-forward, restated verbatim six times and never re-verified — the *measure-the-blocker-don't-restate-it* failure, committed by the sections whose job is stating where the work stands. **Verified now: the items are all real** (9 fixture ids pending, denylist absent, every filed item has a row) — **but four of my five labels match NOTHING in the checklist**, because they are shorthand I invented rather than the rows' titles. "split backstop" greps to zero; the row is *"Below-floor interline splits HOLD indefinitely"*. "collector page bound" is *"The Collector sweep cannot make progress once truncated"*. **The rows are there; the index to them was decorative** — the same defect class this session kept finding in gates, **a pointer that names its subject differently from the subject**, authored six times while writing about it. Corrected by title and line. **The rule: a carry-forward item must be QUOTABLE from the artifact it points at** — if the phrase does not appear in the row, the summary is a memory aid for its author and useless to anyone else |
 | 852 | §1405 | **§1406** | **MEASURING §1405's OWN HEADLINE, WHICH WAS RHETORIC UNTIL NOW.** §1405 closed with *"the defect rate in my instruments exceeded the defect rate in the code"* — the exact kind of unmeasured assertion this session has corrected eight times, and it was mine, in a stopping point. Measured by what the COMMITS changed over `de8fe53^..HEAD`: **28 distinct files — 23 INSTRUMENT, 4 record, 1 PRODUCT.** And the one product file's entire diff is **two `export` keywords and a struck comment** (`feedReaderFor`, `conciergeParser` exported so §1362/§1363 could pin which implementation production selects). **Zero lines of behaviour changed in the block.** So the headline is true and stronger than written. **Said carefully:** not *"the product has no defects"* — §1361's dark-bounded loops are real and §632 records why coverage cannot be claimed — but **after 27 phase blocks the marginal defect is far likelier in something that MEASURES the code than in the code**. A reader with an hour should start with the gates. **Ninth measurement error caught in the same breath:** my first pass counted FIVE product files, because I used `git log --since` rather than the block's commit range |
@@ -81768,10 +81769,48 @@ line per file. The same run reports `Test Files 125 passed (125)` — 120 before
 
 **Worth noting what that script's shape prevents.** It captures `$?` from each half and aggregates, rather than
 `&&`-chaining them. This repo's own record (CLAUDE.md, added 2026-08-09) describes the failure that shape
-avoids: `verify:dev` is a 16-step `&&` chain that stops at the first failure and reaches 4 of 16, so *"invariants,
-coverage, traceability, identity, the parity gates and the design audit report nothing at all."* **The
+avoids: `verify:dev` is an `&&` chain that stops at the first failure — *"step 4, and nothing after it"* — so
+*"invariants, coverage, traceability, identity, the parity gates and the design audit report nothing at all."*
+**(Corrected by §1409: this first read "a 16-step chain … reaches 4 of 16", which is CLAUDE.md's STRUCK text.
+§1029 removed the total because it rotted within hours of being written; the law now states only the position,
+which cannot.)** **The
 `unit-tests` gate does not have that defect** — a tools failure and a workspace failure are both visible in one
 run, which is the property that made this proof a single command instead of a bisect.
 
 Verification: five gates collected and counted; the exact merge-gate command traced from `run-gate.ts` to
 `package.json`; failure propagation proved by mutation and the file restored byte-identical.
+
+## §1409 — PHASE GATE: I quoted struck text as current, and the repo had solved it 380 sections earlier
+
+§1408 cited CLAUDE.md's account of `verify:dev` as *"a 16-step `&&` chain … it reaches 4 of 16"*. Measuring it
+before restating further — the [[measure-the-blocker-dont-restate-it]] discipline, applied one section late —
+gives **18 steps**, not 16.
+
+**But the drift is not CLAUDE.md's. It is my quotation's.** The law's current text reads:
+
+> *(This read "a 16-step chain … it reaches 4 of 16" until audit §1029. It was correct the day it was written
+> and invalidated hours later by `7b61624`, which added `check:chokepoint` to the loop — so the total is stated
+> no longer, only the position that matters: **step 4, and nothing after it**.)*
+
+I quoted the struck half of a correction as though it were the claim. **Eleventh measurement error of the
+session, and the first where the artifact was not merely right but had already anticipated exactly the failure I
+was about to report.**
+
+**What §1029 did is the same move §1402 arrived at independently, 373 sections later.** Faced with a number that
+rots, it **removed the number** and kept the invariant: the total changes whenever a step is added; *"step 4, and
+nothing after it"* does not. §1402 reached that conclusion from six READMEs — *"say who is authoritative, or say
+when you were right"*, and its third form, delete the figure — without knowing the governing file had already
+applied it. **A convention arrived at twice, independently, from opposite ends of the record, is the closest
+thing this audit has produced to a law about documentation.**
+
+**The substantive question still gets its answer.** `verify:dev` IS still an `&&` chain, unaggregated, at 18
+steps. That is not a defect: CLAUDE.md documents it precisely, tells the reader what to use instead
+(`verify:merge`, which aggregates all 26 gates), and warns that a `verify:dev` failure *"is never a statement
+about the gates it did not reach"*. `wp-exit-audit.test.ts:19` even records that a naive matcher yields
+*"4 of 16"*, which *"reads as a serious constitutional finding and is an artifact"* — the trap is documented in
+the gate that could fall into it.
+
+**So: no repo defect, my citation corrected in place at §1408, and the tenth clean negative.**
+
+Verification: `verify:dev` step count read from `package.json` (18, `&&`-chained, no `$?` aggregation);
+CLAUDE.md's current sentence quoted in full; §1408 amended so the struck text is not left standing as a claim.
