@@ -5,6 +5,7 @@ import { resolveTenantDb, allTenantSlugs, claimedTenantSlugs, tenantDb, TENANT_S
 import type { AgentsEnv } from "../src/tenants.js";
 import { applyControl, seedControlTenant } from "./helpers.js";
 import indexSrc from "../src/index.ts?raw";
+import { stripComments } from "../../../tools/checks/strip-comments.js";
 
 // 2026-08-01 audit C3, the resolver half (the retry-toward-DLQ hardening landed first): the agents worker
 // could not serve CLAIMED POOL tenants — the api worker + sequencer DO resolve them, so their committed
@@ -158,9 +159,7 @@ describe("source-level pins — no sweep may regress to the static roster (REQ-1
       // outside tenants.ts is a fan-out.
       const isRosterHome = /(^|\/)tenants\.ts$/.test(path);
       if (!isRosterHome) {
-        const residue = src
-          .replace(/\/\*[\s\S]*?\*\//g, " ") // block + jsdoc comments, however many lines
-          .replace(/\/\/[^\n]*/g, " ") // line comments
+        const residue = stripComments(src)
           .replace(/\bimport\b[^;]*?\bfrom\b\s*["'][^"']*["']\s*;?/g, " ") // import ... from "..."; (wrapped or not)
           .replace(/\bexport\s*(?:\{[^}]*\}|\*)\s*(?:from\s*["'][^"']*["'])?\s*;?/g, " ") // export {..} / export * [from ".."];
           .replace(/\bexport\s+(?:declare\s+)?(?:const|let|var|type)\s+TENANT_SLUGS\b/g, " "); // the declaration itself

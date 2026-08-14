@@ -8,6 +8,7 @@ import { usageCreditsId, sweepTenantMetering } from "../src/metering.js";
 import { usageCreditsId as contractsUsageCreditsId } from "@shuddl/contracts";
 import controlSql from "../../../db/control/migrations/0001_control.sql?raw";
 import { applyTenant, seedRun } from "./helpers.js";
+import { stripComments } from "../../../tools/checks/strip-comments.js";
 
 // 2026-08-02 audit §13 — the billing port shipped in 29efbfa with ZERO tests, and its own source header
 // claimed a parity pin that did not exist. Reverting the metering fan-out left all 45 billing tests green:
@@ -122,9 +123,7 @@ describe("billing parity + regression pins (the ones the port omitted)", () => {
       // outside tenants.ts is a fan-out.
       const isRosterHome = /(^|\/)tenants\.ts$/.test(path);
       if (!isRosterHome) {
-        const residue = src
-          .replace(/\/\*[\s\S]*?\*\//g, " ") // block + jsdoc comments, however many lines
-          .replace(/\/\/[^\n]*/g, " ") // line comments
+        const residue = stripComments(src)
           .replace(/\bimport\b[^;]*?\bfrom\b\s*["'][^"']*["']\s*;?/g, " ") // import ... from "..."; (wrapped or not)
           .replace(/\bexport\s*(?:\{[^}]*\}|\*)\s*(?:from\s*["'][^"']*["'])?\s*;?/g, " ") // export {..} / export * [from ".."];
           .replace(/\bexport\s+(?:declare\s+)?(?:const|let|var|type)\s+TENANT_SLUGS\b/g, " "); // the declaration itself

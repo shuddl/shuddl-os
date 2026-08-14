@@ -4,6 +4,7 @@ import { allTenantSlugs, claimedTenantSlugs, resolveTenantDb, tenantDb, TENANT_S
 import type { TranslatorEnv } from "../src/tenants.js";
 import { applyMigrations } from "@shuddl/ledger/migrate";
 import controlSql from "../../../db/control/migrations/0001_control.sql?raw";
+import { stripComments } from "../../../tools/checks/strip-comments.js";
 
 // 2026-08-01 audit §11 — the LAST instance of the C3 roster class. The agents worker gained claimed-tenant
 // resolution on 2026-08-01; the translator kept a static two-slug roster, so a claimed pool tenant's
@@ -122,9 +123,7 @@ describe("source-level pin — no translator fan-out may regress to the static r
       // outside tenants.ts is a fan-out.
       const isRosterHome = /(^|\/)tenants\.ts$/.test(path);
       if (!isRosterHome) {
-        const residue = src
-          .replace(/\/\*[\s\S]*?\*\//g, " ") // block + jsdoc comments, however many lines
-          .replace(/\/\/[^\n]*/g, " ") // line comments
+        const residue = stripComments(src)
           .replace(/\bimport\b[^;]*?\bfrom\b\s*["'][^"']*["']\s*;?/g, " ") // import ... from "..."; (wrapped or not)
           .replace(/\bexport\s*(?:\{[^}]*\}|\*)\s*(?:from\s*["'][^"']*["'])?\s*;?/g, " ") // export {..} / export * [from ".."];
           .replace(/\bexport\s+(?:declare\s+)?(?:const|let|var|type)\s+TENANT_SLUGS\b/g, " "); // the declaration itself

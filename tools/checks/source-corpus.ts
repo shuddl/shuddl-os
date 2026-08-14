@@ -76,40 +76,4 @@ export function isTestPath(rel: string): boolean {
   return rel.includes("/test/") || rel.endsWith(".test.ts") || rel.endsWith(".test.tsx");
 }
 
-// Moved here from `append-chokepoint.ts` (§493), because BOTH I3 source gates need it and only one had
-// it. Its own header already named the victim: "the check flags its own header and `invariants.ts`'s
-// explanation of the same rule" — which is exactly what happened the moment the REPLACE scanner was
-// widened to the same trees.
-//
-// Blank out comment BODIES, preserving newlines so reported line numbers stay true. Without this the check
-// flags its own header and `invariants.ts`'s explanation of the same rule — a lint that cannot describe
-// itself is a lint nobody can document. Quote/template state is tracked so a `//` inside a string literal
-// (a URL, a SQL fragment) is not mistaken for a comment.
-export function stripComments(src: string): string {
-  let out = "";
-  let state: "code" | "line" | "block" | "'" | '"' | "`" = "code";
-  for (let i = 0; i < src.length; i++) {
-    const c = src[i] as string;
-    const next = src[i + 1];
-    if (state === "code") {
-      if (c === "/" && next === "/") { state = "line"; out += "  "; i++; continue; }
-      if (c === "/" && next === "*") { state = "block"; out += "  "; i++; continue; }
-      if (c === "'" || c === '"' || c === "`") state = c;
-      out += c;
-      continue;
-    }
-    if (state === "line") {
-      if (c === "\n") { state = "code"; out += c; } else out += " ";
-      continue;
-    }
-    if (state === "block") {
-      if (c === "*" && next === "/") { state = "code"; out += "  "; i++; } else out += c === "\n" ? c : " ";
-      continue;
-    }
-    // inside a string/template: a backslash escapes the next character, so a quote cannot close early
-    if (c === "\\") { out += c + (next ?? ""); i++; continue; }
-    if (c === state) state = "code";
-    out += c;
-  }
-  return out;
-}
+export { stripComments } from "./strip-comments.js";

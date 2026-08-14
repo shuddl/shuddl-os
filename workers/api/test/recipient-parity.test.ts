@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import dunningSrc from "../src/routes/dunning.ts?raw";
 import billerSrc from "../../agents/src/biller.ts?raw";
+import { stripComments } from "../../../tools/checks/strip-comments.js";
 
 // REQ-031/032/182 §785 — THE TWO RECIPIENT RESOLVERS MUST NOT DRIFT.
 //
@@ -40,8 +41,7 @@ function functionBody(src: string, name: string): string {
 
 /** Strip comments and collapse whitespace — the two copies may be commented and indented differently. */
 function normalise(body: string): string {
-  return body
-    .replace(/\/\*[\s\S]*?\*\//g, "")
+  return stripComments(body)
     .split("\n")
     .map((l) => l.trim())
     .filter((l) => l.length > 0 && !l.startsWith("//"))

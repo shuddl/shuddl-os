@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { execSync } from "node:child_process";
 import { repoRoot } from "./repo-root.js";
 import { stripStruck } from "./strip-struck.js";
+import { stripComments } from "./strip-comments.js";
 
 // §933 — A CHECKLIST FIGURE THAT NOBODY RE-DERIVES IS A CLAIM WITH AN EXPIRY AND NO ALARM.
 //
@@ -55,9 +56,7 @@ function containedSweeps(root: string): number {
   // completeness claim), so an inflated N weakens both arguments silently. Same defect §1277 fixed in the
   // acceptance floor; the rule is that an UNANCHORED source-text count must strip comments, while a
   // line-anchored one (`/^\s+it\(/m`, isolation-suite) is immune by construction.
-  const src = readFileSync(`${root}/workers/agents/src/index.ts`, "utf8")
-    .replace(/\/\*[\s\S]*?\*\//g, "")
-    .replace(/(^|[^:])\/\/[^\n]*/gm, "$1");
+  const src = stripComments(readFileSync(`${root}/workers/agents/src/index.ts`, "utf8"));
   return new Set([...src.matchAll(/contain\("([^"]+)"/g)].map((m) => m[1] as string)).size;
 }
 

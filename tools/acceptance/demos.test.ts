@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { DEMOS, spineByPackage, spineFileCount } from "./demos.js";
 import { missingSpineFiles, packageDirs } from "./run.js";
 import { repoRoot } from "../checks/repo-root.js";
+import { stripComments } from "../checks/strip-comments.js";
 
 // REQ-119 (audit §68) — the acceptance manifest and this module must name the SAME spine.
 //
@@ -172,7 +173,7 @@ const MIN_ASSERTIONS = Object.values(ASSERTION_FLOOR).reduce((a, b) => a + b, 0)
  * STRENGTH, only whether the call site is live code.
  */
 export function countExpectSites(src: string): number {
-  const stripped = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/[^\n]*/gm, "$1");
+  const stripped = stripComments(src);
   return (stripped.match(/\bexpect\s*\(/g) ?? []).length;
 }
 

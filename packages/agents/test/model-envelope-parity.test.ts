@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
+import { stripComments } from "../../../tools/checks/strip-comments.js";
 
 // §1351 (REQ-024/038/059) — THE LLM RESPONSE-ENVELOPE READER IS IMPLEMENTED THREE TIMES, AND AGREED WITH NOTHING.
 //
@@ -50,8 +51,7 @@ function functionBody(source: string, name: string): string {
 
 /** Strip comments and collapse whitespace — the copies may be commented and indented differently. */
 function normalise(body: string): string {
-  return body
-    .replace(/\/\*[\s\S]*?\*\//g, "")
+  return stripComments(body)
     .split("\n")
     .map((l) => l.trim())
     .filter((l) => l.length > 0 && !l.startsWith("//"))

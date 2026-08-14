@@ -826,7 +826,7 @@ export function checkDoMutexIntact(files: ReadonlyArray<{ path: string; source: 
       // check reported SparkMeter awaits inside workers/translator/src/inbound.ts. A file that does not
       // declare the class cannot violate its await rule.
       if (!new RegExp(`export class ${cls} extends DurableObject`).test(source)) continue;
-      const code = source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+      const code = stripComments(source);
       for (const m of code.matchAll(/await\s+([^\n;]+)/g)) {
         const expr = (m[1] ?? "").trim();
         if (/^this\.ctx\.storage\./.test(expr) || /^\(await\s+this\.ctx\.storage\./.test(`(await ${expr}`)) continue;

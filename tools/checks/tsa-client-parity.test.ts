@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { repoRoot } from "./repo-root.js";
+import { stripComments } from "./strip-comments.js";
 
 // §1352 (REQ-014/154) — THE TSA CLIENT FACTORY IS IMPLEMENTED TWICE, AND ITS ENVIRONMENT GATE WAS PINNED BY NOTHING.
 //
@@ -48,8 +49,7 @@ function functionBody(src: string, name: string): string {
 }
 
 function normalise(body: string): string {
-  return body
-    .replace(/\/\*[\s\S]*?\*\//g, "")
+  return stripComments(body)
     .split("\n")
     .map((l) => l.trim())
     .filter((l) => l.length > 0 && !l.startsWith("//"))
