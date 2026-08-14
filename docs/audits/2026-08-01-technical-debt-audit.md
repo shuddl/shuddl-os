@@ -637,6 +637,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 859 | §1412 | **§1413** | **§1411 CLOSED THE CLASS AFTER FIXING FIVE OF SEVEN, AND THE SHARED MASK WAS WRONG.** `ledger-status-vocabulary` held two more `~~` masks; §1411's sweep missed them by searching the SHAPE (`[\s\S]`) instead of the BEHAVIOUR (*replaces a `~~` pattern*) — **my own sweep-by-behaviour rule, broken inside the phase about duplicated matchers.** Worse: diffing my mask against the copy it replaced, over 155 real ledger cells, found **my** version wrong. `[^~]*` is safe against runaway but wrong about this repo, which writes `~` for APPROXIMATELY (`~24 guards`, `HEAD~1`): the span fails at its real opener and the engine pairs its CLOSING `~~` with a later marker, so the mask lands elsewhere — **hiding two unstruck citations AND leaving two superseded claims live, both directions at once.** Adopted `~(?=\d)`: 12,908 masked vs 13,462, **154 citations visible vs 152**. Naive repair (*terminate at next `~~`*) rejected — measured **292,699** chars in the audit, §1411's disease at paragraph scale. Roster added: no file re-authors a `~~` MASK (a READ stays legal; discriminator `.replace(`, positive control both ways), mutation-proved. **Three implementations, three distinct defects, all green under the full suite — each found by a diff against real input, never by a test** |
 | 860 | §1413 | **§1414** | **LAW #2's ENFORCER WAS BLIND BEHIND A REGEX LITERAL.** §1413's rule (*diff the survivor against each of the N on real input*) applied to §1412's nine-copy consolidation, which I had verified only by running the suites. The diff disagreed on 3 files, all in the dangerous direction. Cause: **the state machine does not tokenise REGEX LITERALS.** `/evInput\(\s*"([^"]+)"\s*\)/` carries three `"` — odd — so it sits in a phantom string for the rest of the file; harmless alone (strings are KEPT), until the next real quote closes it and a path glob (`"workers/*"`) then reads as `/*` and opens a phantom BLOCK COMMENT to EOF. **Measured with a control: `INSERT OR REPLACE INTO events` behind those two ordinary lines → `check:invariants` exit 0 (BLIND) vs exit 1 caught.** CLAUDE.md law #2 (I3/I7) bypassed by a regex and a glob, in its named enforcer; 56 files here already carry a `/*` string. **Introduced 2026-08-06 in `35b5a8e` — whose subject is fixing a DIFFERENT hole in this same law** — and called *"correct"* by §1412, now struck in its own file. Fixed by resetting `'`/`"` state at a newline (templates exempt); probe now exits 1. Residual stated: same-line desync. **Pinned end-to-end (strip→scan), because a unit test on the stripper alone goes green on the old code** |
 | 861 | §1414 | **§1415** | **PROBED EACH LAW'S ENFORCER WITH A REAL VIOLATION; ONE ROUTE HAD NO WATCHER.** §1180 verified the ten enforcers EXIST; §1414 proved existence is not firing. Planted the forbidden thing per law: append-only, chokepoint, rater purity and the ledger LLM ban all **RED**. Then per ROUTE — static import, dynamic `import()`, computed specifier, raw `fetch`. **One apparent evasion was my own mis-attribution** (a rater `fetch` passes `check:rater-purity` and is banned by ESLint — *a green from one gate is not an absence of enforcement*). **One was real:** `const s = "@anthropic-ai/" + "sdk"; await import(s)` exits 0 under lint, rater-purity, invariants AND chokepoint — the config matches `source.value`, which only a LITERAL specifier has. §985/§986 closed this route for literals; the computed form was never considered. Closed by banning the **FORM** (`ImportExpression[source.type!="Literal"]`), free because both packages hold ZERO dynamic imports, appended to the EXISTING array so it cannot REPLACE the three bans (all re-probed RED). **And `check:section-refs` never read `eslint.config.mjs`** — 74 `§N` pointers, the largest concentration outside the audit; widened 907→1,001 files, surfacing exactly the 2 dangling refs this phase had just introduced |
+| 862 | §1415 | **§1416** | **LAW #2's SOURCE GATE BANS THE VERB THAT EVADES THE GUARDS, NOT THE ONES THAT DELETE THEM.** Probed the constitution's first invariant by SPELLING: 12 forms planted, 2 RED, 10 exit 0. **Most of those ten are correct** — the migration matcher covers five verbs, the source matcher two, and the asymmetry is deliberate: `UPDATE`/`DELETE` on `events` are stopped at RUNTIME by `events_guard_upd`/`events_guard_del` (verified present), while REPLACE is banned in source because it is the one verb that slips a BEFORE DELETE guard under `recursive_triggers=0`. **But that reasoning holds only while the guards EXIST, and nothing checked that:** `DROP TRIGGER events_guard_upd`, `DROP TABLE events` and `PRAGMA writable_schema = ON` in application source ALL exited 0 under invariants, chokepoint and lint. Dropping the trigger does not evade append-only, **it repeals it.** Migrations have banned `DROP TRIGGER` since §347; source never did. Closed with `scanSourceForGuardRemoval` from the SHARED fragments (9 spellings RED incl. abutting-quote/schema-qualified; mutable-table DROP and pragma READ stay clean). **It flagged ITSELF on the first clean run** — the message names what it forbids, and unlike its siblings a prose string has no `\s+` escaping to hide behind; fixed semantically by requiring the `=` (setting the pragma is the danger, reading is inert). Edit rotted 4 anchored citations; `check:citations` caught all four |
 | 856 | §1409 | **§1410** | **SWEEPING MY OWN SECTIONS FOR §1409's ERROR, AND A DETECTOR THAT COULD NOT HAVE FOUND IT.** §1404's precedent: a class like this gets ONE measurement, not a gate, since a correction necessarily quotes what it corrects. **The first sweep returned ZERO and was worthless** — it extracted superseded text as `~~struck~~` only, but the very case §1409 found is marked the other way, as *"a 16-step chain …"* **until audit §1029**. **My detector encoded one of the repo's TWO conventions, so it could never have found the known positive.** Twelfth instance of the session's constant, caught because a zero is the answer this session has learned never to accept. **A second false signal inside the control:** asking *"is it inside `~~…~~`?"* with `~~[^~]*16-step` returned True — because an unrelated `~~` sits earlier and `[^~]*` spanned the gap. **A regex answering "is X inside a delimiter" by searching for the delimiter anywhere before X will say yes to the whole file.** Re-run over both conventions: **109 superseded passages, zero quoted without a marker** — and that zero is worth something, because the corrected detector demonstrably flags a reconstruction of §1408's sentence. **§1409's error was singular, not a habit** |
 | **855** | §1408 | **§1409** | **I QUOTED STRUCK TEXT AS CURRENT, AND THE REPO HAD SOLVED IT 380 SECTIONS EARLIER.** §1408 cited CLAUDE.md's account of `verify:dev` as *"a 16-step chain … reaches 4 of 16"*. Measured: **18 steps**. **But the drift is my quotation's, not the law's** — CLAUDE.md's current text says that reading held *"until audit §1029"*, was *"invalidated hours later by `7b61624`"*, and that **the total is stated no longer, only the position that matters: step 4, and nothing after it**. I quoted the struck half of a correction as the claim. **Eleventh measurement error, and the first where the artifact had already anticipated the failure I was about to report.** **§1029's move is exactly §1402's, reached 373 sections apart and independently:** faced with a number that rots, REMOVE the number and keep the invariant. A convention arrived at twice from opposite ends of the record is the closest this audit has to a law about documentation. Substantively: `verify:dev` is still an unaggregated `&&` chain at 18 steps, and that is **not** a defect — CLAUDE.md documents it, names `verify:merge` as the real verdict, and `wp-exit-audit.test.ts:19` records that a naive matcher yields *"4 of 16"* and *"reads as a serious constitutional finding and is an artifact"*. **Tenth clean negative** |
 | 854 | §1407 | **§1408** | **VERIFYING MY OWN DELIVERABLE IS WIRED, BY THE STANDARD §1304 SET.** Five gates were built this session and each reported as working; §1304's standard is **verified WIRED before the board is read**, because a gate that runs when I invoke it and not when CI does is decoration with a green tick. **First measurement said ZERO** — searching the merge log for the five names returns 0 mentions each, which reads as "they never ran". It is the §1362 reporter difference: the tools suite runs under vitest v4 (summary only) while worker suites at v3.2.7 print per-file. The same run reports **125 files passed**, 120 + 5. **Tenth measurement error avoided by not believing a zero.** Measured properly three ways: `vitest list` shows **21 cases** across the five; `run-gate.ts:46` wires `unit-tests` to the `test` script; and `test` is `test:tools; t=$?; … ; exit $(( t \|\| p ))`. **Proved end-to-end:** breaking `law-enforcers` makes `pnpm test:tools` exit 1, which propagates. Also worth noting: that script AGGREGATES rather than `&&`-chains — the defect CLAUDE.md records for `verify:dev`, which reaches 4 of 16 steps |
@@ -20929,7 +20930,7 @@ on all three.
 
 ### Carry-forward
 
-`tools/checks/invariants.ts:527@committedLock` returns `{}` when there is no committed lockfile. That is
+`tools/checks/invariants.ts:581@committedLock` returns `{}` when there is no committed lockfile. That is
 the exact shape of [[fail-closed-is-about-the-fallback-value]] — the fallback VALUE, not the catch — and a
 `{}` there would make any "every dependency matches the lock" comparison vacuously true. It may well be
 correct here; it has not been checked. **Next section's first item.**
@@ -20942,7 +20943,7 @@ correct here; it has not been checked. **Next section's first item.**
 
 ### The carry-forward: not a defect
 
-`tools/checks/invariants.ts:527@committedLock` returns `{}` when `git show HEAD:<lock>` fails. `checkLock`
+`tools/checks/invariants.ts:581@committedLock` returns `{}` when `git show HEAD:<lock>` fails. `checkLock`
 uses that value as the **forward-only anchor** — the thing a locally-deleted or hand-edited lock line
 cannot reset. An empty anchor therefore re-opens the exact bypass `checkLock` exists to close, and the
 tests for it pass `committed` in as a parameter, so they prove the *guard* and say nothing about its
@@ -73161,7 +73162,7 @@ export function authoritativeSource(authority: AuthorityLevel, legacyValueAvaila
 
 Ten sites sharing a literal is §1225's shape **prospectively**: when Tasks 4/6/8 supply a real
 `legacyValueAvailable`, the sites get changed one at a time and N−1 are stale mid-flight. That is exactly what
-`invariants.ts:656@AUTHORITY-SEAM` covers — a **dormancy tripwire** that reds the moment any call site stops
+`invariants.ts:710@AUTHORITY-SEAM` covers — a **dormancy tripwire** that reds the moment any call site stops
 passing `false`. And §454 had already caught the weaker version of this gate: a test *named* *"TODAY every
 caller passes legacyValueAvailable=false"* whose body only checked the **function**, never the call sites — the
 same name-vs-body defect this session met at §1210.
@@ -82148,3 +82149,59 @@ running the gate's classifier instead of my own is what corrected it.)
 **Phase gate.** 127 tools files / 1,382 tests green before this section; six enforcement routes proved RED by
 planting; two corpus/coverage gaps closed. Carry-forward unchanged and owner-held: vendor the nine private
 fixtures + `IDENTITY_DENYLIST`, commit the `genesis/09` rows, the five filed operational REQ rows.
+
+## §1416 — PHASE GATE: law #2's source gate bans the verb that evades the guards, not the ones that delete them
+
+§1415 probed REQ-024 by ROUTE and found the one form nothing watched. The same question, asked of the
+constitution's first invariant — *events are append-only, no UPDATE/DELETE paths ever* — has a longer answer,
+because SQL has many more spellings than `import` does. Twelve were planted against `check:invariants`:
+
+| planted in application source | result |
+|---|---|
+| `INSERT OR REPLACE INTO events` · `REPLACE INTO events` | RED |
+| `UPDATE events SET` · `DELETE FROM events` · `DROP TABLE events` · `ALTER TABLE events` | exit 0 |
+| schema-qualified, abutting-quote, bracket, backtick, newline, lowercase variants | exit 0 |
+
+**Most of that list is correct, and finding out why is the phase.** The migration matcher covers five verbs;
+the source matcher (`replaceFamilyRe`) covers two. The asymmetry is deliberate: `UPDATE` and `DELETE` on
+`events` are stopped **at runtime** by `events_guard_upd` and `events_guard_del` — verified present, alongside
+`events_guard_ins` and `events_guard_ins_unique` — so a source-side attempt fails loudly instead of silently.
+`REPLACE` is banned in source precisely because it is the one verb that slips past a BEFORE DELETE guard when
+`recursive_triggers=0`. Reporting those ten as holes would have been §1415's mis-attribution again.
+
+**But the reasoning holds only while the guards exist, and nothing was checking that.** Measured:
+
+```ts
+export const q = "DROP TRIGGER events_guard_upd";
+```
+
+`check:invariants`, `check:chokepoint` and `pnpm lint` **all exited 0.** So did `DROP TABLE events` and
+`PRAGMA writable_schema = ON`. **Dropping the trigger does not evade append-only — it repeals it**, and every
+`UPDATE` the source scanner deliberately ignores becomes legal the instant it lands. The migration surface has
+banned `DROP TRIGGER` since §347; the source surface never did. That is this repo's recurring shape: two
+mechanisms enforcing one invariant, and the delta between their SCOPES is the defect, with nothing failing.
+
+**Closed** by `scanSourceForGuardRemoval`, built from the same `DELIM`/`SCHEMA`/`Q` fragments as every other
+matcher here — a hand-rolled copy is the copy an evasion goes through, which is the whole subject of the
+parity skill. Free to add: **zero occurrences of any of the three forms exist anywhere in the tree.** Nine
+forbidden spellings now RED, including the abutting-quote and schema-qualified evasions; the two pre-existing
+REPLACE bans re-probed and still RED; `DROP TABLE` on a MUTABLE table and a pragma READ stay clean, so the
+gate does not cry wolf.
+
+**It flagged itself on the first clean run.** The violation message necessarily names the thing it forbids,
+and `"PRAGMA writable_schema"` in a message string is indistinguishable from one in code. The sibling matchers
+are immune by accident — they escape their spaces (`\s+`), so `INSERT OR REPLACE INTO` never appears
+literally — and a prose-shaped string has no such protection. Fixed **semantically** rather than by an
+allowlist: the rule now requires the `=`, because *setting* the pragma is what makes `sqlite_master` writable
+while reading it is inert. Caught only because the gate was run on a clean tree immediately after being added.
+
+**And the edit rotted four citations.** Inserting 40 lines into `invariants.ts` moved `committedLock` from
+:527 to :581 and `AUTHORITY-SEAM` from :656 to :710, in the audit twice and `RELEASE-EVIDENCE.md` once.
+`check:citations` caught all four — the anchored-citation ratchet doing exactly the job §1344 built it for, on
+a shift caused by ordinary work elsewhere in the file.
+
+**Phase gate.** 127 tools files / 1,394 tests green (invariants alone 202 → 213); `check:invariants`,
+`check:chokepoint`, `check:citations`, `check:section-refs`, `check:tables`, `lint` and `typecheck` all clean.
+Mutation-proved both new matchers (removing DROP TRIGGER detection reds 3; breaking the DROP TABLE matcher
+reds 5). Carry-forward unchanged and owner-held: vendor the nine private fixtures + `IDENTITY_DENYLIST`,
+commit the `genesis/09` rows, the five filed operational REQ rows.

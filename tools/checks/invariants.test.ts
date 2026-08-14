@@ -28,8 +28,7 @@ import {
   PARTITION_TABLES,
   scanSourceForForbiddenReplace,
   scanSourceForLegsReplace,
-  TABLE_BUDGET,
-} from "./invariants.js";
+  TABLE_BUDGET, scanSourceForGuardRemoval } from "./invariants.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url)); // tools/checks
 const REPO = join(HERE, "..", "..");
@@ -1208,3 +1207,42 @@ describe("REQ-118 §732: a sub-check over an empty corpus is a violation, not a 
   });
 });
 
+describe("§1416 REQ-118/I3: application source may not REMOVE the append-only guards", () => {
+  // §1416 probed law #2 by SPELLING instead of by concept and found the source surface bans the verb that
+  // EVADES the guards (REPLACE) but not the ones that DELETE them. The migration surface has banned
+  // `DROP TRIGGER` since §347; source never did. Dropping `events_guard_upd` does not bypass append-only, it
+  // repeals it — and then the `UPDATE`/`DELETE` the source scanner deliberately ignores become legal.
+  const scan = (sql: string): string[] => scanSourceForGuardRemoval([{ path: "p.ts", text: `const q = "${sql}";` }]);
+
+  // ONE corpus, every delimiter form, per share-lint-matchers-with-parity-tests: the abutting quote and the
+  // schema qualifier are this repo's two documented evasion shapes and both are built from the shared
+  // fragments rather than re-authored here.
+  const FORBIDDEN = [
+    "DROP TRIGGER events_guard_upd",
+    "drop trigger events_guard_del",
+    "DROP TRIGGER IF EXISTS events_guard_ins",
+    "DROP TABLE events",
+    "DROP TABLE IF EXISTS main.events",
+    'DROP TABLE"events"',
+    "DROP TABLE [positions]",
+    "PRAGMA writable_schema = ON",
+    "PRAGMA main.writable_schema=1",
+  ];
+  for (const sql of FORBIDDEN) {
+    it(`flags: ${sql}`, () => {
+      expect(scan(sql), `"${sql}" reaches the ledger's guards and no gate objects`).not.toHaveLength(0);
+    });
+  }
+
+  it("does NOT flag a mutable table's DROP, nor a pragma READ", () => {
+    // The false-positive half. A gate that cries wolf gets disabled; `DROP TABLE` on a MUTABLE table is
+    // ordinary migration-adjacent code, and reading the pragma is inert — only the assignment is dangerous.
+    expect(scan("DROP TABLE idempotency_keys")).toEqual([]);
+    expect(scan("PRAGMA writable_schema")).toEqual([]);
+  });
+
+  it("the guarded-table list is DERIVED, so a fourth append-only table is covered on arrival", () => {
+    // §266's rule: two literals naming the same tables is how the REPLACE ban silently missed one.
+    for (const t of GUARDED_TABLES) expect(scan(`DROP TABLE ${t}`), `${t} is guarded but droppable`).not.toHaveLength(0);
+  });
+});

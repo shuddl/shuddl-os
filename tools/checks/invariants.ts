@@ -469,6 +469,60 @@ export function findStraySql(cwd: string = process.cwd()): string[] {
 // source-level REPLACE ban now read one list, so the two cannot drift.
 const FORBIDDEN_REPLACE = (): RegExp => replaceFamilyRe(GUARDED_TABLES.join("|"));
 
+// §1416 — THE SOURCE SCANNER BANNED THE VERB THAT EVADES THE GUARD, NOT THE ONES THAT REMOVE IT.
+//
+// Probing law #2 by SPELLING rather than by concept found this. The migration matcher covers five verbs
+// (`UPDATE|DELETE FROM|DROP TABLE|INSERT OR REPLACE INTO|REPLACE INTO`); the source matcher — `replaceFamilyRe`
+// — covers two. That asymmetry is DELIBERATE and correct for `UPDATE`/`DELETE`: those are stopped at runtime
+// by `events_guard_upd` / `events_guard_del`, so a source-side attempt fails loudly rather than silently, and
+// REPLACE is banned in source precisely because it is the one verb that slips past a BEFORE DELETE guard when
+// `recursive_triggers=0`.
+//
+// The reasoning holds only while the guards EXIST. Measured at §1416: application source could contain
+// `DROP TRIGGER events_guard_upd`, `DROP TABLE events`, or `PRAGMA writable_schema = ON` and
+// `check:invariants`, `check:chokepoint` and `pnpm lint` ALL exited 0. Dropping the trigger does not evade
+// append-only — it DELETES append-only, and then every UPDATE the asymmetry was relying on becomes legal. The
+// migration surface has banned `DROP TRIGGER` since §347; the source surface never did, which is the
+// two-mechanisms-one-invariant delta this repo keeps finding.
+//
+// Built from the SAME fragments as every other matcher here, per the parity skill: a hand-rolled copy is the
+// copy an evasion goes through. Free to add — measured ZERO occurrences of any of these three forms anywhere
+// in the tree, so this forbids what nobody writes rather than breaking a legitimate use.
+const dropTableRe = (tables: string): RegExp => new RegExp(`\\bDROP${DELIM}TABLE${DELIM}(?:IF${DELIM}EXISTS${DELIM})?${SCHEMA}${Q}(${tables})\\b`, "gi");
+const dropTriggerRe = (): RegExp => new RegExp(`\\bDROP${DELIM}TRIGGER${DELIM}(?:IF${DELIM}EXISTS${DELIM})?${SCHEMA}${Q}([A-Za-z0-9_]+)`, "gi");
+// The ASSIGNMENT, not the read. Requiring `=` is both semantically right — setting the pragma is what makes
+// sqlite_master writable, reading it is inert — and what stops this rule from flagging its own violation
+// message, which necessarily names the thing it forbids. The sibling matchers escape their spaces
+// (`\\s+`) and so cannot self-match; a prose-shaped string has no such protection. Caught by running the
+// gate on a CLEAN tree immediately after adding it (§1416), which is the only reason it did not ship.
+const writableSchemaRe = (): RegExp => new RegExp(`\\bPRAGMA\\s+${SCHEMA}writable_schema\\s*=`, "gi");
+
+/** Statements that DELETE the append-only enforcement rather than evade it. Source surface only. */
+export function scanSourceForGuardRemoval(sources: ReadonlyArray<{ path: string; text: string }>): string[] {
+  const violations: string[] = [];
+  for (const { path, text } of sources) {
+    for (const m of text.matchAll(dropTableRe(GUARDED_TABLES.join("|")))) {
+      violations.push(
+        `${path}: "DROP TABLE ${m[1]}" — ${m[1]} is append-only (I3/I7). Dropping it destroys the ledger and every ` +
+          `guard on it; schema changes belong in a forward-only migration, never in application source.`,
+      );
+    }
+    for (const m of text.matchAll(dropTriggerRe())) {
+      violations.push(
+        `${path}: "DROP TRIGGER ${m[1]}" — the BEFORE INSERT/UPDATE/DELETE guards ARE append-only at runtime ` +
+          `(I3/I7). Application source may never drop one: that does not bypass the law, it repeals it.`,
+      );
+    }
+    for (const _m of text.matchAll(writableSchemaRe())) {
+      violations.push(
+        `${path}: "PRAGMA writable_schema" — this makes sqlite_master writable, which lets a statement edit or ` +
+          `remove the append-only guards directly. Never in application source.`,
+      );
+    }
+  }
+  return violations;
+}
+
 export function scanSourceForForbiddenReplace(sources: ReadonlyArray<{ path: string; text: string }>): string[] {
   const violations: string[] = [];
   // Derived too (audit §266): this drives the ON CONFLICT DO UPDATE ban, a DIFFERENT check from the
@@ -518,7 +572,7 @@ export function findForbiddenReplaceSources(cwd: string = process.cwd()): string
   // §493 — comments stripped, as `append-chokepoint` has always done: a rule that cannot be described in
   // prose without tripping itself is a rule nobody can document. Line numbers are preserved by the stripper.
   const texts = files.map((p) => ({ path: p, text: stripComments(readFileSync(join(cwd, p), "utf8")) }));
-  return [...scanSourceForForbiddenReplace(texts), ...scanSourceForLegsReplace(texts)];
+  return [...scanSourceForForbiddenReplace(texts), ...scanSourceForLegsReplace(texts), ...scanSourceForGuardRemoval(texts)];
 }
 
 // The migration lock as committed in git HEAD — the forward-only anchor `checkLock` compares against.
