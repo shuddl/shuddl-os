@@ -37,7 +37,20 @@ function deployedBrowserHosts(root: string): { file: string; host: string }[] {
       if (m === null) return;
       // `custom_domain = true` sits directly beneath its pattern in every app config; a route pattern WITHOUT
       // it is a path route (e.g. `api.example/*`), not a browser origin, so it is not this gate's subject.
-      const near = lines.slice(i, i + 3).join("\n");
+      // §1379 — STRUCTURAL, not a 3-line reach. This read `lines.slice(i, i + 3)` on the premise, stated in the
+      // comment above, that `custom_domain = true` 'sits directly beneath its pattern in every app config'. That
+      // is a claim about FORMATTING, and its UNDER-reach direction is SILENT: a `custom_domain` a few lines lower
+      // makes the route read as a path route, so it is SKIPPED and its browser origin is never checked against
+      // the CORS allowlist — the one thing this gate exists to do. A TOML table ends where the next one begins,
+      // so the block is delimited by the next `[` header instead of by a line count (audit §1378/§1379).
+      let end = lines.length;
+      for (let k = i + 1; k < lines.length; k++) {
+        if (/^\s*\[/.test(lines[k]!)) {
+          end = k;
+          break;
+        }
+      }
+      const near = lines.slice(i, end).join("\n");
       if (!/custom_domain\s*=\s*true/.test(near)) return;
       out.push({ file: f, host: m[1]!.replace(/\/\*$/, "") });
     });

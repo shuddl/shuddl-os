@@ -49,6 +49,11 @@ function fixedWindowSites(root: string): Site[] {
 }
 
 // DECLARED windows. Each states what it decides and BOTH failure directions, silent one first where it exists.
+//
+// §1379 — `tools/deploy/cors-origin-parity.test.ts` was here with a 3-line span and a SILENT under-reach. It is
+// gone because the window is gone: a TOML table ends where the next `[` header begins, so that gate now
+// delimits structurally and has no reach to declare. THE RIGHT OUTCOME FOR AN ENTRY IN THIS LIST IS DELETION —
+// a declaration is a record of an assumption still being made, not a permit to keep making it.
 const DECLARED: readonly { readonly file: string; readonly span: number; readonly decides: string; readonly under: string; readonly over: string }[] = [
   {
     file: "tools/checks/api-conventions.test.ts",
@@ -70,16 +75,6 @@ const DECLARED: readonly { readonly file: string; readonly span: number; readonl
       "IMPOSSIBLE — the `^` anchor cannot match anything later in the window, so a neighbouring registration " +
       "can never satisfy this one. This is the third category the gate distinguishes: a span that is slack " +
       "behind an anchor has no reach problem at all.",
-  },
-  {
-    file: "tools/deploy/cors-origin-parity.test.ts",
-    span: 3,
-    decides: "whether a `pattern = \"...\"` route is a browser origin (`custom_domain = true`) and therefore subject to the CORS allowlist",
-    under:
-      "SILENT — a `custom_domain = true` more than two lines below its pattern makes the route read as a path " +
-      "route, so it is SKIPPED and its origin is never checked against the allowlist. The source comment " +
-      "asserts the two are adjacent 'in every app config', which is a claim about FORMATTING, not about the schema",
-    over: "LOUD — a neighbouring route's `custom_domain` pulls this pattern in, and it then fails for missing from the allowlist",
   },
 ];
 
