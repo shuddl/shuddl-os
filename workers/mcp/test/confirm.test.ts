@@ -217,3 +217,87 @@ describe("non-booking tools pass straight through the confirm gate (no confirm r
     });
   }
 });
+
+// ── §1469 (REQ-108/118) — EVERY MUTATING TOOL DECLARES ITS CONFIRM POSTURE ─────────────────────────────────────
+//
+// `confirm.ts` gates by NAME — `if (tool.name !== BOOK_TOOL) return` — so every other tool passes through by
+// EXCLUSION. That is correct for the tools that existed when it was written, and it means tool number five
+// arrives with no confirm and no decision recorded. The pass-through block above is a hand-picked list, and it
+// had already fallen behind: it names `track` and `get_document` (both `mutating: false`, so they never reach
+// the chokepoint at all) and omits **`dispute`**, which is `mutating: true`. Nothing asked whether a claim
+// should carry a confirm.
+//
+// So the roster is DERIVED from the registry here, and set-equality in both directions is what forces the
+// question: a new mutating tool fails this test until someone writes down which side it is on.
+const CONFIRM_GATED = ["book_shipment"] as const;
+
+const CONFIRM_EXEMPT: readonly { readonly tool: string; readonly why: string }[] = [
+  {
+    tool: "quote_freight",
+    why:
+      "Pricing commits nothing. It appends a quote.priced — a COMPUTATION the server performs — and the money " +
+      "commitment is the later accept-quote, which is book_shipment and IS gated. A confirm here would ask a " +
+      "human to acknowledge a number the server has not produced yet.",
+  },
+  {
+    tool: "approve",
+    why:
+      "confirm.ts's own recorded deferral (REQ-108): approve records approved/denied on a shipment's OPEN " +
+      "below-floor approval and does not itself commit money — the commitment is the later book_shipment. There " +
+      "is no server-recorded 'amount this approval releases' to confirm against, so any amount would be a " +
+      "GUESSED money-materiality signal, which REQ-108 explicitly says not to invent.",
+  },
+  {
+    tool: "dispute",
+    why:
+      "UNDECLARED UNTIL §1469 — this is the tool the hand-kept list omitted. It POSTs /v1/shipments/:id/claim, " +
+      "which the api records as a message.received on the 'portal' channel: a message, not a money movement, " +
+      "and it carries no server-recorded amount to confirm against. Same reasoning as approve, and the same " +
+      "REQ-108 principle (do not guess a signal that isn't there). Filing a claim is money-ADJACENT, so if the " +
+      "register later gives a claim a materialized amount this is the row to revisit — recorded here rather " +
+      "than left as an omission nobody noticed.",
+  },
+  {
+    tool: "noop_mutation",
+    why:
+      "A proof tool, not a product surface: it exists only to exercise the beforeMutation chokepoint and " +
+      "performs no api write, so there is no commitment for a confirm to acknowledge.",
+  },
+];
+
+describe("§1469: the confirm roster covers every MUTATING tool (a new one must declare its posture)", () => {
+  const mutatingTools = buildRegistry()
+    .list()
+    .filter((t) => t.mutating)
+    .map((t) => t.name)
+    .sort();
+
+  it("derives a real population (non-vacuity — an empty roster would certify everything)", () => {
+    // LIVE, MEASURED at §1469: 5 mutating tools of 8 registered. Floor 3, well below, because the registry
+    // legitimately grows; the set-equality assertion below is what actually keeps it honest.
+    expect(mutatingTools.length, "no mutating tools found — buildRegistry or the `mutating` flag changed").toBeGreaterThanOrEqual(3);
+    expect(mutatingTools, "book_shipment must be mutating; if it is not, the confirm gate never runs").toContain("book_shipment");
+  });
+
+  it("every mutating tool is EITHER confirm-gated OR declared exempt, with no leftovers on either side", () => {
+    const declared = [...CONFIRM_GATED, ...CONFIRM_EXEMPT.map((e) => e.tool)].sort();
+    expect(
+      mutatingTools,
+      "a MUTATING MCP tool is not named in either roster. `confirm.ts` gates by name, so an undeclared tool " +
+        "passes the confirm check by exclusion — it reaches the api with caps metering but with NO human " +
+        "acknowledgement of what it commits. Decide: add it to CONFIRM_GATED and extend confirm.ts, or to " +
+        "CONFIRM_EXEMPT with the reason it commits nothing a human must acknowledge (REQ-108).",
+    ).toEqual(declared);
+  });
+
+  it("every declared-exempt tool really does pass through, and every reason is a reason", async () => {
+    // The roster is a claim; this is the check. A tool listed exempt that actually blocks would mean the
+    // declaration and the code disagree, which is the failure mode a roster alone cannot see.
+    for (const { tool, why } of CONFIRM_EXEMPT) {
+      expect(why.length, `${tool}'s exemption reason is too short to be a reason`).toBeGreaterThan(120);
+      const { run, calls } = driveConfirmCheck(P.OK, tool, { anything: true }, noApi);
+      await expect(run, `${tool} is declared confirm-exempt but the gate did not pass it through`).resolves.toBeUndefined();
+      expect(calls, `${tool} is declared exempt but touched the api inside the confirm check`).toHaveLength(0);
+    }
+  });
+});
