@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 829 | §1382 | **§1383** | **I READ A TRUNCATED LINE AND REASONED ABOUT WHAT I HAD NOT SEEN.** §1382 claimed the coverage tool prints the drift count *without* the rows and built a paragraph on it. **False** — the message ends `${res.drift.join(", ")}` and prints all eleven ids; I read it through `cut -c1-150`. Worse, the tool's author had already triaged the deferral-marker class (the comment names REQ-184 and REQ-276 and records the message was reworded because *"following the old advice would mark unbuilt scope as built"*), and I presented that same class as a discovery. **What survives:** REQ-170 and REQ-254 really are implemented while tagged deferred — reached from source and tests, not from the tool's output. **Evidence gathered independently of a claim survives the claim being wrong.** **How it was caught:** not by re-reading — by sweeping for OTHER instances, getting **zero**, and positive-controlling the zero. The control failed because I had written a **200-character window**, three sections after building the gate that bans them. So a fifth fixed window found the mistake a fifth fixed window caused. **Probes are where this error now lives and are unreviewed by construction**, so the discipline cannot be a gate: a probe returning zero must first be shown to find something. **Second instance of a pattern worth naming:** §1369 and §1382 both mis-attributed a failing to SOMEONE ELSE'S instrument from partial output, generously to my own finding |
 | 828 | §1381 | **§1382** | **AN ADVISORY NOBODY HAD READ, AND TWO REQs THE REGISTER SAYS ARE NOT BUILT.** Every merge run prints *"11 status-drift row(s) … Per row, VERIFY…"* — advisory, gate PASSes, and **the tool prints the count without the rows**, so verifying per row is not something its output enables. A real signal with no actionable detail behind a passing gate is how an advisory becomes wallpaper. Measured independently against the COMMITTED register (the working copy is being edited — a race): of **89** deferred rows, **7** are cited in shipped source; **5 are correct deferral notes** (*"DEFERRAL … nothing writes a ratecon document yet"*, *"is V2-E; this is the conservative V1 floor"*, one warning AGAINST implementing without a row). One is **my own false positive** — `perf.spec.ts`, because my filter excluded `.test.` and not `.spec.`. **Two are the register lagging the source: REQ-254 (`vNEXT`) device revocation is ENFORCED** (a `revoked_ts IS NULL` clause in the sequencer, mirrored in `deviceOwnedBy`, 4 test files) **and REQ-170 (`WP06-DISCOVERED`) the Biller's evidence precondition is LIVE** (`evidence_missing` is a real hold reason). **A register that under-states a shipped SECURITY control invites implementing it twice.** Not fixed — `genesis/09` is register-amendment territory; filed with the evidence the advisory could not supply |
 | **827** | §1380 | **§1381** | **STOPPING POINT — FOUR ROSTERS STANDING, AND THE CLASS AT ZERO.** Measured at `6aa3dc2` after nine phases touching merge-set gates and a constitutional suite: **21 PASS · 0 FAIL · 5 BLOCKED**, **4,771 tests** (was 4,761), zero failing suites, same owner-held five. **One finding touched a constitutional guarantee** — §1375's isolation-suite double, keyed on the bare event id where production keys on (tenant\|stream), so it could swallow a cross-tenant append in the file whose whole purpose is REQ-025. **No leak existed; a detector for one was blind** — the same exposure-vs-violation distinction §1369 drew, and the reason these findings matter: a blind detector becomes a false clean, the only defect that stops anyone looking. **Four derived rosters now stand** (`dark-stub-roster`, `git-glob-toplevel`, `collapsing-doubles`, `fixed-window-verdicts`), each replacing a rule that had failed by attention — and **three of the four found something on their first run that my hand-scan had missed.** Seven short hand-counts this session, every one from encoding a surface form instead of the behaviour; the answer was gates, not care. Phase gate: 5 triggers, two of them new |
 | 826 | §1379 | **§1380** | **THE LAST SILENT WINDOW CLOSED — AND THREE MIS-AIMED MUTATIONS BEFORE THE REAL ONE.** §1379 named `api-conventions`' 16-line window as the entire remaining population of the silent-direction hazard. §1339 had measured its margin (two fetch sites 20 lines apart against a 16-line reach) and deferred the fix; **a 4-line margin is not a guarantee, it is a coincidence with a good track record.** Closed by delimiting the call at its own closing parenthesis — both directions become IMPOSSIBLE rather than measured. **Three mutations returned GREEN before the real one**, each of which would have read as "the gate is blind": one hit `transport.test.ts` (the scan excludes `.test.`), one hit the first `redirect:` in the file, which is in a COMMENT at line 11. The fourth deleted the CODE policy at :52 and RED the correct site — **and the neighbour's policy at :72 did NOT satisfy it**, measuring over-reach closed. **The lesson is narrower than §1363's "check the mutation applied":** all three no-ops DID apply, a file changed each time; they failed because what they changed was not a SUBJECT of the gate. Ask whether the edit is inside the corpus AND load-bearing there. The roster's positive control had to MOVE because its subject was fixed — entries leave by being delimited, never excused. **Zero fixed-window verdicts with a silent direction now remain in the tooling** |
@@ -80631,9 +80632,14 @@ Every merge run since this block began has printed one line I kept deferring as 
     coverage: 11 status-drift row(s) — a source citation exists while the register tag reads *-DISCOVERED/vNEXT.
     Per row, VERIFY whether the citation is an implementation…
 
-It is advisory, the gate PASSes, and **the tool prints the count without the rows**, so verifying "per row" is
+~~It is advisory, the gate PASSes, and **the tool prints the count without the rows**, so verifying "per row" is
 not something the output enables. That combination — a real signal, no actionable detail, a passing gate — is
-how an advisory becomes wallpaper. `tools/traceability/coverage.ts` is mid-edit by the concurrent author, so I
+how an advisory becomes wallpaper.~~
+**CORRECTED BY §1383 — THIS IS FALSE, AND UNFAIR TO THE TOOL.** The message ends `${res.drift.join(", ")}` and
+prints all eleven ids. I read it through `cut -c1-150`, which truncated them, and then reasoned about what I
+had not seen. The author had also ALREADY triaged the deferral-marker class — the comment above that line names
+REQ-184 and REQ-276 and records that the message was deliberately reworded because *"following the old advice
+would mark unbuilt scope as built."* The findings below stand on their own evidence; this framing does not. `tools/traceability/coverage.ts` is mid-edit by the concurrent author, so I
 neither touched it nor re-derived its logic; the repo-owned half is measurable independently.
 
 **Measured against the COMMITTED register** (the working copy is being edited, so a working-tree read would be
@@ -80668,3 +80674,46 @@ and not `.spec.`. Two file-naming conventions, one filter — the same class as 
 caught this time by reading the row rather than by a gate.
 
 Verification: no source changed; the finding is a GO-LIVE row plus this section.
+
+## §1383 — PHASE GATE: I read a truncated line and reasoned about what I had not seen
+
+**CORRECTION TO §1382, one section old.** It claimed the coverage tool *"prints the count without the rows, so
+verifying per row is not something the output enables"*, and built a paragraph on that about how an advisory
+becomes wallpaper. **The message ends `${res.drift.join(", ")}` and prints all eleven ids.** I had read it
+through `cut -c1-150`, which cut them off at character 150, and then described the absence.
+
+Worse, the tool's author had already done the triage I presented as new. The comment directly above that line
+names REQ-184 and REQ-276 as rows whose every citation is a fail-closed deferral marker, and records that the
+message was deliberately reworded because *"following the old advice would mark unbuilt scope as built."* My
+section reported that same class of false positive as a discovery.
+
+**What survives, and why it survives.** REQ-170 and REQ-254 are implemented while their register rows read
+`WP06-DISCOVERED` and `vNEXT`. That finding was reached by reading the source and its tests — the
+`revoked_ts IS NULL` clause, `deviceOwnedBy`, `evidence_missing` as a live hold reason — not by reading the
+tool's output. **Evidence gathered independently of a claim survives the claim being wrong**, which is the only
+reason this correction costs a paragraph instead of a section.
+
+**HOW IT WAS CAUGHT, and this is the part worth keeping.** Not by re-reading. I went looking for OTHER instances
+of the "count without rows" shape, my scan returned **zero**, and zero is the answer that requires a positive
+control ([[a-false-clean-invites-no-follow-up]]). Pointing the detector at the known instance failed — **and it
+failed because I had written a 200-character window**, three sections after building a gate that bans exactly
+that and one section after driving the class to zero. Removing the window found the instance, and the instance
+turned out to enumerate, which is what exposed the original error.
+
+**So a fifth fixed window found the mistake that a fifth fixed window caused.** The gate I built covers
+committed `tools/` source and detects `slice(X, X + N)`; an ad-hoc `{0,200}` in a throwaway probe is outside
+both its scope and its pattern. **Probes are where this error now lives, and probes are unreviewed by
+construction** — so the discipline that catches it cannot be a gate. It is the one that worked here: **a probe
+that returns zero must first be shown to find something.**
+
+**The pattern I should name, because it is the second instance.** §1369 mis-attributed blindness to three gates
+I had not run carefully; §1382 mis-attributed an unactionable message to a tool I had not read in full. Both
+were claims about SOMEONE ELSE'S instrument, made from partial output, and both were generous to my own finding
+at that instrument's expense. When the subject is another author's tool, the bar is reading it — not sampling it.
+
+Four ids in the tool's list — REQ-276, REQ-278, REQ-284, REQ-285 — my own scan never examined, because it read
+shipped source only. They are cited somewhere else (docs or tests). Recorded as unexamined rather than implied
+clean.
+
+Verification: no source changed; §1382 and its GO-LIVE row are amended in place so the wrong sentence stays
+visible beside its correction.
