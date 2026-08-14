@@ -169,6 +169,50 @@ describe("SparkMeter DO — checkAndReserve (atomic, idempotency-keyed, UTC-mont
     // SAME tenant's meter returns its own advanced tally, not the sibling's.
     expect((await a.checkAndReserve({ period: PERIOD, allotment: 1, actionId: "a-1" })).count).toBe(1); // idempotent replay of A's slot
   });
+
+  // §1463 (REQ-025/122/125) — THE CASE ABOVE CANNOT FAIL WHEN PRODUCTION DROPS THE TENANT.
+  //
+  // It resolves both meters through this file's own `meter()` helper, which re-implements
+  // `env.SPARK_METER.idFromName(tenant)`. So it proves that Durable Objects isolate by name — a CLOUDFLARE
+  // property, true whatever this repo does — and never exercises `sparkGateFor`, the composition root that
+  // actually chooses the name. MEASURED: replacing the production `idFromName(tenant)` with a constant left
+  // the entire worker green at 144/144, including the case titled "TENANT ISOLATION (REQ-025)".
+  //
+  // The contrast that makes this a defect rather than a style note: the MCP CapsMeter, the same DO-per-actor
+  // pattern one worker over, reds NINE tests under the identical mutation — because its cases drive the real
+  // `caps.ts` path. Adjacent siblings, opposite coverage.
+  //
+  // The SparkMeter is the only thing bounding a Spark tenant's monthly AI-credit spend, so a meter shared
+  // across tenants means the first tenant to exhaust the allotment throttles every other Spark tenant, and
+  // the metering that bills them is wrong in the same stroke.
+  it("§1463: sparkGateFor names the meter BY TENANT — two Spark tenants never share a tally (the PRODUCTION path)", async () => {
+    await seedControlTenant(env.CONTROL_DB, {
+      id: "t-gate-iso-a",
+      slug: "gate-iso-a",
+      plan: "spark",
+      policy: JSON.stringify({ spark_ai_allotment: 1 }),
+    });
+    await seedControlTenant(env.CONTROL_DB, {
+      id: "t-gate-iso-b",
+      slug: "gate-iso-b",
+      plan: "spark",
+      policy: JSON.stringify({ spark_ai_allotment: 1 }),
+    });
+    const now = (): number => Date.UTC(2026, 6, 17);
+    const gateA = await sparkGateFor(env, "gate-iso-a", now);
+    const gateB = await sparkGateFor(env, "gate-iso-b", now);
+
+    // A spends its single slot, then is refused — establishing that A's meter is genuinely at its cap.
+    expect((await gateA.reserve("iso-act-1")).ok).toBe(true);
+    expect((await gateA.reserve("iso-act-2")).ok, "tenant A's own cap did not bind — the positive control failed, so the assertion below proves nothing").toBe(false);
+
+    // B must still hold its OWN full allotment. Distinct actionIds throughout, so a pass here can never come
+    // from the DO's idempotency replay rather than from genuine separation.
+    expect(
+      (await gateB.reserve("iso-act-3")).ok,
+      "a second Spark tenant is refused because the FIRST tenant exhausted the allotment — sparkGateFor is not naming the SparkMeter DO by tenant, so every Spark tenant shares one counter (REQ-025 cross-tenant state; REQ-122/125 mis-metering)",
+    ).toBe(true);
+  });
 });
 
 // ─── B. resolveSparkPlan — the plan-flag gate off tenants.plan (control plane) ───────────────────────

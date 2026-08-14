@@ -684,6 +684,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 906 | §1459 | **§1460** | **A SAME-TICK COMPARISON CANNOT SEE A CLOCK.** Applied §1459's discriminator to the queue retry path. The `pod.signed` branch claims *"Idempotent … so a redelivery that re-runs both is safe"* — and the send chain checks out (stable seed → `idempotency-key` header → RecordingSender dedupe, all pinned). **The defect is in a test:** *"a redelivered POD re-derives the SAME invoice event id"* calls the deriver twice in the SAME MILLISECOND, so a clock in the seed leaves it green — **142/142, the whole owning worker**. Nearly published "the repo is blind"; it is not (workers/api reds 6 — the guarantee is DELEGATED and the header says so). The false claim is the header's *"these close exactly that gap"*. Fixed both ways: a clock/random-stub case in the owning suite (RED 1 and 2) and `tools/checks/id-seed-purity.test.ts` over all 24 literal seeds in 337 files (RED on a planted violation), with mirror-sweep's deliberate re-raise declared. Also took back my own unmeasured "34 invisible seeds" → a reach gap of ~3. |
 | 907 | §1460 | **§1461** | **THE BOARD RE-MEASURED, AND THE SECOND POPULATION THE FIRST GATE COULD NOT SEE.** §1460's gate named re-measurement as the next action, so it was done: **21 PASS · 0 FAIL · 5 BLOCKED at `af89dfd`**, 26 gates, identical to `b451f43` — and the dirty `genesis/09` produced NO FAIL, so the historical "2 FAIL" signature was specific to that row, not to a dirty tree. Then the sweep §1460 implied: 20 candidate sites across 407 test files, **exactly one genuine instance — the one already fixed**, which BOUNDS the finding. But the sweep surfaced a second POPULATION the gate cannot see: 18 unhashed template-literal id builders (`dunningDraftId` → `msg:dunning:${invoiceId}:${bucket}`), all clean. Gate extended as a tripwire; RED on a planted `Date.now()` and a planted `${now}`, with a NEGATIVE control pinning the three period-keyed ids (`${day}`/`${isoWeekStr}`/`${period}`) as correctly unflagged. **A gate's population is decided by the mechanism you searched for, never by the law you meant to enforce.** |
 | 908 | §1461 | **§1462** | **THE COMPLETENESS DERIVATION MATCHED STORAGE CONSUMERS AND MISSED THE PROVIDER.** Put §1461's question to REQ-025, the build-failure law. `tenant-scope.test.ts` already had a completeness floor (§702) — and it required the BODY to touch storage, so `tenantDb(env, tenantSlug): D1Database`, which returns a handle and touches nothing, was never derived. Its sibling `resolveTenantDb` passed INCIDENTALLY (its body happens to match). One live call site: `pub/quote.ts`, the UNAUTHENTICATED guest-quote route — safe (tenant from the CF-routed hostname, not the forgeable Host header) but enforced by nothing. Fixed by deriving provider-ness from the RETURN TYPE; the gate then named its own gap. Three mutations RED where previously invisible. **Also qualified §826:** laundering is caught *unless the local REUSES an allowlisted name* — `const tenant = c.req.query("t") ?? …` stayed GREEN. New direct-binding rule closes it (population 3, zero FPs). **When a gate classifies by what a function DOES, check the one that does nothing and merely hands out the capability.** |
+| 909 | §1462 | **§1463** | **A TEST THAT RE-IMPLEMENTS THE PRODUCTION RESOLUTION TESTS THE PLATFORM, NOT THE PRODUCT.** Aggregate re-confirmed first (**21 PASS · 0 FAIL · 5 BLOCKED at `dba4fac`**). Then §1462's form applied to DO naming, where the name IS the namespace. All 11 `idFromName` sites are partitioned; what ENFORCES it differs per DO. `SHIPMENT_SEQ` self-verifies (`expected.equals(this.ctx.id)`) — measured, not read: de-tenanting a route reds **124**. The two meters cannot self-verify (no tenant in the request), so the call site is the whole isolation — and `CAPS_METER` reds 9 while **`SPARK_METER` red NOTHING (144/144)**. Cause: the case titled *"TENANT ISOLATION (REQ-025)"* resolves the DO via the test file's OWN helper re-implementing `idFromName(tenant)`, so it proves a CLOUDFLARE property and never calls `sparkGateFor`. Cost: every Spark tenant shares one AI-credit counter (REQ-122/125 mis-metering). Fixed through the composition root; RED on both mutations. **When a test builds its own handle, ask what would break it — if the answer is "a bug in Cloudflare", it is not testing this repo.** |
 | 856 | §1409 | **§1410** | **SWEEPING MY OWN SECTIONS FOR §1409's ERROR, AND A DETECTOR THAT COULD NOT HAVE FOUND IT.** §1404's precedent: a class like this gets ONE measurement, not a gate, since a correction necessarily quotes what it corrects. **The first sweep returned ZERO and was worthless** — it extracted superseded text as `~~struck~~` only, but the very case §1409 found is marked the other way, as *"a 16-step chain …"* **until audit §1029**. **My detector encoded one of the repo's TWO conventions, so it could never have found the known positive.** Twelfth instance of the session's constant, caught because a zero is the answer this session has learned never to accept. **A second false signal inside the control:** asking *"is it inside `~~…~~`?"* with `~~[^~]*16-step` returned True — because an unrelated `~~` sits earlier and `[^~]*` spanned the gap. **A regex answering "is X inside a delimiter" by searching for the delimiter anywhere before X will say yes to the whole file.** Re-run over both conventions: **109 superseded passages, zero quoted without a marker** — and that zero is worth something, because the corrected detector demonstrably flags a reconstruction of §1408's sentence. **§1409's error was singular, not a habit** |
 | **855** | §1408 | **§1409** | **I QUOTED STRUCK TEXT AS CURRENT, AND THE REPO HAD SOLVED IT 380 SECTIONS EARLIER.** §1408 cited CLAUDE.md's account of `verify:dev` as *"a 16-step chain … reaches 4 of 16"*. Measured: **18 steps**. **But the drift is my quotation's, not the law's** — CLAUDE.md's current text says that reading held *"until audit §1029"*, was *"invalidated hours later by `7b61624`"*, and that **the total is stated no longer, only the position that matters: step 4, and nothing after it**. I quoted the struck half of a correction as the claim. **Eleventh measurement error, and the first where the artifact had already anticipated the failure I was about to report.** **§1029's move is exactly §1402's, reached 373 sections apart and independently:** faced with a number that rots, REMOVE the number and keep the invariant. A convention arrived at twice from opposite ends of the record is the closest this audit has to a law about documentation. Substantively: `verify:dev` is still an unaggregated `&&` chain at 18 steps, and that is **not** a defect — CLAUDE.md documents it, names `verify:merge` as the real verdict, and `wp-exit-audit.test.ts:19` records that a naive matcher yields *"4 of 16"* and *"reads as a serious constitutional finding and is an artifact"*. **Tenth clean negative** |
 | 854 | §1407 | **§1408** | **VERIFYING MY OWN DELIVERABLE IS WIRED, BY THE STANDARD §1304 SET.** Five gates were built this session and each reported as working; §1304's standard is **verified WIRED before the board is read**, because a gate that runs when I invoke it and not when CI does is decoration with a green tick. **First measurement said ZERO** — searching the merge log for the five names returns 0 mentions each, which reads as "they never ran". It is the §1362 reporter difference: the tools suite runs under vitest v4 (summary only) while worker suites at v3.2.7 print per-file. The same run reports **125 files passed**, 120 + 5. **Tenth measurement error avoided by not believing a zero.** Measured properly three ways: `vitest list` shows **21 cases** across the five; `run-gate.ts:46` wires `unit-tests` to the `test` script; and `test` is `test:tools; t=$?; … ; exit $(( t \|\| p ))`. **Proved end-to-end:** breaking `law-enforcers` makes `pnpm test:tools` exit 1, which propagates. Also worth noting: that script AGGREGATES rather than `&&`-chains — the defect CLAUDE.md records for `verify:dev`, which reaches 4 of 16 steps |
@@ -84444,3 +84445,66 @@ rule, one allowlist comment amended to cover a third provenance it silently acqu
 clean. Board last MEASURED at `af89dfd` (§1461, 1 commit ago): **21 PASS · 0 FAIL · 5 BLOCKED**; this phase
 touches a merge gate's own logic, so the next full run should confirm `tenant-scope` still passes inside the
 aggregate. Carry-forward unchanged.
+
+## §1463 — PHASE GATE: a test that re-implements the production resolution tests the platform, not the product (REQ-118/REQ-025/122)
+
+§1462's gate asked for the aggregate to confirm a merge gate whose own logic had changed. **Confirmed: 21 PASS ·
+0 FAIL · 5 BLOCKED at `dba4fac`**, 26 gates, `unit-tests` and `invariants` both PASS — `tenant-scope` passes
+inside the aggregate, not merely in isolation.
+
+Then §1462's form again — *check the thing that hands out the capability* — applied to Durable Object naming.
+A DO name IS a namespace: two callers that name the same DO share one instance's storage, so the tenant
+component of `idFromName(...)` is the entire isolation boundary. Enumerated all 11 call sites in shipped source:
+every one is partitioned (`${tenant}|${streamId}`, `idFromName(tenant)`, or MCP's per-actor `idFromName(pairingId)`).
+Clean by inspection. The question is what ENFORCES it, and the answer turned out to differ per DO.
+
+| Durable Object | self-verifies its own name? | driven through the production path in tests? | de-tenanting mutation |
+|---|---|---|---|
+| `SHIPMENT_SEQ` | **yes** — `expected.equals(this.ctx.id)` (`sequencer.ts:247@expected`) | yes | **124 red** |
+| `CAPS_METER` (mcp) | no | yes | **9 red** |
+| `SPARK_METER` (agents) | no | **no** | **0 red — 144/144 green** |
+
+The sequencer's guard was read, then MEASURED rather than trusted: dropping `${session.tenant}|` from one
+route's DO name reds **124 tests**, because the DO re-derives its expected id from the request's declared tenant
+and refuses a mismatch. Defence in depth, and it works. The two meters cannot do that — their requests carry no
+tenant at all, so the DO has no second source of truth and **the call site is the whole isolation**.
+
+**And one of the two was pinned by nothing.** Replacing `env.SPARK_METER.idFromName(tenant)` with a constant
+left the entire agents worker green — including the case titled *"TENANT ISOLATION (REQ-025): one tenant's
+reserves NEVER touch another tenant's meter — distinct idFromName"*.
+
+**Why that case cannot fail.** It resolves both meters through the test file's OWN helper:
+
+```ts
+function meter(tenant: string): SparkMeterStub {
+  return env.SPARK_METER.get(env.SPARK_METER.idFromName(tenant)) as unknown as SparkMeterStub;
+}
+```
+
+which re-implements the production line. So it proves that **Durable Objects isolate by name** — a Cloudflare
+property, true no matter what this repo does — and never exercises `sparkGateFor`, the composition root that
+actually chooses the name. Its sibling one worker over reds nine tests under the identical mutation precisely
+because those cases drive the real `caps.ts`.
+
+What it costs: the SparkMeter is the only thing bounding a Spark tenant's monthly AI-credit spend (REQ-122/125).
+One shared counter means the first tenant to exhaust the allotment throttles every other Spark tenant, and the
+metering that bills them is wrong in the same stroke — silently, since a shared tally looks exactly like a busy
+tenant.
+
+**Fixed** with a case that drives `sparkGateFor` itself: two Spark tenants, one slot each, A exhausts its
+allotment (asserted, as its own positive control) and B must still hold its own. Distinct `actionId`s
+throughout, so a pass can never come from the DO's idempotency replay instead of genuine separation. RED under
+both mutations — a constant name and a period-keyed name — where both were previously invisible.
+
+**The general form.** A test-local helper that re-implements a line of shipped code converts the test from a
+statement about the PRODUCT into a statement about the PLATFORM. The tell is syntactic and worth looking for:
+a helper in a test file whose body is a copy of a production expression. Here the copy was one line, the two
+copies never diverged, and the test still could not fail — because the property under test was never the
+platform's behaviour, it was whether the product *calls* the platform correctly. **When a test builds its own
+handle, ask what would break it: if the answer is "a bug in Cloudflare", it is not testing this repo.**
+
+**Phase gate.** Source changed: one test case added to `spark-meter.test.ts`. **No product code** — `spark-caps.ts`,
+`caps.ts`, `events.ts` all byte-identical after five mutations across three workers. `workers/agents` 24 files /
+**145** tests (was 144), lint clean. Board **MEASURED at `dba4fac` (§1463's own run): 21 PASS · 0 FAIL · 5
+BLOCKED** — repo-owned failure set empty. The three-DO class above is now complete and every member is
+defended, so this thread closes rather than carrying. Carry-forward unchanged; one watch item (§1443).
