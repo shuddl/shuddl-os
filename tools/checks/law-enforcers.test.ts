@@ -42,7 +42,22 @@ const LAW_ENFORCERS: readonly Enforcer[] = [
   },
   { rule: 2, what: "Events are append-only (I3/I7)", enforcer: "check:invariants", kind: "script", inMergeRoster: true },
   { rule: 3, what: "Gates are server-side (REQ-030)", enforcer: "check:chokepoint", kind: "script", inMergeRoster: true },
-  { rule: 4, what: "No price on air (REQ-004)", enforcer: "check:rater-purity", kind: "script", inMergeRoster: true },
+  {
+    rule: 4,
+    what: "No price on air (REQ-004)",
+    enforcer: "check:rater-purity",
+    also: "packages/rater/test/price.test.ts",
+    kind: "script",
+    inMergeRoster: true,
+    note:
+      "§1422 — rule 4 bundles TWO clauses with different enforcers, the same shape §1421 found in rule 5. " +
+      "The SCRIPT holds REQ-004's purity half (class is an isolated edge adapter, never the engine " +
+      "foundation; no LLM in the rater) and stays the merge-roster entry. The STATED clause — missing " +
+      "weight/dims ⇒ UNKNOWN, no sell — is held by the test in `also`. Measured: disabling the UNKNOWN " +
+      "short-circuit in `priceShipment` so the engine prices on air leaves `check:rater-purity` at EXIT 0 " +
+      "while `price.test.ts` reds five, including \"a non-number weight ⇒ UNKNOWN/missing_physics — never a " +
+      "price, never a throw\".",
+  },
   {
     rule: 5,
     what: "Interline floors compare the executing share, never gross (REQ-040)",
@@ -79,10 +94,18 @@ const LAW_ENFORCERS: readonly Enforcer[] = [
   {
     rule: 10,
     what: "No silent drops in migration",
-    enforcer: "packages/adapters/src/legacy-mirror.ts",
+    enforcer: "packages/adapters/test/migrator.test.ts",
+    also: "packages/adapters/src/legacy-mirror.ts",
     kind: "file",
     inMergeRoster: false,
-    note: "pinned behaviour in the migrator + legacy-mirror suites; every unmapped column raises a gap row.",
+    note:
+      "§1422 — CORRECTED IN KIND. This named `legacy-mirror.ts`, which is the IMPLEMENTATION: the row " +
+      "pointed at the thing being enforced rather than at the evidence it is. Measured by deleting the " +
+      "unmapped-column `gapRows.push` in `migrator.ts` so a legacy column silently disappears: exactly ONE " +
+      "test reds — \"THE LAW — a rate sheet flags EVERY non-rate column + the unconsumed rows (no silent " +
+      "drop)\" in `migrator.test.ts`, now the enforcer. `legacy-mirror.ts` is kept in `also` because it " +
+      "carries the same law for the continuous feed. ONE test defends a constitutional rule; that is a " +
+      "defence, and it is thin enough to say out loud.",
   },
 ];
 
@@ -115,13 +138,13 @@ describe("§1394 REQ-118: every non-negotiable rule has a live, named enforcer",
   });
 
   it("every file-kind enforcer still exists on disk", () => {
-    const missing = LAW_ENFORCERS.flatMap((e) =>
-      e.kind === "file"
-        ? [e.enforcer, ...(e.also === undefined ? [] : [e.also])]
-            .filter((f) => !existsSync(`${root}/${f}`))
-            .map((f) => `rule ${e.rule} → ${f}`)
-        : [],
-    );
+    // §1422 — `also` is ALWAYS a file path, whatever the row's kind, so it is checked for every row. It was
+    // checked only on `kind: "file"` rows for one commit, which left rule 4's second enforcer — a script row
+    // carrying a test file — declared and unverified. An unchecked declaration is a comment.
+    const missing = LAW_ENFORCERS.flatMap((e) => [
+      ...(e.kind === "file" ? [e.enforcer] : []),
+      ...(e.also === undefined ? [] : [e.also]),
+    ].filter((f) => !existsSync(`${root}/${f}`)).map((f) => `rule ${e.rule} → ${f}`));
     expect(missing, `a rule's pinned enforcer file is gone:\n  ${missing.join("\n  ")}`).toEqual([]);
   });
 
