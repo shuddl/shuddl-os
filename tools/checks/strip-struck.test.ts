@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { repoRoot } from "./repo-root.js";
 import { stripStruck } from "./strip-struck.js";
@@ -88,6 +89,38 @@ describe("§1411 REQ-118: the strikethrough mask is line-local and offset-preser
           `reads this record now certifies a different subset than it did a commit ago, silently.`,
       ).toBe(before);
     }
+  });
+
+  it("no file re-authors the mask (§1413 — the sweep that missed two copies searched for a SHAPE)", () => {
+    // §1411 rewired five copies and reported the class closed. It was not: `ledger-status-vocabulary` held
+    // two more, found only at §1413 and only because the enumeration finally went by BEHAVIOUR ("replaces a
+    // `~~` pattern") instead of by the shape §1411 happened to have seen (`[\s\S]`). That is my own
+    // sweep-by-behaviour rule, broken in the phase that was about duplicated matchers.
+    //
+    // MASKS only. A regex that READS a struck span is legitimate and stays legal — `checklist-figures`
+    // matches `~~**41**~~ **43**` on purpose, to compare a corrected figure against the live one. The
+    // distinction is `.replace(`, and it is the reason this roster is not simply "any regex containing ~~".
+    const files = execSync("git ls-files packages workers tools apps", { cwd: root, encoding: "utf8" })
+      .split("\n")
+      .filter((f) => f.endsWith(".ts") || f.endsWith(".tsx"))
+      .filter((f) => f !== "tools/checks/strip-struck.ts" && f !== "tools/checks/strip-struck.test.ts");
+    const offenders = files.filter((f) =>
+      readFileSync(`${root}/${f}`, "utf8")
+        .split("\n")
+        .some((l) => !l.trim().startsWith("//") && /\.replace\(\s*\/[^\n]*~~/.test(l)),
+    );
+    expect(
+      offenders,
+      "a file masks struck spans with its own regex instead of `stripStruck`. Every private copy has been " +
+        "wrong in a different way: the global pair hid 62% of a record, line-wise dropped wrapped strikes, " +
+        "and `[^~]*` mis-paired around this repo's `~24 guards` idiom. Import the shared one:\n  " +
+        offenders.join("\n  "),
+    ).toEqual([]);
+  });
+
+  it("the roster's detector would notice one (positive control)", () => {
+    expect(/\.replace\(\s*\/[^\n]*~~/.test('const x = s.replace(/~~.*?~~/g, "");')).toBe(true);
+    expect(/\.replace\(\s*\/[^\n]*~~/.test('const m = /~~\\*\\*(\\d+)\\*\\*~~/.exec(s);')).toBe(false);
   });
 
   it("nor on WHERE that prose is inserted", () => {

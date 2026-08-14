@@ -39,11 +39,25 @@
 //     how the line-wise version was caught in one run.
 //   · OVER-mask — live text is hidden, so every claim inside it is certified without being read. SILENT,
 //     and it is the direction the old regex failed in, at 62%. The residual bias is toward under-masking:
-//     `[^~]` stops at the first stray tilde, and a paragraph break stops everything.
+//     a stray tilde stops the span, and a paragraph break stops everything.
+//
+// THE `~24 guards` CASE, and the second thing this function got wrong. The body was `[^~]*` for two
+// commits — "anything but a tilde" — which is safe against runaway but wrong about this repo's prose,
+// because `~` is also how it writes APPROXIMATELY: `~24 guards`, `~3.2.4`, `HEAD~1`. A struck span
+// containing one simply failed to match at its real opener, and the engine then paired that span's
+// CLOSING `~~` with a later marker — so the mask landed on the wrong region entirely. Measured on
+// GO-LIVE-CHECKLIST.md: `[^~]*` hid two citations that are not struck at all, and left two genuinely
+// superseded claims visible. `~(?=\d)` admits exactly the approximation idiom and still stops at any
+// other stray tilde: 12,908 chars masked against 13,462, and 154 citations visible against 152.
+//
+// Found by DIFFING this function against the copy it replaced (`ledger-status-vocabulary`'s `~~.*?~~`,
+// which §1411's sweep missed because it searched for the SHAPE `[\s\S]` rather than the BEHAVIOUR
+// "masks `~~`"). Both suites were green throughout. When one implementation replaces N, compare it to
+// each on real input — the tests only prove the survivors agree with the survivor.
 
 /** Blank out one paragraph's `~~superseded~~` spans, preserving every character position and newline. */
 const maskParagraph = (block: string): string =>
-  block.replace(/~~[^~]*~~/g, (m) => m.replace(/[^\n]/g, " "));
+  block.replace(/~~(?:[^~]|~(?=\d))*?~~/g, (m) => m.replace(/[^\n]/g, " "));
 
 /**
  * Mask `~~superseded~~` spans. A span may cross a soft line break but never a blank line, so a stray

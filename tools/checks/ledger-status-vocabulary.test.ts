@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { repoRoot } from "./repo-root.js";
+import { stripStruck } from "./strip-struck.js";
 
 // §945 — "HOW MUCH REPO-OWNED DEBT IS OPEN?" MUST BE ONE CORRECT COMMAND, NOT A FIFTH AD-HOC PARSER.
 //
@@ -54,7 +55,7 @@ export function ledgerRows(md: string): { line: number; item: string; status: st
     if (c.length !== FIELDS) continue; // a nested sub-table with its own shape
     if (c[0] === "Item") continue; // the header
     // Struck SPANS are corrections, not live status — remove the content, not just the markers.
-    out.push({ line: i + 1, item: c[0] as string, status: (c[5] as string).replace(/~~.*?~~/g, "").trim() });
+    out.push({ line: i + 1, item: c[0] as string, status: stripStruck(c[5] as string).replace(/\s+/g, " ").trim() });
   }
   return out;
 }
@@ -115,7 +116,7 @@ describe("§945: the repo-owned debt ledger is machine-countable", () => {
       // Skip the header by its own 6th cell rather than by matching the first cell's prose, which is
       // long, em-dashed, and was already wrong once here.
       if (c.length !== FIELDS || c[5] === "Status") continue;
-      rows.push((c[5] as string).replace(/~~.*?~~/g, "").trim());
+      rows.push(stripStruck(c[5] as string).replace(/\s+/g, " ").trim());
     }
     expect(rows.length, "no external-hold rows parsed — the scan is broken, not the section").toBeGreaterThanOrEqual(10);
 

@@ -634,6 +634,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
 | 857 | §1410 | **§1411** | **FIVE GATES SHARED ONE STRIKETHROUGH REGEX AND IT HID 62% OF THE RECORD.** Written as a clean negative; the gate refused it. `/~~[\s\S]*?~~/g` crosses newlines, and the records *discuss* the convention — **55 unpaired `~~` in prose**, each re-pairing every marker after it. Measured: the global pair masked **3,905,463 chars, 66% of the audit** (real strikethrough: 2,453), leaving the citation gates reading **123 of 308** tracked citations — **191 (62%) invisible to everything, including the merge gate `check:citations`**, two of them already dead. **It surfaced by accident I caused:** §1411's own index row added five markers, flipped the parity above §431, and a weeks-green citation went red — **the gate's scope depended on how often the document mentioned its own notation.** Fixed by one shared length-preserving mask (`strip-struck.ts`, no copy survives) + an 8-case gate whose last three cases are the PROPERTY (an unpaired marker changes nothing outside its own paragraph) plus a two-sided corpus floor. **The first version was LINE-WISE on a mechanism I stated and got wrong** (*"GFM cannot span a line break"* — it can cross soft breaks; both records strike wrapped text) and `wrangler-absence-claims` reds within a minute; the rule that holds is PARAGRAPH-bounded. **Mutation-proved both ways: global pair 4/8 RED, line-wise REDs two gates.** 3 dead citations repointed with symbol anchors. §1399/§1404/§1410's verdicts survive but were measured over a corpus 62% smaller than they believed. **Fourth consecutive instrument defect** |
 | 858 | §1411 | **§1412** | **THE SAME DUPLICATION IN A DIFFERENT NOTATION.** §1411's real question was not *is that regex used elsewhere* but *what else is a matcher N gates each wrote for themselves*. First answer: **nine hand-rolled `/\/\*[\s\S]*?\*\//g` comment strippers**, carrying §1411's flaw exactly — `/*` inside a STRING opens a swallow to the next `*/`, and **56 files here contain such a string** (largest: 7,783 chars). A correct state machine already existed (`stripComments`, used by law #2's enforcer, never at risk). **Measured: all nine corpora CLEAN — latent, not live**, and recorded at that volume on purpose. **Two wrong measurements on the way, both mine, both inflating:** *"47 files, 37,229 chars blind"* and a false LIVE on `run.ts` — each time I measured **the file containing the call instead of the ARGUMENT to the call**. Fixed by extracting `strip-comments.ts` (re-exported by source-corpus, all nine sites rewired, each also shedding a second hand-written line-comment regex) + a 6-case gate with a **derived, currently EMPTY roster** and a positive control, the one mention excluded BY PATH not by phrase. Matters because the failure is silent in the worst direction: a swallow REMOVES text, so `claimed-tenants`' forbidden reference would vanish and the gate would pass |
+| 859 | §1412 | **§1413** | **§1411 CLOSED THE CLASS AFTER FIXING FIVE OF SEVEN, AND THE SHARED MASK WAS WRONG.** `ledger-status-vocabulary` held two more `~~` masks; §1411's sweep missed them by searching the SHAPE (`[\s\S]`) instead of the BEHAVIOUR (*replaces a `~~` pattern*) — **my own sweep-by-behaviour rule, broken inside the phase about duplicated matchers.** Worse: diffing my mask against the copy it replaced, over 155 real ledger cells, found **my** version wrong. `[^~]*` is safe against runaway but wrong about this repo, which writes `~` for APPROXIMATELY (`~24 guards`, `HEAD~1`): the span fails at its real opener and the engine pairs its CLOSING `~~` with a later marker, so the mask lands elsewhere — **hiding two unstruck citations AND leaving two superseded claims live, both directions at once.** Adopted `~(?=\d)`: 12,908 masked vs 13,462, **154 citations visible vs 152**. Naive repair (*terminate at next `~~`*) rejected — measured **292,699** chars in the audit, §1411's disease at paragraph scale. Roster added: no file re-authors a `~~` MASK (a READ stays legal; discriminator `.replace(`, positive control both ways), mutation-proved. **Three implementations, three distinct defects, all green under the full suite — each found by a diff against real input, never by a test** |
 | 856 | §1409 | **§1410** | **SWEEPING MY OWN SECTIONS FOR §1409's ERROR, AND A DETECTOR THAT COULD NOT HAVE FOUND IT.** §1404's precedent: a class like this gets ONE measurement, not a gate, since a correction necessarily quotes what it corrects. **The first sweep returned ZERO and was worthless** — it extracted superseded text as `~~struck~~` only, but the very case §1409 found is marked the other way, as *"a 16-step chain …"* **until audit §1029**. **My detector encoded one of the repo's TWO conventions, so it could never have found the known positive.** Twelfth instance of the session's constant, caught because a zero is the answer this session has learned never to accept. **A second false signal inside the control:** asking *"is it inside `~~…~~`?"* with `~~[^~]*16-step` returned True — because an unrelated `~~` sits earlier and `[^~]*` spanned the gap. **A regex answering "is X inside a delimiter" by searching for the delimiter anywhere before X will say yes to the whole file.** Re-run over both conventions: **109 superseded passages, zero quoted without a marker** — and that zero is worth something, because the corrected detector demonstrably flags a reconstruction of §1408's sentence. **§1409's error was singular, not a habit** |
 | **855** | §1408 | **§1409** | **I QUOTED STRUCK TEXT AS CURRENT, AND THE REPO HAD SOLVED IT 380 SECTIONS EARLIER.** §1408 cited CLAUDE.md's account of `verify:dev` as *"a 16-step chain … reaches 4 of 16"*. Measured: **18 steps**. **But the drift is my quotation's, not the law's** — CLAUDE.md's current text says that reading held *"until audit §1029"*, was *"invalidated hours later by `7b61624`"*, and that **the total is stated no longer, only the position that matters: step 4, and nothing after it**. I quoted the struck half of a correction as the claim. **Eleventh measurement error, and the first where the artifact had already anticipated the failure I was about to report.** **§1029's move is exactly §1402's, reached 373 sections apart and independently:** faced with a number that rots, REMOVE the number and keep the invariant. A convention arrived at twice from opposite ends of the record is the closest this audit has to a law about documentation. Substantively: `verify:dev` is still an unaggregated `&&` chain at 18 steps, and that is **not** a defect — CLAUDE.md documents it, names `verify:merge` as the real verdict, and `wp-exit-audit.test.ts:19` records that a naive matcher yields *"4 of 16"* and *"reads as a serious constitutional finding and is an artifact"*. **Tenth clean negative** |
 | 854 | §1407 | **§1408** | **VERIFYING MY OWN DELIVERABLE IS WIRED, BY THE STANDARD §1304 SET.** Five gates were built this session and each reported as working; §1304's standard is **verified WIRED before the board is read**, because a gate that runs when I invoke it and not when CI does is decoration with a green tick. **First measurement said ZERO** — searching the merge log for the five names returns 0 mentions each, which reads as "they never ran". It is the §1362 reporter difference: the tools suite runs under vitest v4 (summary only) while worker suites at v3.2.7 print per-file. The same run reports **125 files passed**, 120 + 5. **Tenth measurement error avoided by not believing a zero.** Measured properly three ways: `vitest list` shows **21 cases** across the five; `run-gate.ts:46` wires `unit-tests` to the `test` script; and `test` is `test:tools; t=$?; … ; exit $(( t \|\| p ))`. **Proved end-to-end:** breaking `law-enforcers` makes `pnpm test:tools` exit 1, which propagates. Also worth noting: that script AGGREGATES rather than `&&`-chains — the defect CLAUDE.md records for `verify:dev`, which reaches 4 of 16 steps |
@@ -81970,3 +81971,57 @@ excluded **by path**, not by phrase, so the exemption cannot quietly widen.
 the three `claimed-tenants` residue checks look for a forbidden cross-tenant reference in what remains after
 stripping, and a swallow REMOVES text — the reference vanishes and the gate passes. §1411 is what this same
 duplication looks like after it has been left alone long enough to drift.
+
+## §1413 — PHASE GATE: §1411 declared the class closed after fixing five of seven, and the shared mask was wrong
+
+Two phases ago I replaced five copies of one matcher and wrote that no copy survived. Both halves of that
+were false, and the second half was worse.
+
+**Seven copies, not five.** `tools/checks/ledger-status-vocabulary.test.ts` masks struck spans in two places
+with `/~~.*?~~/g`. §1411's sweep never saw them because it searched for the SHAPE it had already met —
+`~~[\s\S]` — instead of the BEHAVIOUR, "replaces a `~~` pattern". That is
+`sweep-by-behaviour-not-by-mechanism`, my own rule, broken **inside the phase whose entire subject was
+duplicated matchers.** They surfaced only when §1413 enumerated every content-dropping transform in the tree
+(94 of them) for an unrelated reason.
+
+**And the shared mask I introduced was wrong.** Diffing it against the copy it was about to replace, over the
+155 real ledger cells containing `~~`, they disagreed on **two**:
+
+> `~~**Multi-guard 403 routes: ~24 guards not yet mutation-checked**~~ **CLOSED 2026-08-12…**`
+
+`[^~]*` means "anything but a tilde" — safe against runaway, and wrong about this repo, which writes `~` for
+APPROXIMATELY: `~24 guards`, `~3.2.4`, `HEAD~1`. The span fails to match at its real opener, and the engine
+then pairs that span's **closing** `~~` with a later marker, so the mask lands on the wrong region entirely.
+Measured on the checklist: `[^~]*` **hid two citations that are not struck at all** and **left two genuinely
+superseded claims visible** — both failure directions at once, from the function written to prevent exactly
+that.
+
+The rule adopted instead admits the idiom and nothing else — `~~(?:[^~]|~(?=\d))*?~~`, still paragraph-bounded:
+
+| rule | audit masked | checklist masked | checklist citations visible |
+|---|---|---|---|
+| global pair (§1411's defect) | 3,905,463 | 14,799 | — |
+| `[^~]*` (§1411's fix) | 6,987 | 13,462 | 152 |
+| terminate at the next `~~` | **292,699** — runaway returns | 12,908 | 154 |
+| **`~(?=\d)` (adopted)** | **6,987** | **12,908** | **154** |
+
+The third row is why the obvious repair is wrong: letting a span run to the next `~~` reinstates §1411's
+disease at paragraph scale, because this record's prose mentions `~~` unpaired 37 times.
+
+**Both remaining copies now call `stripStruck`,** and `strip-struck.test.ts` gains a **derived roster**: no
+file may re-author a `~~` **mask**. Masks only — a regex that READS a struck span stays legal, because
+`checklist-figures` matches `~~**41**~~ **43**` deliberately, to compare a corrected figure against the live
+one. The discriminator is `.replace(`, pinned by a positive control asserting the detector fires on a mask and
+NOT on a read. Mutation-proved: planting a private mask reds it.
+
+**The lesson, and it is not "sweep better".** Every private copy of this matcher has been wrong in a
+*different* way — the global pair hid 62% of a record, line-wise dropped wrapped strikes, `[^~]*` mis-paired
+around an approximation. **Three implementations, three distinct defects, all of them green under the full
+suite.** The one that found each was a diff against real input, never a test. When one implementation replaces
+N, compare it to each of the N on the actual corpus: the tests only ever prove that the survivors agree with
+the survivor.
+
+**Phase gate.** Tools suite 127 files / 1,380 tests green; the strikethrough class is closed by a roster
+rather than by my say-so, and so is the comment-stripper class (§1412). Carry-forward is unchanged and
+owner-held: vendor the nine private fixtures + `IDENTITY_DENYLIST` (the only path to PROMOTABLE), commit the
+`genesis/09` rows, and the five filed operational REQ rows.
