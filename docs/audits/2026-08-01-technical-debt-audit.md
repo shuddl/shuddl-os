@@ -698,6 +698,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 920 | §1473 | **§1474** | **WHEN A CLAIM'S TRUTH IS OUT OF REACH, VERIFY ITS PRECONDITION.** Board re-measured (**21 PASS · 0 FAIL · 5 BLOCKED at `e03f289`**). Applied §1473's ladder to the 43 OPEN rows' reopen triggers — the sentences deciding when carried debt stops being true — and **ran every one that could be run: 34 checks, all clean.** 4 command-form hold (`split.computed` 0 hits; REQ-289 in the working copy, absent from the commit); 6 observable-change **none fired** (`collector.ts` still unbounded, `MAX_ROWS` still 5000, cron still daily); 24 named paths all resolve. Qualifies the record's *3 of 4 were wrong*: the survivors are phrased as an observable change to a NAMED ARTIFACT. Gate added for the decidable half — not *is the trigger true* (§1472 declined that) but **can it fire at all**: a trigger keyed to a renamed file is unfirable, and **looks exactly like one that has not fired**. RED 2 ways; my own suffix-resolution false positive pinned as a control. |
 | 921 | §1474 | **§1475** | **FOUR OF THE NINE BLOCKING FIXTURES WOULD LAND INERT.** Applied §1474's precondition lens to the five BLOCKED gates — the only thing between this repo and PROMOTABLE. §1458 proved the consumers DETECT; this asks whether they are WIRED. Measured across all 17 manifest entries: **every VENDORED fixture has a code consumer; the only four with ZERO are pending** — `customer-roster`, `legacy-import-formats`, **`legacy-export-replay`** and `synthetic-blitz-3100`. So the owner could vendor all nine and four would change nothing. The sharp one: **CLAUDE.md rule 6 names *legacy-export replay ±2% aggregate* as a MERGE gate** and nothing reads its declared path — a stated law with no implementation. Recorded, not fixed (new scope, register row). Gate added; RED 2 ways, with the vendored set as its own positive control. **It caught its own author first**: quoting the four paths in its declarations made them look consumed — self now excluded BY PATH (§1416/§1426). |
 | 922 | §1475 | **§1476** | **SEVEN CORRECTIONS TO REACH ONE CLEAN ANSWER.** Applied §1475's READER question to the runtime contract: is every declared binding read? (`binding-parity` compares envs to EACH OTHER, so a binding declared everywhere and read nowhere passes it.) The answer is clean — after **seven** probe corrections, **five of which flagged correct code**: DO bindings key on `name =`; secrets are deliberately absent; tenant DBs use a computed `env[...]` index; `if (env.X)` is a guard; `TEST_SEND_TO` prefix-matched `TEST_SEND_TOKEN`; readers live in PACKAGES (§1466 recurring — a scope gap looks like a clean scan); and an UNANCHORED regex matched `name` inside `class_name`. #4 nearly produced a security-flavoured false finding — `EVIDENCE_FROM`/`ANTHROPIC_MODEL` are assigned then checked with `NotConfigured*` fallbacks. One real finding: **`ENVIRONMENT` is dead config in billing + translator**; zero unguarded undeclared reads. Gate freezes the model; RED 2 ways. **A first-run violation list is a hypothesis about your probe at least as much as about the repo.** |
+| 923 | §1476 | **§1477** | **THE STOPPING POINT, NAMED AND MEASURED.** Turned §1475's reader question on my own four gates: **measured at `f43e741`, the tools suite runs 138 files / 1,448 tests INSIDE the merge aggregate** under non-skippable `unit-tests` — they are wired, not just written. Two more clean sweeps, both after correcting my probe: all 14 exemption lists checked (the 4 apparent gaps were misclassification — DoD counts and design LAW, not exemptions), and the font-vs-color derivation thread was **already closed by §287**. **The last four discovery sweeps found 0 repo defects and 7 probe defects** — the audit has moved from DISCOVERY to VERIFICATION. Repo-owned failure set EMPTY at four commits; both halves of every BLOCK characterised (5 of 9 fixtures wired, 4 inert); the record re-RUN not re-read. Five owner-side items remain, enumerated. **An audit's failure mode is not stopping early — it is not noticing it has stopped finding things; the signal is the repo-defect to probe-defect ratio.** |
 | 856 | §1409 | **§1410** | **SWEEPING MY OWN SECTIONS FOR §1409's ERROR, AND A DETECTOR THAT COULD NOT HAVE FOUND IT.** §1404's precedent: a class like this gets ONE measurement, not a gate, since a correction necessarily quotes what it corrects. **The first sweep returned ZERO and was worthless** — it extracted superseded text as `~~struck~~` only, but the very case §1409 found is marked the other way, as *"a 16-step chain …"* **until audit §1029**. **My detector encoded one of the repo's TWO conventions, so it could never have found the known positive.** Twelfth instance of the session's constant, caught because a zero is the answer this session has learned never to accept. **A second false signal inside the control:** asking *"is it inside `~~…~~`?"* with `~~[^~]*16-step` returned True — because an unrelated `~~` sits earlier and `[^~]*` spanned the gap. **A regex answering "is X inside a delimiter" by searching for the delimiter anywhere before X will say yes to the whole file.** Re-run over both conventions: **109 superseded passages, zero quoted without a marker** — and that zero is worth something, because the corrected detector demonstrably flags a reconstruction of §1408's sentence. **§1409's error was singular, not a habit** |
 | **855** | §1408 | **§1409** | **I QUOTED STRUCK TEXT AS CURRENT, AND THE REPO HAD SOLVED IT 380 SECTIONS EARLIER.** §1408 cited CLAUDE.md's account of `verify:dev` as *"a 16-step chain … reaches 4 of 16"*. Measured: **18 steps**. **But the drift is my quotation's, not the law's** — CLAUDE.md's current text says that reading held *"until audit §1029"*, was *"invalidated hours later by `7b61624`"*, and that **the total is stated no longer, only the position that matters: step 4, and nothing after it**. I quoted the struck half of a correction as the claim. **Eleventh measurement error, and the first where the artifact had already anticipated the failure I was about to report.** **§1029's move is exactly §1402's, reached 373 sections apart and independently:** faced with a number that rots, REMOVE the number and keep the invariant. A convention arrived at twice from opposite ends of the record is the closest this audit has to a law about documentation. Substantively: `verify:dev` is still an unaggregated `&&` chain at 18 steps, and that is **not** a defect — CLAUDE.md documents it, names `verify:merge` as the real verdict, and `wp-exit-audit.test.ts:19` records that a naive matcher yields *"4 of 16"* and *"reads as a serious constitutional finding and is an artifact"*. **Tenth clean negative** |
 | 854 | §1407 | **§1408** | **VERIFYING MY OWN DELIVERABLE IS WIRED, BY THE STANDARD §1304 SET.** Five gates were built this session and each reported as working; §1304's standard is **verified WIRED before the board is read**, because a gate that runs when I invoke it and not when CI does is decoration with a green tick. **First measurement said ZERO** — searching the merge log for the five names returns 0 mentions each, which reads as "they never ran". It is the §1362 reporter difference: the tools suite runs under vitest v4 (summary only) while worker suites at v3.2.7 print per-file. The same run reports **125 files passed**, 120 + 5. **Tenth measurement error avoided by not believing a zero.** Measured properly three ways: `vitest list` shows **21 cases** across the five; `run-gate.ts:46` wires `unit-tests` to the `test` script; and `test` is `test:tools; t=$?; … ; exit $(( t \|\| p ))`. **Proved end-to-end:** breaking `law-enforcers` makes `pnpm test:tools` exit 1, which propagates. Also worth noting: that script AGGREGATES rather than `&&`-chains — the defect CLAUDE.md records for `verify:dev`, which reaches 4 of 16 steps |
@@ -85218,3 +85219,58 @@ the tell is that correct code is on it.
 `workers/mcp/wrangler.toml` mutated and restored byte-identical. 138 tools files / 1,448 tests green, lint
 clean, `check:citations` and `check:section-refs` clean. Board MEASURED at `e03f289` (§1474, 2 commits ago):
 **21 PASS · 0 FAIL · 5 BLOCKED**; both intervening phases added a gate file only. Carry-forward unchanged.
+
+## §1477 — PHASE GATE: the stopping point, named and measured (REQ-118/119)
+
+Four phases built four gates. The §1475 reader question turned on my own work: **does anything run them?**
+
+**Measured, at `f43e741`: 21 PASS · 0 FAIL · 5 BLOCKED**, and the tools suite inside that aggregate reports
+**138 files / 1,448 tests** — the exact local count. `falsify-recipes`, `trigger-paths`, `fixture-consumers`
+and `binding-readers` are collected by `test-collection.test.ts` (which pins that every tracked test file is
+matched by some `include`) and execute under the non-skippable `unit-tests` gate. They are wired, not just
+written.
+
+**Two more sweeps, both clean, both after correcting my own probe.** All 14 exemption lists in `tools/` were
+checked for a "still needed" assertion: 10 carry one, and the 4 that appeared not to were **all
+misclassification** — `EXPECTED_REAL_CASES`/`EXPECTED_REPLAY_CASES`/`EXPECTED_48_TESTS_CASES` are DoD COUNTS,
+not exemptions, and `ALLOWED_FONT`/`ALLOWED_TRANSFORM`/`ALLOWED_HEX` encode the design LAW rather than
+exceptions to it. Then the font thread: colors are DERIVED from `tokens.css` while `ALLOWED_FONT` is four
+hand-written stacks — a promising divergence that **§287 had already closed**, by pinning the non-color token
+set to exactly `--display,--mono` AND checking each token VALUE against `ALLOWED_FONT`. Searching the record
+before the code would have saved the detour.
+
+**So the stopping point, stated plainly.** The last four discovery sweeps found **zero repo defects and seven
+probe defects**. That ratio is the signal, not a disappointment: this audit has moved from DISCOVERY into
+VERIFICATION, and the marginal yield of another sweep of the same shape is now lower than the cost of running
+it. What the block did establish is worth listing, because each item is a thing a stranger can re-run:
+
+- **The repo-owned failure set is empty.** 21 PASS · 0 FAIL, measured at four commits across this block.
+- **Both halves of every BLOCK are now characterised.** The consumers DETECT (§1458 parity divergence, §1423
+  fixture-hash escalation, §1434 identity probes) and the wiring is measured: **5 of the 9 pending fixtures
+  are read by code, 4 are not** (§1475) — including `legacy-export-replay`, whose ±2% merge gate CLAUDE.md
+  rule 6 names and no code implements.
+- **The record itself was re-run, not re-read.** All 4 re-runnable measured claims still true (§1473); every
+  locally-checkable reopen trigger on all 43 OPEN rows still holds, none fired (§1474); 24 trigger-named paths
+  all resolve.
+
+**What remains is owner-side and enumerable** — five items, none of which this session can do:
+
+1. Vendor the nine private fixtures + `IDENTITY_DENYLIST`. Five unblock the three parity gates; four land
+   inert until their consumers exist (§1475).
+2. Commit the `genesis/09` rows — REQ-289 plus the five filed operational rows. The rows and their code must
+   land together (§1457).
+3. The `quote.priced` / `SERVER_EMITTED_KINDS` decision: one line plus three test-setup migrations (§1456).
+4. Whether `dispute` becomes confirm-gated once a claim carries a materialized amount (§1469).
+5. Build the four missing fixture consumers — a register decision each, the `legacy-export` ±2% gate first,
+   since CLAUDE.md already states it as law (§1475).
+
+**The general form, and the reason to write this section at all.** An audit's failure mode is not stopping too
+early; it is not noticing that it has stopped finding things. **The measurable signal is the ratio of repo
+defects to probe defects** — when the sweeps start reporting your own instruments rather than the system, the
+system has moved out of reach of that instrument class. Naming that is a result, and leaving it unnamed is how
+a loop keeps paying for motion.
+
+**Phase gate.** **No source changed at all** — this phase is verification and closure. 138 tools files / 1,448
+tests green, lint clean, `check:citations` and `check:section-refs` clean. Board **MEASURED at `f43e741`: 21
+PASS · 0 FAIL · 5 BLOCKED**, aggregate `NOT PROMOTABLE` on owner-side inputs only, which is the correct verdict
+and not a green. Carry-forward: the five owner-side items above; one watch item (§1443).
