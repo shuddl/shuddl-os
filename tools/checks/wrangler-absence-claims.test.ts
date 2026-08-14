@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { globSync, readFileSync } from "node:fs";
 import { repoRoot } from "./repo-root.js";
+import { stripStruck } from "./strip-struck.js";
 
 // §944 — A "DELIBERATELY ABSENT" COMMENT IS A CLAIM ABOUT THE FILE IT SITS IN, SO IT CAN BE CHECKED.
 //
@@ -53,7 +54,7 @@ function absenceClaims(toml: string): { env: string; vars: string[] }[] {
   // real bug in the first version of this gate: the corrected §944 header still NAMES EVIDENCE_FROM while
   // explaining that it IS set, and the parser read that mention as a fresh claim of absence. Caught by the
   // unmutated fixed point going red — which is the whole reason to run one.
-  const lines = toml.replace(/~~[\s\S]*?~~/g, "").split("\n");
+  const lines = stripStruck(toml).split("\n");
   const claims: { env: string; vars: string[] }[] = [];
   for (let i = 0; i < lines.length; i += 1) {
     if (!(lines[i] as string).includes("DELIBERATELY ABSENT")) continue;

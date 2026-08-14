@@ -2,6 +2,7 @@ import { execSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { repoRoot } from "./repo-root.js";
+import { stripStruck } from "./strip-struck.js";
 import {
   RATCHET_CONFIG_PATH,
   checkRatchet,
@@ -84,7 +85,6 @@ const IGNORE_MARKER = "citation-check: ignore";
  * — demanding it resolve would force deleting the history the convention exists to keep. The CORRECTION
  * that replaces it, sitting on the same line outside the strikethrough, is still checked.
  */
-const STRIKETHROUGH_RE = /~~[\s\S]*?~~/g;
 
 export interface Citation {
   /** repo-relative path of the file that CONTAINS the citation */
@@ -123,7 +123,7 @@ function maskUrls(text: string): string {
 
 /** Blank out `~~superseded~~` spans (markdown only) so a struck record keeps its stale pointer. */
 function maskStrikethrough(text: string): string {
-  return text.replace(STRIKETHROUGH_RE, (m) => " ".repeat(m.length));
+  return stripStruck(text);
 }
 
 function parseSpec(spec: string): readonly (readonly [number, number])[] {

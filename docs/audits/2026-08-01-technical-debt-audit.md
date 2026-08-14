@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 857 | §1410 | **§1411** | **FIVE GATES SHARED ONE STRIKETHROUGH REGEX AND IT HID 62% OF THE RECORD.** Written as a clean negative; the gate refused it. `/~~[\s\S]*?~~/g` crosses newlines, and the records *discuss* the convention — **55 unpaired `~~` in prose**, each re-pairing every marker after it. Measured: the global pair masked **3,905,463 chars, 66% of the audit** (real strikethrough: 2,453), leaving the citation gates reading **123 of 308** tracked citations — **191 (62%) invisible to everything, including the merge gate `check:citations`**, two of them already dead. **It surfaced by accident I caused:** §1411's own index row added five markers, flipped the parity above §431, and a weeks-green citation went red — **the gate's scope depended on how often the document mentioned its own notation.** Fixed by one shared length-preserving mask (`strip-struck.ts`, no copy survives) + an 8-case gate whose last three cases are the PROPERTY (an unpaired marker changes nothing outside its own paragraph) plus a two-sided corpus floor. **The first version was LINE-WISE on a mechanism I stated and got wrong** (*"GFM cannot span a line break"* — it can cross soft breaks; both records strike wrapped text) and `wrangler-absence-claims` reds within a minute; the rule that holds is PARAGRAPH-bounded. **Mutation-proved both ways: global pair 4/8 RED, line-wise REDs two gates.** 3 dead citations repointed with symbol anchors. §1399/§1404/§1410's verdicts survive but were measured over a corpus 62% smaller than they believed. **Fourth consecutive instrument defect** |
 | 856 | §1409 | **§1410** | **SWEEPING MY OWN SECTIONS FOR §1409's ERROR, AND A DETECTOR THAT COULD NOT HAVE FOUND IT.** §1404's precedent: a class like this gets ONE measurement, not a gate, since a correction necessarily quotes what it corrects. **The first sweep returned ZERO and was worthless** — it extracted superseded text as `~~struck~~` only, but the very case §1409 found is marked the other way, as *"a 16-step chain …"* **until audit §1029**. **My detector encoded one of the repo's TWO conventions, so it could never have found the known positive.** Twelfth instance of the session's constant, caught because a zero is the answer this session has learned never to accept. **A second false signal inside the control:** asking *"is it inside `~~…~~`?"* with `~~[^~]*16-step` returned True — because an unrelated `~~` sits earlier and `[^~]*` spanned the gap. **A regex answering "is X inside a delimiter" by searching for the delimiter anywhere before X will say yes to the whole file.** Re-run over both conventions: **109 superseded passages, zero quoted without a marker** — and that zero is worth something, because the corrected detector demonstrably flags a reconstruction of §1408's sentence. **§1409's error was singular, not a habit** |
 | **855** | §1408 | **§1409** | **I QUOTED STRUCK TEXT AS CURRENT, AND THE REPO HAD SOLVED IT 380 SECTIONS EARLIER.** §1408 cited CLAUDE.md's account of `verify:dev` as *"a 16-step chain … reaches 4 of 16"*. Measured: **18 steps**. **But the drift is my quotation's, not the law's** — CLAUDE.md's current text says that reading held *"until audit §1029"*, was *"invalidated hours later by `7b61624`"*, and that **the total is stated no longer, only the position that matters: step 4, and nothing after it**. I quoted the struck half of a correction as the claim. **Eleventh measurement error, and the first where the artifact had already anticipated the failure I was about to report.** **§1029's move is exactly §1402's, reached 373 sections apart and independently:** faced with a number that rots, REMOVE the number and keep the invariant. A convention arrived at twice from opposite ends of the record is the closest this audit has to a law about documentation. Substantively: `verify:dev` is still an unaggregated `&&` chain at 18 steps, and that is **not** a defect — CLAUDE.md documents it, names `verify:merge` as the real verdict, and `wp-exit-audit.test.ts:19` records that a naive matcher yields *"4 of 16"* and *"reads as a serious constitutional finding and is an artifact"*. **Tenth clean negative** |
 | 854 | §1407 | **§1408** | **VERIFYING MY OWN DELIVERABLE IS WIRED, BY THE STANDARD §1304 SET.** Five gates were built this session and each reported as working; §1304's standard is **verified WIRED before the board is read**, because a gate that runs when I invoke it and not when CI does is decoration with a green tick. **First measurement said ZERO** — searching the merge log for the five names returns 0 mentions each, which reads as "they never ran". It is the §1362 reporter difference: the tools suite runs under vitest v4 (summary only) while worker suites at v3.2.7 print per-file. The same run reports **125 files passed**, 120 + 5. **Tenth measurement error avoided by not believing a zero.** Measured properly three ways: `vitest list` shows **21 cases** across the five; `run-gate.ts:46` wires `unit-tests` to the `test` script; and `test` is `test:tools; t=$?; … ; exit $(( t \|\| p ))`. **Proved end-to-end:** breaking `law-enforcers` makes `pnpm test:tools` exit 1, which propagates. Also worth noting: that script AGGREGATES rather than `&&`-chains — the defect CLAUDE.md records for `verify:dev`, which reaches 4 of 16 steps |
@@ -25535,7 +25536,7 @@ on. Three quantified claims live there; the selector's value is as much in the t
 it finds.
 
 **Clean (1): *"every one of the 35 kinds survives eventToRow → rowToEvent with an identical hash."*** Already
-a quantifier test, by name, at `packages/ledger/test/lens.test.ts:149`. Nothing to add.
+a quantifier test, by name, at `packages/ledger/test/lens.test.ts:150@"every one of the 35 kinds"`. Nothing to add.
 
 **Clean (2): *"Symmetric by construction, so `eventToRow(rowToEvent(row))` reproduces the stored row
 exactly."*** Bound twice against a real D1 — `lens.test.ts:117` and `:146` assert the rebuilt row
@@ -81854,3 +81855,77 @@ report a clean it did not earn** — which is exactly what mine did, for one com
 
 Verification: 109 superseded passages extracted across both conventions; the corrected detector positive-
 controlled against a reconstruction of §1408's original sentence before its zero was believed.
+
+## §1411 — PHASE GATE: five gates shared one strikethrough regex, and it hid 62% of the record
+
+**I wrote this section as a clean negative and the gate refused it.** The intended finding was §1410's, turned
+on the gates: this repo marks superseded text two ways — `~~struck~~` and *"quoted"* until audit §N — so does
+any document-reading gate strip only the first? I measured, concluded no gate was at risk, appended the
+section, and ran the suite. `citation-blank-line` went red on a citation in §431 that had been green for
+weeks. **The eleventh clean negative was a defect, and the only reason I know is that I ran the gates before
+believing my own prose.**
+
+**The mechanism.** Five gates each carried a private copy of `/~~[\s\S]*?~~/g`. `[\s\S]` crosses newlines,
+and a non-greedy global pair takes markers two at a time **in file order** — it has no idea which ones were
+meant to go together. This repo's records also *discuss* the convention (*"marks superseded text by
+~~striking~~ it"*, *"nine gates touch `~~`"*), so **unpaired markers appear in ordinary prose: 37 lines in the
+audit, 18 in the checklist, 55 in all.** Every one of them re-pairs every marker that follows.
+
+**The blast radius, measured before the fix:**
+
+| | audit | checklist |
+|---|---|---|
+| characters the global pair masked | **3,905,463 — 66% of the document** | 14,799 |
+| characters of *real* strikethrough | 2,453 | 14,065 |
+| tracked `path:line` citations present | 308 (both records) | |
+| …of those, **visible to any citation gate** | **123** | |
+| **hidden — never checked by anything** | **191 (62%)** | |
+
+`check:citations` is a **merge gate**. It has been certifying a third of the record and reporting a clean on
+the rest. Two of the hidden citations were already dead.
+
+**How it surfaced is the part worth keeping.** Not by inspection — by accident, and by an accident I caused.
+§1411's index row contains five `~~` markers. Inserting it above §431 flipped the running marker parity there
+from odd to even, one masked citation became live text, and the gate failed on it in the same second. **The
+gate's verdict depended on how many times the document happened to mention its own notation.** A gate whose
+scope moves when unrelated prose is edited 25,000 lines away is not a gate; it is a coin flip with a green
+light. Nothing about the citation changed. Nothing about the code changed. I added a table row.
+
+**The fix, and the wrong mechanism I shipped first.** One shared mask, `tools/checks/strip-struck.ts`,
+imported by all five gates; no copy of the global pair survives anywhere in the tree. Its first version was
+**line-wise**, justified in its own header with *"GFM strikethrough cannot span a line break"*. **That is
+false** — inline emphasis crosses SOFT breaks and stops at a paragraph break — and both formats here depend on
+it: `GO-LIVE-CHECKLIST.md:344-346` strikes a wrapped sentence and `workers/agents/wrangler.toml:108-110`
+strikes a correction wrapped across three `#` comment lines. Line-wise under-masked both, and
+`wrangler-absence-claims` went red **within a minute**, reading a corrected §944 claim as a live one. The
+direction was right and the stated mechanism was wrong, which is §1352's rule arriving a fifth time: a comment
+that says WHY a property holds is falsifiable, and this one was false in the same commit that introduced it.
+
+The rule that holds is **paragraph-bounded**: a span may cross a soft break, never a blank line. Measured
+identical either way on what matters — **334 tracked citations visible** under both line-wise and
+paragraph-bounded, against the global pair's **123** — while paragraph-bounding also masks the multi-line
+strikes both records genuinely use, and bounds a stray marker's blast radius to its own paragraph. It is
+length-preserving because `citation-links.ts` derives line numbers from offsets after masking. Both failure
+directions are in the header and are not symmetric: under-masking is LOUD (a gate complains about a superseded
+claim, someone looks — it is how the line-wise version died), over-masking is SILENT (live text certified
+unread), which is the direction the old regex failed in, at 62%.
+
+**`tools/checks/strip-struck.test.ts` — 8 cases, and the last three are the property rather than the shape:**
+inserting an unpaired `~~` as its own paragraph must not change how many citations the rest of the document
+exposes, at the top or at the midpoint, and a stray marker must not reach past a blank line. Plus a two-sided
+corpus floor (§1387): masking **nothing** and masking **the document** are both failures, and only one of them
+was noticeable before. **Mutation-proved in both directions** — restore the global pair: **4 of 8 RED**;
+narrow it to line-wise: the soft-break case REDs here *and* `wrangler-absence-claims` REDs, so the paragraph
+boundary is pinned from both sides rather than resting on one gate.
+
+**Three dead citations, now repointed and anchored by symbol** (§1344 — a line number is not a key):
+`lens.test.ts:149 → :150@"every one of the 35 kinds"` · `fixtures.test.ts:39-52 → :42-54@REQ-288:
+fixtureGateResult` · `translator/src/index.ts:20-41 → :21-39@transportFor` (2 rows).
+
+**What this changes about the four preceding phases.** §1399, §1404 and §1410 each concluded that the residual
+exposure — an unmarked historical quote — cannot be gated, and each was right about that. But all three were
+reasoning about the convention the gates *do* handle while that handling was broken, so their "the rest is
+irreducible" was measured against a corpus 62% smaller than they believed. The verdicts survive; the coverage
+behind them did not. **Fourth consecutive phase whose defect was in the instrument, not the product**, and the
+fourth this session where the artifact standing between me and a false clean was one I had written myself.
+confirmed to carry no step-count matcher and to exclude CLAUDE.md from its count sweep.

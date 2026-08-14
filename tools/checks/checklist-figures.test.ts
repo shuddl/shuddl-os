@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { execSync } from "node:child_process";
 import { repoRoot } from "./repo-root.js";
+import { stripStruck } from "./strip-struck.js";
 
 // §933 — A CHECKLIST FIGURE THAT NOBODY RE-DERIVES IS A CLAIM WITH AN EXPIRY AND NO ALARM.
 //
@@ -104,9 +105,6 @@ const WORD: Readonly<Record<string, number>> = {
 // new bespoke alternation at every future site. Mechanical, not semantic: `~~…~~` is a syntactic marker the
 // convention already assigns exactly this meaning, which is why it can be filtered where prose cannot (the
 // irreducible false-positive floor the SWEEP_COUNT_FILES note describes is about UNMARKED historical quotes).
-function stripStruck(text: string): string {
-  return text.replace(/~~[\s\S]*?~~/g, " ");
-}
 
 /**
  * §1313 — the repo-wide per-tenant orchestrator population, derived by the SAME rule

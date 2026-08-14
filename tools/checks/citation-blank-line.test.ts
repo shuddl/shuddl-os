@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { execSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { repoRoot } from "./repo-root.js";
+import { stripStruck } from "./strip-struck.js";
 
 // §886 — A `path:line` CITATION THAT LANDS ON A BLANK LINE HAS MOVED.
 //
@@ -39,7 +40,6 @@ const CITATION =
   /`((?:docs|workers|packages|apps|tools|db|genesis|tests)\/[A-Za-z0-9_./-]+\.[a-z]{2,4}):(\d+)(?:@[A-Za-z0-9_$]+)?`/g;
 
 /** Struck spans keep their stale pointer ON PURPOSE — a superseded record is evidence, not a citation. */
-const STRIKETHROUGH = /~~[\s\S]*?~~/g;
 
 interface Cit {
   path: string;
@@ -47,7 +47,7 @@ interface Cit {
 }
 
 function citations(root: string): Cit[] {
-  const text = DOCS.map((d) => readFileSync(`${root}/${d}`, "utf8")).join("\n").replace(STRIKETHROUGH, " ");
+  const text = stripStruck(DOCS.map((d) => readFileSync(`${root}/${d}`, "utf8")).join("\n"));
   const tracked = new Set(execSync("git ls-files", { cwd: root, encoding: "utf8" }).split("\n"));
   const out: Cit[] = [];
   for (const m of text.matchAll(CITATION)) {

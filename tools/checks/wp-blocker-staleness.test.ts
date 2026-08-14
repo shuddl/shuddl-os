@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { repoRoot } from "./repo-root.js";
+import { stripStruck } from "./strip-struck.js";
 
 // §946 — NO LAUNCH-GATE ROW MAY NAME A WORK PACKAGE AS ITS PENDING BLOCKER.
 //
@@ -32,7 +33,7 @@ const STATE = "docs/ops/PROJECT-STATE.md";
 
 /** Live text only — struck spans are corrections this repo preserves deliberately. */
 function live(s: string): string {
-  return s.replace(/~~[\s\S]*?~~/g, "");
+  return stripStruck(s);
 }
 
 describe("§946: no checklist row names a closed WP as its blocker", () => {
