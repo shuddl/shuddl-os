@@ -40,8 +40,11 @@ const MAPPING = {
 // The recording double MODELS the real api sequencer DO: dedupe-by-id (a redelivered/duplicate id is a no-op).
 class RecordingSeq implements SeqStubLike {
   readonly appended: Array<{ tenant: string; streamId: string; input: Record<string, unknown> }> = [];
+  /** §1373 — CALLS, not distinct rows. The DO dedupe saves the ROW; it does not save the SUBREQUEST. */
+  calls = 0;
   private readonly seen = new Set<string>();
   async append(req: { tenant: string; streamId: string; input: unknown }): Promise<{ id: string }> {
+    this.calls += 1;
     const input = req.input as { id: string };
     if (this.seen.has(input.id)) return { id: input.id }; // DO dedupe by id — no duplicate row
     this.seen.add(input.id);
@@ -161,6 +164,21 @@ describe("REQ-022 — echo-safe: no ping-pong (embedded-id skip + deterministic-
     await resetWatermark(A(), 0);
     await sweepTenantLegacyMirror({ db: A(), seq, feed, integrationId: LEGACY_MIRROR_INTEGRATION_ID, tenant: "tenant-a", now: 3_000 });
     expect(seq.appended.length).toBe(5); // unchanged — no ping-pong, no duplicate
+
+    // §1373 (REQ-021, audit §1361) — THE DEDUPE SAVES THE ROW, NOT THE SUBREQUEST.
+    //
+    // The assertion above is about DATA: no duplicate event exists. This one is about COST, and it is the
+    // premise the GO-LIVE row "Live legacy-feed provisioning" and `feed-dormancy.test.ts`'s HOLD message both
+    // rest on: a zero-watermark sweep EXAMINES every row, and each examined row costs one `anchorStream` read
+    // plus one sequencer append CALL. Idempotence is enforced at the DO, downstream of the subrequest — so a
+    // re-ingest is free in rows and NOT free in Cloudflare subrequests, against a per-invocation ceiling of
+    // 1,000 (Free) / 10,000 (Paid).
+    //
+    // Written because §1372 caught me attributing a defect I had reasoned about rather than exercised. This
+    // file's `RecordingSeq` dedupes internally, so `appended.length` staying at 5 across two full sweeps reads
+    // like "the second sweep did no work" — it did all of it.
+    expect(seq.calls, "the re-sweep issued no append calls — then the first-sweep cost claim is wrong").toBe(10);
+
   });
 });
 
