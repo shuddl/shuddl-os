@@ -713,6 +713,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 935 | §1488 | **§1489** | **I VERIFIED BEFORE THE EDIT, AND SHIPPED A RED THREE TIMES.** `cited-scripts-exist` failed on a citation I introduced at §1486 — `pnpm vitest run --root tools` is a real invocation but NOT a defined script, and the gate exists because `pnpm -s <missing>` exits 1 printing NOTHING, so an absent gate reads as a clean one. **It shipped in three commits** (§1486/§1487/§1488), each claiming *139 files / 1,453 tests green*. Cause: at §1486 the suite ran BEFORE the `cat >>` that added the section, and §1487–8 ran only the planted gates + two CLI checks. **Verification that precedes the edit proves nothing about the edit.** Checked the corpus question too — `pnpm test:tools` and `--root tools` both collect 139 files, so §1485/§1486's conclusions stand and only the citation was wrong. **A gate's value is bounded by the last time you ran it**; a phase gate quoting a test count asserts a measurement, not a habit. | <!-- script-check: ignore -->
 | 936 | §1489 | **§1490** | **A GATE'S SUBJECT AND ITS INPUT CAN LIVE IN DIFFERENT TREES.** §1489 said a cited green is worth nothing without a run, so: **board re-measured at HEAD `905c37c`, eight commits on — 21 PASS · 0 FAIL · 5 BLOCKED**, the first run to include the citation fix. Then a correction to §1488, which wrote off `traceability` and `coverage` as untestable because their subjects sit in the concurrent author's uncommitted tree. **Half wrong:** `check:traceability`'s subject is the register but its INPUT is `REQ-` annotations scanned from SOURCE — planting `// REQ-994:` in a clean route file reds it (*built-but-unspec'd*), touching nothing the other author holds. **Tally 12 → 13 of 21.** `check:coverage` genuinely is stuck (register-row accounting; the same plant correctly leaves it at 0). **When a gate looks untestable, check whether the obstruction is on the SUBJECT side or the INPUT side.** |
 | 937 | §1490 | **§1491** | **"TRIVIAL BY CONSTRUCTION" IS A CLAIM LIKE ANY OTHER.** §1488 dismissed `runtime`/`typecheck`/`lint` in one sentence — *a syntax error fails all three by construction*. **Wrong about the most important**: `check:runtime` is a Node/pnpm VERSION CONTRACT, not a syntax check, and its header says *a green run under Node 20 is not evidence of anything* — a vacuous runtime gate makes **every other green on the board unreliable**. Verified by pointing the contract at an uninstalled Node: exit 1. `lint` reds on an unused const; a type error reds tsc **exit 2 naming file/line/TS2322**. **Scoping detail:** `typecheck:tools` stayed GREEN on a `workers/api` type error — the root script is two halves and only `pnpm -r` reaches the workers, so *typecheck is green* means different things per half (§1489's shape). **Tally 13 → 16 of 21**; five remain (`coverage` subject-blocked, four browser/perf). **A dismissal deserves the same evidence as an assertion.** |
+| 938 | §1491 | **§1492** | **THE DISMISSAL WAS WRONG, AND SO WAS ITS REPLACEMENT.** Measured §1488's last dismissal (*four browser gates cost a full run each*): **13s + 23s + 8s + 7s = 51 SECONDS for all four**. `perf` verified — its thresholds live in the spec, so `INTERACTION_P95_MS = 1` gives exit 1 FAIL. **Tally 16 → 17 of 21.** Two finds: the perf gate DECLARES which budget it is not enforcing here (*long-task budget NOT ASSERTED* under a software rasterizer — the §1478 honesty pattern, and why my first plant passed), and **a11y has zero axe findings at ANY impact** (widening BLOCKING to minor+moderate still passes — stronger than its own PASS). **Then my replacement dismissal was wrong too**: planted a real `image-alt` in the portal, still green; the harness is dev-served SOURCE (not prebuilt) and the plant COMPILES — it landed in a `return` branch the default view does not render (§1471). **When you replace a wrong dismissal, the replacement is a new claim with the same burden.** |
 | 856 | §1409 | **§1410** | **SWEEPING MY OWN SECTIONS FOR §1409's ERROR, AND A DETECTOR THAT COULD NOT HAVE FOUND IT.** §1404's precedent: a class like this gets ONE measurement, not a gate, since a correction necessarily quotes what it corrects. **The first sweep returned ZERO and was worthless** — it extracted superseded text as `~~struck~~` only, but the very case §1409 found is marked the other way, as *"a 16-step chain …"* **until audit §1029**. **My detector encoded one of the repo's TWO conventions, so it could never have found the known positive.** Twelfth instance of the session's constant, caught because a zero is the answer this session has learned never to accept. **A second false signal inside the control:** asking *"is it inside `~~…~~`?"* with `~~[^~]*16-step` returned True — because an unrelated `~~` sits earlier and `[^~]*` spanned the gap. **A regex answering "is X inside a delimiter" by searching for the delimiter anywhere before X will say yes to the whole file.** Re-run over both conventions: **109 superseded passages, zero quoted without a marker** — and that zero is worth something, because the corrected detector demonstrably flags a reconstruction of §1408's sentence. **§1409's error was singular, not a habit** |
 | **855** | §1408 | **§1409** | **I QUOTED STRUCK TEXT AS CURRENT, AND THE REPO HAD SOLVED IT 380 SECTIONS EARLIER.** §1408 cited CLAUDE.md's account of `verify:dev` as *"a 16-step chain … reaches 4 of 16"*. Measured: **18 steps**. **But the drift is my quotation's, not the law's** — CLAUDE.md's current text says that reading held *"until audit §1029"*, was *"invalidated hours later by `7b61624`"*, and that **the total is stated no longer, only the position that matters: step 4, and nothing after it**. I quoted the struck half of a correction as the claim. **Eleventh measurement error, and the first where the artifact had already anticipated the failure I was about to report.** **§1029's move is exactly §1402's, reached 373 sections apart and independently:** faced with a number that rots, REMOVE the number and keep the invariant. A convention arrived at twice from opposite ends of the record is the closest this audit has to a law about documentation. Substantively: `verify:dev` is still an unaggregated `&&` chain at 18 steps, and that is **not** a defect — CLAUDE.md documents it, names `verify:merge` as the real verdict, and `wp-exit-audit.test.ts:19` records that a naive matcher yields *"4 of 16"* and *"reads as a serious constitutional finding and is an artifact"*. **Tenth clean negative** |
 | 854 | §1407 | **§1408** | **VERIFYING MY OWN DELIVERABLE IS WIRED, BY THE STANDARD §1304 SET.** Five gates were built this session and each reported as working; §1304's standard is **verified WIRED before the board is read**, because a gate that runs when I invoke it and not when CI does is decoration with a green tick. **First measurement said ZERO** — searching the merge log for the five names returns 0 mentions each, which reads as "they never ran". It is the §1362 reporter difference: the tools suite runs under vitest v4 (summary only) while worker suites at v3.2.7 print per-file. The same run reports **125 files passed**, 120 + 5. **Tenth measurement error avoided by not believing a zero.** Measured properly three ways: `vitest list` shows **21 cases** across the five; `run-gate.ts:46` wires `unit-tests` to the `test` script; and `test` is `test:tools; t=$?; … ; exit $(( t \|\| p ))`. **Proved end-to-end:** breaking `law-enforcers` makes `pnpm test:tools` exit 1, which propagates. Also worth noting: that script AGGREGATES rather than `&&`-chains — the defect CLAUDE.md records for `verify:dev`, which reaches 4 of 16 steps |
@@ -85916,3 +85917,52 @@ three times and restored byte-identical; `check:runtime`, `lint` and `typecheck`
 `check:section-refs` clean. Board MEASURED at `905c37c` (§1490, 1 commit ago): **21 PASS · 0 FAIL · 5
 BLOCKED**. Carry-forward: the five owner-side items from §1477, §1483's `legacy-export-replay` qualifier, and
 **five gates whose fail-ability is unverified** (down from eight); one watch item (§1443).
+
+## §1492 — PHASE GATE: the dismissal was wrong, and so was its replacement (REQ-118/REQ-285)
+
+§1491 established that a dismissal needs evidence. The one still standing was §1488's on the four browser/perf
+gates — *"each costing a full browser/perf run"* — so I measured it.
+
+**The run cost was wrong by an order of magnitude.** `perf:map` 13s, `test:visual` 23s, `test:a11y` 8s,
+`test:e2e` 7s — **51 seconds for all four**, not a prohibitive cost for anything.
+
+**`perf` is now verified.** Its thresholds live in the spec file, so the plant needs no rendered surface:
+setting `INTERACTION_P95_MS` to 1ms gives **exit 1, `status":"FAIL"`**. Tally **16 → 17 of 21**.
+
+Two things surfaced while doing it, both worth keeping:
+
+- **The perf gate's green is narrower than its name, by design and declared.** On this machine
+  `softwareRasterizer` is true, so the long-task budget is NOT asserted — and the spec says so out loud:
+  *"Not a pass and not a failure of this code: the budget is unmeasurable here. Say so loudly so the gate
+  result records a real disposition instead of a fabricated green."* My first plant (`LONG_TASK_MS = 1`)
+  passed for exactly that reason. That is the §1478 honesty-note pattern, in a perf harness, and it worked:
+  the gate told me which of its budgets it was not enforcing.
+- **a11y has zero axe findings at ANY impact.** Widening `BLOCKING` from `["serious","critical"]` to include
+  `minor` and `moderate` left it at exit 0 — a stronger statement than its own PASS, which only claims no
+  serious or critical.
+
+**And then my replacement dismissal was wrong too.** Having measured the run as cheap, I planted a real
+`image-alt` violation in the portal — and a11y stayed green. Two hypotheses, both tested: the harness serves
+**Vite dev servers from source** (not a prebuilt bundle, so the edit does reach it), and the plant **compiles**
+(portal typecheck exit 0). What remains is that the `return (` I spliced sits in a branch the default view does
+not render — §1471's rule, *"nothing REACHES it" is a property of the input you chose*, applied to a JSX
+branch instead of a test fixture.
+
+So the honest position on the last four: **`perf` verified; `a11y`, `visual` and `e2e` NOT verified** — and the
+reason is neither "expensive" (51s) nor "prebuilt" (it is dev-served source), but that a plant must land on the
+RENDERED path, which two attempts did not. That is a smaller and more actionable obstacle than the one I
+started with, and it is stated so the next person begins from the real one.
+
+**The general form.** §1491 said a dismissal deserves the same evidence as an assertion. This phase adds the
+part that makes it useful: **when you replace a wrong dismissal, the replacement is a new claim and inherits
+the same burden.** I went from "too expensive" (false) to "needs a rebuild" (false) to "must reach the rendered
+path" (measured) in three steps, and only the third is worth carrying — the first two would each have sent
+someone down a wrong road, and the second sounds more informed than the first while being equally untested.
+
+**Phase gate.** **No source changed** — `perf.spec.ts`, `accessibility.spec.ts` and `apps/portal/src/App.tsx`
+mutated and restored byte-identical; all four gates return to PASS. 139 tools files / 1,453 tests green **run
+after this section's write**, `check:citations` and `check:section-refs` clean. Board MEASURED at `905c37c`
+(§1490, 2 commits ago): **21 PASS · 0 FAIL · 5 BLOCKED**. Carry-forward: the five owner-side items from §1477,
+§1483's `legacy-export-replay` qualifier, and **four gates whose fail-ability is unverified** — `coverage`
+(subject-side, the concurrent tree) and `a11y`/`visual`/`e2e` (a plant must reach the rendered path); one watch
+item (§1443).
