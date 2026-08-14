@@ -129,8 +129,11 @@ const LAW_ENFORCERS: readonly Enforcer[] = [
       "unmapped-column `gapRows.push` in `migrator.ts` so a legacy column silently disappears: exactly ONE " +
       "test reds — \"THE LAW — a rate sheet flags EVERY non-rate column + the unconsumed rows (no silent " +
       "drop)\" in `migrator.test.ts`, now the enforcer. `legacy-mirror.ts` is kept in `also` because it " +
-      "carries the same law for the continuous feed. ONE test defends a constitutional rule; that is a " +
-      "defence, and it is thin enough to say out loud.",
+      "carries the same law for the continuous feed. §1430 — CORRECTED: that \"exactly ONE test\" was scoped " +
+      "to ONE of the law's TWO implementations and was written as though it described the rule. Mutating " +
+      "`legacy-mirror.ts`'s own `gapRows.push` reds TWO more — \"misc_note + legacy_status map to no " +
+      "canonical field\" and \"a below-floor field mapping is a low_confidence gap and is NOT silently " +
+      "applied\". THREE tests across two implementations, not one.",
   },
 ];
 
