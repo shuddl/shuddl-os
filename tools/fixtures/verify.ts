@@ -95,6 +95,35 @@ export function fixtureGateResult(mode: GateMode, r: { ok: boolean; failures: st
 function main(): void {
   const mode = parseMode(process.argv.slice(2));
   const manifest = JSON.parse(readFileSync(`${repoRoot()}/fixtures/manifest.json`, "utf8")) as Manifest;
+  
+  // §1387 — THE MANIFEST IS THE CORPUS, SO ITS EMPTINESS IS A BROKEN GATE, NEVER A CLEAN ONE.
+  //
+  // MEASURED 2026-08-13: with the 17 fixtures present, `--mode merge` exits 2 (BLOCKED, five unvendored
+  // private fixtures). With `fixtures: []` it exits **0** — nothing pending, nothing failing, so the gate
+  // reports PASS. Emptying this file therefore REMOVES one of the five BLOCKs from the merge board and
+  // disables every hash pin at the same time, while the board reads closer to promotable.
+  //
+  // §1148's rule, on a constitutional gate whose PASS path has never run in anger: a floor must bound the
+  // corpus the gate READ, not the violations it found. The named ids are the two CLAUDE.md rule 4 calls out
+  // by name, so if the law's own examples vanish from the manifest this fails loudly rather than quietly.
+  const REQUIRED_IDS = ["rater-504-sweep", "rater-48-tests"] as const;
+  if (manifest.fixtures.length < 10) {
+    console.error(
+      `fixtures: BROKEN — the manifest lists ${manifest.fixtures.length} fixture(s); there were 17 at §1387. ` +
+        "An empty or truncated manifest reports PASS because nothing is pending and nothing mismatches, which " +
+        "silently clears a merge BLOCK and disables every hash pin. Restore the manifest.",
+    );
+    process.exit(1);
+  }
+  const missing = REQUIRED_IDS.filter((id) => !manifest.fixtures.some((f) => f.id === id));
+  if (missing.length > 0) {
+    console.error(
+      `fixtures: BROKEN — CLAUDE.md rule 4 names ${missing.join(", ")} as the private-fixture holds, and the ` +
+        "manifest no longer lists them. Either the law changed and this list must follow, or the manifest lost " +
+        "an entry the build claims to be waiting on.",
+    );
+    process.exit(1);
+  }
   const r = verifyManifest(manifest);
   if (r.pending.length > 0) {
     console.warn(`PENDING FIXTURES (${r.pending.length}) — not yet vendored; sources are engagement-workspace manifest refs; legacy-export path is [CONFIRM]:`);
