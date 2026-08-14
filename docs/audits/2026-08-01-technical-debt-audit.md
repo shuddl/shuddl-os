@@ -663,6 +663,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 885 | §1438 | **§1439** | **APPLIED THE EXEMPLAR SHAPE TO MY OWN FLOORS.** §1438 ended with a conclusion rather than a fix — *the fix is that shape, already in the repo as a model* — and naming a shape without adopting it is the cheapest kind of finding. The model (`coverage.test.ts:103`) is three clauses that each do work: **the LIVE COUNT** (so a collapse from 289 to 30 is legible even though 30 passes) · **the INTENT** (*a tripwire for a broken read*, so nobody reads it as coverage) · **why it is LOOSE** (*not a row-count assertion that has to be maintained*, so nobody tightens it into a figure that fails on ordinary growth). **Six floors in my gates lacked at least one clause; all six now carry all three** — gate-roster gates (18) · gate-roster test files (~410) · pathspec occurrences (64) · pathspec unique (36, *both stated so neither drifts into the other's role — §1437's exact defect*) · law-enforcers numbered rules (10) · strip-struck citations (182/154, *the records grow every phase and this must not need editing*). **`law-enforcers` is the one that changes a reader's behaviour: a floor of 5 against ten rules looks negligent until you know the EXACT comparison sits in the next `it()` — a loose floor beside a strict one is a DESIGN, and reads as an oversight unless it says so.** Mutation-proved that nothing was softened: messages grew, assertions did not |
 | 886 | §1439 | **§1440** | **BACK TO THE PRODUCT — THE OFFLINE DURABILITY CONTRACT, BROKEN ON PURPOSE.** Several phases had drifted into prose on my own instruments; this returns to a guarantee about physical reality: **a signed capture taken in airplane mode must survive a tab-kill.** `driver-core/src/queue.ts` states it as a port contract (*"`put`/`remove` MUST resolve only AFTER the write is durable … a tab-kill would lose a signed airplane-mode POD"*), and `idb-queue-store.ts` honours it by resolving on `tx.oncomplete` (COMMIT) rather than `req.onsuccess` (earlier, and meaningless for durability). **The distance between those two callbacks is the whole guarantee, and it is one identifier wide.** Renamed one of three `oncomplete` hooks: **`idb-durability` reds 1** (*"no readwrite transaction resolves before its commit"*) **and the driver suite reds 3** — four tests across two layers, and neither alone would be conclusive (a static gate can be satisfied by a comment; behavioural tests can pass against an eagerly-resolving fake). Both layers reach the merge gate by different routes (`test:tools` and the recursive half, aggregated by §1427's non-short-circuiting OR). **The gate that catches it was added at §1248 after measuring that "nothing pinned that" — the rule had lived as a comment in two files, and the only reason it is enforced is that someone asked what would notice** |
 | 887 | §1440 | **§1441** | **THE MONEY LAW'S HALF-UP RULE WAS ENFORCED IN ONE COPY OF TWO.** §1440's frame — *which guarantees are one identifier wide?* — applied to monetary rounding, the ternary deciding whether an interline share is 3703 or 3704 cents. **Replaced with plain truncation (one token): the ledger suite reported 728 PASSED.** §389 applied before calling it a gap: the rule has TWO implementations BY DESIGN (the rater is a domain engine above the ledger; neither may import the other). **Rater copy → 4+ RED** incl. the exact-half cases; **ledger copy → silent**, because its ONE caller is a storage-cost estimate. So the money that matters is defended — **what was missing is one probe corpus fed through BOTH, which is precisely what this repo's own `share-lint-matchers-with-parity-tests` skill exists to add.** Two declared mirrors, nothing asserting they agree. Added `money-halfup-parity.test.ts`: agreement on nine boundary triples · **the PROPERTY not just agreement** (agreement alone is satisfied by two identically-broken copies) · identical refusals on float/negative/zero-divisor. Mutation-proved against the copy 728 tests could not see. **Honest severity: nothing financial rides on the ledger copy TODAY — the argument is "yet", and that the mirrors are a documented promise nothing was keeping.** First product-side gap in ten phases |
+| 888 | §1441 | **§1442** | **THE PLATFORM-TENANT GUARD IN THREE WORKERS WAS DEFENDED BY NOTHING.** Counted §1441's class by a MECHANICAL signature (the same exported name defined in two packages) after abandoning a prose sweep for *"mirror"* — **133 files, 394 mentions**, the English-boundary problem §1399 describes. **13 duplicated exported names; four carry a parity test.** The one that mattered: `resolveTenantDb`, **four definitions**, REQ-025's subject. Diffed rather than assumed — **3 of 4 byte-identical**, api's differing CORRECTLY (`ApiError` 403, it is the HTTP surface). Shared property: `if (isPlatformTenant(slug)) throw`. **Deleted it in each of the three worker copies — every suite stayed GREEN (140, 74, 129).** §389 applied, and this time the answer was GAP: `api` has **16** `isPlatformTenant` mentions across four files; `agents`/`billing`/`translator` have **3 each, all in `tenants.ts`, with NO earlier layer** — that one line is all that stands between a queue/cron/EDI-borne `_platform` slug and the **control-plane database**. Closed with a pin per worker + its positive half; **mutation-proved: removing the guard now reds exactly one case per worker, where the same deletion was previously invisible across 343 tests.** **A suite that RUNS is not a suite that COVERS** |
 | 856 | §1409 | **§1410** | **SWEEPING MY OWN SECTIONS FOR §1409's ERROR, AND A DETECTOR THAT COULD NOT HAVE FOUND IT.** §1404's precedent: a class like this gets ONE measurement, not a gate, since a correction necessarily quotes what it corrects. **The first sweep returned ZERO and was worthless** — it extracted superseded text as `~~struck~~` only, but the very case §1409 found is marked the other way, as *"a 16-step chain …"* **until audit §1029**. **My detector encoded one of the repo's TWO conventions, so it could never have found the known positive.** Twelfth instance of the session's constant, caught because a zero is the answer this session has learned never to accept. **A second false signal inside the control:** asking *"is it inside `~~…~~`?"* with `~~[^~]*16-step` returned True — because an unrelated `~~` sits earlier and `[^~]*` spanned the gap. **A regex answering "is X inside a delimiter" by searching for the delimiter anywhere before X will say yes to the whole file.** Re-run over both conventions: **109 superseded passages, zero quoted without a marker** — and that zero is worth something, because the corrected detector demonstrably flags a reconstruction of §1408's sentence. **§1409's error was singular, not a habit** |
 | **855** | §1408 | **§1409** | **I QUOTED STRUCK TEXT AS CURRENT, AND THE REPO HAD SOLVED IT 380 SECTIONS EARLIER.** §1408 cited CLAUDE.md's account of `verify:dev` as *"a 16-step chain … reaches 4 of 16"*. Measured: **18 steps**. **But the drift is my quotation's, not the law's** — CLAUDE.md's current text says that reading held *"until audit §1029"*, was *"invalidated hours later by `7b61624`"*, and that **the total is stated no longer, only the position that matters: step 4, and nothing after it**. I quoted the struck half of a correction as the claim. **Eleventh measurement error, and the first where the artifact had already anticipated the failure I was about to report.** **§1029's move is exactly §1402's, reached 373 sections apart and independently:** faced with a number that rots, REMOVE the number and keep the invariant. A convention arrived at twice from opposite ends of the record is the closest this audit has to a law about documentation. Substantively: `verify:dev` is still an unaggregated `&&` chain at 18 steps, and that is **not** a defect — CLAUDE.md documents it, names `verify:merge` as the real verdict, and `wp-exit-audit.test.ts:19` records that a naive matcher yields *"4 of 16"* and *"reads as a serious constitutional finding and is an artifact"*. **Tenth clean negative** |
 | 854 | §1407 | **§1408** | **VERIFYING MY OWN DELIVERABLE IS WIRED, BY THE STANDARD §1304 SET.** Five gates were built this session and each reported as working; §1304's standard is **verified WIRED before the board is read**, because a gate that runs when I invoke it and not when CI does is decoration with a green tick. **First measurement said ZERO** — searching the merge log for the five names returns 0 mentions each, which reads as "they never ran". It is the §1362 reporter difference: the tools suite runs under vitest v4 (summary only) while worker suites at v3.2.7 print per-file. The same run reports **125 files passed**, 120 + 5. **Tenth measurement error avoided by not believing a zero.** Measured properly three ways: `vitest list` shows **21 cases** across the five; `run-gate.ts:46` wires `unit-tests` to the `test` script; and `test` is `test:tools; t=$?; … ; exit $(( t \|\| p ))`. **Proved end-to-end:** breaking `law-enforcers` makes `pnpm test:tools` exit 1, which propagates. Also worth noting: that script AGGREGATES rather than `&&`-chains — the defect CLAUDE.md records for `verify:dev`, which reaches 4 of 16 steps |
@@ -83434,3 +83435,56 @@ byte-identical to HEAD after their mutations. Board unchanged from §1428's full
 0 FAIL · 5 BLOCKED, all owner-held, repo-owned failure set empty. Carry-forward unchanged and entirely
 owner-held: vendor the nine private fixtures + `IDENTITY_DENYLIST` · commit the `genesis/09` rows · the five
 filed operational REQ rows and the `quote.priced` / `SERVER_EMITTED_KINDS` decision.
+
+## §1442 — PHASE GATE: the platform-tenant guard in three workers was defended by nothing
+
+§1441's find came from a mechanical signature — **the same exported name defined in two packages** — so this
+phase counted the class instead of chasing another instance. (A prose sweep for *"mirror"* was tried first and
+abandoned: **133 files, 394 mentions**, spanning everything from a duplicated algorithm to a shared style.
+That is the English-boundary problem §1399 describes; the name-collision signature has no such boundary.)
+
+**13 exported function names are defined in more than one package.** Four already carry a parity test. The one
+that mattered is `resolveTenantDb` — **four definitions**, and it is REQ-025's subject.
+
+**Diffed rather than assumed: 3 of 4 are byte-identical**; `workers/api`'s differs *correctly*, throwing
+`ApiError("FORBIDDEN", 403)` because it is the HTTP surface. The property all four share is one line:
+
+```ts
+if (isPlatformTenant(slug)) throw new Error(`UNKNOWN_TENANT: ${slug}`);
+```
+
+**Deleted it in each of the three worker copies. Every suite stayed green — 140, 74, 129 passed.**
+
+**§389 applied before calling it a gap, and this time the answer was "gap".**
+
+| worker | `isPlatformTenant` mentions in `src/` | earlier layer? |
+|---|---|---|
+| `api` | **16**, across `sequencer.ts`, `provision.ts`, `routes/signup.ts`, `tenants.ts` | yes — genuine defence in depth |
+| `agents` · `billing` · `translator` | **3 each, all in `tenants.ts`** | **none** |
+
+So in those three workers that one line is the ONLY thing standing between a queue-, cron- or EDI-borne
+`_platform` slug and the **control-plane database** — and nothing was watching it. Not a live vulnerability:
+the guard is present and correct. An **undefended** one, which is exactly how it would leave in a refactor
+that "simplified" three identical functions.
+
+**Closed with a pin per worker**, plus its positive half so the rejection case cannot pass by throwing on
+everything:
+
+```ts
+await expect(resolveTenantDb({} as never, PLATFORM_TENANT_ID)).rejects.toThrow(/UNKNOWN_TENANT/);
+```
+
+**Mutation-proved in all three:** removing the guard now reds exactly one case per worker (17→16, 16→15,
+13→12). Before this phase the same deletion was invisible across 343 tests.
+
+**Why this one is the block's most consequential product finding.** REQ-025 makes a cross-tenant read a build
+failure and CLAUDE.md rule 8 runs the isolation suite on every merge — and the isolation suite's own roster
+(§1423, where removing a member reds three cases) does not reach a guard that no test exercises. **A suite
+that runs is not a suite that covers**, and the distance between those two facts is where this sat.
+
+**Phase gate.** 131 tools files / 1,410 tests green; the three worker suites now 17/16/13; all three
+`tenants.ts` verified byte-identical to HEAD after mutation. Board unchanged from §1428's full run at
+`53cdc23` — 21 PASS · 0 FAIL · 5 BLOCKED, all owner-held, repo-owned failure set empty. Carry-forward
+unchanged and entirely owner-held: vendor the nine private fixtures + `IDENTITY_DENYLIST` · commit the
+`genesis/09` rows · the five filed operational REQ rows and the `quote.priced` / `SERVER_EMITTED_KINDS`
+decision.

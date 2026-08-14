@@ -9,6 +9,7 @@ import { usageCreditsId as contractsUsageCreditsId } from "@shuddl/contracts";
 import controlSql from "../../../db/control/migrations/0001_control.sql?raw";
 import { applyTenant, seedRun } from "./helpers.js";
 import { stripComments } from "../../../tools/checks/strip-comments.js";
+import { PLATFORM_TENANT_ID, isPlatformTenant } from "@shuddl/contracts";
 
 // 2026-08-02 audit §13 — the billing port shipped in 29efbfa with ZERO tests, and its own source header
 // claimed a parity pin that did not exist. Reverting the metering fan-out left all 45 billing tests green:
@@ -228,5 +229,24 @@ describe("REQ-278: a per-tenant metering failure is contained, not fatal to the 
     // would land after every other tenant had been swept. Pinning the order keeps that degradation loud.
     expect(TENANT_SLUGS[0], "poisoning TENANT_A_DB no longer targets the first-swept tenant").toBe("tenant-a");
     expect(TENANT_SLUGS.length, "a single-tenant roster makes continuation unobservable").toBeGreaterThanOrEqual(2);
+  });
+
+  // §1442 (REQ-025 / CLAUDE.md rule 8) — THE PLATFORM TENANT IS NOT RESOLVABLE FROM THIS WORKER.
+  //
+  // `resolveTenantDb` opens with `if (isPlatformTenant(slug)) throw` — and MEASURED at §1442, that guard was
+  // the ONLY `isPlatformTenant` reference in this entire worker's src, with no earlier layer behind it. The
+  // api worker has sixteen mentions across four files; these three workers have three mentions in one file.
+  // Deleting the guard left this suite fully green, so the one thing standing between a queue/cron/EDI-borne
+  // `_platform` slug and the CONTROL-PLANE database was defended by nothing.
+  //
+  // Not a live vulnerability — the guard is present and correct. An undefended one, which is how it leaves.
+  it("§1442 REQ-025: resolveTenantDb REFUSES the reserved platform tenant", async () => {
+    await expect(resolveTenantDb({} as never, PLATFORM_TENANT_ID)).rejects.toThrow(/UNKNOWN_TENANT/);
+  });
+
+  it("§1442: and still resolves a real claimed slug (so the case above cannot pass by throwing on everything)", () => {
+    // The positive half. Without it, deleting the whole function body would satisfy the rejection test.
+    expect(isPlatformTenant(PLATFORM_TENANT_ID)).toBe(true);
+    expect(isPlatformTenant("tenant-a")).toBe(false);
   });
 });

@@ -6,6 +6,7 @@ import type { AgentsEnv } from "../src/tenants.js";
 import { applyControl, seedControlTenant } from "./helpers.js";
 import indexSrc from "../src/index.ts?raw";
 import { stripComments } from "../../../tools/checks/strip-comments.js";
+import { PLATFORM_TENANT_ID, isPlatformTenant } from "@shuddl/contracts";
 
 // 2026-08-01 audit C3, the resolver half (the retry-toward-DLQ hardening landed first): the agents worker
 // could not serve CLAIMED POOL tenants — the api worker + sequencer DO resolve them, so their committed
@@ -181,5 +182,24 @@ describe("source-level pins — no sweep may regress to the static roster (REQ-1
     const apiProvision = (await import("../../api/src/provision.ts?raw")).default as string;
     const apiPools = [...apiProvision.matchAll(/"(TENANT_POOL_[0-9]+_DB)"/g)].map((m) => m[1]).sort();
     expect([...new Set(apiPools)]).toEqual([...POOL_BINDINGS].sort());
+  });
+
+  // §1442 (REQ-025 / CLAUDE.md rule 8) — THE PLATFORM TENANT IS NOT RESOLVABLE FROM THIS WORKER.
+  //
+  // `resolveTenantDb` opens with `if (isPlatformTenant(slug)) throw` — and MEASURED at §1442, that guard was
+  // the ONLY `isPlatformTenant` reference in this entire worker's src, with no earlier layer behind it. The
+  // api worker has sixteen mentions across four files; these three workers have three mentions in one file.
+  // Deleting the guard left this suite fully green, so the one thing standing between a queue/cron/EDI-borne
+  // `_platform` slug and the CONTROL-PLANE database was defended by nothing.
+  //
+  // Not a live vulnerability — the guard is present and correct. An undefended one, which is how it leaves.
+  it("§1442 REQ-025: resolveTenantDb REFUSES the reserved platform tenant", async () => {
+    await expect(resolveTenantDb({} as never, PLATFORM_TENANT_ID)).rejects.toThrow(/UNKNOWN_TENANT/);
+  });
+
+  it("§1442: and still resolves a real claimed slug (so the case above cannot pass by throwing on everything)", () => {
+    // The positive half. Without it, deleting the whole function body would satisfy the rejection test.
+    expect(isPlatformTenant(PLATFORM_TENANT_ID)).toBe(true);
+    expect(isPlatformTenant("tenant-a")).toBe(false);
   });
 });
