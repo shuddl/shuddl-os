@@ -680,6 +680,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 902 | §1455 | **§1456** | **AN OWNER-HELD DECISION WHOSE COST ESTIMATE HAD QUIETLY EXPIRED.** Every phase gate in this block named *the `quote.priced` / `SERVER_EMITTED_KINDS` decision*; what the owner decides is not the DEFECT but the TRADE, **and a trade has two sides that decay independently.** **Defect side unchanged and live:** the set still holds exactly five kinds and not `quote.priced`, while its own comment claims these are appended *"ONLY through server-internal seams … and the Rater"* — a hand-crafted `quote.priced` passes all eight guard checks for ops/admin, bypassing the rater, REQ-040's floors and the anomaly detector, and §1102 established the Biller bills the RECORDED basis. **Cost side EXPIRED:** §1125 recorded *"one line and breaks nothing in-repo"*; applied at HEAD it breaks **three** — all *"Task 7 — booking quote authority (REQ-031/003)"*, which SEED their scenarios by appending a `quote.priced` through the very route the fix closes. All three are test SETUP, not product behaviour; the fix is still correct and still one line, but its cost went from **zero to three test-setup migrations**. Struck and corrected in place; **not applied** — §1125's reason is unchanged and the owner rules. **A carried row states a DEFECT and a COST; the COST is the half that decays** — nine phases restated this row and none re-ran the one command that would have caught it |
 | 903 | §1456 | **§1457** | **THE SECOND CARRY-FORWARD COST, MEASURED — THE REGISTER ROWS ARE NOT BOOKKEEPING.** §1456 found the COST is the half that decays; applied to *"commit the `genesis/09` rows"*, which nine phases restated as though it were filing. **It is not.** Four uncommitted rows, every one already annotated in code: REQ-289 **11 annotations at HEAD, no row** · REQ-290 1 · REQ-291 **0 at HEAD but 3 in the working tree** · REQ-292 1. **With the register at its COMMITTED state, `check:traceability` FAILS:** *"built-but-unspec'd: REQ-292, REQ-291, REQ-290, REQ-289"* — §1432's direction B firing on four ids at once. **The board is green only because the working tree carries the rows the commits do not** — the same condition the 2026-08-09 board recorded for ONE row, now four. **Scope stated:** I compared the committed register against working-tree code; measuring HEAD alone would mean stashing another author's twelve dirty files, which is not a trade I will make. **The item's real content: the rows and their code must land TOGETHER** — committing the register alone fixes REQ-289 and leaves REQ-291 spec'd-but-unbuilt. Two of four carry-forward costs now measured; the other two are owner-side inputs I cannot cost from here, and saying so beats estimating |
 | 904 | §1457 | **§1458** | **REFINING "CANNOT MEASURE" — THE FIXTURES ARE OWNER-SIDE, THE MACHINERY IS NOT.** §1457 said the remaining carry-forward costs are *owner-side inputs whose cost I cannot measure* — true of the INPUT, **false of the CONSUMER**, and code that has never executed is dark code whose first run becomes the owner's problem at the worst moment. **Question: when the nine fixtures land, do they land on a harness that works?** Answered well by someone before me: `parity.harness.test.ts` exercises the runner with a SYNTHETIC stand-in whose cases *"live INLINE here, never under `fixtures/`, so they can never masquerade as vendored engagement data"*, and whose stated point is to *"prove `runParity` actually CATCHES a divergence … not merely that it rubber-stamps a match"*. **Verified by mutation, not by reading the header:** disabling the status-divergence check reds *"catches a PRICED-vs-UNKNOWN status divergence"*. **So all five BLOCKs are waiting on DATA and every mechanism behind them has been exercised** — identity detects (§1434), fixtures escalate BLOCKED→FAIL on a corrupted hash (§1423), parity catches divergence (§1458). **"Owner-side" describes who supplies the input, not who bears the risk: split the item — the INPUT is theirs, the CONSUMER is mine and entirely measurable** |
+| 905 | §1458 | **§1459** | **IDEMPOTENCE ANSWERS CORRECTNESS, NEVER COST.** Re-measured the last unmeasured carry-forward item (the five filed operational rows) on its DEFECT side. Three record claims hold at HEAD (`[limits] subrequests` absent from all 9 tomls; 5 static `prepare()`; the `import.ts` scoping is correct — `intake.ts` is a single-shipment POST, not a fourth name-scoping error). **Two corrections:** a static `prepare()` count is not an execution count — `findOrCreateParty`'s two SELECTs are `if/else` arms, so it executes 2, not 3. And the row's own *"a retry MAY progress"* resolves to **partially, and not in the phase that matters**: the party phase has a cheap found-path (`intake-core.ts:59@existingId`), the shipment phase has NO resume point, so it re-pays 2/row from row 0 on every attempt — the import completes iff it fits in ONE invocation. Headline restated: the shipment loop alone is 10,000 at `MAX_ROWS`, exactly the Paid ceiling. |
 | 856 | §1409 | **§1410** | **SWEEPING MY OWN SECTIONS FOR §1409's ERROR, AND A DETECTOR THAT COULD NOT HAVE FOUND IT.** §1404's precedent: a class like this gets ONE measurement, not a gate, since a correction necessarily quotes what it corrects. **The first sweep returned ZERO and was worthless** — it extracted superseded text as `~~struck~~` only, but the very case §1409 found is marked the other way, as *"a 16-step chain …"* **until audit §1029**. **My detector encoded one of the repo's TWO conventions, so it could never have found the known positive.** Twelfth instance of the session's constant, caught because a zero is the answer this session has learned never to accept. **A second false signal inside the control:** asking *"is it inside `~~…~~`?"* with `~~[^~]*16-step` returned True — because an unrelated `~~` sits earlier and `[^~]*` spanned the gap. **A regex answering "is X inside a delimiter" by searching for the delimiter anywhere before X will say yes to the whole file.** Re-run over both conventions: **109 superseded passages, zero quoted without a marker** — and that zero is worth something, because the corrected detector demonstrably flags a reconstruction of §1408's sentence. **§1409's error was singular, not a habit** |
 | **855** | §1408 | **§1409** | **I QUOTED STRUCK TEXT AS CURRENT, AND THE REPO HAD SOLVED IT 380 SECTIONS EARLIER.** §1408 cited CLAUDE.md's account of `verify:dev` as *"a 16-step chain … reaches 4 of 16"*. Measured: **18 steps**. **But the drift is my quotation's, not the law's** — CLAUDE.md's current text says that reading held *"until audit §1029"*, was *"invalidated hours later by `7b61624`"*, and that **the total is stated no longer, only the position that matters: step 4, and nothing after it**. I quoted the struck half of a correction as the claim. **Eleventh measurement error, and the first where the artifact had already anticipated the failure I was about to report.** **§1029's move is exactly §1402's, reached 373 sections apart and independently:** faced with a number that rots, REMOVE the number and keep the invariant. A convention arrived at twice from opposite ends of the record is the closest this audit has to a law about documentation. Substantively: `verify:dev` is still an unaggregated `&&` chain at 18 steps, and that is **not** a defect — CLAUDE.md documents it, names `verify:merge` as the real verdict, and `wp-exit-audit.test.ts:19` records that a naive matcher yields *"4 of 16"* and *"reads as a serious constitutional finding and is an artifact"*. **Tenth clean negative** |
 | 854 | §1407 | **§1408** | **VERIFYING MY OWN DELIVERABLE IS WIRED, BY THE STANDARD §1304 SET.** Five gates were built this session and each reported as working; §1304's standard is **verified WIRED before the board is read**, because a gate that runs when I invoke it and not when CI does is decoration with a green tick. **First measurement said ZERO** — searching the merge log for the five names returns 0 mentions each, which reads as "they never ran". It is the §1362 reporter difference: the tools suite runs under vitest v4 (summary only) while worker suites at v3.2.7 print per-file. The same run reports **125 files passed**, 120 + 5. **Tenth measurement error avoided by not believing a zero.** Measured properly three ways: `vitest list` shows **21 cases** across the five; `run-gate.ts:46` wires `unit-tests` to the `test` script; and `test` is `test:tools; t=$?; … ; exit $(( t \|\| p ))`. **Proved end-to-end:** breaking `law-enforcers` makes `pnpm test:tools` exit 1, which propagates. Also worth noting: that script AGGREGATES rather than `&&`-chains — the defect CLAUDE.md records for `verify:dev`, which reaches 4 of 16 steps |
@@ -84189,3 +84190,72 @@ unexamined, and that half is the one that turns a five-minute vendoring into a b
 mutation. 132 tools files / 1,413 tests green. Board: **21 PASS · 0 FAIL · 5 BLOCKED at `b451f43`** (§1451, 7
 commits ago). Carry-forward unchanged, with the fixture item now qualified: **the consumers are proven**. One
 watch item stands (§1443).
+
+## §1459 — PHASE GATE: idempotence answers correctness, never cost — the import row's own flagged unknown, answered
+
+§1458 split a carry-forward item into an owner-side INPUT and a repo-side CONSUMER, and found the consumer
+measurable. The last unmeasured item is *the five filed operational REQ rows*. Their **fix** is genuinely
+owner-side — a page size changes sweep semantics, so `LIMIT` needs a register row before it can be built. Their
+**defect** is repo-side, and one of them names an unresolved question in its own text:
+
+> a retry **MAY** progress if `findOrCreateParty` takes a cheaper found-path on rows already created
+
+"MAY" is the tell. That word decides whether a failed migration import — *the first thing a new tenant does* —
+can ever complete, and it is a fact about a function in this repo.
+
+**First, three claims the rows rest on, re-measured at HEAD** (`record-holds-with-expiry-triggers`: only
+repo-owned rows can go stale, so they are the only ones worth re-verifying):
+
+| Claim, as written | Verdict at HEAD |
+|---|---|
+| *"no worker sets `[limits] subrequests`"* — load-bearing for all four ceiling rows | **TRUE.** 9 tracked wrangler tomls, not one has a `[limits]` block |
+| *"`findOrCreateParty` carries 3 `prepare()` calls and `materializeShipment` 2"* | **TRUE as a static count** — `intake-core.ts` holds exactly 5 |
+| the row is scoped to `import.ts`, but both verbs are SHARED with `intake.ts` | **Correctly scoped** — `intake.ts` is a single-shipment POST, one call each, no loop. Not an instance |
+
+The third was a hypothesis that the row had made its scoping error a fourth time (it was corrected three times,
+each time because the enumeration was scoped by a NAME). It had not. Clean negative, and worth the two minutes:
+a shared module is exactly where a name-scoped row goes wrong.
+
+**The correction: a static `prepare()` count is not an execution count.** The two SELECTs in `findOrCreateParty`
+are the arms of an `if/else` — an email lookup and a name lookup — so exactly ONE runs. The function executes
+**2** subrequests on the create path and **1** on the found path, never 3. The row multiplied a grep count into
+a budget. `materializeShipment`'s 2 are both unconditional, so that half was right.
+
+**The answer to "MAY": partially, and not in the phase that matters.** There IS a cheap found-path —
+`intake-core.ts:59@existingId` returns the moment the lookup hits, so a party that already exists costs 1 instead of 2. But
+the shipment loop has **no resume point**. `import.ts:145@shipments` calls `materializeShipment` for every parsed row
+unconditionally, and `materializeShipment` spends its FK `SELECT` *before* reaching the `INSERT OR IGNORE` that
+would be the no-op. So the shipment phase costs **2 per row on every attempt, from row 0, forever**. Retrying
+makes the party phase cheaper and the shipment phase not at all — which means the import completes **iff it fits
+in one invocation**, and past that no number of retries gets there.
+
+That also gives the row a defensible headline in place of its "10,000–25,000": **the shipment loop alone is
+`2 × N_shipments`, which at `MAX_ROWS = 5000` is exactly 10,000 — the Paid default ceiling — with parties and gap
+rows still to pay.** Lower per-row than the row claimed, worse in outcome. Precision moved in both directions,
+which is what a re-measurement is for.
+
+**The general form.** The row offered its determinism as mitigation: *ids are deterministic … so a retry is
+idempotent*. True, and irrelevant to the failure being mitigated. **Idempotence is a statement about
+CORRECTNESS: a retry does no harm. It says nothing about COST: a retry does no less work.** For a budget
+failure only the second matters, and the two get conflated because "safe to retry" sounds like "retrying
+helps". The discriminator is mechanical and takes one read: *does the second attempt SKIP anything?* Here the
+party phase does and the shipment phase does not, and no amount of deterministic id derivation changes that —
+the skip has to exist in the CALLER, before the subrequest is spent, not in the storage verb that swallows it.
+
+**Phase gate.** No source changed — every finding is in the record, which is where this row's defect lives; the
+fix remains owner-side and register-gated (`import.ts` needs a page bound, which needs a REQ row). GO-LIVE row
+L433 updated with the executed-count correction, the resolved "MAY", and the 10,000 figure. Board unchanged from
+§1451's run: **21 PASS · 0 FAIL · 5 BLOCKED at `b451f43`**, 8 commits ago; the tree carries the concurrent
+author's `apps/**`, `genesis/09`, `tools/traceability/*` and `tools/seed` edits, none of them mine
+(`measure-against-a-known-tree-state`). Carry-forward: the four owner-side items stand, and the operational-rows
+item is now **defect-side measured** — the last of the four to get one.
+
+**Three gates caught THIS section while it was being written**, which is worth recording because all three
+defects were in the record, the artifact this phase was supposedly improving: the citation ratchet refused two
+bare line numbers into `intake-core.ts` (a high-churn file — anchored to `:59@existingId` and `:145@shipments`,
+content-anchored citations 349 → 354); `ledger-status-vocabulary` refused a status cell that said both **OPEN**
+and **RESOLVED**, because the row is still open and only its *unknown* was answered — two verdicts in one cell
+make the ledger countable two ways; and `phase-index` refused the section itself, because the heading did not
+carry the literal `— PHASE GATE` token and so would have been indexed as a gate that the doc did not contain.
+Convention breaks, every one, by the author who has written fifty of these. That is the argument for mechanical
+gates over remembered conventions, made against me rather than for me.
