@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| **827** | §1380 | **§1381** | **STOPPING POINT — FOUR ROSTERS STANDING, AND THE CLASS AT ZERO.** Measured at `6aa3dc2` after nine phases touching merge-set gates and a constitutional suite: **21 PASS · 0 FAIL · 5 BLOCKED**, **4,771 tests** (was 4,761), zero failing suites, same owner-held five. **One finding touched a constitutional guarantee** — §1375's isolation-suite double, keyed on the bare event id where production keys on (tenant\|stream), so it could swallow a cross-tenant append in the file whose whole purpose is REQ-025. **No leak existed; a detector for one was blind** — the same exposure-vs-violation distinction §1369 drew, and the reason these findings matter: a blind detector becomes a false clean, the only defect that stops anyone looking. **Four derived rosters now stand** (`dark-stub-roster`, `git-glob-toplevel`, `collapsing-doubles`, `fixed-window-verdicts`), each replacing a rule that had failed by attention — and **three of the four found something on their first run that my hand-scan had missed.** Seven short hand-counts this session, every one from encoding a surface form instead of the behaviour; the answer was gates, not care. Phase gate: 5 triggers, two of them new |
 | 826 | §1379 | **§1380** | **THE LAST SILENT WINDOW CLOSED — AND THREE MIS-AIMED MUTATIONS BEFORE THE REAL ONE.** §1379 named `api-conventions`' 16-line window as the entire remaining population of the silent-direction hazard. §1339 had measured its margin (two fetch sites 20 lines apart against a 16-line reach) and deferred the fix; **a 4-line margin is not a guarantee, it is a coincidence with a good track record.** Closed by delimiting the call at its own closing parenthesis — both directions become IMPOSSIBLE rather than measured. **Three mutations returned GREEN before the real one**, each of which would have read as "the gate is blind": one hit `transport.test.ts` (the scan excludes `.test.`), one hit the first `redirect:` in the file, which is in a COMMENT at line 11. The fourth deleted the CODE policy at :52 and RED the correct site — **and the neighbour's policy at :72 did NOT satisfy it**, measuring over-reach closed. **The lesson is narrower than §1363's "check the mutation applied":** all three no-ops DID apply, a file changed each time; they failed because what they changed was not a SUBJECT of the gate. Ask whether the edit is inside the corpus AND load-bearing there. The roster's positive control had to MOVE because its subject was fixed — entries leave by being delimited, never excused. **Zero fixed-window verdicts with a silent direction now remain in the tooling** |
 | 825 | §1378 | **§1379** | **FIXING WHAT §1378 ONLY DECLARED — AND THE COUNTERFACTUAL CORRECTING MY OWN SEVERITY.** Declaring is not fixing, and one of §1378's three had a SILENT direction on a security-relevant surface: `cors-origin-parity` decided whether a route is a browser origin by scanning **3 lines** for `custom_domain = true`, so a route whose flag sat lower was SKIPPED and its origin never checked against the CORS allowlist. Its comment justified the reach with *"sits directly beneath its pattern in every app config"* — a claim about FORMATTING. Fixed structurally (a TOML table ends at the next `[`). **The counterfactual corrected my severity:** padding the driver config 5 lines and reverting the reach REDs — but on the file's own POSITIVE CONTROL (*"no custom_domain route found for the driver surface"*), so the under-reach was silent only for routes NOT named by a control. §1378's flat "SILENT" was too strong; a two-line experiment turned a claimed severity into a measured one, before publishing rather than after. **The declaration is DELETED, not amended** — an entry records an assumption still being made, and §1378's staleness case is what forced the fix to be complete. Two windows remain, of which `api-conventions` is now the entire population of the silent-direction hazard |
 | 824 | §1377 | **§1378** | **ENFORCING §1339 — AND THE GATE TAUGHT ME A CATEGORY ON ITS FIRST RUN.** §1377 said §1339 stopped at *documented* and that the skipped step cost two windows; writing that and not enforcing it would be the same mistake a third time. `fixed-window-verdicts.test.ts` is the fourth derived roster (after §1366, §1370, §1376), scoped narrowly to `slice(X, X + <literal>)` — the exact shape of both regressions — with a **negative control** pinning that structural `slice(a, b+1)` is NOT flagged, because a noisy gate here becomes an exemption farm (§1360). Each declaration names what the window decides and BOTH failure directions: `api-conventions` is silent on OVER-reach, **`cors-origin-parity` is silent on UNDER-reach — a `custom_domain` two lines too low means the route is SKIPPED and its origin never checked against the CORS allowlist**, on a comment asserting adjacency 'in every app config', which is a claim about FORMATTING. **The gate found a site my manual triage missed on its first run** (seventh short hand-count this session), and reading it taught me a third category: an ANCHORED consumer makes the span SLACK, not reach, so over-reach is IMPOSSIBLE. My own assertion rejected that word; I widened the classification rather than force a lie. **A gate that teaches its author a distinction is doing what prose cannot — prose records what I already believed.** Mutation-proved with a planted 9-line window in a TRACKED file |
@@ -80561,3 +80562,63 @@ slack behind a `^` anchor and whose both directions were already IMPOSSIBLE.
 Verification: `api-conventions` 6/6; the deleted-policy mutation REDs the correct site; `fixed-window-verdicts`
 5/5 after both the deletion and the control's move; `transport.ts` restored with both code policies asserted
 present; lint 0, typecheck 0.
+
+## §1381 — PHASE GATE / STOPPING POINT: four rosters standing, and the class at zero
+
+**Measured at `6aa3dc2`**, after nine phases that touched gates inside the merge set and one constitutional
+suite. §1371's rule applies to itself: a board measured before those changes says nothing about the tree after.
+
+| | §1371 (`a5f3296`) | §1381 (`6aa3dc2`) |
+|---|---|---|
+| PASS | 21 | **21** |
+| FAIL | 0 | **0** |
+| BLOCKED | 5 | **5** (the same owner-held five) |
+| tests passed | 4,761 | **4,771** |
+| suites failing | 0 | **0** |
+
+**WHAT §1372–§1380 CLOSED.** One finding in this stretch touched a constitutional guarantee; the rest were
+instruments, continuing §1371's ratio:
+
+| § | finding | kind |
+|---|---|---|
+| 1372 | §1369 named three gates as blind that never were | **correction to my own record** |
+| 1373 | a test double hid the subrequest cost §1361's hazard is about | instrument |
+| 1374 | §1066's fifteen-double sweep never contained `RecordingSeq` | instrument |
+| **1375** | the isolation suite's double could swallow a **cross-tenant** append — keyed on the bare event id where production keys on (tenant\|stream) | **constitutional detector, blind** |
+| 1376 | the doubles roster, derived; my own classifier used a fixed window | instrument + gate |
+| 1377–1380 | the fixed-window class: swept, enforced, then driven to **zero silent instances** | instrument + gate |
+
+**§1375 deserves its own sentence, and an honest one.** No cross-tenant leak existed. What existed was a
+detector for one that could not see it, in the file whose entire purpose is REQ-025. That is the same
+exposure-versus-violation distinction §1369 drew, and it is the distinction that makes these findings worth the
+effort: a blind detector converts silently into a false clean, and a false clean is the only kind of defect that
+stops anyone looking.
+
+**FOUR DERIVED ROSTERS NOW STAND**, each replacing a rule that had failed by attention:
+
+| gate | replaces | proved by |
+|---|---|---|
+| `dark-stub-roster` (§1366) | "count the composition roots" | found a FALSE pin in its first minute |
+| `git-glob-toplevel` (§1370) | "check the pathspecs" | catches a `**` dropping its tree's top level |
+| `collapsing-doubles` (§1376) | §1066's hand-listed fifteen | its staleness case caught my own classifier bug |
+| `fixed-window-verdicts` (§1378) | §1339's documented triage | found a site my triage missed, and taught me a third category |
+
+**THE PHASE GATE — what reopens this block.** Unchanged from §1371 except where noted:
+
+1. **Wiring the legacy feed** REDs `feed-dormancy.test.ts`; the unbounded first sweep is now also pinned by a
+   CALL-count assertion (§1373), so the cost claim is exercised rather than reasoned.
+2. **Wiring the webhook source or transport** REDs `webhook-dormancy.test.ts`.
+3. **Binding `ANTHROPIC_API_KEY` + `ANTHROPIC_MODEL`** flips `conciergeParser`; pinned both ways.
+4. **Vendoring the private fixtures or the denylist** clears the five BLOCKs — still the only path to PROMOTABLE.
+5. **A new collapsing test double** must declare its key (§1376), and **a new fixed-window verdict** must
+   declare both failure directions (§1378) — two triggers that did not exist at §1371.
+
+**THE SESSION'S DURABLE OUTPUT, stated plainly.** Seven hand-counts came up short, every one because a scan
+encoded a surface form of a behaviour — a name, a distance, a glob shape — instead of the behaviour. The
+response was not more care. It was four gates that derive their population from the tree, and the evidence that
+this was the right response is that **three of the four found something on their first run that my hand-scan had
+missed.**
+
+**CARRY-FORWARD (owner-held, unchanged):** vendor the nine private fixtures + `IDENTITY_DENYLIST` · commit the
+`genesis/09` rows · REQ rows for the filed operational items (interline-split marker, split backstop, collector
+page bound, import bound, mirror-sweep page size) · the `quote.priced` / `SERVER_EMITTED_KINDS` decision.
