@@ -25,6 +25,18 @@ describe("REQ-118 §509: §N references resolve", () => {
     expect(findDanglingSectionRefs(docs, canonical)).toEqual([]);
   });
 
+  it("§1415: the corpus includes the non-.ts text files that carry §N pointers", () => {
+    // A COUNT floor cannot catch this. The gate already asserted `docs.length > 50` and passed for months
+    // while reading none of the 74 `§N` pointers in `eslint.config.mjs` — the largest concentration outside
+    // the audit. §1387's rule: floor the INPUT, and name the thing that must be in it. These three are named
+    // individually because each is a different extension family, and losing any one is a silent narrowing.
+    const paths = new Set(loadDocs().map((d) => d.path));
+    for (const f of ["eslint.config.mjs", "genesis/09-REQUIREMENTS-REGISTER.csv", ".github/workflows/ci.yml"]) {
+      expect(paths.has(f), `${f} carries §N references and is no longer in the corpus — the glob narrowed`).toBe(true);
+    }
+    expect(paths.size, "the corpus collapsed — a narrowed glob reports clean").toBeGreaterThan(900);
+  });
+
   it("catches a reference to a section that does not exist", () => {
     const docs = [{ path: "d.md", text: "as §12 shows, and §999 also" }];
     const found = findDanglingSectionRefs(docs, new Set(["12"]));

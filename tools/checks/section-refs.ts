@@ -80,7 +80,16 @@ export const CANONICAL_DOC = "docs/audits/2026-08-01-technical-debt-audit.md";
 // an option's cost is asserted until someone runs it). Source files define no `§N` headings, so they resolve
 // against the canonical audit namespace, which is the correct owner for every reference they carry.
 export function loadDocs(root: string = repoRoot()): { path: string; text: string }[] {
-  const files = execSync('git ls-files "*.md" "*.ts" "*.tsx"', { cwd: root, encoding: "utf8" }).trim().split("\n").filter(Boolean);
+  // §1415 — THE CORPUS, WIDENED. This read `"*.md" "*.ts" "*.tsx"` until a §1415 reference planted in
+  // `eslint.config.mjs` passed the gate silently. That file carries **74** `§N` pointers, the largest
+  // concentration outside the audit itself, and the gate whose only job is resolving those pointers had
+  // never read it. Measured at the widening: 907 files -> 1001, and the only two dangling references in the
+  // 94 new files were the ones this phase had just introduced. The historical content was sound; the gate
+  // simply could not say so.
+  //
+  // Extensions rather than "every tracked file" because the corpus must exclude binaries (a PNG containing
+  // the bytes `§` `1` `2` is not a reference). Any text format that can carry a comment can carry a §N.
+  const files = execSync('git ls-files "*.md" "*.ts" "*.tsx" "*.mjs" "*.cjs" "*.js" "*.json" "*.yml" "*.yaml" "*.sql" "*.toml" "*.csv" "*.sh"', { cwd: root, encoding: "utf8" }).trim().split("\n").filter(Boolean);
   return files.map((path) => ({ path, text: readFileSync(`${root}/${path}`, "utf8") }));
 }
 

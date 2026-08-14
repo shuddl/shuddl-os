@@ -83,6 +83,25 @@ export default tseslint.config(
           selector: 'ImportExpression[source.value=/lumina|Lumina|shuddl-2023/]',
           message: "REQ-163: prior codebases are organ banks — no dynamic import() merges into the spine.",
         },
+        {
+          // §1415 — THE FOURTH ROUTE, and the one the two above cannot see. Both match on `source.value`,
+          // which exists only for a LITERAL specifier. `const s = "@anthropic-ai/" + "sdk"; await import(s)`
+          // has a BinaryExpression source, so `source.value` is undefined and neither selector fires.
+          // MEASURED by planting exactly that: `pnpm lint`, `check:rater-purity`, `check:invariants` and
+          // `check:chokepoint` ALL exited 0 — the only REQ-024 route with no enforcement anywhere.
+          //
+          // The ban is on the FORM, not on a specifier list, because a specifier list is precisely what a
+          // computed expression defeats. Free here, and measured so: `packages/ledger` and
+          // `packages/contracts` contain ZERO dynamic imports of any kind, so this forbids a form nobody
+          // uses rather than breaking a legitimate one. If a pluggable adapter ever needs one, the answer is
+          // a literal specifier per branch — the only shape the two rules above can police either.
+          // Appended to THIS array rather than given its own block: a second block naming
+          // `no-restricted-syntax` for these files would REPLACE these options, not merge (§814/§874/§988).
+          selector: 'ImportExpression[source.type!="Literal"]',
+          message:
+            "REQ-024/REQ-163: a computed import() specifier cannot be statically checked, so it silently " +
+            "leaves the LLM and organ-bank bans above. Use a literal specifier (audit §1415).",
+        },
       ],
 
     },

@@ -636,6 +636,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 858 | §1411 | **§1412** | **THE SAME DUPLICATION IN A DIFFERENT NOTATION.** §1411's real question was not *is that regex used elsewhere* but *what else is a matcher N gates each wrote for themselves*. First answer: **nine hand-rolled `/\/\*[\s\S]*?\*\//g` comment strippers**, carrying §1411's flaw exactly — `/*` inside a STRING opens a swallow to the next `*/`, and **56 files here contain such a string** (largest: 7,783 chars). A correct state machine already existed (`stripComments`, used by law #2's enforcer, never at risk). **Measured: all nine corpora CLEAN — latent, not live**, and recorded at that volume on purpose. **Two wrong measurements on the way, both mine, both inflating:** *"47 files, 37,229 chars blind"* and a false LIVE on `run.ts` — each time I measured **the file containing the call instead of the ARGUMENT to the call**. Fixed by extracting `strip-comments.ts` (re-exported by source-corpus, all nine sites rewired, each also shedding a second hand-written line-comment regex) + a 6-case gate with a **derived, currently EMPTY roster** and a positive control, the one mention excluded BY PATH not by phrase. Matters because the failure is silent in the worst direction: a swallow REMOVES text, so `claimed-tenants`' forbidden reference would vanish and the gate would pass |
 | 859 | §1412 | **§1413** | **§1411 CLOSED THE CLASS AFTER FIXING FIVE OF SEVEN, AND THE SHARED MASK WAS WRONG.** `ledger-status-vocabulary` held two more `~~` masks; §1411's sweep missed them by searching the SHAPE (`[\s\S]`) instead of the BEHAVIOUR (*replaces a `~~` pattern*) — **my own sweep-by-behaviour rule, broken inside the phase about duplicated matchers.** Worse: diffing my mask against the copy it replaced, over 155 real ledger cells, found **my** version wrong. `[^~]*` is safe against runaway but wrong about this repo, which writes `~` for APPROXIMATELY (`~24 guards`, `HEAD~1`): the span fails at its real opener and the engine pairs its CLOSING `~~` with a later marker, so the mask lands elsewhere — **hiding two unstruck citations AND leaving two superseded claims live, both directions at once.** Adopted `~(?=\d)`: 12,908 masked vs 13,462, **154 citations visible vs 152**. Naive repair (*terminate at next `~~`*) rejected — measured **292,699** chars in the audit, §1411's disease at paragraph scale. Roster added: no file re-authors a `~~` MASK (a READ stays legal; discriminator `.replace(`, positive control both ways), mutation-proved. **Three implementations, three distinct defects, all green under the full suite — each found by a diff against real input, never by a test** |
 | 860 | §1413 | **§1414** | **LAW #2's ENFORCER WAS BLIND BEHIND A REGEX LITERAL.** §1413's rule (*diff the survivor against each of the N on real input*) applied to §1412's nine-copy consolidation, which I had verified only by running the suites. The diff disagreed on 3 files, all in the dangerous direction. Cause: **the state machine does not tokenise REGEX LITERALS.** `/evInput\(\s*"([^"]+)"\s*\)/` carries three `"` — odd — so it sits in a phantom string for the rest of the file; harmless alone (strings are KEPT), until the next real quote closes it and a path glob (`"workers/*"`) then reads as `/*` and opens a phantom BLOCK COMMENT to EOF. **Measured with a control: `INSERT OR REPLACE INTO events` behind those two ordinary lines → `check:invariants` exit 0 (BLIND) vs exit 1 caught.** CLAUDE.md law #2 (I3/I7) bypassed by a regex and a glob, in its named enforcer; 56 files here already carry a `/*` string. **Introduced 2026-08-06 in `35b5a8e` — whose subject is fixing a DIFFERENT hole in this same law** — and called *"correct"* by §1412, now struck in its own file. Fixed by resetting `'`/`"` state at a newline (templates exempt); probe now exits 1. Residual stated: same-line desync. **Pinned end-to-end (strip→scan), because a unit test on the stripper alone goes green on the old code** |
+| 861 | §1414 | **§1415** | **PROBED EACH LAW'S ENFORCER WITH A REAL VIOLATION; ONE ROUTE HAD NO WATCHER.** §1180 verified the ten enforcers EXIST; §1414 proved existence is not firing. Planted the forbidden thing per law: append-only, chokepoint, rater purity and the ledger LLM ban all **RED**. Then per ROUTE — static import, dynamic `import()`, computed specifier, raw `fetch`. **One apparent evasion was my own mis-attribution** (a rater `fetch` passes `check:rater-purity` and is banned by ESLint — *a green from one gate is not an absence of enforcement*). **One was real:** `const s = "@anthropic-ai/" + "sdk"; await import(s)` exits 0 under lint, rater-purity, invariants AND chokepoint — the config matches `source.value`, which only a LITERAL specifier has. §985/§986 closed this route for literals; the computed form was never considered. Closed by banning the **FORM** (`ImportExpression[source.type!="Literal"]`), free because both packages hold ZERO dynamic imports, appended to the EXISTING array so it cannot REPLACE the three bans (all re-probed RED). **And `check:section-refs` never read `eslint.config.mjs`** — 74 `§N` pointers, the largest concentration outside the audit; widened 907→1,001 files, surfacing exactly the 2 dangling refs this phase had just introduced |
 | 856 | §1409 | **§1410** | **SWEEPING MY OWN SECTIONS FOR §1409's ERROR, AND A DETECTOR THAT COULD NOT HAVE FOUND IT.** §1404's precedent: a class like this gets ONE measurement, not a gate, since a correction necessarily quotes what it corrects. **The first sweep returned ZERO and was worthless** — it extracted superseded text as `~~struck~~` only, but the very case §1409 found is marked the other way, as *"a 16-step chain …"* **until audit §1029**. **My detector encoded one of the repo's TWO conventions, so it could never have found the known positive.** Twelfth instance of the session's constant, caught because a zero is the answer this session has learned never to accept. **A second false signal inside the control:** asking *"is it inside `~~…~~`?"* with `~~[^~]*16-step` returned True — because an unrelated `~~` sits earlier and `[^~]*` spanned the gap. **A regex answering "is X inside a delimiter" by searching for the delimiter anywhere before X will say yes to the whole file.** Re-run over both conventions: **109 superseded passages, zero quoted without a marker** — and that zero is worth something, because the corrected detector demonstrably flags a reconstruction of §1408's sentence. **§1409's error was singular, not a habit** |
 | **855** | §1408 | **§1409** | **I QUOTED STRUCK TEXT AS CURRENT, AND THE REPO HAD SOLVED IT 380 SECTIONS EARLIER.** §1408 cited CLAUDE.md's account of `verify:dev` as *"a 16-step chain … reaches 4 of 16"*. Measured: **18 steps**. **But the drift is my quotation's, not the law's** — CLAUDE.md's current text says that reading held *"until audit §1029"*, was *"invalidated hours later by `7b61624`"*, and that **the total is stated no longer, only the position that matters: step 4, and nothing after it**. I quoted the struck half of a correction as the claim. **Eleventh measurement error, and the first where the artifact had already anticipated the failure I was about to report.** **§1029's move is exactly §1402's, reached 373 sections apart and independently:** faced with a number that rots, REMOVE the number and keep the invariant. A convention arrived at twice from opposite ends of the record is the closest this audit has to a law about documentation. Substantively: `verify:dev` is still an unaggregated `&&` chain at 18 steps, and that is **not** a defect — CLAUDE.md documents it, names `verify:merge` as the real verdict, and `wp-exit-audit.test.ts:19` records that a naive matcher yields *"4 of 16"* and *"reads as a serious constitutional finding and is an artifact"*. **Tenth clean negative** |
 | 854 | §1407 | **§1408** | **VERIFYING MY OWN DELIVERABLE IS WIRED, BY THE STANDARD §1304 SET.** Five gates were built this session and each reported as working; §1304's standard is **verified WIRED before the board is read**, because a gate that runs when I invoke it and not when CI does is decoration with a green tick. **First measurement said ZERO** — searching the merge log for the five names returns 0 mentions each, which reads as "they never ran". It is the §1362 reporter difference: the tools suite runs under vitest v4 (summary only) while worker suites at v3.2.7 print per-file. The same run reports **125 files passed**, 120 + 5. **Tenth measurement error avoided by not believing a zero.** Measured properly three ways: `vitest list` shows **21 cases** across the five; `run-gate.ts:46` wires `unit-tests` to the `test` script; and `test` is `test:tools; t=$?; … ; exit $(( t \|\| p ))`. **Proved end-to-end:** breaking `law-enforcers` makes `pnpm test:tools` exit 1, which propagates. Also worth noting: that script AGGREGATES rather than `&&`-chains — the defect CLAUDE.md records for `verify:dev`, which reaches 4 of 16 steps |
@@ -82088,3 +82089,62 @@ true one.
 same lineage — a shared matcher, its replacement, and its replacement's replacement — and each was found by
 diffing against real input rather than by any test. Carry-forward unchanged and owner-held: vendor the nine
 private fixtures + `IDENTITY_DENYLIST`, commit the `genesis/09` rows, the five filed operational REQ rows.
+
+## §1415 — PHASE GATE: probing each law's enforcer with a real violation, and the one route nothing watched
+
+§1414 proved that a gate can EXIST, be mutation-proved, and still be walked around by the shape of its input.
+§1180 had verified that all ten of CLAUDE.md's laws name a live enforcer. Neither answers the question a
+reader actually has: **plant the violation the law forbids — does the gate fail?** So this phase planted one
+per scanner-enforced law.
+
+| law | violation planted | gate | result |
+|---|---|---|---|
+| 2 — events append-only (I3/I7) | `INSERT OR REPLACE INTO events` | `check:invariants` | RED |
+| 3 — gates server-side (REQ-030) | raw `INSERT INTO events` outside the sequencer | `check:chokepoint` | RED |
+| 4 — no price on air (REQ-004) | LLM SDK import in `packages/rater/src` | `check:rater-purity` | RED |
+| REQ-024 — no LLM in the ledger | LLM SDK import in `packages/ledger/src` | ESLint | RED |
+
+Then the same question one level down, because a ban on a NAME is only as good as the ways to reach the
+thing: static import, dynamic `import()`, a computed specifier, and a raw `fetch` to the vendor's API.
+
+**One apparent evasion was my own mis-attribution.** A raw `fetch("https://api.anthropic.com/…")` in
+`packages/rater/src` passes `check:rater-purity` — and is BANNED by ESLint, which forbids `fetch` in that
+package outright. Reporting it as unenforced would have been §1393's error inverted: **a green from one gate
+is not an absence of enforcement**, and the fix is to ask which gate OWNS the rule before writing anything
+down.
+
+**One was real, and it is the only REQ-024 route with no enforcement anywhere:**
+
+```ts
+const s = "@anthropic-ai/" + "sdk";
+export const c = async () => await import(s);
+```
+
+`pnpm lint`, `check:rater-purity`, `check:invariants` and `check:chokepoint` **all exit 0.** The config bans
+`ImportExpression[source.value=/…/]`, and `source.value` exists only for a LITERAL specifier — a
+`BinaryExpression` source has none, so neither selector fires. §985/§986 had already found and closed the
+dynamic-import route; they closed it for literals, which is the only shape a specifier list can police.
+
+**Closed by banning the FORM, not by extending the list** — a specifier list is exactly what a computed
+expression defeats. `ImportExpression[source.type!="Literal"]` is free here and measured so: `packages/ledger`
+and `packages/contracts` contain **zero** dynamic imports of any kind, so it forbids a form nobody uses. It
+was appended to the EXISTING `no-restricted-syntax` array rather than given its own block, because a second
+block naming that rule for those files would REPLACE these options rather than merge (§814/§874/§988) — so
+all four routes were re-probed after the edit, and static import, literal `import()`, organ-bank `import()`
+and raw `fetch` are all still RED alongside the two new ones.
+
+**And the gate that should have caught my own reference did not.** Writing `§1415` into `eslint.config.mjs`
+left `check:section-refs` green. Its corpus is `git ls-files "*.md" "*.ts" "*.tsx"` — **`eslint.config.mjs`
+carries 74 `§N` pointers, the largest concentration outside this audit, and the gate whose only job is
+resolving those pointers had never read it.** Widened to every text extension that can carry a comment:
+907 files → 1,001, and using the gate's OWN classifier the 94 new files contained exactly **two** dangling
+references — both introduced by this phase, minutes earlier. The historical content was sound; the gate could
+not say so, and it could not catch a live one either.
+
+(My first count said 88 dangling. That was a naive `§\d+` regex flagging `genesis/00 §02` — the false positive
+the gate's own header says would get it disabled in a week. Fourth over-reporting probe in four phases;
+running the gate's classifier instead of my own is what corrected it.)
+
+**Phase gate.** 127 tools files / 1,382 tests green before this section; six enforcement routes proved RED by
+planting; two corpus/coverage gaps closed. Carry-forward unchanged and owner-held: vendor the nine private
+fixtures + `IDENTITY_DENYLIST`, commit the `genesis/09` rows, the five filed operational REQ rows.
