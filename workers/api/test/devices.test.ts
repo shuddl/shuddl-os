@@ -1,5 +1,6 @@
 import { SELF, env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
+import { generateDeviceKey } from "@shuddl/driver-core";
 import { ensureSchema, token, TENANT_SLUG } from "./helpers.js";
 
 // Task 11 Step 4 (REQ-013/016/011/025) — POST /v1/devices enrolls a driver's P-256 PUBLIC key and binds
@@ -77,6 +78,36 @@ describe("POST /v1/devices — authenticated device enrollment (REQ-013/016/025)
     expect(res.body?.device_id?.startsWith("dev_")).toBe(true);
     const listed = await listDevices(t);
     expect(listed.ids).toContain(res.body?.device_id);
+  });
+
+  // §1470 (REQ-013/016) — ONE KEY, BOTH DERIVATIONS, ASSERTED EQUAL.
+  //
+  // `device_id` is computed INDEPENDENTLY in two places: `packages/driver-core/src/device-key.ts` (the driver,
+  // from its own CryptoKey) and `workers/api/src/routes/devices.ts` (the server, by importing the enrolled
+  // JWK). Both build `dev_` + hex SHA-256 of the SPKI encoding, and `devices.ts` states the coupling in a
+  // comment — *"Derive the device_id from the public key EXACTLY as the client does (device-key.ts)"* — which
+  // is the shape that is always a missing test. Nothing fed one key through both: the case above generates a
+  // JWK with a TEST-LOCAL helper and asserts only that the result starts with `dev_`.
+  //
+  // What a divergence costs, traced rather than assumed: the driver's locally-computed id is the offline
+  // dedupe key `(device_id, device_seq)`, and `sequencer.ts:305@device_id` requires a device-namespaced event's
+  // `device_id` to equal `actor.device` AND its signature to verify — a guard written so one device cannot
+  // squat another's slot. If the two derivations disagreed, every driver would sign captures under an id the
+  // server never registered, and EVERY device-namespaced append would be refused. Fail-closed, so this is an
+  // availability cliff rather than a mis-attribution — and one that no unit test would surface, because each
+  // side is self-consistent. The only way to see it is one key through both.
+  it("§1470: the id the DRIVER computes equals the id the SERVER derives (one key, both derivations)", async () => {
+    const key = await generateDeviceKey(); // the REAL driver path, not the test's genPublicJwk
+    const t = await token({ sub: DRIVER_A, tenant: TENANT_SLUG, role: "driver" });
+    const res = await enroll(t, { public_jwk: key.publicJwk });
+    expect(res.status === 200 || res.status === 201, "enrollment of a driver-core key must succeed").toBe(true);
+    expect(
+      res.body?.device_id,
+      "the server derived a DIFFERENT device_id than the driver computed for the same key. The driver signs " +
+        "captures under its own id and the sequencer requires that id to match the registered device, so a " +
+        "divergence refuses every device-namespaced append. Keep `dev_` + hex SHA-256 of the SPKI encoding on " +
+        "both sides (device-key.ts / devices.ts).",
+    ).toBe(key.device_id);
   });
 
   it("re-enrolling the SAME key is idempotent — one device entry, not two", async () => {
