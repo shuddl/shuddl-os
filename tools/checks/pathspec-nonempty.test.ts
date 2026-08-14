@@ -85,7 +85,12 @@ describe("§1426 REQ-118: every literal pathspec a gate passes to git matches at
   const specs = literalPathspecs(root);
 
   it("derives a real population (non-vacuity — an empty sweep certifies everything)", () => {
-    expect(specs.length, "no literal pathspecs found — the extractor broke; there were 38 at §1426").toBeGreaterThanOrEqual(25);
+    // §1437 — the message named the wrong QUANTITY. `specs` is OCCURRENCES (one entry per match per line);
+    // the "38" written here at §1426 was the UNIQUE spec count. A floor whose message compares a different
+    // kind of number sends the next reader to the wrong place. Both are stated now, and both are floored, so
+    // a collapse in either is loud: 64 occurrences / 36 unique when this was written.
+    expect(specs.length, "no literal pathspec OCCURRENCES found — the extractor broke; there were 64 at §1437").toBeGreaterThanOrEqual(40);
+    expect(new Set(specs.map((s) => s.spec)).size, "unique pathspec count collapsed; there were 36 at §1437").toBeGreaterThanOrEqual(25);
   });
 
   it("no pathspec silently matches nothing", () => {
