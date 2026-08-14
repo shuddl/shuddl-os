@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| **841** | §1394 | **§1395** | **STOPPING POINT — FIVE GATES THAT DID NOT EXIST THIS MORNING.** Board at `c9a9dc1`: **21 PASS · 0 FAIL · 5 BLOCKED**, **4,777 tests**, zero failing suites, same owner-held five. The block divides cleanly: **three phases changed no source and were still worth it** — §1390 (`\b` matches NOTHING in `git grep -E`, a silent always-zero, caught before it became a finding), §1391 (product coverage is §632's, declined as the owner's row), §1392 (§1386's fix proved LOAD-BEARING: four violations at HEAD, **zero** under the pre-fix corpus), §1393 (REQ-024 and I3/I7 re-planted at HEAD on their documented evasion shapes) — and **two built mechanisms from errors made three times**. **Five derived rosters now stand:** `dark-stub-roster`, `git-glob-toplevel`, `collapsing-doubles`, `fixed-window-verdicts`, `law-enforcers` — each replacing a discipline that failed by attention, and **three of the five found something on their first run that a hand-scan had missed**. Phase gate: two triggers are now ASSERTIONS — emptying the fixture manifest fails loudly, and renaming a law's enforcer or adding an eleventh law fails. **Six times a probe returned a wrong number; every one was caught by pointing the instrument at something it should already find** |
 | **840** | §1393 | **§1394** | **THE LAW→ENFORCER MAP BECOMES A GATE, AFTER I RAN THE WRONG ONE THREE TIMES.** §1380 twice, then §1393 — an LLM import into `packages/ledger` checked with `check:rater-purity`, which reported OK because it scopes itself to `packages/rater/src`. **A green from the wrong gate reads exactly like an unenforced law.** Three occurrences is this session's threshold for a mechanism (the fifth after §1366/§1370/§1376/§1378). §1035 already had the map — found by `recall` in one command, the sixth time this session — but it lived as PROSE, so a renamed script or a gate dropped from the merge roster would leave its claim standing and false. Verified at HEAD first: all ten enforcers exist, `check:pr` unwired exactly as recorded. `law-enforcers.test.ts` asserts four things, **each mutation-proved**: an eleventh law planted in CLAUDE.md REDs the completeness case (**the count is parsed from the LAW, not the roster**); renaming `check:invariants` REDs rule 2; deleting the `audit:design` roster entry REDs rule 7. Plus a fifth — **every enforcer outside the merge roster must state WHY**, with a length floor, so `inMergeRoster: false` cannot become the quiet default |
 | 839 | §1392 | **§1393** | **THE GOVERNING LAWS RE-PLANTED AT HEAD, AND A MUTATION AIMED AT THE WRONG GATE.** §1392 asserted the remaining invariants "read corpora §1369 measured as unchanged" — an ARGUMENT, and this session has punished that substitution four times, so it got measured. **REQ-024:** an `@anthropic-ai/sdk` import into `packages/ledger/src/anchor.ts` → **lint exit 1**, *"LLMs never write ledger truth"*. **I3/I7:** an abutting-quote `INSERT OR REPLACE INTO"events"` — the DOCUMENTED evasion shape, which once slipped the source scanner — → **`check:invariants` exit 1**, caught twice over. Plus §1392's design plant and §1372's chokepoint plant. **The phase opened by aiming a mutation at the WRONG GATE:** I ran `check:rater-purity`, which reported OK because its own message scopes it to `packages/rater/src`; the ledger half of REQ-024 is enforced by **ESLint**. A green from the wrong gate reads as "the law is unenforced" — §1380's lesson, third occurrence, same fix: **not "did the mutation apply" but "which gate OWNS this law"**. `req024-closure` passed WITH the violation, correctly — it guards the rule's existence, not the tree |
 | 838 | §1391 | **§1392** | **§1386's FIX PROVED LOAD-BEARING, BY THE METHOD §1391 SAYS THIS AUDIT RUNS ON.** §1386 shipped with half a proof: it established the two trees scan identical extensions but never that a violation in the NEWLY covered one is CAUGHT. Symmetry is a property of the pattern list; catching is a property of the gate. Same planted file — a `.js` under `packages/` with a shadow, an off-token colour and an over-budget radius — measured both ways: **HEAD → exit 1, four violations named** (`boxShadow — no shadows`, `#3388FF outside the five tokens`, `borderRadius 12px > 4px`); **pre-§1386 list → exit 0, zero violations, the file INVISIBLE.** So the defect was real, not theoretical: a shadow and a raw blue hex could pass a BLOCKING constitutional gate without a word. **That no such file existed is what made it survivable, not what made it safe.** The plant needed `git add -N` — the audit enumerates via `git ls-files`, so an untracked probe reports zero under BOTH corpora and reads as "the fix does nothing" (§1315). Append-only was already re-proven at HEAD this session (§1372's `intake-core.ts` plant); the rest read corpora §1369 measured unchanged |
@@ -81180,3 +81181,63 @@ silently becomes a claim about ten of eleven, and this fails instead.
 
 Verification: 5/5; `CLAUDE.md`, `package.json` and `run-gate.ts` each restored and asserted clean after their
 mutations; tools suite 125 files.
+
+## §1395 — PHASE GATE / STOPPING POINT: five gates that did not exist this morning, and what they were each built to stop
+
+**Measured at `c9a9dc1`**, after §1394 added a gate to the merge-run suite:
+
+| | §1389 | §1395 |
+|---|---|---|
+| PASS | 21 | **21** |
+| FAIL | 0 | **0** |
+| BLOCKED | 5 | **5** (the same owner-held five) |
+| tests passed | 4,772 | **4,777** |
+| suites failing | 0 | **0** |
+
+**THE BLOCK §1390–§1394, and it divides cleanly into two kinds of work.**
+
+*Three phases produced no source change and were still worth the time*, because each replaced a claim with a
+measurement or a verdict I already owned:
+
+| § | what it settled |
+|---|---|
+| 1390 | `\b` matches NOTHING in `git grep -E` (POSIX ERE has no word boundary) — a **silent always-zero**. Caught before it became a finding, and no committed gate carries the broken form |
+| 1391 | product line-coverage is **§632's**, declined on CLAUDE.md rule 1 as the owner's row, with mutation offered as the stronger measure |
+| 1392 | §1386's design fix is **load-bearing**, not merely larger: the same planted `.js` yields four violations at HEAD and **zero** under the pre-fix corpus |
+| 1393 | REQ-024 and I3/I7 **re-planted at HEAD** — lint and `check:invariants` each RED on the documented evasion shapes |
+
+*Two phases built mechanisms*, both from errors I made three times:
+
+- **§1394 `law-enforcers`** — because I ran the wrong gate three times. The law→enforcer map was §1035's prose;
+  it is now four assertions, with the rule count **parsed from CLAUDE.md** so an eleventh law fails rather than
+  being silently uncovered.
+- and §1386–§1387's fixes before it, which the block then proved rather than assumed.
+
+**FIVE DERIVED ROSTERS NOW STAND**, each replacing a discipline that had failed by attention:
+
+| gate | replaces | what caught it |
+|---|---|---|
+| `dark-stub-roster` (§1366) | counting composition roots by hand | found a FALSE pin in its first minute |
+| `git-glob-toplevel` (§1370) | remembering pathspec semantics | a `**` dropping its tree's top level |
+| `collapsing-doubles` (§1376) | §1066's hand-listed fifteen | its staleness case caught my own classifier bug |
+| `fixed-window-verdicts` (§1378) | §1339's documented triage | found a site my triage missed, taught me a third category |
+| `law-enforcers` (§1394) | §1035's prose map | three wrong-gate mutations |
+
+**THE PHASE GATE.** Unchanged from §1389 except that two triggers are now **assertions rather than intentions**:
+
+1–4. Wiring the legacy feed / webhook source / Anthropic bindings, and vendoring the private fixtures — each
+   REDs a named test the moment it happens.
+5. **Emptying `fixtures/manifest.json`** fails loudly instead of clearing a BLOCK (§1387).
+6. **Renaming any law's enforcer, or dropping it from the merge roster, or adding an eleventh law** now fails
+   (§1394) — the constitution's enforcement can no longer decay quietly.
+
+**What I would tell the next reader, and it is the honest summary of the whole session.** Six times a probe of
+mine returned a number that was wrong — a name-scoped count, a nesting-limited regex, a fixed window, a
+truncating `cut`, a `\b` that matches nothing, a ratio mistaken for a measurement. **Every one was caught by the
+same move: point the instrument at something you already know it should find, before believing what it says
+about something you don't.** The five gates above exist because that move does not scale, and the record now
+does it on every run.
+
+**CARRY-FORWARD (owner-held, unchanged):** vendor the nine private fixtures + `IDENTITY_DENYLIST` — still the
+only path to PROMOTABLE · commit the `genesis/09` rows · the five filed operational REQ rows · the code-coverage
+row §632 leaves to the owner · the `quote.priced` / `SERVER_EMITTED_KINDS` decision.
