@@ -23,6 +23,14 @@ import { stripComments } from "./source-corpus.js";
 /** Storage entry points whose tenant argument decides which tenant's data is reached. */
 const GUARDED_FNS = [
   "resolveTenantDb", // D1 handle (the §571 subject, folded in so ONE mechanism owns this invariant)
+  // §1462 — the SYNCHRONOUS sibling of `resolveTenantDb`, exported by all four workers and returning the same
+  // `D1Database`. It is not a wrapper: `resolveTenantDb` is the claimed-pool-aware superset, and `tenantDb` is
+  // an independent static-allowlist path. It went unrostered because the completeness derivation matched
+  // storage CONSUMERS and this one is a PROVIDER (corrected in the same section). One live call site —
+  // `pub/quote.ts`, the UNAUTHENTICATED guest-quote surface — and it is safe: the tenant comes from the
+  // CF-routed hostname via HOST_TENANTS, never the client-forgeable Host header, with a module-load assertion
+  // that every mapped slug is a real TENANT_BINDINGS key. Safe, but until now nothing ENFORCED it.
+  "tenantDb",
   "readAnchorManifest", // R2: anchors/<tenant>/<day>/manifest.json
   "anchorManifestKey",
   "anchorReceiptKey",
@@ -66,7 +74,15 @@ const AUTHENTICATED = new Set([
   // the caller holds that pairing's secret before the slug is used for anything.
   "tenantSlug",
   "tenant", // a parameter of an already-tenant-scoped function (the DO's re-derived identity; the
-  // retention sweep's roster iteration — neither is request-derived)
+  // retention sweep's roster iteration — neither is request-derived).
+  // §1462 — a THIRD provenance now rides this same entry, and the justification above was written before it
+  // existed: `pub/quote.ts` binds a LOCAL named `tenant` from `HOST_TENANTS[new URL(c.req.url).hostname]`.
+  // That IS request-derived, so the parenthetical above would have been false for it. It is nonetheless
+  // authenticated-equivalent: the CF-routed hostname is decided by routing, not by the caller (the forgeable
+  // `Host` header is never consulted), the map is a static allowlist, and a module-load loop throws unless
+  // every mapped slug is a TENANT_BINDINGS key — so an unknown host 404s before any handle exists. Recorded
+  // rather than split into a new entry because the pinned AUTHENTICATED_MEMBERS list is the deliberate
+  // two-place change (§826); what must not happen is the entry silently covering a provenance nobody vetted.
   "claims.t", // MAC-verified by verifyStatusCap, fail-closed to a uniform 401
   'c.get("session"', // the same session, off the Hono context
   "this.tenant", // a DO instance pinned to one tenant by its identity check
@@ -230,17 +246,33 @@ describe("REQ-025 §572: every tenant-scoped storage entry point is fed an authe
     // point written as `export const f = (tenant: string, …) => …` is invisible here, and five currently
     // listed functions are invisible for exactly that reason — they are in the roster because a human put
     // them there, which is why the roster stays hand-written and this is a FLOOR under it, not a generator.
+    // §1462 — THE DERIVATION MATCHED STORAGE CONSUMERS AND MISSED STORAGE PROVIDERS.
+    //
+    // The body test below asks whether a function USES a handle (`.prepare(`, `.get(`, `R2`). A function that
+    // RETURNS one uses nothing — `tenantDb(env, tenantSlug): D1Database` is four lines of allowlist lookup —
+    // so it was never derived, and it is not a lesser case: it is the canonical entry point, the thing every
+    // consumer gets its handle FROM. `resolveTenantDb` passed only because its body happens to contain a
+    // matching token; its synchronous sibling `tenantDb` did not, and sat unrostered with a live call site on
+    // the PUBLIC quote surface. Same shape, same file, opposite verdicts — an accident, not a rule.
+    //
+    // So provider-ness is now derived from the RETURN TYPE, which is what actually makes a function an entry
+    // point. `Promise<D1Database>` counts: an async resolver hands out the same handle.
     const SCOPED_HANDLE = /:\s*(D1Database|R2Bucket|DurableObjectState|Queue)\b/;
-    const DECL = /export\s+(?:async\s+)?function\s+(\w+)\s*\(([^)]*)\)/gs;
+    const DECL = /export\s+(?:async\s+)?function\s+(\w+)\s*\(([^)]*)\)\s*:?\s*([^{]*)\{/gs;
+    const RETURNS_HANDLE = /^\s*(?:Promise\s*<\s*)?(D1Database|R2Bucket)\b/;
     const derived = new Set<string>();
     for (const f of sourceFiles(repoRoot())) {
       const src = readFileSync(`${repoRoot()}/${f}`, "utf8");
       for (const m of src.matchAll(DECL)) {
-        const [, name, args] = m;
+        const [, name, args, ret] = m;
         if (!/\btenant(Slug)?\s*[:,)]/.test(args!)) continue;
         const body = src.slice(m.index! + m[0].length, m.index! + m[0].length + 1400);
-        if (!/\.(prepare|get|put|list|delete)\(|DB\b|R2|bucket/.test(body)) continue;
-        if (SCOPED_HANDLE.test(args!.split(",")[0]!)) continue;
+        const usesStorage = /\.(prepare|get|put|list|delete)\(|DB\b|R2|bucket/.test(body);
+        const providesStorage = RETURNS_HANDLE.test(ret ?? "");
+        if (!usesStorage && !providesStorage) continue;
+        // A provider is an entry point even when its first argument is a scoped handle — it is HANDING OUT
+        // scope, not consuming it — so the downstream discriminator applies only to consumers.
+        if (!providesStorage && SCOPED_HANDLE.test(args!.split(",")[0]!)) continue;
         derived.add(name!);
       }
     }
@@ -276,6 +308,55 @@ describe("REQ-025 §572: every tenant-scoped storage entry point is fed an authe
   // WHAT THIS CANNOT DO, stated because the pin could be read as more than it is: it makes an addition
   // DELIBERATE, not CORRECT. A reviewer still has to judge whether a new source is genuinely authenticated;
   // no assertion here can. What it removes is the silent path.
+  // ── §1462 — THE ONE LAUNDERING SHAPE THE ALLOWLIST CANNOT SEE ─────────────────────────────────────────
+  //
+  // §826 measured that a cross-tenant read laundered through a local, a header, a body or a helper is caught
+  // "in every case", and re-measuring confirms it for three of four shapes. There is a fourth it does not
+  // cover, and the difference is one word: the local has to have a NON-allowlisted name. REBIND the
+  // allowlisted name itself —
+  //
+  //     const tenant = c.req.query("t") ?? HOST_TENANTS[host];   // §1462, measured: suite stays GREEN
+  //
+  // — and every downstream `f(env, tenant)` still reads as authenticated, because this gate matches the
+  // argument EXPRESSION and has no way to know what the identifier was bound to. Fixing that in general is
+  // dataflow analysis, which a regex gate cannot do. The DIRECT case is closable, and it is the one someone
+  // reaches for: bind the allowlisted name straight from request input.
+  //
+  // Measured before asserting: 3 bindings of an allowlisted name exist in shipped source and NONE takes
+  // request input, so this is a tripwire at zero cost, not a cleanup. It does not close the transitive case
+  // (`const h = c.req.query("t"); const tenant = h;`) and does not pretend to — stated so the next reader
+  // knows exactly which half is guarded.
+  it("§1462: an allowlisted tenant name is never bound DIRECTLY from request input", () => {
+    const NAMES = "(?:tenant|tenantSlug|slug)";
+    const BIND = new RegExp(String.raw`\b(?:const|let|var)\s+${NAMES}\s*(?::[^=]+)?=\s*(.+)`);
+    const REQUESTY = /c\.req\.|\breq\.|\bbody\.|\.query\(|\.header\(|\.param\(|searchParams/;
+    const laundered: string[] = [];
+    let bindings = 0;
+    for (const f of sourceFiles(root)) {
+      stripComments(readFileSync(`${root}/${f}`, "utf8"))
+        .split("\n")
+        .forEach((l, i) => {
+          const m = BIND.exec(l);
+          if (m === null) return;
+          bindings += 1;
+          if (REQUESTY.test(m[1]!)) laundered.push(`${f}:${i + 1}  ${l.trim().slice(0, 100)}`);
+        });
+    }
+    // Non-vacuity is carried by the synthetic control below rather than by a count: the live population is
+    // THREE, far too small to floor without the floor becoming the thing that breaks (§1437).
+    expect(bindings, "no binding of an allowlisted tenant name found at all — the pattern broke").toBeGreaterThanOrEqual(1);
+    expect(BIND.test('const tenant = c.req.query("t") ?? "a";'), "the binding pattern does not match its own example").toBe(true);
+    expect(REQUESTY.test('c.req.query("t") ?? "a"'), "the request-input pattern does not match its own example").toBe(true);
+    expect(REQUESTY.test("HOST_TENANTS[host]"), "the request-input pattern fires on the routing-authoritative map").toBe(false);
+    expect(
+      laundered,
+      "an identifier the AUTHENTICATED allowlist trusts by NAME is bound directly from request input, so every " +
+        "downstream call reads as authenticated while carrying a caller-chosen tenant (REQ-025: a cross-tenant " +
+        "read anywhere is a build failure). Bind request input to a DIFFERENT name — the allowlist will then " +
+        "reject it at the call site, which is the check working:\n  " + laundered.join("\n  "),
+    ).toEqual([]);
+  });
+
   const AUTHENTICATED_MEMBERS = [
     'c.get("session"',
     "claims.t",
