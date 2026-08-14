@@ -13,7 +13,7 @@
 | **06-SHUDDL-2023-VERDICT** | The old codebase: retire code, harvest brand + lessons — with evidence |
 | **07-DESIGN-SYSTEM** | "Terminal Gallery": the greige/coral directive adopted as law + THE MAP backdrop (party-scoped live shipments/trucks) + six operational amendments (contrast, driver dark ground, print, status grammar, a11y, photography) + CI squint test |
 | **08-GAP-AUDIT-ROADMAP-ASSURANCE** | 20-gap audit (all dispositioned), the five-mechanism assurance system (honest version of "nothing missed"), WP-01…16 with DoD |
-| **09-REQUIREMENTS-REGISTER.csv** | 149 requirements, machine-readable: id · domain · requirement · source · spec · WP · DoD test · status. THE scope authority — append-only |
+| **09-REQUIREMENTS-REGISTER.csv** | ~~149 requirements~~ **the LIVE register — authoritative and append-only, so any count here would be stale by design** (corrected 2026-08-13, audit §1402: this row said *149* while the committed register held **288**, 139 rows added since the founding spec). Read the file, never this line. Machine-readable: id · domain · requirement · source · spec · WP · DoD test · status. THE scope authority — append-only |
 | **10-EVENT-TAXONOMY-DATA-MODEL** | 35 event kinds, 21 tables (≤22 budget), 12 views, invariants I1–I8 — the unambiguous schema foundation |
 | **11-REPO-CLAUDE-MD** | Drop-in governing file for the build repo: budgets, rules, fixtures, do-nots, the five acceptance demos |
 | **12-GTM-ROLLOUT** | The market chapter: rollout phases R0–R4 gated by build milestones, ICP v1, first-25 list criteria, positioning per competitor class, pricing hypotheses, tripwires |
