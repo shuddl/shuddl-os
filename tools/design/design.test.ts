@@ -14,6 +14,7 @@ import {
   auditFont,
   auditGradient,
   auditRepo,
+  scanPatterns,
   scannedFiles,
 } from "./audit.js";
 
@@ -411,6 +412,25 @@ describe("REQ-118 §554: the design audit reads a real corpus, from any director
     expect(files.some((f) => f.startsWith("apps/")), "no apps/ files scanned").toBe(true);
     expect(files.some((f) => f.startsWith("packages/")), "no packages/ files scanned").toBe(true);
   });
+
+  it("§1386: both trees scan the SAME extensions — an asymmetry is how a tree loses coverage silently", () => {
+    // MEASURED at §1386: `apps` scanned `.js` and `packages` did not. Zero `.js` files are tracked under
+    // packages/ today, so it was safe BY ACCIDENT — a build shim or vendored polyfill landing there would have
+    // escaped this blocking gate with no failure anywhere. The patterns are now a TREES x EXTENSIONS
+    // cross-product, and this pins that: a hand-edit that adds an extension to one tree only cannot pass.
+    const perTree = new Map<string, Set<string>>();
+    for (const p of scanPatterns()) {
+      const m = /^([a-z]+)\/\*\*\/\*[.-](.+)$/.exec(p);
+      if (m === null) continue;
+      if (!perTree.has(m[1]!)) perTree.set(m[1]!, new Set());
+      perTree.get(m[1]!)!.add(m[2]!);
+    }
+    const trees = [...perTree.keys()].sort();
+    expect(trees, "the scanned trees changed — re-derive this assertion, do not delete it").toEqual(["apps", "packages"]);
+    const [a, b] = trees.map((t) => [...perTree.get(t)!].sort());
+    expect(a, `the two trees scan different extensions: apps=${a!.join(",")} packages=${b!.join(",")}`).toEqual(b);
+  });
+
 
   it("runs identically from a subdirectory (every path root-anchored)", () => {
     const root = repoRoot();

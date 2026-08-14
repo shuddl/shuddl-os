@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { execSync } from "node:child_process";
-import { readFileSync } from "node:fs";
 import { repoRoot } from "./repo-root.js";
+import { scanPatterns } from "../design/audit.js";
 
 // §895 — THE DESIGN CORPUS MAY NOT EXCLUDE A DIRECTORY BY DEFAULT.
 //
@@ -26,10 +26,22 @@ const STYLE_EXT = /\.(css|tsx|jsx|html)$/;
  * §830's rule: read one side and COMPUTE the other, so this gate cannot drift from the thing it checks. A
  * copied list would agree with the audit on the day it was written and never again.
  */
-function corpusRoots(root: string): Set<string> {
-  const src = readFileSync(`${root}/tools/design/audit.ts`, "utf8");
+function corpusRoots(_root: string): Set<string> {
+  // §1386 — READ THE VALUE, NOT THE SOURCE TEXT. This used to regex `tools/design/audit.ts` for
+  // `"tree/**/…"` string literals. That worked only while the glob list was written as literals; when §1386
+  // made it a TREES x EXTENSIONS cross-product — so the two trees could not drift apart — this parser found
+  // ZERO globs and the gate failed. Its own non-vacuity case caught that ("the scan is broken, not the
+  // audit"), which is exactly what a floor is for.
+  //
+  // The lesson is the one this audit keeps paying for: a consumer that PARSES another module's source is
+  // coupled to that source's FORM, not its meaning. `scanPatterns()` returns the patterns the audit actually
+  // uses, so a refactor of how they are built can no longer break this gate, and no drift between the parsed
+  // and the real list is possible.
   const roots = new Set<string>();
-  for (const m of src.matchAll(/"([a-z][a-z0-9_-]*)\/\*\*\/[^"]*"/g)) roots.add(m[1] as string);
+  for (const p of scanPatterns()) {
+    const m = /^([a-z][a-z0-9_-]*)\//.exec(p);
+    if (m !== null) roots.add(m[1] as string);
+  }
   return roots;
 }
 

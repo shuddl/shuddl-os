@@ -296,11 +296,24 @@ function isTokenSource(f: string): boolean {
 // colors, imported by style.ts) is scanned too, so a non-token color in the basemap is caught by
 // the color-token audit. Only `*-style.json` is added, not every `.json`, so package/tsconfig
 // manifests can't false-positive.
-export function scannedFiles(): string[] {
+export function scanPatterns(): string[] {
+  // §1386 — DERIVED as TREES x EXTENSIONS, so the two trees cannot drift apart. They had: `apps` scanned
+  // `.js` and `packages` did not, an asymmetry safe only because zero `.js` files are tracked under
+  // `packages/` today (measured). A build shim, a vendored polyfill or a generated module landing there would
+  // have escaped a CONSTITUTIONAL, blocking gate (CLAUDE.md rule 7) with no failure anywhere — the same
+  // accident-not-design shape as §1369's glob and §1370's pathspecs. A cross-product cannot be asymmetric.
+  const TREES = ["apps", "packages"] as const;
+  const EXTENSIONS = ["css", "tsx", "ts", "jsx", "mjs", "js", "html"] as const;
   const patterns = [
-    "apps/**/*.css", "apps/**/*.tsx", "apps/**/*.ts", "apps/**/*.jsx", "apps/**/*.mjs", "apps/**/*.js", "apps/**/*.html", "apps/**/*-style.json",
-    "packages/**/*.css", "packages/**/*.tsx", "packages/**/*.ts", "packages/**/*.jsx", "packages/**/*.mjs", "packages/**/*.html", "packages/**/*-style.json",
+    ...TREES.flatMap((t) => EXTENSIONS.map((e) => `${t}/**/*.${e}`)),
+    // H-3 (REQ-206): only `*-style.json`, never every `.json`, so package/tsconfig manifests cannot false-positive.
+    ...TREES.map((t) => `${t}/**/*-style.json`),
   ];
+  return patterns;
+}
+
+export function scannedFiles(): string[] {
+  const patterns = scanPatterns();
   return execSync(`git ls-files ${patterns.map((p) => `"${p}"`).join(" ")}`, { cwd: repoRoot(), encoding: "utf8" })
     .split("\n")
     .filter(Boolean)
