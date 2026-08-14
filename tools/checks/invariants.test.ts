@@ -863,8 +863,12 @@ describe("§253: iCloud collision duplicates are filtered from every filesystem 
 // gets neither unless someone remembers, so the classification is forced instead.
 describe("§265: every tenant table is classified append-only or mutable", () => {
   it("passes on the tables the repo actually ships", () => {
+    // §1465 — this line carried a FOURTH hand-rolled copy of the CREATE TABLE matcher, with the same
+    // `[a-z_]+` truncation the source shipped. That made this case validate classification against a
+    // DIFFERENT extraction than the gate performs, so it would have agreed with a buggy implementation —
+    // the one thing a test must never do. It calls the shared function now.
     const created = globSync("db/tenant/migrations/*.sql", { cwd: REPO })
-      .flatMap((f) => [...readFileSync(join(REPO, f), "utf8").matchAll(/CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+["'`\[]?([a-z_]+)/gi)].map((m) => m[1]!.toLowerCase()));
+      .flatMap((f) => createdTableNames(readFileSync(join(REPO, f), "utf8")));
     expect(created.length, "the sweep must actually find tables — a zero here would pass vacuously").toBeGreaterThan(10);
     expect(checkTableClassification(created)).toEqual([]);
   });
@@ -1312,7 +1316,11 @@ describe("§1465 I8: one CREATE TABLE matcher, and no second copy", () => {
     // made `CREATE TABLE"parties"` read as having NO CHECK constraint at all. Its delimiter handling is now
     // the block matcher's, pinned by the four-form case above.
     const DECLARED_SPLITTER = "/CREATE\\s+TABLE/i";
-    const src = readFileSync(join(REPO, "tools/checks/invariants.ts"), "utf8");
+    // §1465 (second pass) — the population is the PAIR, not the source file. Scanning only `invariants.ts`
+    // left a FOURTH copy sitting in THIS file, feeding the very case that blesses the shipped schema. A guard
+    // whose scope is narrower than its law finds the instances it was written from and no others.
+    const SCANNED = ["tools/checks/invariants.ts", "tools/checks/invariants.test.ts"];
+    const src = SCANNED.map((f) => readFileSync(join(REPO, f), "utf8")).join("\n");
     const literals = [...src.matchAll(/\/CREATE\\s\+TABLE[^/\n]*\/[gimsuy]*/g)]
       .map((m) => m[0])
       .filter((l) => l !== DECLARED_SPLITTER);
