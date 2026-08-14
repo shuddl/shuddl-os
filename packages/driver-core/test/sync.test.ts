@@ -190,6 +190,32 @@ describe("syncOnce — the durable sync state machine (REQ-016/017/030)", () => 
     expect(await q2.pending()).toHaveLength(0);
   });
 
+  // §1499 (REQ-016/017/118) — A REHYDRATED evidence_pending ITEM WITH NO BYTES MUST DRAIN, NOT STALL.
+  //
+  // `advanceItem`'s `evidence_pending` case opens with `if (!item.deferred) return drain(item, ports)`, and
+  // that guard was defended by nothing: deleting it left 52/52 green. In-process the guard IS redundant —
+  // `event_acked` only advances to `evidence_pending` when `item.deferred` is truthy — but the queue is
+  // DURABLE, and a pass begins by reading items back out of the store. Whatever wrote the record decides
+  // its shape: an older schema, a store that persisted the envelope but not the bytes, a partial write.
+  //
+  // Without the guard that item calls `sendEvidence(undefined, …)` — and the failure is not a clean throw,
+  // it is a capture that never drains: the item stays in the queue re-entering the same case on every pass,
+  // which is the STRANDED-SIGNED-CAPTURE shape this state machine exists to prevent. Pinned by the drain,
+  // by the untouched transport, and by the queue actually emptying.
+  it("a REHYDRATED evidence_pending item whose bytes are gone DRAINS — sendEvidence is never called", async () => {
+    const store = new MemStore();
+    const q = new OfflineQueue(store);
+    const id = await enqueue(q, { evidence: true });
+    const item = store.m.get(id)!;
+    // The rehydration shape: phase says evidence_pending, the record carries no bytes.
+    const { deferred: _dropped, ...withoutBytes } = item;
+    await q.persist({ ...withoutBytes, sync: { phase: "evidence_pending", attempts: 0, nextAttemptAt: 0 } });
+
+    const pass = await syncOnce(ports({ queue: q, sendEvent: forbidden, sendEvidence: forbidden }));
+    expect(pass.synced, "the item must drain rather than re-enter evidence_pending forever").toContain(id);
+    expect(await q.pending(), "a stranded item would still be here on the next pass").toHaveLength(0);
+  });
+
   it("monotonic ACK: an already event_acked item never re-sends the event (duplicate delivery is safe)", async () => {
     const store = new MemStore();
     const q = new OfflineQueue(store);

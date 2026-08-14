@@ -275,6 +275,28 @@ describe("REQ-183 — the credit.checked projection must not SILENTLY no-op (lou
     expect(await anomaly(`credit-projection-gap:${e.id}`)).toBeNull();
   });
 
+  // §1499 (REQ-183/118) — the KIND guard is this exported function's OWN contract, not the caller's.
+  //
+  // `surfaceCreditProjectionGapIfMissed` opens with `if (e.kind !== "credit.checked") return;`, and deleting
+  // that line left the ledger suite 732/732 green: every existing case feeds it a credit.checked. In the
+  // shipped path the guard IS redundant — `sequencer.ts` already narrows on `full.kind === "credit.checked"`
+  // — but redundancy that lives in the CALLER is not a property of an EXPORTED function. Anything else that
+  // ever calls this (the recon path names it) would otherwise raise a `credit_projection_gap` anomaly, on the
+  // credit rule, against a party read off an unrelated event's payload — a loud, durable, wrong ops signal.
+  //
+  // A zero rows-affected is ordinary for most kinds, which is exactly why the kind must decide, not the count.
+  it("a NON-credit.checked event surfaces nothing even on a 0-row projection (the kind guard is the contract)", async () => {
+    const e = booking("s-183-wrong-kind");
+    await surfaceCreditProjectionGapIfMissed(DB, e, 0);
+    expect(await anomaly(`credit-projection-gap:${e.id}`)).toBeNull();
+    // Without the kind guard this raises a `credit_projection_gap` on party `unknown` — the payload has no
+    // party_id, so the wrong ops signal would also carry a fabricated-looking subject.
+    const anyGap = await DB.prepare("SELECT COUNT(*) AS n FROM anomalies WHERE rule = ? AND detail LIKE ?")
+      .bind(CREDIT_PROJECTION_GAP_RULE, `%${e.id}%`)
+      .first<{ n: number }>();
+    expect(anyGap!.n).toBe(0);
+  });
+
   it("surfacing is idempotent per event id — a redelivered miss collapses to ONE anomalies row (no fabrication)", async () => {
     const missing = "party-183-redeliver";
     const e = mkEvent("credit.checked", { shipment_id: undefined, payload: { party_id: missing, status: "review" } });
