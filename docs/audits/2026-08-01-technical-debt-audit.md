@@ -685,6 +685,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 907 | §1460 | **§1461** | **THE BOARD RE-MEASURED, AND THE SECOND POPULATION THE FIRST GATE COULD NOT SEE.** §1460's gate named re-measurement as the next action, so it was done: **21 PASS · 0 FAIL · 5 BLOCKED at `af89dfd`**, 26 gates, identical to `b451f43` — and the dirty `genesis/09` produced NO FAIL, so the historical "2 FAIL" signature was specific to that row, not to a dirty tree. Then the sweep §1460 implied: 20 candidate sites across 407 test files, **exactly one genuine instance — the one already fixed**, which BOUNDS the finding. But the sweep surfaced a second POPULATION the gate cannot see: 18 unhashed template-literal id builders (`dunningDraftId` → `msg:dunning:${invoiceId}:${bucket}`), all clean. Gate extended as a tripwire; RED on a planted `Date.now()` and a planted `${now}`, with a NEGATIVE control pinning the three period-keyed ids (`${day}`/`${isoWeekStr}`/`${period}`) as correctly unflagged. **A gate's population is decided by the mechanism you searched for, never by the law you meant to enforce.** |
 | 908 | §1461 | **§1462** | **THE COMPLETENESS DERIVATION MATCHED STORAGE CONSUMERS AND MISSED THE PROVIDER.** Put §1461's question to REQ-025, the build-failure law. `tenant-scope.test.ts` already had a completeness floor (§702) — and it required the BODY to touch storage, so `tenantDb(env, tenantSlug): D1Database`, which returns a handle and touches nothing, was never derived. Its sibling `resolveTenantDb` passed INCIDENTALLY (its body happens to match). One live call site: `pub/quote.ts`, the UNAUTHENTICATED guest-quote route — safe (tenant from the CF-routed hostname, not the forgeable Host header) but enforced by nothing. Fixed by deriving provider-ness from the RETURN TYPE; the gate then named its own gap. Three mutations RED where previously invisible. **Also qualified §826:** laundering is caught *unless the local REUSES an allowlisted name* — `const tenant = c.req.query("t") ?? …` stayed GREEN. New direct-binding rule closes it (population 3, zero FPs). **When a gate classifies by what a function DOES, check the one that does nothing and merely hands out the capability.** |
 | 909 | §1462 | **§1463** | **A TEST THAT RE-IMPLEMENTS THE PRODUCTION RESOLUTION TESTS THE PLATFORM, NOT THE PRODUCT.** Aggregate re-confirmed first (**21 PASS · 0 FAIL · 5 BLOCKED at `dba4fac`**). Then §1462's form applied to DO naming, where the name IS the namespace. All 11 `idFromName` sites are partitioned; what ENFORCES it differs per DO. `SHIPMENT_SEQ` self-verifies (`expected.equals(this.ctx.id)`) — measured, not read: de-tenanting a route reds **124**. The two meters cannot self-verify (no tenant in the request), so the call site is the whole isolation — and `CAPS_METER` reds 9 while **`SPARK_METER` red NOTHING (144/144)**. Cause: the case titled *"TENANT ISOLATION (REQ-025)"* resolves the DO via the test file's OWN helper re-implementing `idFromName(tenant)`, so it proves a CLOUDFLARE property and never calls `sparkGateFor`. Cost: every Spark tenant shares one AI-credit counter (REQ-122/125 mis-metering). Fixed through the composition root; RED on both mutations. **When a test builds its own handle, ask what would break it — if the answer is "a bug in Cloudflare", it is not testing this repo.** |
+| 910 | §1463 | **§1464** | **GATE THE POPULATION THE DISCRIMINATOR RANGES OVER, NOT THE ONE THE TELL FINDS.** Swept §1463's syntactic tell across 407 test files / 10,377 production expressions. **It returned ZERO and the POSITIVE CONTROL caught it** — the index stripped a leading `return ` but not `const stub = `, so the known instance could not match itself. Fixed: **15 hits — 4 generic-idiom FPs, 10 safe (`SHIPMENT_SEQ` self-verifies, 124 red), 1 the §1463 defect**. So §1463 was ONE instance, not the first of N. A gate on the tell would be **93% noise** with a SEMANTIC discriminator, which no filter reaches — so instead gated the population the discriminator ranges over: **the 3 Durable Objects**, a complete roster cross-checked against the wrangler `class_name` bindings both ways. `do-name-trust.test.ts`: self-verify or declare who drives your naming path. RED 3 ways. **The right gate is often one level up from the evidence that found the bug.** |
 | 856 | §1409 | **§1410** | **SWEEPING MY OWN SECTIONS FOR §1409's ERROR, AND A DETECTOR THAT COULD NOT HAVE FOUND IT.** §1404's precedent: a class like this gets ONE measurement, not a gate, since a correction necessarily quotes what it corrects. **The first sweep returned ZERO and was worthless** — it extracted superseded text as `~~struck~~` only, but the very case §1409 found is marked the other way, as *"a 16-step chain …"* **until audit §1029**. **My detector encoded one of the repo's TWO conventions, so it could never have found the known positive.** Twelfth instance of the session's constant, caught because a zero is the answer this session has learned never to accept. **A second false signal inside the control:** asking *"is it inside `~~…~~`?"* with `~~[^~]*16-step` returned True — because an unrelated `~~` sits earlier and `[^~]*` spanned the gap. **A regex answering "is X inside a delimiter" by searching for the delimiter anywhere before X will say yes to the whole file.** Re-run over both conventions: **109 superseded passages, zero quoted without a marker** — and that zero is worth something, because the corrected detector demonstrably flags a reconstruction of §1408's sentence. **§1409's error was singular, not a habit** |
 | **855** | §1408 | **§1409** | **I QUOTED STRUCK TEXT AS CURRENT, AND THE REPO HAD SOLVED IT 380 SECTIONS EARLIER.** §1408 cited CLAUDE.md's account of `verify:dev` as *"a 16-step chain … reaches 4 of 16"*. Measured: **18 steps**. **But the drift is my quotation's, not the law's** — CLAUDE.md's current text says that reading held *"until audit §1029"*, was *"invalidated hours later by `7b61624`"*, and that **the total is stated no longer, only the position that matters: step 4, and nothing after it**. I quoted the struck half of a correction as the claim. **Eleventh measurement error, and the first where the artifact had already anticipated the failure I was about to report.** **§1029's move is exactly §1402's, reached 373 sections apart and independently:** faced with a number that rots, REMOVE the number and keep the invariant. A convention arrived at twice from opposite ends of the record is the closest this audit has to a law about documentation. Substantively: `verify:dev` is still an unaggregated `&&` chain at 18 steps, and that is **not** a defect — CLAUDE.md documents it, names `verify:merge` as the real verdict, and `wp-exit-audit.test.ts:19` records that a naive matcher yields *"4 of 16"* and *"reads as a serious constitutional finding and is an artifact"*. **Tenth clean negative** |
 | 854 | §1407 | **§1408** | **VERIFYING MY OWN DELIVERABLE IS WIRED, BY THE STANDARD §1304 SET.** Five gates were built this session and each reported as working; §1304's standard is **verified WIRED before the board is read**, because a gate that runs when I invoke it and not when CI does is decoration with a green tick. **First measurement said ZERO** — searching the merge log for the five names returns 0 mentions each, which reads as "they never ran". It is the §1362 reporter difference: the tools suite runs under vitest v4 (summary only) while worker suites at v3.2.7 print per-file. The same run reports **125 files passed**, 120 + 5. **Tenth measurement error avoided by not believing a zero.** Measured properly three ways: `vitest list` shows **21 cases** across the five; `run-gate.ts:46` wires `unit-tests` to the `test` script; and `test` is `test:tools; t=$?; … ; exit $(( t \|\| p ))`. **Proved end-to-end:** breaking `law-enforcers` makes `pnpm test:tools` exit 1, which propagates. Also worth noting: that script AGGREGATES rather than `&&`-chains — the defect CLAUDE.md records for `verify:dev`, which reaches 4 of 16 steps |
@@ -84508,3 +84509,56 @@ handle, ask what would break it: if the answer is "a bug in Cloudflare", it is n
 **145** tests (was 144), lint clean. Board **MEASURED at `dba4fac` (§1463's own run): 21 PASS · 0 FAIL · 5
 BLOCKED** — repo-owned failure set empty. The three-DO class above is now complete and every member is
 defended, so this thread closes rather than carrying. Carry-forward unchanged; one watch item (§1443).
+
+## §1464 — PHASE GATE: gate the population the discriminator ranges over, not the one the tell finds (REQ-118/REQ-025)
+
+§1463 ended with a syntactic tell — *a test-local helper whose body copies a production expression* — and
+§1461's rule says run the bounding sweep even when a clean negative is expected. Run: 407 test files against
+243 production files, 10,377 indexed expressions.
+
+**It returned ZERO, and the positive control is the only reason that did not become the finding.** The index
+normalised a leading `return ` but not a leading `const stub = `, so the known §1463 instance could never match
+its own production line. A zero from a broken probe reads exactly like a clean repo (§1387), and the control
+that asserts *"the instance I already know about must be found"* is what separated them. Fixed, the sweep
+returns **15**, and they triage into three classes:
+
+| class | count | verdict |
+|---|---|---|
+| generic idiom — `jsonResponse` → `new Response(JSON.stringify(…))` | 4 | **false positive**: no capability is resolved, nothing to get wrong |
+| duplicated resolution **with** independent verification — 10 × `stubFor` → `SHIPMENT_SEQ` | 10 | **safe**: the DO re-derives its own id, measured at 124 red (§1463) |
+| duplicated resolution with **none** — `meter` → `SPARK_METER` | 1 | the §1463 defect, fixed |
+
+So §1463 was **one instance, not the first of N** — the same bounding §1461 produced, and worth stating both
+times because the alternative is a reader assuming a backlog.
+
+**The gate decision, which is the point of this phase.** The obvious move is to gate the tell. It would be 93%
+noise: 4 false positives plus 10 correct-and-safe out of 15. Worse, the discriminator that separates class 2
+from class 3 — *does the production counterpart have independent verification?* — is **semantic**, and no
+filter reaches semantic noise (§1399). A gate at 93% noise is a gate somebody disables.
+
+But the discriminator ranges over a population that is neither large nor semantic: **Durable Objects. There are
+three.** `git ls-files` finds three classes extending `DurableObject`, and the wrangler configs bind exactly
+three `class_name`s — a complete, mechanically-derivable roster, cross-checkable in both directions.
+
+So `tools/checks/do-name-trust.test.ts` gates the THREE, not the fifteen. Every DO must either re-derive its own
+id (`expected.equals(this.ctx.id)`) or carry a `NAME_TRUSTED` declaration naming the test that drives its
+PRODUCTION naming path — the exact question nobody asked for SparkMeter. The declarations are checked for a
+live subject, a live driver file, and are *deleted automatically* if the DO ever gains self-verification, so the
+weaker recorded guarantee cannot outlive the stronger real one. Roster parity is asserted both ways: a class no
+toml binds is dead code that looks live; a binding with no class is a deploy booting into a missing export.
+
+Mutation-proved three ways, all on real source: strip the sequencer's identity check → **2 red**; plant a fourth
+undeclared DO class → **2 red**; point a declaration's `drivenBy` at a file that does not exist → **1 red**.
+
+**The general form.** A sweep gives you a POPULATION; a gate needs a DECIDABLE one. When the tell finds many
+instances but the judgement is semantic, do not gate the tell — find the smaller population the judgement
+ranges over and gate that. Here the tell found 15 helpers needing human judgement each, while the judgement
+itself was only ever about 3 objects. **The right gate is often one level up from the evidence that found the
+bug** — and it is usually smaller, complete, and mechanical, which the evidence never is.
+
+**Phase gate.** Source changed: one new gate file; **no product code** (`sequencer.ts` and `spark-meter.ts`
+byte-identical after mutations). 134 tools files / 1,427 tests green, lint clean, `check:citations` and
+`check:section-refs` clean. Board last MEASURED at `dba4fac` (§1463, 1 commit ago): **21 PASS · 0 FAIL · 5
+BLOCKED**; this phase adds a test file only, so the aggregate verdict is unchanged in kind. The DO thread that
+opened at §1463 is now closed in both directions — every member defended, and the roster gated so a fourth
+member must answer. Carry-forward unchanged; one watch item (§1443).
