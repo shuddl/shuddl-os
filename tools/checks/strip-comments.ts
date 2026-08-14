@@ -45,6 +45,25 @@ export function stripComments(src: string): string {
       if (c === "*" && next === "/") { state = "code"; out += "  "; i++; } else out += c === "\n" ? c : " ";
       continue;
     }
+    // §1414 — A QUOTED STRING ENDS AT THE LINE END. `'` and `"` cannot span a newline in TypeScript, so a
+    // state still open at one is not a string: it is this machine having mis-read a REGEX LITERAL, which it
+    // does not tokenise. `/evInput\(\s*"([^"]+)"\s*\)/` carries THREE quote characters — odd — and left the
+    // machine inside a phantom string for the rest of the file. That alone is harmless (strings are kept),
+    // but the next real quote CLOSES the phantom, whatever followed it becomes "code", and a path glob in
+    // the next string (`"workers/*"`) then reads as `/*` and opens a phantom BLOCK COMMENT that blanks
+    // everything to the next `*/` — or to EOF.
+    //
+    // MEASURED, and this is why it is not a curiosity: with those two ordinary lines in front of it, an
+    // `INSERT OR REPLACE INTO events` was INVISIBLE to `check:invariants` — exit 0 against the control's
+    // exit 1. That is law #2 (I3/I7, events are append-only) bypassed by a regex and a glob, in the scanner
+    // CLAUDE.md names as its enforcer. Both idioms are already common here: 56 files carry a string
+    // containing `/*`.
+    //
+    // Resetting at the newline bounds the mis-read to the line that caused it — the same containment
+    // §1411 applied to strikethrough spans. RESIDUAL, stated rather than implied: a desync and a `/*`
+    // string on the SAME line can still blank the rest of that line. Template literals are deliberately
+    // exempt, because they genuinely do span lines.
+    if ((state === "'" || state === '"') && c === "\n") { state = "code"; out += c; continue; }
     // inside a string/template: a backslash escapes the next character, so a quote cannot close early
     if (c === "\\") { out += c + (next ?? ""); i++; continue; }
     if (c === state) state = "code";

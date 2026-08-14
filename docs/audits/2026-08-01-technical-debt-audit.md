@@ -635,6 +635,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 857 | §1410 | **§1411** | **FIVE GATES SHARED ONE STRIKETHROUGH REGEX AND IT HID 62% OF THE RECORD.** Written as a clean negative; the gate refused it. `/~~[\s\S]*?~~/g` crosses newlines, and the records *discuss* the convention — **55 unpaired `~~` in prose**, each re-pairing every marker after it. Measured: the global pair masked **3,905,463 chars, 66% of the audit** (real strikethrough: 2,453), leaving the citation gates reading **123 of 308** tracked citations — **191 (62%) invisible to everything, including the merge gate `check:citations`**, two of them already dead. **It surfaced by accident I caused:** §1411's own index row added five markers, flipped the parity above §431, and a weeks-green citation went red — **the gate's scope depended on how often the document mentioned its own notation.** Fixed by one shared length-preserving mask (`strip-struck.ts`, no copy survives) + an 8-case gate whose last three cases are the PROPERTY (an unpaired marker changes nothing outside its own paragraph) plus a two-sided corpus floor. **The first version was LINE-WISE on a mechanism I stated and got wrong** (*"GFM cannot span a line break"* — it can cross soft breaks; both records strike wrapped text) and `wrangler-absence-claims` reds within a minute; the rule that holds is PARAGRAPH-bounded. **Mutation-proved both ways: global pair 4/8 RED, line-wise REDs two gates.** 3 dead citations repointed with symbol anchors. §1399/§1404/§1410's verdicts survive but were measured over a corpus 62% smaller than they believed. **Fourth consecutive instrument defect** |
 | 858 | §1411 | **§1412** | **THE SAME DUPLICATION IN A DIFFERENT NOTATION.** §1411's real question was not *is that regex used elsewhere* but *what else is a matcher N gates each wrote for themselves*. First answer: **nine hand-rolled `/\/\*[\s\S]*?\*\//g` comment strippers**, carrying §1411's flaw exactly — `/*` inside a STRING opens a swallow to the next `*/`, and **56 files here contain such a string** (largest: 7,783 chars). A correct state machine already existed (`stripComments`, used by law #2's enforcer, never at risk). **Measured: all nine corpora CLEAN — latent, not live**, and recorded at that volume on purpose. **Two wrong measurements on the way, both mine, both inflating:** *"47 files, 37,229 chars blind"* and a false LIVE on `run.ts` — each time I measured **the file containing the call instead of the ARGUMENT to the call**. Fixed by extracting `strip-comments.ts` (re-exported by source-corpus, all nine sites rewired, each also shedding a second hand-written line-comment regex) + a 6-case gate with a **derived, currently EMPTY roster** and a positive control, the one mention excluded BY PATH not by phrase. Matters because the failure is silent in the worst direction: a swallow REMOVES text, so `claimed-tenants`' forbidden reference would vanish and the gate would pass |
 | 859 | §1412 | **§1413** | **§1411 CLOSED THE CLASS AFTER FIXING FIVE OF SEVEN, AND THE SHARED MASK WAS WRONG.** `ledger-status-vocabulary` held two more `~~` masks; §1411's sweep missed them by searching the SHAPE (`[\s\S]`) instead of the BEHAVIOUR (*replaces a `~~` pattern*) — **my own sweep-by-behaviour rule, broken inside the phase about duplicated matchers.** Worse: diffing my mask against the copy it replaced, over 155 real ledger cells, found **my** version wrong. `[^~]*` is safe against runaway but wrong about this repo, which writes `~` for APPROXIMATELY (`~24 guards`, `HEAD~1`): the span fails at its real opener and the engine pairs its CLOSING `~~` with a later marker, so the mask lands elsewhere — **hiding two unstruck citations AND leaving two superseded claims live, both directions at once.** Adopted `~(?=\d)`: 12,908 masked vs 13,462, **154 citations visible vs 152**. Naive repair (*terminate at next `~~`*) rejected — measured **292,699** chars in the audit, §1411's disease at paragraph scale. Roster added: no file re-authors a `~~` MASK (a READ stays legal; discriminator `.replace(`, positive control both ways), mutation-proved. **Three implementations, three distinct defects, all green under the full suite — each found by a diff against real input, never by a test** |
+| 860 | §1413 | **§1414** | **LAW #2's ENFORCER WAS BLIND BEHIND A REGEX LITERAL.** §1413's rule (*diff the survivor against each of the N on real input*) applied to §1412's nine-copy consolidation, which I had verified only by running the suites. The diff disagreed on 3 files, all in the dangerous direction. Cause: **the state machine does not tokenise REGEX LITERALS.** `/evInput\(\s*"([^"]+)"\s*\)/` carries three `"` — odd — so it sits in a phantom string for the rest of the file; harmless alone (strings are KEPT), until the next real quote closes it and a path glob (`"workers/*"`) then reads as `/*` and opens a phantom BLOCK COMMENT to EOF. **Measured with a control: `INSERT OR REPLACE INTO events` behind those two ordinary lines → `check:invariants` exit 0 (BLIND) vs exit 1 caught.** CLAUDE.md law #2 (I3/I7) bypassed by a regex and a glob, in its named enforcer; 56 files here already carry a `/*` string. **Introduced 2026-08-06 in `35b5a8e` — whose subject is fixing a DIFFERENT hole in this same law** — and called *"correct"* by §1412, now struck in its own file. Fixed by resetting `'`/`"` state at a newline (templates exempt); probe now exits 1. Residual stated: same-line desync. **Pinned end-to-end (strip→scan), because a unit test on the stripper alone goes green on the old code** |
 | 856 | §1409 | **§1410** | **SWEEPING MY OWN SECTIONS FOR §1409's ERROR, AND A DETECTOR THAT COULD NOT HAVE FOUND IT.** §1404's precedent: a class like this gets ONE measurement, not a gate, since a correction necessarily quotes what it corrects. **The first sweep returned ZERO and was worthless** — it extracted superseded text as `~~struck~~` only, but the very case §1409 found is marked the other way, as *"a 16-step chain …"* **until audit §1029**. **My detector encoded one of the repo's TWO conventions, so it could never have found the known positive.** Twelfth instance of the session's constant, caught because a zero is the answer this session has learned never to accept. **A second false signal inside the control:** asking *"is it inside `~~…~~`?"* with `~~[^~]*16-step` returned True — because an unrelated `~~` sits earlier and `[^~]*` spanned the gap. **A regex answering "is X inside a delimiter" by searching for the delimiter anywhere before X will say yes to the whole file.** Re-run over both conventions: **109 superseded passages, zero quoted without a marker** — and that zero is worth something, because the corrected detector demonstrably flags a reconstruction of §1408's sentence. **§1409's error was singular, not a habit** |
 | **855** | §1408 | **§1409** | **I QUOTED STRUCK TEXT AS CURRENT, AND THE REPO HAD SOLVED IT 380 SECTIONS EARLIER.** §1408 cited CLAUDE.md's account of `verify:dev` as *"a 16-step chain … reaches 4 of 16"*. Measured: **18 steps**. **But the drift is my quotation's, not the law's** — CLAUDE.md's current text says that reading held *"until audit §1029"*, was *"invalidated hours later by `7b61624`"*, and that **the total is stated no longer, only the position that matters: step 4, and nothing after it**. I quoted the struck half of a correction as the claim. **Eleventh measurement error, and the first where the artifact had already anticipated the failure I was about to report.** **§1029's move is exactly §1402's, reached 373 sections apart and independently:** faced with a number that rots, REMOVE the number and keep the invariant. A convention arrived at twice from opposite ends of the record is the closest this audit has to a law about documentation. Substantively: `verify:dev` is still an unaggregated `&&` chain at 18 steps, and that is **not** a defect — CLAUDE.md documents it, names `verify:merge` as the real verdict, and `wp-exit-audit.test.ts:19` records that a naive matcher yields *"4 of 16"* and *"reads as a serious constitutional finding and is an artifact"*. **Tenth clean negative** |
 | 854 | §1407 | **§1408** | **VERIFYING MY OWN DELIVERABLE IS WIRED, BY THE STANDARD §1304 SET.** Five gates were built this session and each reported as working; §1304's standard is **verified WIRED before the board is read**, because a gate that runs when I invoke it and not when CI does is decoration with a green tick. **First measurement said ZERO** — searching the merge log for the five names returns 0 mentions each, which reads as "they never ran". It is the §1362 reporter difference: the tools suite runs under vitest v4 (summary only) while worker suites at v3.2.7 print per-file. The same run reports **125 files passed**, 120 + 5. **Tenth measurement error avoided by not believing a zero.** Measured properly three ways: `vitest list` shows **21 cases** across the five; `run-gate.ts:46` wires `unit-tests` to the `test` script; and `test` is `test:tools; t=$?; … ; exit $(( t \|\| p ))`. **Proved end-to-end:** breaking `law-enforcers` makes `pnpm test:tools` exit 1, which propagates. Also worth noting: that script AGGREGATES rather than `&&`-chains — the defect CLAUDE.md records for `verify:dev`, which reaches 4 of 16 steps |
@@ -82025,3 +82026,65 @@ the survivor.
 rather than by my say-so, and so is the comment-stripper class (§1412). Carry-forward is unchanged and
 owner-held: vendor the nine private fixtures + `IDENTITY_DENYLIST` (the only path to PROMOTABLE), commit the
 `genesis/09` rows, and the five filed operational REQ rows.
+
+## §1414 — PHASE GATE: law #2's enforcer was blind behind a regex literal, and the diff I skipped found it
+
+§1413 ended with a rule: **when one implementation replaces N, diff it against each of the N on real input;
+the tests only prove the survivors agree with the survivor.** §1412 had consolidated **nine** comment
+strippers into one shared state machine and I had verified it by running the suites — the exact thing §1413
+says is insufficient. So the first action of this phase was to do the diff I skipped.
+
+**It disagreed on three files, all in the direction that matters** — the shared machine dropping what every
+naive copy kept. Traced to one line:
+
+```ts
+const hits = [...src.matchAll(/evInput\(\s*"([^"]+)"\s*,\s*(\w+)\s*\)/g)];
+```
+
+**The machine does not tokenise regex literals.** That regex carries THREE `"` characters — odd — so the
+machine enters a string state and stays there for the rest of the file. On its own that is harmless, because
+strings are KEPT. The damage needs a second, equally ordinary line: the next real quote CLOSES the phantom
+string, whatever followed becomes "code", and a path glob in the next string — `"workers/*"` — then reads as
+`/*` and opens a phantom BLOCK COMMENT that blanks everything to the next `*/`, or to end of file.
+
+**Measured, with a control, and this is the finding:**
+
+| probe | `check:invariants` |
+|---|---|
+| regex-with-odd-quotes · glob string · `INSERT OR REPLACE INTO events` | **exit 0 — BLIND** |
+| identical file, regex line commented out | exit 1 — caught |
+
+That is **CLAUDE.md's law #2** — *"Events are append-only: no UPDATE/DELETE paths on `events`, ever"* (I3,
+I7) — bypassed by a regex literal and a path glob, in the scanner the constitution names as its enforcer.
+Both idioms are already common here: **56 files carry a string containing `/*`**, and quoted regexes are
+ordinary. Nothing was actually violated — the corpus is clean — but the gate could not have told us.
+
+**Provenance, which is the uncomfortable part.** The state machine was introduced on **2026-08-06 in
+`35b5a8e`**, whose subject is *"a REPLACE on the events table was writable in `tools/` — two I3 gates
+disagreed"*. **The fix for one hole in this law shipped another one**, and it survived every subsequent audit
+of that law, including §1412's, which called it "correct because it tracks string and template states" — a
+claim now struck in its own file.
+
+**The fix:** a `'` or `"` state resets at a newline. Neither can span one in TypeScript, so a state still open
+there is not a string — it is the machine having mis-read something. Template literals stay exempt because
+they genuinely do span lines. Same containment §1411 applied to strikethrough: **you cannot always parse it
+right, but you can always stop it at the line.** The probe now exits 1.
+
+**Residual, stated rather than implied:** a desync and a `/*`-bearing string on the SAME line can still blank
+the rest of that line. Full-fidelity regex-vs-division disambiguation is a tokeniser, and that is not
+proportionate here.
+
+**Pinned end to end**, because the composition is what broke, not either half: `strip-comments.test.ts` now
+asserts that the probe survives `stripComments` AND that `scanSourceForForbiddenReplace` reports it. A unit
+test on the stripper alone would have gone green on the old code.
+
+One more corrected measurement: after the fix one file still appeared to blank live code —
+`apps/command/src/App.tsx:281`. It is the middle line of a multi-line JSX `{/* … */}` comment, which SHOULD be
+blanked; my detector only recognised continuation lines beginning with `*`. **Zero real blind regions
+remain.** Third over-reporting probe in three phases, all the same shape — the false positive adjacent to the
+true one.
+
+**Phase gate.** 127 tools files / 1,382 tests green. Three consecutive phases have now found a defect in the
+same lineage — a shared matcher, its replacement, and its replacement's replacement — and each was found by
+diffing against real input rather than by any test. Carry-forward unchanged and owner-held: vendor the nine
+private fixtures + `IDENTITY_DENYLIST`, commit the `genesis/09` rows, the five filed operational REQ rows.
