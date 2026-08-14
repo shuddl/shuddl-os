@@ -126,7 +126,13 @@ describe("§801: every constant-time comparison accumulates instead of short-cir
 
   /** Value-vs-value strict comparisons of secret-ish operands — the shape a constant-time helper never has. */
   function secretValueComparisons(root: string): string[] {
-    const files = execSync('git ls-files "workers" "packages"', { cwd: root, encoding: "utf8" })
+    // §1448 — `apps` added. The seven subjects this header enumerates are all server-side, so the corpus
+    // MATCHED the subject when it was written — but the rule above it says "EVERY constant-time comparison",
+    // and a corpus narrower than its own title is §1021's defect in miniature. Widening is free: measured at
+    // §1448, `apps` contributes ZERO matches today and the suite stays at 10 green. It is included for the
+    // same reason §1426 keeps an empty half of a paired glob — so the gate is not blind the day a surface
+    // compares a token, which is exactly when nobody will think to widen it.
+    const files = execSync('git ls-files "workers" "packages" "apps"', { cwd: root, encoding: "utf8" })
       .split("\n")
       .filter((f) => /\.ts$/.test(f) && !f.includes(".test.") && !f.includes("/test/"));
     const re = new RegExp(`(${SECRETISH})\\s*(?:===|!==)\\s*(${SECRETISH})`, "i");
