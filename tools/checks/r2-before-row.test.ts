@@ -5,10 +5,16 @@ import { repoRoot } from "./repo-root.js";
 
 // §1274 (REQ-016/017/198) — THE BYTES MOVE FIRST, THE ROW MOVES LAST.
 //
-// Two places pair an R2 operation with a `documents` row write, and both state the same rule in a comment:
+// THREE places pair an R2 operation with a `documents` row write (count corrected 2026-08-14, §1480 — this
+// header said "Two" and named two while SITES had already grown to three, so a reader auditing the gate
+// concluded `anchor.ts` was UNCOVERED and went looking for a hole that was not there; the count is now
+// asserted against SITES below rather than restated):
 //
 //   evidence.ts   "R2 FIRST, documents row LAST … the row exists iff the bytes are stored"
 //   retention.ts  "DELETE bytes FIRST (idempotent), THEN tombstone — the crash-safe, self-healing ordering"
+//   anchor.ts     the daily anchor — `r2.put(receiptKey)` + the manifest, THEN the documents row. Same
+//                 asymmetry with more at stake: the receipt is what makes the ledger externally verifiable
+//                 (REQ-014), so a row pointing at an absent TSA receipt is an anchor that cannot be checked.
 //
 // The ordering is not stylistic, because THE RECOVERY IS ASYMMETRIC. In the documented order a crash between
 // the two leaves bytes with no row, and the next upload heals it (`INSERT OR IGNORE`, byte-identical re-put of
@@ -48,6 +54,24 @@ function r2WriteSites(root: string): string[] {
 }
 
 describe("§1274 REQ-016/017: R2 moves before the documents row", () => {
+  it("§1480: the header's stated count matches SITES (a count in prose is a claim that decays)", () => {
+    // This header said "Two" while SITES held three, and the drift cost a reader a detour into a hole that did
+    // not exist. §1473's ladder: a number in a comment is unrunnable unless something runs it. This runs it.
+    const src = readFileSync(`${repoRoot()}/tools/checks/r2-before-row.test.ts`, "utf8");
+    const WORDS: Record<string, number> = { ONE: 1, TWO: 2, THREE: 3, FOUR: 4, FIVE: 5 };
+    const stated = /\/\/ (\w+) places pair an R2 operation/i.exec(src)?.[1]?.toUpperCase();
+    expect(stated, "the header no longer states a count in the expected shape — reword it or update this check").toBeDefined();
+    expect(
+      WORDS[stated as string],
+      `the header says ${stated} places pair R2 with a documents row, but SITES declares ${SITES.length}. ` +
+        "Update the prose AND name the new site, or a reader auditing this gate will hunt for a gap that is covered.",
+    ).toBe(SITES.length);
+    for (const s of SITES) {
+      const base = s.file.split("/").pop() as string;
+      expect(src.slice(0, src.indexOf("const SITES")), `the header does not name ${base}`).toContain(base);
+    }
+  });
+
   const root = repoRoot();
 
   it("every declared site still has both halves (non-vacuity — a rename would make the order check vacuous)", () => {
