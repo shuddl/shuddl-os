@@ -287,8 +287,21 @@ function eslintDeterminismScopes(root: string): string[] {
     let buf = m[1]!;
     for (let j = i + 1; !buf.includes("]") && j < lines.length; j++) buf += lines[j]!;
     // A block counts only if its RULES ban a clock or randomness — not merely if it restricts something.
-    const window = lines.slice(i, i + 22).join("\n");
-    if (!/\bDate\b|Math\.random/.test(window)) continue;
+    //
+    // §1377 — STRUCTURAL, not a fixed window. This read `lines.slice(i, i + 22)`, a window I wrote at §1368
+    // one section after §1339 stated the rule and two before §1376 caught me writing another. It errs both
+    // ways: UNDER-reach drops a block whose rules sit lower (the mirror then reads as drifted), OVER-reach
+    // credits a block with its NEIGHBOUR's ban. Both fail loud here, which is why it survived — but a detector
+    // keyed on distance encodes an accident of today's formatting. A block ends where the next one begins.
+    let end = lines.length;
+    for (let k = i + 1; k < lines.length; k++) {
+      if (/files:\s*\[/.test(lines[k]!)) {
+        end = k;
+        break;
+      }
+    }
+    const block = lines.slice(i, end).join("\n");
+    if (!/\bDate\b|Math\.random/.test(block)) continue;
     for (const raw of buf.split("]")[0]!.split(",")) {
       const g = raw.trim().replace(/^["']|["']$/g, "");
       if (g.length === 0) continue;
