@@ -128,11 +128,14 @@ async function signedRequest(body: string, opts: { partner?: string; signature?:
 // exactly what the DO does), so a malformed append fails the test loudly. It is the ONLY place the append set
 // is observed — the no-bypass assertion reads `kinds`.
 class RecordingSeq implements SeqStubLike {
+  /** §1374 — how many times append was CALLED, which `appended.length` cannot show. */
+  calls = 0;
   readonly appended: Array<{ tenant: string; streamId: string; event: ReturnType<typeof EventInput.parse> }> = [];
   private readonly byId = new Map<string, ReturnType<typeof EventInput.parse>>();
   async append(req: { tenant: string; streamId: string; input: unknown }): Promise<{ id: string }> {
     const parsed = EventInput.parse(req.input);
     const existing = this.byId.get(parsed.id);
+    this.calls += 1; // §1374 — CALLS, not rows: the DO dedupe saves the ROW, never the subrequest that reached it.
     if (existing !== undefined) return { id: existing.id }; // DO dedupe-by-id: a redelivery is a no-op
     this.byId.set(parsed.id, parsed);
     this.appended.push({ tenant: req.tenant, streamId: req.streamId, event: parsed });
@@ -247,6 +250,12 @@ describe("REQ-201/202 — inbound 204 → gated chain, NO booking.created", () =
 
     await handleInbound204(await signedRequest(tender204()), deps); // exact redelivery
     expect(seq.appended.length, "redelivery reproduces the same event ids → no second append").toBe(afterFirst);
+    // §1374 — the assertion above is about ROWS; this one is about WORK. A redelivered 204 re-derives every
+    // event and still CALLS the sequencer for each, because idempotence is enforced at the DO — downstream of
+    // the subrequest. `appended.length` cannot show that, because this double collapses repeats (§1373 found
+    // the same double hiding the same quantity in mirror-sweep). Bounded here — one message, a handful of
+    // events — so this pins the cost rather than filing a hazard.
+    expect(seq.calls, "a redelivery did no sequencer work at all — then the dedupe moved upstream of the DO").toBeGreaterThan(afterFirst);
     expect(await count(env.TENANT_A_DB, "shipments")).toBe(1);
     expect(await count(env.TENANT_A_DB, "parties")).toBe(1);
   });
