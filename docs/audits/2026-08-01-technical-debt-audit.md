@@ -706,6 +706,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 928 | §1481 | **§1482** | **A NUMBER RESTATED IN A DOZEN PLACES AND DERIVED FROM NONE.** Board re-measured (**21 PASS · 0 FAIL · 5 BLOCKED at `f380b05`**). CLAUDE.md's *13 agents* reads like the hard budgets — all of which ARE gated — but it lives in the INTRO, and §1173 deliberately reads budgets only from the budgets line. Correct for budgets; it leaves this count with no owner. The count is TRUE (genesis/01's heading says 13, its table holds exactly 13) and **restated in 14 places**, ten governing or shipped. The risk is not that it is wrong but that nothing makes it stay right: a 14th agent makes a dozen files wrong in one commit. Gate added (heading == table; every restatement agrees with the ROSTER; positive control naming three files). RED 3 ways. **And I lost a probe to `\b` in `git grep -E` for the FOURTH time — §1467 wrote that rule and I broke it 15 sections later. Writing a lesson down does not apply it; the positive control is what caught it.** |
 | 929 | §1482 | **§1483** | **THE COUNT SWEEP BOUNDED, AND A FALSE CONCLUSION I PRINTED MYSELF.** CLAUDE.md states TEN roster counts; nine derive — six from the budgets line, agents (§1482), demos, and **10 laws, whose gate I VERIFIED by mutation: planting an 11th numbered rule reds it**. The tenth, `171-col`, is restated **29 times** (17 outside `docs/plans`) with no derivation, and cannot be derived here: its source arrives only as the `legacy-export-replay` fixture — **pending, and one of §1475's four with ZERO consumers**. Uncheckable twice over. **And my own command echoed *(only CLAUDE.md = not a restatement problem)* — a caption written INTO the probe before its grep ran, printing above 29 contradicting rows.** A conclusion hardcoded beside a measurement is not a measurement. **A probe that prints its own interpretation keeps printing it after the data changes** — emit the numbers, draw the conclusion outside. |
 | 930 | §1483 | **§1484** | **THE GATE I DID NOT BUILD.** Audited the 12 canonical views per-item: **11 declared against a 12 budget** (one headroom slot), `assertViewBudget()` throws at import, and `registry.test.ts` covers what a compiler cannot — budget, uniqueness, and that every KPI metric drills to a REAL view. Each entry names its component in a comment (§1470's stated-coupling shape), so the obvious seventh gate was *assert the component exists*. **I measured what already enforces it and declined**: `App.tsx` imports every view by path, so deleting one is a TypeScript build failure — a gate would be strictly weaker than the compiler while reading in review as though the mapping were uniquely watched. Two more probe false-flags (`v_board`/`v_parity` comments start with prose). **Before adding a gate, name what already enforces the property; if it is the type checker or the build, decline. A gate is a claim that this property needs watching HERE, and a redundant one relocates attention away from the mechanism doing the work.** |
+| 931 | §1484 | **§1485** | **A GATE'S NECESSITY IS A MEASUREMENT, NOT AN ARGUMENT.** §1484 declined an eighth gate; this asks the question BACKWARDS of the seven built §1460–§1482. Each was justified by *my gate reds* — which is not *only my gate reds*. Method: plant each gate's own violation, run the WHOLE tools suite, count failing files. **Six of seven red exactly one file: themselves.** The seventh (`do-name-trust`) reds 2 on a NEW DO CLASS, sharing that signal with `invariants.test.ts`'s `DO_MUTEX_ROSTER` — so I planted the violation that breaks only its own subject (the sequencer's `expected.equals(this.ctx.id)`) and it reds **exactly one**. All seven are sole watchers of their property; the overlap is depth over one population, not duplication. Cost: **eight full-suite runs**. **A redundant gate does not fail loudly — it fails by being the reason nobody looked.** |
 | 856 | §1409 | **§1410** | **SWEEPING MY OWN SECTIONS FOR §1409's ERROR, AND A DETECTOR THAT COULD NOT HAVE FOUND IT.** §1404's precedent: a class like this gets ONE measurement, not a gate, since a correction necessarily quotes what it corrects. **The first sweep returned ZERO and was worthless** — it extracted superseded text as `~~struck~~` only, but the very case §1409 found is marked the other way, as *"a 16-step chain …"* **until audit §1029**. **My detector encoded one of the repo's TWO conventions, so it could never have found the known positive.** Twelfth instance of the session's constant, caught because a zero is the answer this session has learned never to accept. **A second false signal inside the control:** asking *"is it inside `~~…~~`?"* with `~~[^~]*16-step` returned True — because an unrelated `~~` sits earlier and `[^~]*` spanned the gap. **A regex answering "is X inside a delimiter" by searching for the delimiter anywhere before X will say yes to the whole file.** Re-run over both conventions: **109 superseded passages, zero quoted without a marker** — and that zero is worth something, because the corrected detector demonstrably flags a reconstruction of §1408's sentence. **§1409's error was singular, not a habit** |
 | **855** | §1408 | **§1409** | **I QUOTED STRUCK TEXT AS CURRENT, AND THE REPO HAD SOLVED IT 380 SECTIONS EARLIER.** §1408 cited CLAUDE.md's account of `verify:dev` as *"a 16-step chain … reaches 4 of 16"*. Measured: **18 steps**. **But the drift is my quotation's, not the law's** — CLAUDE.md's current text says that reading held *"until audit §1029"*, was *"invalidated hours later by `7b61624`"*, and that **the total is stated no longer, only the position that matters: step 4, and nothing after it**. I quoted the struck half of a correction as the claim. **Eleventh measurement error, and the first where the artifact had already anticipated the failure I was about to report.** **§1029's move is exactly §1402's, reached 373 sections apart and independently:** faced with a number that rots, REMOVE the number and keep the invariant. A convention arrived at twice from opposite ends of the record is the closest this audit has to a law about documentation. Substantively: `verify:dev` is still an unaggregated `&&` chain at 18 steps, and that is **not** a defect — CLAUDE.md documents it, names `verify:merge` as the real verdict, and `wp-exit-audit.test.ts:19` records that a naive matcher yields *"4 of 16"* and *"reads as a serious constitutional finding and is an artifact"*. **Tenth clean negative** |
 | 854 | §1407 | **§1408** | **VERIFYING MY OWN DELIVERABLE IS WIRED, BY THE STANDARD §1304 SET.** Five gates were built this session and each reported as working; §1304's standard is **verified WIRED before the board is read**, because a gate that runs when I invoke it and not when CI does is decoration with a green tick. **First measurement said ZERO** — searching the merge log for the five names returns 0 mentions each, which reads as "they never ran". It is the §1362 reporter difference: the tools suite runs under vitest v4 (summary only) while worker suites at v3.2.7 print per-file. The same run reports **125 files passed**, 120 + 5. **Tenth measurement error avoided by not believing a zero.** Measured properly three ways: `vitest list` shows **21 cases** across the five; `run-gate.ts:46` wires `unit-tests` to the `test` script; and `test` is `test:tools; t=$?; … ; exit $(( t \|\| p ))`. **Proved end-to-end:** breaking `law-enforcers` makes `pnpm test:tools` exit 1, which propagates. Also worth noting: that script AGGREGATES rather than `&&`-chains — the defect CLAUDE.md records for `verify:dev`, which reaches 4 of 16 steps |
@@ -85590,3 +85591,52 @@ built.
 lint clean, `check:citations` and `check:section-refs` clean. Board MEASURED at `f380b05` (§1482, 2 commits
 ago): **21 PASS · 0 FAIL · 5 BLOCKED**; both intervening phases changed this record only. Carry-forward: the
 five owner-side items from §1477 plus §1483's qualifier on `legacy-export-replay`; one watch item (§1443).
+
+## §1485 — PHASE GATE: a gate's necessity is a measurement, not an argument (REQ-118/119)
+
+§1484 declined an eighth gate because the compiler already enforced its property. That question deserves asking
+**backwards** too, of the seven this block did build. Each was justified at the time by a measurement — plant
+the violation, watch the new gate red — but *"my gate reds"* is not *"only my gate reds"*, and the second is
+what decides whether it earns its place.
+
+Method: plant a violation of each gate's own subject, run the **whole** tools suite, and count which files fail.
+
+| gate | planted violation | files red |
+|---|---|---|
+| `id-seed-purity` | a clock in the invoice-event seed | **1** — itself |
+| `falsify-recipes` | a FALSIFY recipe's named case reworded | **1** — itself |
+| `trigger-paths` | a reopen trigger's subject renamed | **1** — itself |
+| `fixture-consumers` | a new manifest fixture with no consumer | **1** — itself |
+| `binding-readers` | a declared-but-unread binding | **1** — itself |
+| `agent-mesh-count` | a restatement drifts to 14 | **1** — itself |
+| `do-name-trust` | a fourth, undeclared DO class | **2** — itself + `invariants.test.ts` |
+
+**Six of seven are the sole watcher outright.** The seventh needed a second measurement, because the overlap is
+on the POPULATION rather than the property: `invariants.test.ts` carries a `DO_MUTEX_ROSTER` and therefore also
+notices that a DO class appeared. So I planted the violation that breaks only `do-name-trust`'s own subject —
+removing the sequencer's `expected.equals(this.ctx.id)` self-verification — and it reds **exactly one file**.
+The property is uniquely watched; the shared signal on "a new DO exists" is defence in depth, which is what two
+independent rosters over one population are for.
+
+**So all seven are load-bearing**, and §1484's decline was not squeamishness about an eighth — it was the same
+question returning a different answer. That pairing is the point: the discipline is worth nothing if it only
+ever says yes.
+
+**What it cost to know: eight full-suite runs.** That is the honest price of the distinction, and it is cheap
+against the alternative — a gate that duplicates an existing mechanism passes forever, reads in review as
+coverage, and is discovered only when someone deletes the mechanism actually doing the work and nothing fails.
+**A redundant gate does not fail loudly; it fails by being the reason nobody looked.**
+
+**The general form.** Every gate in this repo carries a measurement of its own RED. Almost none carries a
+measurement of its EXCLUSIVITY, and the two answer different questions: the first says the gate works, the
+second says the gate is needed. **Plant the violation and run everything** — one command, and it converts a
+design argument into a fact. Where the answer is "two files red", the follow-up is not to delete one but to
+find the mutation that separates their subjects, which is what turned an apparent overlap here into two
+distinct guarantees.
+
+**Phase gate.** **No source changed** — eight mutations across `biller.ts`, `spark-meter.ts`, `entitlements.ts`,
+`sequencer.ts`, `manifest.json`, `wrangler.toml`, `agents/index.ts` and the checklist, every one restored
+byte-identical and verified. 139 tools files / 1,453 tests green, lint clean, `check:citations` and
+`check:section-refs` clean. Board MEASURED at `f380b05` (§1482, 3 commits ago): **21 PASS · 0 FAIL · 5
+BLOCKED**; the three intervening phases changed this record only. Carry-forward: the five owner-side items from
+§1477 plus §1483's `legacy-export-replay` qualifier; one watch item (§1443).
