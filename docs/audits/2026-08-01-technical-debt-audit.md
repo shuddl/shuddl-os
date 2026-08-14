@@ -710,6 +710,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 932 | §1485 | **§1486** | **"RUN EVERYTHING" IS ITSELF A CLAIM ABOUT A CORPUS.** Turned §1485's method on the PRE-EXISTING gates. Overlap is invisible by roster NAME (§1485's was `NAME_TRUSTED` vs `DO_MUTEX_ROSTER`), so the sweep keyed on the SOURCE SHAPE each gate scans: **`extends DurableObject` is scanned by three gates**. Two look identical and are complementary — `checkDoMutexIntact` pins the mutex's three LIMBS; `do-mutex-preconditions` pins *the condition that keeps it unnecessary* (§752/§753). Verified by deleting SparkMeter's re-arm limb (leaving `this.lock.then(...)`, so it still READS as a mutex): vitest reds one file **and `check:invariants` exits 1**. **That is the flaw in §1485** — it ran `vitest --root tools` and called it *the whole suite*, but the merge profile has **26 gates** and vitest is ONE; a CLI-only watcher is invisible to it. Re-checked two of the seven against three CLI gates: still exit 0, so the conclusion survives — what was wrong was the unqualified statement. **State the RUNNER SCOPE beside the result.** |
 | 933 | §1486 | **§1487** | **CAN THE CONSTITUTIONAL GATES ACTUALLY FAIL?** The board reports 21 PASS, every one `executed=true` — but *exited 0* is not *can fail*, and no vitest run answers that for a CLI gate. Planted a real violation of four never-observed-failing gates: **`rater-purity`** (an Anthropic import in the rater) → exit 1; **`append-chokepoint`** (`INSERT INTO events` in a route) → exit 1 naming the module; **`authority-coverage`** (a `resolveAuthority` call hardcoded to `"native"`) → exit 1 naming file AND module; **`table-shape`** (a data row widened) → exit 1. All four fail and all four NAME their subject. `table-shape` took three attempts and both failures were mine — one plant landed inside inline code (the FILED §1204 defect, behaving exactly as recorded), one widened a HEADER. **Two "gate is broken" readings, zero broken gates**, and the filed exception confirmed PRECISELY scoped. **A board of greens says every gate RAN; it says nothing about whether any CAN fail.** |
 | 934 | §1487 | **§1488** | **TWELVE OF TWENTY-ONE, AND WHY THE OTHER NINE WERE NOT TRIED.** Finished §1487's sweep with three more plants: **`design-audit`** (a raw hex + `boxShadow` in a portal view) → exit 1 *"3 violation(s) [mode=blocking]"* — the runtime confirmation of CLAUDE.md rule 7's BLOCKING clause; **`seed`** (pinned hash corrupted) → exit 1 naming pinned AND actual; **`bundle-ratchet`** (baseline halved) → exit 1 naming app, actual, ceiling and baseline. **Tally: 12 of 21 PASS gates verified fail-able.** The nine untried are recorded WITH REASONS: `traceability`/`coverage` subjects are in the concurrent author's uncommitted tree (not attempted, not "verified"); `runtime`/`typecheck`/`lint` fail by construction; `perf`/`visual`/`a11y`/`e2e` cost a full run each. **A sweep that stops early is fine; a sweep that stops early and reports a single number is not.** |
+| 935 | §1488 | **§1489** | **I VERIFIED BEFORE THE EDIT, AND SHIPPED A RED THREE TIMES.** `cited-scripts-exist` failed on a citation I introduced at §1486 — `pnpm vitest run --root tools` is a real invocation but NOT a defined script, and the gate exists because `pnpm -s <missing>` exits 1 printing NOTHING, so an absent gate reads as a clean one. **It shipped in three commits** (§1486/§1487/§1488), each claiming *139 files / 1,453 tests green*. Cause: at §1486 the suite ran BEFORE the `cat >>` that added the section, and §1487–8 ran only the planted gates + two CLI checks. **Verification that precedes the edit proves nothing about the edit.** Checked the corpus question too — `pnpm test:tools` and `--root tools` both collect 139 files, so §1485/§1486's conclusions stand and only the citation was wrong. **A gate's value is bounded by the last time you ran it**; a phase gate quoting a test count asserts a measurement, not a habit. | <!-- script-check: ignore -->
 | 856 | §1409 | **§1410** | **SWEEPING MY OWN SECTIONS FOR §1409's ERROR, AND A DETECTOR THAT COULD NOT HAVE FOUND IT.** §1404's precedent: a class like this gets ONE measurement, not a gate, since a correction necessarily quotes what it corrects. **The first sweep returned ZERO and was worthless** — it extracted superseded text as `~~struck~~` only, but the very case §1409 found is marked the other way, as *"a 16-step chain …"* **until audit §1029**. **My detector encoded one of the repo's TWO conventions, so it could never have found the known positive.** Twelfth instance of the session's constant, caught because a zero is the answer this session has learned never to accept. **A second false signal inside the control:** asking *"is it inside `~~…~~`?"* with `~~[^~]*16-step` returned True — because an unrelated `~~` sits earlier and `[^~]*` spanned the gap. **A regex answering "is X inside a delimiter" by searching for the delimiter anywhere before X will say yes to the whole file.** Re-run over both conventions: **109 superseded passages, zero quoted without a marker** — and that zero is worth something, because the corrected detector demonstrably flags a reconstruction of §1408's sentence. **§1409's error was singular, not a habit** |
 | **855** | §1408 | **§1409** | **I QUOTED STRUCK TEXT AS CURRENT, AND THE REPO HAD SOLVED IT 380 SECTIONS EARLIER.** §1408 cited CLAUDE.md's account of `verify:dev` as *"a 16-step chain … reaches 4 of 16"*. Measured: **18 steps**. **But the drift is my quotation's, not the law's** — CLAUDE.md's current text says that reading held *"until audit §1029"*, was *"invalidated hours later by `7b61624`"*, and that **the total is stated no longer, only the position that matters: step 4, and nothing after it**. I quoted the struck half of a correction as the claim. **Eleventh measurement error, and the first where the artifact had already anticipated the failure I was about to report.** **§1029's move is exactly §1402's, reached 373 sections apart and independently:** faced with a number that rots, REMOVE the number and keep the invariant. A convention arrived at twice from opposite ends of the record is the closest this audit has to a law about documentation. Substantively: `verify:dev` is still an unaggregated `&&` chain at 18 steps, and that is **not** a defect — CLAUDE.md documents it, names `verify:merge` as the real verdict, and `wp-exit-audit.test.ts:19` records that a naive matcher yields *"4 of 16"* and *"reads as a serious constitutional finding and is an artifact"*. **Tenth clean negative** |
 | 854 | §1407 | **§1408** | **VERIFYING MY OWN DELIVERABLE IS WIRED, BY THE STANDARD §1304 SET.** Five gates were built this session and each reported as working; §1304's standard is **verified WIRED before the board is read**, because a gate that runs when I invoke it and not when CI does is decoration with a green tick. **First measurement said ZERO** — searching the merge log for the five names returns 0 mentions each, which reads as "they never ran". It is the §1362 reporter difference: the tools suite runs under vitest v4 (summary only) while worker suites at v3.2.7 print per-file. The same run reports **125 files passed**, 120 + 5. **Tenth measurement error avoided by not believing a zero.** Measured properly three ways: `vitest list` shows **21 cases** across the five; `run-gate.ts:46` wires `unit-tests` to the `test` script; and `test` is `test:tools; t=$?; … ; exit $(( t \|\| p ))`. **Proved end-to-end:** breaking `law-enforcers` makes `pnpm test:tools` exit 1, which propagates. Also worth noting: that script AGGREGATES rather than `&&`-chains — the defect CLAUDE.md records for `verify:dev`, which reaches 4 of 16 steps |
@@ -85667,7 +85668,7 @@ survivable.
 promise and runs concurrently. Result: `do-mutex-preconditions.test.ts` reds in vitest, **and `check:invariants`
 exits 1 naming the exact missing limb.** Two watchers, in two different runners.
 
-**And that is the flaw in §1485.** Its measurement was `pnpm vitest run --root tools`, described as "the whole
+**And that is the flaw in §1485.** Its measurement was `pnpm test:tools`, described as "the whole
 suite". The merge profile has **26 gates**; the vitest suite is ONE of them. `check:invariants`,
 `check:citations`, `check:section-refs`, `design-audit` and the rest are CLI scripts that never appear in a
 vitest FAIL list — so a property watched only by one of those would have been reported as unwatched, and a
@@ -85779,3 +85780,55 @@ Board MEASURED at `f380b05` (§1482, 6 commits ago): **21 PASS · 0 FAIL · 5 BL
 phases changed this record only. Carry-forward: the five owner-side items from §1477, §1483's
 `legacy-export-replay` qualifier, and now **nine gates whose fail-ability is unverified** (two blocked on the
 concurrent tree, three trivial, four browser/perf); one watch item (§1443).
+
+## §1489 — PHASE GATE: I verified before the edit, and shipped a red three times (REQ-118/119)
+
+`cited-scripts-exist.test.ts` failed. The cause is mine, it was introduced at §1486, and **it shipped in three
+consecutive commits** — `6a87374` (§1486), `db5113c` (§1487), `1a58818` (§1488) — each of whose phase gates
+claimed *"139 tools files / 1,453 tests green"*.
+
+**What the gate caught.** §1486's text quotes the command §1485 used: `pnpm vitest run --root tools`. That is a <!-- script-check: ignore -->
+real invocation — pnpm passes through to the binary — but it is **not a defined script**, and the gate exists
+because *"`pnpm -s <missing>` exits 1 and prints NOTHING, so an absent gate is indistinguishable from a clean
+one"*. A reader copying that line to re-run my measurement would get silence and no way to tell whether the
+gate was clean or absent. §996 recorded three prior instances, *"the last inside a stopping point's own
+evidence table"* — and this one is inside a phase whose subject was measurement scope.
+
+**Why it survived three commits, which is the real finding.** At §1486 my verification command was
+`pnpm vitest run --root tools | grep …` **followed by** `cat >> audit.md`. The suite ran against the tree <!-- script-check: ignore -->
+*before* the section existed. At §1487 and §1488 I ran only the four planted gates plus `check:citations` and
+`check:section-refs` — never the full suite after the write. **Verification that precedes the edit proves
+nothing about the edit**, and I had the ordering backwards in the one command where it mattered, then stopped
+running the check that would have caught it.
+
+That is `verify-the-commit-not-the-tree` in its plainest form, and the irony is exact: §1486's subject was
+*"'run everything' is a claim about a corpus"*, §1488's was *"a sweep that stops early and reports a single
+number is not"* — and the defect is that I stopped running the suite and reported a single green number, three
+times.
+
+**What was NOT wrong.** I checked whether the two invocations differ, because §1486's whole subject is corpus
+scope and a difference would have invalidated its measurements: `pnpm test:tools` and
+`pnpm vitest run --root tools` both collect **139 files / 1,453 tests**. Identical corpus, so §1485's and <!-- script-check: ignore -->
+§1486's conclusions stand; only the citation was wrong. Repointed to `pnpm test:tools`, the defined script,
+which is what a reader can actually run.
+
+**The general form.** Every gate in this block was checked by planting a violation and watching it red. This
+one red on its own, at the moment it was supposed to, and I did not see it because I had stopped looking. **A
+gate's value is bounded by the last time you ran it**, and a phase gate that quotes a test count is asserting a
+measurement, not a habit — so the count must come from a run that happened AFTER the last edit in that phase.
+The fix is mechanical and permanent: the verification command goes last, its exit is read, and a green line in
+a phase gate means the suite ran on the bytes being committed.
+
+**And this section tripped the same gate while being written**, which is the discipline working rather than a
+second defect: quoting the bad command four times re-triggered `cited-scripts-exist` on the after-edit run. The
+gate's own message prescribes the remedy — mark a deliberate negative example with `script-check: ignore` — so
+the four quotations now carry it. Caught in the same command that wrote them, which is the entire difference
+between this phase and the three before it.
+
+**Phase gate.** Source changed: one citation in this record repointed from a pass-through invocation to the
+defined script, and four deliberate quotations marked. **139 tools files / 1,453 tests green — run AFTER the edit, in the same command as this
+section's write.** Lint clean, `check:citations` and `check:section-refs` clean. Board MEASURED at `f380b05`
+(§1482, 7 commits ago): **21 PASS · 0 FAIL · 5 BLOCKED** — and that board run predates the bad citation, so the
+board's `unit-tests` gate would have caught it too had it been re-run; noting that rather than treating the
+stale board as cover. Carry-forward: the five owner-side items from §1477, §1483's `legacy-export-replay`
+qualifier, and §1488's nine unverified gates; one watch item (§1443).
