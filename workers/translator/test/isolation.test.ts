@@ -136,9 +136,17 @@ class RecordingSeq implements SeqStubLike {
   private readonly byId = new Map<string, ReturnType<typeof EventInput.parse>>();
   async append(req: { tenant: string; streamId: string; input: unknown }): Promise<{ id: string }> {
     const parsed = EventInput.parse(req.input);
-    const existing = this.byId.get(parsed.id);
+    // §1375 — KEYED BY (tenant|id), NOT id. Production's dedupe is a property of the DURABLE OBJECT INSTANCE,
+    // and `sequencer.ts:202@ShipmentSequencer` is explicit: "one Durable Object per (tenant|stream) IS the sequencer", addressed
+    // by `idFromName(`${tenant}|${streamId}`)`. A same-id append under a DIFFERENT tenant therefore reaches a
+    // DIFFERENT DO and is NOT deduped in production. Keying this map on the bare id made the double dedupe
+    // across tenants where production does not — and in THIS file, whose entire purpose is REQ-025 isolation,
+    // that swallowed exactly the violation under test: a cross-tenant append reusing an id was never recorded,
+    // so `appended.every((a) => a.tenant === "tenant-a")` passed without ever seeing it.
+    const key = `${req.tenant}|${parsed.id}`;
+    const existing = this.byId.get(key);
     if (existing !== undefined) return { id: existing.id };
-    this.byId.set(parsed.id, parsed);
+    this.byId.set(key, parsed);
     this.appended.push({ tenant: req.tenant, streamId: req.streamId, event: parsed });
     return { id: parsed.id };
   }
@@ -268,6 +276,35 @@ describe("REQ-025 — inbound 204 tenant isolation", () => {
     expect(await count(env.TENANT_B_DB, "integrations"), "tenant-b integrations untouched by the 990 allocation").toBe(0);
     expect(await listKeys("edi/tenant-b/"), "no edi/tenant-b/ R2 key was written").toBe(0);
   });
+
+  // §1375 — THE DOUBLE ITSELF, TESTED. The assertion above can only see appends the double RECORDS, and this
+  // double dedupes. Keyed on the bare event id (as it was until §1375) a cross-tenant append reusing an id was
+  // returned early and never pushed, so `every(... === "tenant-a")` passed WITHOUT the leak ever being visible
+  // — the mask sitting on the one file that exists to catch that leak (REQ-025, CLAUDE.md rule 8).
+  //
+  // Production does not dedupe across tenants: `workers/api/src/do/sequencer.ts:202@ShipmentSequencer` — "one Durable Object per
+  // (tenant|stream) IS the sequencer", addressed by idFromName(`${tenant}|${streamId}`). A same-id append for
+  // another tenant reaches a different DO. The double must be faithful to that, or the suite certifies a
+  // property the code does not have.
+  it("§1375: the recorder does NOT collapse a same-id append across tenants (it would hide the leak)", async () => {
+    // A REAL event, taken from this file's own flow — hand-built inputs do not satisfy EventInput, and guessing
+    // the schema would test the fixture rather than the double.
+    await seedEdiPartner(env.TENANT_A_DB, PARTNER_A, "certified", "{}");
+    const probe = new RecordingSeq();
+    await handleInbound204(await signedRequest(tender204(), { partner: PARTNER_A, secret: SECRET_A }), makeDeps(probe, new RecordingTransport(), bothSecrets()));
+    expect(probe.appended.length, "the flow appended nothing — this probe proves nothing").toBeGreaterThan(0);
+
+    const real = probe.appended[0]!;
+    const seq = new RecordingSeq();
+    await seq.append({ tenant: "tenant-a", streamId: real.streamId, input: real.event });
+    await seq.append({ tenant: "tenant-b", streamId: real.streamId, input: real.event });
+    expect(
+      seq.appended.map((a) => a.tenant),
+      "the double swallowed the second tenant's append — every isolation assertion in this file is then blind " +
+        "to exactly the cross-tenant leak it is written to catch",
+    ).toEqual(["tenant-a", "tenant-b"]);
+  });
+
 
   // CASE 2. Auth cannot cross tenants: tenant is derived from the PAIRING, never a client hint. The EDI webhook
   // contract has NO client-tenant header at all — so a spoofed X-Tenant-Id: tenant-b is inert. tenant-b is seeded

@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| **821** | §1374 | **§1375** | **THE DOUBLE THAT COULD HIDE A CROSS-TENANT LEAK, IN THE FILE WRITTEN TO CATCH ONE.** **Corrects §1374 one section later:** `RecordingSeq` is in FOUR test files, not three — `isolation.test.ts` was missed because my scan required a `seen`/`.has()` shape and that copy uses `byId.get(...) !== undefined`. **Sixth short count this session, written in the section complaining about the other five.** A DERIVED enumeration (every `class X implements Y` in a test file, classified by whether the body short-circuits) finds **19 doubles, 4 collapsing**, and found it immediately. **The missed copy had the highest stakes:** that file exists to prove REQ-025 isolation (CLAUDE.md rule 8), and its double was keyed on the bare event id — so a same-id append under ANOTHER tenant returned early and was never recorded, leaving `every(a => a.tenant === "tenant-a")` to pass without seeing the leak. **The double was UNFAITHFUL, not merely lossy:** production does not dedupe across tenants (`sequencer.ts:202@ShipmentSequencer` — one DO per (tenant\|stream)), so it modelled a guarantee the system does not make. Fixed by keying `${tenant}\|${id}`; pinned by a self-test using a REAL event from the flow; both halves proven (reverted → *"the double swallowed the second tenant's append"*). Two scaffolding failures (ZodError, missing arg) each looked like the fix failing — **a red from your own scaffolding is not a red from your subject** |
 | 820 | §1373 | **§1374** | **§1066 SWEPT FIFTEEN DOUBLES AND NEVER SAW THIS ONE.** §1373's masking double is a class, and §1066 already swept it — fifteen doubles, verdict *"one of fifteen, and it is the one already closed"*. **`RecordingSeq` is not among the fifteen.** It exists in THREE test files and every copy dedupes by id, the exact masking shape §1066 was written to find; its table enumerates by NAME (`NotConfigured*`, `RecordingLedger`, `RecordingSender`, `RecordingTransport`, `FakeTsaClient`), so a fourth `Recording*` member was never a row. **Fifth count this session short because the enumeration was scoped by a name rather than the behaviour.** Triaged by consequence rather than filed as four defects: `mirror-sweep` **real** (closed §1373), `inbound` **bounded** (one message — pinned with a self-proving `seq.calls` assertion, not filed), `roundtrip.fixture` **no exposure** (asserts nothing on `appended.length`; a field with no consumer is machinery, not coverage). Also: my restore check asserted the absence of a string the file legitimately contains at :252, so "restore failed" was the CHECK being wrong — third such false alarm this session |
 | 819 | §1372 | **§1373** | **APPLYING §1372's RULE TO MY OWN PRODUCT FINDING — AND WHAT THE TEST DOUBLE WAS HIDING.** §1361's unbounded-first-sweep claim is load-bearing in three places (a GO-LIVE row, `feed-dormancy`'s HOLD message, a struck **BOUNDED** in source) and was reached by READING `isNew`, not by running anything. The premise checks out — `resolveConfig` ends `… : 0`, so a fresh integration examines every row. **But the suite appeared to contradict it:** the existing zero-watermark re-sweep case asserts `appended.length` stays at 5 across two full sweeps, which reads as "the second sweep did no work". It did all of it — `RecordingSeq.append` dedupes by id INTERNALLY, collapsing five more calls into the same five records. **The test double was hiding the exact quantity the claim is about:** idempotence is enforced at the DO, DOWNSTREAM of the subrequest, so a re-ingest is free in ROWS and not in SUBREQUESTS. Fixed by counting `calls` and asserting **10**. **On isolation, honestly:** the page-bound mutation REDs this plus three others (live, not unique), and an attempt at a truly isolating mutation CONTAMINATED across tests via a module-level Set — so the isolation argument is structural (`calls` is read by no other assertion), and saying which evidence I actually have is the point |
 | 818 | §1371 | **§1372** | **§1369 NAMED THE WRONG VICTIMS, AND THE COUNTERFACTUAL IS WHAT CAUGHT IT.** §1369 claimed three gates were blind to 150 files including the intake surface. **False** — all three enumerate with `node:fs globSync`, where `**` matches zero directories, so all three always saw `intake-core.ts`. Before that commit **no production gate combined `SOURCE_SCAN_GLOBS` with `git ls-files`**; the ambiguity was a LATENT trap for the next `scanCorpus` caller. The LIVE instance was `no-audio-capture` alone (108 of 186), and every other real `scanCorpus` consumer passes `*` forms, measured. **How it was caught:** proving the fix needs BOTH halves — a planted `INSERT INTO events` in `intake-core.ts` made `check:chokepoint` FAIL (fix works), but reverting the globs with the plant still in place **failed to reproduce the false clean**. The counterfactual refused, and that is the only reason the misattribution surfaced. **I had written §1369 having run only the first half.** A fix that catches a planted defect proves the gate works NOW; it never attributes. New rule: **every attribution runs the mutation against the UNFIXED state too, and a counterfactual that will not reproduce the defect means the diagnosis is wrong, not the probe** |
@@ -80308,3 +80309,54 @@ A restore check must assert what it RESTORED, not the absence of a string the fi
 
 Verification: translator **13 files / 128 tests** green; `inbound` 30/30; the working tree diff is the nine
 intended insertions and nothing else.
+
+## §1375 — PHASE GATE: the double that could hide a cross-tenant leak, in the file written to catch one
+
+**CORRECTION TO §1374, one section old.** It said `RecordingSeq` exists in **three** test files. There are
+**four** — `isolation.test.ts` was missed, because my scan's regex required a `seen`/`.has()` shape and that copy
+uses `byId.get(...) !== undefined`. **The sixth short count of this session, and this one was mine, written in
+the very section complaining about the other five.** A derived enumeration (every `class X implements Y` in a
+test file, classified by whether the body short-circuits) finds **19 doubles, 4 of which collapse** — and it
+found this one immediately.
+
+**The missed copy had the highest stakes of the four.** `workers/translator/test/isolation.test.ts` exists to
+prove REQ-025 cross-tenant isolation — CLAUDE.md rule 8, *"a cross-tenant read anywhere is a build failure."* Its
+central assertion is
+
+    expect(seq.appended.every((a) => a.tenant === "tenant-a"), "EVERY append is routed to tenant-a's stream")
+
+and the double it reads was keyed **`byId.get(parsed.id)`** — the bare event id, with no tenant. So an append of
+the same id under a DIFFERENT tenant returned early and was **never pushed**. The assertion then passes without
+the leak ever being visible: **the mask sat on the one file written to catch exactly that leak.**
+
+**And the double was UNFAITHFUL, not merely lossy.** Production does not dedupe across tenants.
+`workers/api/src/do/sequencer.ts:202@ShipmentSequencer` states it plainly in its header — *"one Durable Object per (tenant|stream) IS the
+sequencer"* — addressed by `idFromName(`${tenant}|${streamId}`)`. A same-id append for another tenant reaches a
+DIFFERENT DO and is appended. The global by-id map modelled a guarantee the system does not make, which is worse
+than a lossy recorder: it certifies a property the code does not have.
+
+**Fixed** by keying on `${tenant}|${id}`, and **pinned with a self-test of the double itself** — append one real
+event (taken from the file's own flow, because a hand-built input fails `EventInput` and would test the fixture
+instead) under two tenants, assert BOTH are recorded.
+
+**Both halves, per §1372:**
+
+| state | result |
+|---|---|
+| fixed (`tenant\|id` key) | 10/10 — the cross-tenant append is recorded |
+| reverted (`parsed.id` key) | REDs: *"the double swallowed the second tenant's append"* |
+
+**Two fixture failures on the way, both worth naming** because each looked like the fix not working: a
+hand-built event input raised `ZodError` (invalid union), and `makeDeps(probe, transport)` raised a `TypeError`
+for a missing third argument. Neither was evidence about the double. **A red from your own scaffolding is not a
+red from your subject** ([[attribute-the-red-before-crediting-it]]) — and the cure was to stop constructing
+inputs and take a REAL one from the flow under test.
+
+**What this says about the enumeration idiom, now at six.** Every one of the six short counts shared a shape: the
+scan encoded ONE surface form of the behaviour (a name prefix, a `seen` identifier, a `**` glob) rather than the
+behaviour. The durable answer is not more care, it is to enumerate the population from the TREE and classify by
+what the code DOES — which is exactly what found this copy, and what §1366 and §1370 already built as standing
+gates for two other families.
+
+Verification: translator **13 files / 129 tests** green; typecheck 0; lint 0; source restored and asserted after
+the counterfactual.
