@@ -716,6 +716,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 938 | §1491 | **§1492** | **THE DISMISSAL WAS WRONG, AND SO WAS ITS REPLACEMENT.** Measured §1488's last dismissal (*four browser gates cost a full run each*): **13s + 23s + 8s + 7s = 51 SECONDS for all four**. `perf` verified — its thresholds live in the spec, so `INTERACTION_P95_MS = 1` gives exit 1 FAIL. **Tally 16 → 17 of 21.** Two finds: the perf gate DECLARES which budget it is not enforcing here (*long-task budget NOT ASSERTED* under a software rasterizer — the §1478 honesty pattern, and why my first plant passed), and **a11y has zero axe findings at ANY impact** (widening BLOCKING to minor+moderate still passes — stronger than its own PASS). **Then my replacement dismissal was wrong too**: planted a real `image-alt` in the portal, still green; the harness is dev-served SOURCE (not prebuilt) and the plant COMPILES — it landed in a `return` branch the default view does not render (§1471). **When you replace a wrong dismissal, the replacement is a new claim with the same burden.** |
 | 939 | §1492 | **§1493** | **PLANT AGAINST THE ASSERTION, NOT AGAINST THE SURFACE.** Cleared §1492's obstacle and verified all three browser gates: **`a11y`** (alt-less `<img>` in `ReAuthPrompt`, the UNAUTHENTICATED render) → exit 1 *1 finding, 1 blocking*; **`visual`** (a magenta block in `Board`'s authenticated `<main>`) → exit 1 naming `canonical screen — portal.png`; **`e2e`** (a client-supplied `party_id` in `lib/api.ts`) → exit 1 *client-supplied scope in …?party_id=planted*. **Tally 17 → 20 of 21**; only `coverage` remains (subject-blocked). **Why three plants:** all three gates visit the SAME portal and none asserts *the portal* — axe on the unauthenticated render, a pixel frame of the authenticated board, and the request URLs. A plant reaching one is structurally invisible to the others, which is why §1492 read as three obstacles and produced two wrong explanations first. **"I changed that surface and the gate stayed green" is never evidence about the gate.** |
 | 940 | §1493 | **§1494** | **THE LAST GATE, AND A THIRD CHARACTERISATION OF WHY.** Spent the phase on `coverage` and did NOT verify it — but narrowed the reason twice. Applied §1493's rule: its assertion is *all 292 rows accounted*, and 172 are `built-annotated`, so the lever is a vanishing annotation — **in SOURCE, outside the concurrent tree**. Four single-occurrence REQs (018/053/058/091) removed from clean files: all absorbed, 292/292. Why: accounting is **MULTI-INPUT** — `coverage.ts` carries `recordedHomes` and reads `coverage-manifest.json`, and a row with a recorded home is accounted with or without an annotation. Identifying rows accounted SOLELY by an annotation means reading two files the concurrent workstream has uncommitted. **Characterisation v1** (§1488, *subject is dirty*) **→ v2** (§1490, *only lever is a register row* — **wrong**) **→ v3** (multi-input, with a clearing condition: when their commit lands, one plant finishes it). **A dismissal that cannot say what would change it is not yet a diagnosis.** |
+| 941 | §1494 | **§1495** | **EVIDENCE FOR A DECISION THAT IS NOT MINE TO MAKE.** `check:coverage` prints **11 status-drift rows** and asks for per-row human work — *verify whether the citation is an implementation or a deferral marker* — never executed in this record. It is executable from the CLEAN side (§1490's split: the tag is in the dirty `genesis/09`, the CITATION is in source). Prior art: the gate's own code already dispositions **REQ-184/276** as fail-closed deferral markers, warning that advancing them *would mark unbuilt scope as built*. Three more evidenced: **REQ-278** (a gate + a worker test), **REQ-284** (`preflight.ts`, SOURCE not a test), and **REQ-285** — *load-bearing*, because §1493's planted alt-less `<img>` made that very gate red. **Deliberately NOT done:** no tag advanced, no register or coverage-manifest edit. **A gate that asks for human judgement has not failed — it refused to guess; do the mechanical half and hand over the rest, separated explicitly.** |
 | 856 | §1409 | **§1410** | **SWEEPING MY OWN SECTIONS FOR §1409's ERROR, AND A DETECTOR THAT COULD NOT HAVE FOUND IT.** §1404's precedent: a class like this gets ONE measurement, not a gate, since a correction necessarily quotes what it corrects. **The first sweep returned ZERO and was worthless** — it extracted superseded text as `~~struck~~` only, but the very case §1409 found is marked the other way, as *"a 16-step chain …"* **until audit §1029**. **My detector encoded one of the repo's TWO conventions, so it could never have found the known positive.** Twelfth instance of the session's constant, caught because a zero is the answer this session has learned never to accept. **A second false signal inside the control:** asking *"is it inside `~~…~~`?"* with `~~[^~]*16-step` returned True — because an unrelated `~~` sits earlier and `[^~]*` spanned the gap. **A regex answering "is X inside a delimiter" by searching for the delimiter anywhere before X will say yes to the whole file.** Re-run over both conventions: **109 superseded passages, zero quoted without a marker** — and that zero is worth something, because the corrected detector demonstrably flags a reconstruction of §1408's sentence. **§1409's error was singular, not a habit** |
 | **855** | §1408 | **§1409** | **I QUOTED STRUCK TEXT AS CURRENT, AND THE REPO HAD SOLVED IT 380 SECTIONS EARLIER.** §1408 cited CLAUDE.md's account of `verify:dev` as *"a 16-step chain … reaches 4 of 16"*. Measured: **18 steps**. **But the drift is my quotation's, not the law's** — CLAUDE.md's current text says that reading held *"until audit §1029"*, was *"invalidated hours later by `7b61624`"*, and that **the total is stated no longer, only the position that matters: step 4, and nothing after it**. I quoted the struck half of a correction as the claim. **Eleventh measurement error, and the first where the artifact had already anticipated the failure I was about to report.** **§1029's move is exactly §1402's, reached 373 sections apart and independently:** faced with a number that rots, REMOVE the number and keep the invariant. A convention arrived at twice from opposite ends of the record is the closest this audit has to a law about documentation. Substantively: `verify:dev` is still an unaggregated `&&` chain at 18 steps, and that is **not** a defect — CLAUDE.md documents it, names `verify:merge` as the real verdict, and `wp-exit-audit.test.ts:19` records that a naive matcher yields *"4 of 16"* and *"reads as a serious constitutional finding and is an artifact"*. **Tenth clean negative** |
 | 854 | §1407 | **§1408** | **VERIFYING MY OWN DELIVERABLE IS WIRED, BY THE STANDARD §1304 SET.** Five gates were built this session and each reported as working; §1304's standard is **verified WIRED before the board is read**, because a gate that runs when I invoke it and not when CI does is decoration with a green tick. **First measurement said ZERO** — searching the merge log for the five names returns 0 mentions each, which reads as "they never ran". It is the §1362 reporter difference: the tools suite runs under vitest v4 (summary only) while worker suites at v3.2.7 print per-file. The same run reports **125 files passed**, 120 + 5. **Tenth measurement error avoided by not believing a zero.** Measured properly three ways: `vitest list` shows **21 cases** across the five; `run-gate.ts:46` wires `unit-tests` to the `test` script; and `test` is `test:tools; t=$?; … ; exit $(( t \|\| p ))`. **Proved end-to-end:** breaking `law-enforcers` makes `pnpm test:tools` exit 1, which propagates. Also worth noting: that script AGGREGATES rather than `&&`-chains — the defect CLAUDE.md records for `verify:dev`, which reaches 4 of 16 steps |
@@ -86055,3 +86056,53 @@ commits ago): **21 PASS · 0 FAIL · 5 BLOCKED**. **The gate sweep closes at 20 
 one carrying a mechanism and a clearing condition. Carry-forward: the five owner-side items from §1477,
 §1483's `legacy-export-replay` qualifier, and `coverage`'s verification pending a concurrent commit; one watch
 item (§1443).
+
+## §1495 — PHASE GATE: evidence for a decision that is not mine to make (REQ-118/119)
+
+The gate sweep closed at §1494. One live work-list remained untouched: `check:coverage` prints **11 status-drift
+rows** and asks for per-row human work — *"VERIFY whether the citation is an implementation or a deferral
+marker before advancing anything."* That instruction has never been executed in this record.
+
+**It is executable from the clean side.** The register tag lives in `genesis/09` (the concurrent author's), but
+the CITATION lives in source — §1490's subject-vs-input split again. So the question *"is this citation an
+implementation?"* is answerable here even though the tag is not editable here.
+
+**Prior art first, because two rows are already dispositioned** — in the gate's own code, not the record:
+
+> a drift row only proves a CITATION exists, and for some rows (**REQ-184, REQ-276**) every citation is a
+> fail-closed deferral marker, not an implementation. Following the old advice would mark unbuilt scope as
+> built.
+
+**Three more, with evidence:**
+
+| row | citation | disposition |
+|---|---|---|
+| **REQ-278** | `tools/checks/sweep-containment-coverage.test.ts:63` — *"no tenant-iterating sweep ships untested"* — **plus** `workers/agents/test/sweep-containment.test.ts` — *"ONE TENANT'S FAILURE MUST NOT KILL THE TICK"* | **implementation** — a gate enforcing it and a worker test exercising it |
+| **REQ-284** | `tools/deploy/preflight.ts:5` — *"THE ENVIRONMENT PREFLIGHT"* — a SOURCE file, not a test, plus `restore-verify` | **implementation** |
+| **REQ-285** | `tests/e2e/accessibility.spec.ts` — *"the first real assertion of REQ-285 on the three surfaces"* | **implementation, and load-bearing**: §1493 planted an alt-less `<img>` and that gate red — the citation is not merely present, it fires |
+
+REQ-285 is the one worth pausing on. A citation can be present, correct, and still inert; the only way to tell
+is to break what it claims to protect. **§1493 did that for unrelated reasons, and the result doubles as this
+row's disposition** — which is why the two phases are cross-linked here rather than each standing alone.
+
+The remaining six (REQ-170, 249, 254, 257, 267, 288) carry source citations in `workers`/`packages` and need
+the same per-row reading. REQ-257's citations include `apps/command/src/App.tsx`, which is uncommitted in the
+concurrent tree, so that one waits.
+
+**What this phase deliberately did NOT do.** It did not advance a tag, edit `genesis/09`, or add the
+coverage-manifest NOTE the gate names as the place a verdict is recorded — that file is uncommitted too. **This
+is evidence for a decision, not the decision**, and the distinction matters: the gate's own comment records
+that the previous advice ("code has shipped, advance at register review") was wrong precisely because someone
+could act on a citation without checking what it was.
+
+**The general form.** A gate that asks for human judgement is not a gate that has failed — it is one that
+correctly refused to guess. The useful response is to **do the half that IS mechanical and hand over the half
+that is not, separated explicitly.** Five of eleven rows now carry a written disposition with its evidence; six
+do not; none of the eleven had one in this record an hour ago, and the register is untouched.
+
+**Phase gate.** **No source changed** — this phase only read. 139 tools files / 1,453 tests green **run after
+this section's write**, `check:citations` and `check:section-refs` clean, `check:coverage` at 292/292. Board
+MEASURED at `905c37c` (§1490, 5 commits ago): **21 PASS · 0 FAIL · 5 BLOCKED**. Carry-forward: the five
+owner-side items from §1477, §1483's `legacy-export-replay` qualifier, `coverage`'s verification pending a
+concurrent commit (§1494), and **six status-drift rows still needing a per-row disposition**; one watch item
+(§1443).
