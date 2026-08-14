@@ -707,6 +707,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 929 | §1482 | **§1483** | **THE COUNT SWEEP BOUNDED, AND A FALSE CONCLUSION I PRINTED MYSELF.** CLAUDE.md states TEN roster counts; nine derive — six from the budgets line, agents (§1482), demos, and **10 laws, whose gate I VERIFIED by mutation: planting an 11th numbered rule reds it**. The tenth, `171-col`, is restated **29 times** (17 outside `docs/plans`) with no derivation, and cannot be derived here: its source arrives only as the `legacy-export-replay` fixture — **pending, and one of §1475's four with ZERO consumers**. Uncheckable twice over. **And my own command echoed *(only CLAUDE.md = not a restatement problem)* — a caption written INTO the probe before its grep ran, printing above 29 contradicting rows.** A conclusion hardcoded beside a measurement is not a measurement. **A probe that prints its own interpretation keeps printing it after the data changes** — emit the numbers, draw the conclusion outside. |
 | 930 | §1483 | **§1484** | **THE GATE I DID NOT BUILD.** Audited the 12 canonical views per-item: **11 declared against a 12 budget** (one headroom slot), `assertViewBudget()` throws at import, and `registry.test.ts` covers what a compiler cannot — budget, uniqueness, and that every KPI metric drills to a REAL view. Each entry names its component in a comment (§1470's stated-coupling shape), so the obvious seventh gate was *assert the component exists*. **I measured what already enforces it and declined**: `App.tsx` imports every view by path, so deleting one is a TypeScript build failure — a gate would be strictly weaker than the compiler while reading in review as though the mapping were uniquely watched. Two more probe false-flags (`v_board`/`v_parity` comments start with prose). **Before adding a gate, name what already enforces the property; if it is the type checker or the build, decline. A gate is a claim that this property needs watching HERE, and a redundant one relocates attention away from the mechanism doing the work.** |
 | 931 | §1484 | **§1485** | **A GATE'S NECESSITY IS A MEASUREMENT, NOT AN ARGUMENT.** §1484 declined an eighth gate; this asks the question BACKWARDS of the seven built §1460–§1482. Each was justified by *my gate reds* — which is not *only my gate reds*. Method: plant each gate's own violation, run the WHOLE tools suite, count failing files. **Six of seven red exactly one file: themselves.** The seventh (`do-name-trust`) reds 2 on a NEW DO CLASS, sharing that signal with `invariants.test.ts`'s `DO_MUTEX_ROSTER` — so I planted the violation that breaks only its own subject (the sequencer's `expected.equals(this.ctx.id)`) and it reds **exactly one**. All seven are sole watchers of their property; the overlap is depth over one population, not duplication. Cost: **eight full-suite runs**. **A redundant gate does not fail loudly — it fails by being the reason nobody looked.** |
+| 932 | §1485 | **§1486** | **"RUN EVERYTHING" IS ITSELF A CLAIM ABOUT A CORPUS.** Turned §1485's method on the PRE-EXISTING gates. Overlap is invisible by roster NAME (§1485's was `NAME_TRUSTED` vs `DO_MUTEX_ROSTER`), so the sweep keyed on the SOURCE SHAPE each gate scans: **`extends DurableObject` is scanned by three gates**. Two look identical and are complementary — `checkDoMutexIntact` pins the mutex's three LIMBS; `do-mutex-preconditions` pins *the condition that keeps it unnecessary* (§752/§753). Verified by deleting SparkMeter's re-arm limb (leaving `this.lock.then(...)`, so it still READS as a mutex): vitest reds one file **and `check:invariants` exits 1**. **That is the flaw in §1485** — it ran `vitest --root tools` and called it *the whole suite*, but the merge profile has **26 gates** and vitest is ONE; a CLI-only watcher is invisible to it. Re-checked two of the seven against three CLI gates: still exit 0, so the conclusion survives — what was wrong was the unqualified statement. **State the RUNNER SCOPE beside the result.** |
 | 856 | §1409 | **§1410** | **SWEEPING MY OWN SECTIONS FOR §1409's ERROR, AND A DETECTOR THAT COULD NOT HAVE FOUND IT.** §1404's precedent: a class like this gets ONE measurement, not a gate, since a correction necessarily quotes what it corrects. **The first sweep returned ZERO and was worthless** — it extracted superseded text as `~~struck~~` only, but the very case §1409 found is marked the other way, as *"a 16-step chain …"* **until audit §1029**. **My detector encoded one of the repo's TWO conventions, so it could never have found the known positive.** Twelfth instance of the session's constant, caught because a zero is the answer this session has learned never to accept. **A second false signal inside the control:** asking *"is it inside `~~…~~`?"* with `~~[^~]*16-step` returned True — because an unrelated `~~` sits earlier and `[^~]*` spanned the gap. **A regex answering "is X inside a delimiter" by searching for the delimiter anywhere before X will say yes to the whole file.** Re-run over both conventions: **109 superseded passages, zero quoted without a marker** — and that zero is worth something, because the corrected detector demonstrably flags a reconstruction of §1408's sentence. **§1409's error was singular, not a habit** |
 | **855** | §1408 | **§1409** | **I QUOTED STRUCK TEXT AS CURRENT, AND THE REPO HAD SOLVED IT 380 SECTIONS EARLIER.** §1408 cited CLAUDE.md's account of `verify:dev` as *"a 16-step chain … reaches 4 of 16"*. Measured: **18 steps**. **But the drift is my quotation's, not the law's** — CLAUDE.md's current text says that reading held *"until audit §1029"*, was *"invalidated hours later by `7b61624`"*, and that **the total is stated no longer, only the position that matters: step 4, and nothing after it**. I quoted the struck half of a correction as the claim. **Eleventh measurement error, and the first where the artifact had already anticipated the failure I was about to report.** **§1029's move is exactly §1402's, reached 373 sections apart and independently:** faced with a number that rots, REMOVE the number and keep the invariant. A convention arrived at twice from opposite ends of the record is the closest this audit has to a law about documentation. Substantively: `verify:dev` is still an unaggregated `&&` chain at 18 steps, and that is **not** a defect — CLAUDE.md documents it, names `verify:merge` as the real verdict, and `wp-exit-audit.test.ts:19` records that a naive matcher yields *"4 of 16"* and *"reads as a serious constitutional finding and is an artifact"*. **Tenth clean negative** |
 | 854 | §1407 | **§1408** | **VERIFYING MY OWN DELIVERABLE IS WIRED, BY THE STANDARD §1304 SET.** Five gates were built this session and each reported as working; §1304's standard is **verified WIRED before the board is read**, because a gate that runs when I invoke it and not when CI does is decoration with a green tick. **First measurement said ZERO** — searching the merge log for the five names returns 0 mentions each, which reads as "they never ran". It is the §1362 reporter difference: the tools suite runs under vitest v4 (summary only) while worker suites at v3.2.7 print per-file. The same run reports **125 files passed**, 120 + 5. **Tenth measurement error avoided by not believing a zero.** Measured properly three ways: `vitest list` shows **21 cases** across the five; `run-gate.ts:46` wires `unit-tests` to the `test` script; and `test` is `test:tools; t=$?; … ; exit $(( t \|\| p ))`. **Proved end-to-end:** breaking `law-enforcers` makes `pnpm test:tools` exit 1, which propagates. Also worth noting: that script AGGREGATES rather than `&&`-chains — the defect CLAUDE.md records for `verify:dev`, which reaches 4 of 16 steps |
@@ -85640,3 +85641,52 @@ byte-identical and verified. 139 tools files / 1,453 tests green, lint clean, `c
 `check:section-refs` clean. Board MEASURED at `f380b05` (§1482, 3 commits ago): **21 PASS · 0 FAIL · 5
 BLOCKED**; the three intervening phases changed this record only. Carry-forward: the five owner-side items from
 §1477 plus §1483's `legacy-export-replay` qualifier; one watch item (§1443).
+
+## §1486 — PHASE GATE: "run everything" is itself a claim about a corpus (REQ-118/REQ-105)
+
+§1485 established a method — plant a violation, run the suite, count which files red — and used it to show all
+seven of this block's gates are sole watchers. This phase turned that method on the PRE-EXISTING gates, and
+found a flaw in the method itself.
+
+**Finding the candidates.** Roster constants do not reveal overlap: §1485's one overlap was `NAME_TRUSTED` vs
+`DO_MUTEX_ROSTER`, different names over one population. So the sweep keyed on the SOURCE SHAPE each gate scans
+for, which is what actually defines its population. **`extends DurableObject` is scanned by three gates**, two
+of which sound identical: `checkDoMutexIntact` (in `invariants.ts`) and `do-mutex-preconditions.test.ts`.
+
+**They are complementary, and the pairing is a good one.** `checkDoMutexIntact` asserts the mutex's three limbs
+are present — the field, the chain-on, and the poison-proof re-arm. `do-mutex-preconditions` pins *"the
+condition that keeps it unnecessary"* (§752/§753): the meters' critical sections must stay storage-only,
+because the mutex is redundant today and becomes load-bearing the moment a D1 read, a fetch or a queue send
+enters. One guards the guard; the other guards the assumption under which the guard's absence would be
+survivable.
+
+**Verified by deleting SparkMeter's re-arm limb** — `this.lock = run.catch(() => undefined)` — which leaves
+`this.lock.then(...)` in place, so the code still READS as a mutex while every call chains off the same stale
+promise and runs concurrently. Result: `do-mutex-preconditions.test.ts` reds in vitest, **and `check:invariants`
+exits 1 naming the exact missing limb.** Two watchers, in two different runners.
+
+**And that is the flaw in §1485.** Its measurement was `pnpm vitest run --root tools`, described as "the whole
+suite". The merge profile has **26 gates**; the vitest suite is ONE of them. `check:invariants`,
+`check:citations`, `check:section-refs`, `design-audit` and the rest are CLI scripts that never appear in a
+vitest FAIL list — so a property watched only by one of those would have been reported as unwatched, and a
+gate overlapping one would have been reported as a sole watcher. The DO-mutex case is the proof that the gap
+is real rather than theoretical: a mutation caught by `check:invariants` was completely invisible to §1485's
+instrument.
+
+**Re-checked, and §1485's conclusion survives** — for the sample. Two of the seven mutations (a clock in a seed;
+an unconsumed manifest fixture) were re-run against `check:invariants`, `check:citations` and
+`check:section-refs`: all three stay at exit 0, so those gates really are the only watchers. What was wrong was
+not the answer but the *unqualified* statement of it.
+
+**The general form, and it is this block's own lesson landing on the block.** §1477 wrote *"a gate's green
+certifies less than its name"*; §1476 wrote *"a first-run violation list is a hypothesis about your probe"*.
+Here both apply to the instrument I built to audit instruments: **"run everything" is a claim about a corpus,
+and it is exactly as trustworthy as the corpus it names.** The fix is not to re-run seven mutations against 26
+gates — it is to state the RUNNER SCOPE beside the result, because a sole-watcher claim is only as wide as the
+runners you invoked. §1485's table should read *"1 file red among the vitest gates"*, and now does, here.
+
+**Phase gate.** **No source changed** — `spark-meter.ts`, `biller.ts` and `fixtures/manifest.json` were mutated
+and restored byte-identical. 139 tools files / 1,453 tests green, `check:invariants` clean, lint clean,
+`check:citations` and `check:section-refs` clean. Board MEASURED at `f380b05` (§1482, 4 commits ago): **21 PASS
+· 0 FAIL · 5 BLOCKED**; the four intervening phases changed this record only. Carry-forward: the five
+owner-side items from §1477 plus §1483's `legacy-export-replay` qualifier; one watch item (§1443).
