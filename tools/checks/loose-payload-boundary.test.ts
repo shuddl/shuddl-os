@@ -29,9 +29,45 @@ const SWEPT_LOOSE_KINDS = [
   "settlement.executed",
 ] as const;
 
+/**
+ * §1467 — EVERY SPELLING OF `JsonObject`, NOT JUST THE BARE NAME.
+ *
+ * This gate exists to notice a NINTH loose kind, and it matched the literal token `JsonObject`. A payload can
+ * be exactly as loose under another name: `packages/contracts/src/money.ts:76@MoneyBasis` is
+ * `export const MoneyBasis = JsonObject;`, so `ev("invoice.issued", MoneyBasis)` is a `z.record(string,
+ * JsonValue)` payload whose fields no schema types. MEASURED at §1467: making that exact substitution — a
+ * ninth loose kind, valid TypeScript — left this gate **3/3 green**, which is the one outcome it is written
+ * to prevent.
+ *
+ * Resolved to a FIXPOINT rather than one level, so `const A = MoneyBasis` is covered too and the gate carries
+ * no "single-level only" caveat that the next alias would quietly outgrow.
+ */
+function looseAliases(root: string): string[] {
+  const files = execSync("git ls-files -- 'packages/contracts/src/*.ts'", { cwd: root, encoding: "utf8" })
+    .split("\n")
+    .filter((f) => f !== "" && !f.endsWith(".test.ts"));
+  const sources = files.map((f) => readFileSync(`${root}/${f}`, "utf8"));
+  const aliases = new Set(["JsonObject"]);
+  for (let grew = true; grew; ) {
+    grew = false;
+    for (const src of sources) {
+      for (const m of src.matchAll(/export const ([A-Za-z_]\w*)\s*=\s*([A-Za-z_]\w*)\s*;/g)) {
+        if (aliases.has(m[2] as string) && !aliases.has(m[1] as string)) {
+          aliases.add(m[1] as string);
+          grew = true;
+        }
+      }
+    }
+  }
+  return [...aliases].sort();
+}
+
 function looseKindsInContract(root: string): string[] {
   const src = readFileSync(`${root}/packages/contracts/src/events.ts`, "utf8");
-  return [...src.matchAll(/ev\("([\w.]+)",\s*JsonObject\)/g)].map((m) => m[1]!).sort();
+  const alt = looseAliases(root)
+    .map((a) => a.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .join("|");
+  return [...src.matchAll(new RegExp(`ev\\("([\\w.]+)",\\s*(?:${alt})\\)`, "g"))].map((m) => m[1] as string).sort();
 }
 
 describe("§1268 REQ-118: the loose-payload boundary the type-guard sweep covered", () => {
@@ -49,6 +85,16 @@ describe("§1268 REQ-118: the loose-payload boundary the type-guard sweep covere
         "kind (find its readers, mutate each guard away, keep the ones that RED and gate the precondition of " +
         "the ones that don't), then update this list.",
     ).toEqual([...SWEPT_LOOSE_KINDS]);
+  });
+
+  it("§1467: the alias set is derived and non-trivial (a bare-name-only matcher is the defect this closes)", () => {
+    // Positive control with teeth: if `looseAliases` ever returns just ["JsonObject"], this gate is back to
+    // matching one spelling and a ninth loose kind can arrive under any `export const X = JsonObject`. The
+    // repo has exactly one such alias today and it is named, so a rename fails HERE rather than silently.
+    const aliases = looseAliases(root);
+    expect(aliases, "the alias resolver collapsed to the bare name — the very shape §1467 measured as evadable").toContain("JsonObject");
+    expect(aliases.length, "no JsonObject alias found at all; MoneyBasis existed when this was written").toBeGreaterThan(1);
+    expect(aliases, "MoneyBasis is gone — if it was renamed the resolver should have followed it; if deleted, drop this control").toContain("MoneyBasis");
   });
 
   it("every loose kind is a real event kind, and the typed remainder is the rest of the 35", () => {
