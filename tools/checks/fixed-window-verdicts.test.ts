@@ -50,18 +50,16 @@ function fixedWindowSites(root: string): Site[] {
 
 // DECLARED windows. Each states what it decides and BOTH failure directions, silent one first where it exists.
 //
+// §1380 — `tools/checks/api-conventions.test.ts` was here with a 16-line span and the last SILENT direction in
+// the tooling. Gone for the same reason: the region a `redirect:` may occupy is exactly its call's argument
+// list, so the call is now delimited by its own closing parenthesis. Over-reach is measured closed — deleting
+// the policy at `transport.ts:48` REDs that site while the neighbour's policy at :72 does NOT satisfy it.
+//
 // §1379 — `tools/deploy/cors-origin-parity.test.ts` was here with a 3-line span and a SILENT under-reach. It is
 // gone because the window is gone: a TOML table ends where the next `[` header begins, so that gate now
 // delimits structurally and has no reach to declare. THE RIGHT OUTCOME FOR AN ENTRY IN THIS LIST IS DELETION —
 // a declaration is a record of an assumption still being made, not a permit to keep making it.
 const DECLARED: readonly { readonly file: string; readonly span: number; readonly decides: string; readonly under: string; readonly over: string }[] = [
-  {
-    file: "tools/checks/api-conventions.test.ts",
-    span: 16,
-    decides: "whether a fetch in the driver's sync path declares redirect: \"error\"|\"manual\" (§1339's worked example)",
-    under: "LOUD — a RequestInit longer than the window reports a violation that is not real, and gets fixed",
-    over: "SILENT — a LATER call's `redirect:` falls inside this window and satisfies this site, so an unpoliced fetch passes",
-  },
   {
     file: "tools/checks/list-endpoint-pagination.test.ts",
     span: 200,
@@ -83,9 +81,13 @@ describe("§1378 REQ-118: every fixed-window verdict declares its reach", () => 
   const sites = fixedWindowSites(root);
 
   it("the detector finds the known window (positive control — a blind detector certifies everything)", () => {
-    const known = sites.find((s) => s.file === "tools/checks/api-conventions.test.ts");
-    expect(known, "api-conventions' 16-line window is no longer detected — the detector broke, not the gate").toBeDefined();
-    expect(known!.span).toBe(16);
+    // §1380 — this control USED to point at `api-conventions`' 16-line window. It moved because that window
+    // was FIXED, which is the direction this roster is supposed to travel: entries leave by being delimited
+    // structurally, not by being excused. If the last entry ever goes, this control has nothing to anchor to
+    // and the gate should be deleted rather than kept green over an empty set.
+    const known = sites.find((s) => s.file === "tools/checks/list-endpoint-pagination.test.ts");
+    expect(known, "the last declared window is no longer detected — the detector broke, not the gate").toBeDefined();
+    expect(known!.span).toBe(200);
   });
 
   it("the detector does NOT flag a structural slice (negative control — noise costs more than silence here)", () => {

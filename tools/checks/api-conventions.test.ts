@@ -200,7 +200,26 @@ describe("§850: every fetch in the driver's sync path declares a redirect polic
         // If those calls are ever tightened to within 16 lines of each other, this must become a
         // brace-delimited slice of the call (§1338: a body ends where its braces close). The fixed window is
         // kept only because that margin was checked — not because it is safe by construction.
-        const window = lines.slice(i, i + 16).join("\n");
+        // §1380 — PAREN-DELIMITED, and both failure directions are now IMPOSSIBLE rather than measured.
+        // The region a `redirect:` for THIS call may occupy is exactly its own argument list, so the call ends
+        // where its parenthesis closes. A LATER call is outside those parens and can no longer satisfy this site
+        // (the silent direction), and a RequestInit of any length is inside them (the loud one). The 4-line margin
+        // the comment above measured was real but thin, and a gate correct by that margin is one reformat from
+        // wrong — §1379's argument, applied to the last fixed-window verdict in the tooling.
+        const from = src.indexOf("(", src.indexOf(raw));
+        let depth = 0;
+        let to = from;
+        for (let k = from; k < src.length; k++) {
+          if (src[k] === "(") depth += 1;
+          else if (src[k] === ")") {
+            depth -= 1;
+            if (depth === 0) {
+              to = k;
+              break;
+            }
+          }
+        }
+        const window = src.slice(from, to + 1);
         out.push({ site: `${f}:${i + 1}`, hasPolicy: /redirect:\s*"(error|manual)"/.test(window) });
       });
     }
