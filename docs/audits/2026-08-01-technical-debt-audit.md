@@ -676,6 +676,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 898 | §1451 | **§1452** | **ADOPTED §1451's RULE INSTEAD OF RESTATING IT.** §1451 stated *a phase gate may cite a board measured at a different commit only by naming that commit AND the commits since*; §1439 established that naming a rule without adopting it is the cheapest kind of finding. **The rule has a MECHANICAL core** — a board verdict has a distinctive shape (`N PASS · N FAIL · N BLOCKED`) and a commit is a hex token, so no prose is read and §1399's English boundary does not apply. **Measured: 216 sections cite a board figure, 142 name a commit, 74 do not.** **Gated as a RATCHET, not a rule, and that is the only interesting decision:** those 74 are DATED RECORDS, and editing them to add a commit I would have to infer is **fabricating provenance** — strictly worse than the omission. Frozen at 74; one more fails. *A record that cannot be rewritten can still be prevented from getting worse.* Three cases: a non-vacuity floor with §1439's three clauses, the ratchet, and a positive control asserting §1428 and §1451 stay OUT of the offender list so a detector that stopped finding SHAs cannot pass by reporting zero. Mutation-proved. **It cannot make a stale citation true; it makes staleness VISIBLE — the omission, not the citing, is what hid 22 phases of a 23-commit-old board** |
 | 899 | §1452 | **§1453** | **MY PROBE SAID 19 SECTIONS WERE UNINDEXED; THE GATE WAS RIGHT AND I WAS WRONG, AGAIN.** The §4 index is this record's only navigation; §1424 showed the gate rejects a row naming a non-phase-gate, so the reverse — a phase gate with NO row — was worth checking. **It is enforced at `phase-index.test.ts:43` and the suite is green**, yet my ad-hoc probe reported **19 unindexed sections**, all in scope. **The probe was wrong:** its row pattern demanded a NUMERIC first column where the gate's accepts any. Re-run with the gate's parsers: **900 phase gates, 899 rows, 899 in scope, ZERO missing.** **Seventh probe-vs-tree disagreement this block, and the seventh where the probe lost** (§1425 pathspec · §1442 prose *mirror* · §1444 name filter · §1446 catch-without-throw · §1448 wrong control · §1449 `sed` ate the match · §1453 row regex). **The calibration:** every gate defect this block DID find — §1411's mask, §1414's desync, §1442's unguarded platform check — came from **planting or mutating**, never from disagreeing with a count. **When my count disagrees with a passing gate's, the gate has been right 7/7.** Operable form: **run the gate's own extractor before believing a probe that contradicts it** |
 | 900 | §1453 | **§1454** | **THE HASH CHAIN, MUTATED ON BOTH SIDES.** §1453 ended by pointing at method — *prefer mutation over counting* — so this took the most consequential unmutated subject: the chain that makes this an evidence ledger rather than a log. **READER:** disabling `verifyChain`'s `prev_hash` comparison reds **2**, named *"a forged chain — wrong link, correctly recomputed hash"* and *"names bad_genesis (not hash_mismatch) when the FIRST event's link is wrong"* — **the only attack that matters is an adversary who edits an event and recomputes its hash correctly**, and that is exactly the case standing there. **WRITER (a separate question, §1419):** replacing the sequencer's `prev_hash: this.tail.hash` with a constant genesis link reds **4+** — the airplane-mode soak, the SCHEDULER and COMMAND heartbeats, and *"a fully-evidenced pickup+delivery appends every event and the chain verifies"*. **The observation worth keeping: the chain's WRITER is defended by the ACCEPTANCE DEMOS, not by a unit test.** Those heartbeats are the code-provable half of CLAUDE.md's five demos and are carrying invariant coverage nothing else provides — **a demo that is the only witness to a core invariant is not a showcase, it is load-bearing**, a stronger argument for §889's assertion floors than §889 gave itself |
+| 901 | §1454 | **§1455** | **MEASURED THE FLOORS §1454 LEANED ON — AND CORRECTED §1454.** All seven registered spine files, floor vs live `expect(` count: heartbeat 40/48 · command-heartbeat 33/40 · quote-book 30/37 · stop-flow 30/36 · MapCanvas 28/34 · airplane-soak 24/29 · signup-to-quote 10/13. **Zero of seven tight, none decorative** (headroom 8–23%). **What that buys is exactly §889's claim and no more — a spine test may not be GUTTED.** It does not stop a TARGETED deletion: `heartbeat.test.ts` could shed the one assertion catching a broken chain link and sit at 47 against a floor of 40. §889's title says *gutted*, not *weakened*, so it is a stated scope — but §1454 makes the residue sharper, because a targeted deletion there removes INVARIANT coverage, not demo coverage. **And §1454 was TOO STRONG:** it said the chain writer is defended *"not by a unit test"* — but the fourth red lives in `workers/api/test/gates.test.ts`, **not** a registered spine file. Demos are the MAJORITY of witnesses, not the only one; struck and corrected in place. **Fourth self-correction, fourth distinct mode: I read four failing test NAMES and never resolved which FILES they came from** — three shared a shape and the fourth was assimilated to the pattern. **A list of failures is a list of names until you resolve each to its file** |
 | 856 | §1409 | **§1410** | **SWEEPING MY OWN SECTIONS FOR §1409's ERROR, AND A DETECTOR THAT COULD NOT HAVE FOUND IT.** §1404's precedent: a class like this gets ONE measurement, not a gate, since a correction necessarily quotes what it corrects. **The first sweep returned ZERO and was worthless** — it extracted superseded text as `~~struck~~` only, but the very case §1409 found is marked the other way, as *"a 16-step chain …"* **until audit §1029**. **My detector encoded one of the repo's TWO conventions, so it could never have found the known positive.** Twelfth instance of the session's constant, caught because a zero is the answer this session has learned never to accept. **A second false signal inside the control:** asking *"is it inside `~~…~~`?"* with `~~[^~]*16-step` returned True — because an unrelated `~~` sits earlier and `[^~]*` spanned the gap. **A regex answering "is X inside a delimiter" by searching for the delimiter anywhere before X will say yes to the whole file.** Re-run over both conventions: **109 superseded passages, zero quoted without a marker** — and that zero is worth something, because the corrected detector demonstrably flags a reconstruction of §1408's sentence. **§1409's error was singular, not a habit** |
 | **855** | §1408 | **§1409** | **I QUOTED STRUCK TEXT AS CURRENT, AND THE REPO HAD SOLVED IT 380 SECTIONS EARLIER.** §1408 cited CLAUDE.md's account of `verify:dev` as *"a 16-step chain … reaches 4 of 16"*. Measured: **18 steps**. **But the drift is my quotation's, not the law's** — CLAUDE.md's current text says that reading held *"until audit §1029"*, was *"invalidated hours later by `7b61624`"*, and that **the total is stated no longer, only the position that matters: step 4, and nothing after it**. I quoted the struck half of a correction as the claim. **Eleventh measurement error, and the first where the artifact had already anticipated the failure I was about to report.** **§1029's move is exactly §1402's, reached 373 sections apart and independently:** faced with a number that rots, REMOVE the number and keep the invariant. A convention arrived at twice from opposite ends of the record is the closest this audit has to a law about documentation. Substantively: `verify:dev` is still an unaggregated `&&` chain at 18 steps, and that is **not** a defect — CLAUDE.md documents it, names `verify:merge` as the real verdict, and `wp-exit-audit.test.ts:19` records that a naive matcher yields *"4 of 16"* and *"reads as a serious constitutional finding and is an artifact"*. **Tenth clean negative** |
 | 854 | §1407 | **§1408** | **VERIFYING MY OWN DELIVERABLE IS WIRED, BY THE STANDARD §1304 SET.** Five gates were built this session and each reported as working; §1304's standard is **verified WIRED before the board is read**, because a gate that runs when I invoke it and not when CI does is decoration with a green tick. **First measurement said ZERO** — searching the merge log for the five names returns 0 mentions each, which reads as "they never ran". It is the §1362 reporter difference: the tools suite runs under vitest v4 (summary only) while worker suites at v3.2.7 print per-file. The same run reports **125 files passed**, 120 + 5. **Tenth measurement error avoided by not believing a zero.** Measured properly three ways: `vitest list` shows **21 cases** across the five; `run-gate.ts:46` wires `unit-tests` to the `test` script; and `test` is `test:tools; t=$?; … ; exit $(( t \|\| p ))`. **Proved end-to-end:** breaking `law-enforcers` makes `pnpm test:tools` exit 1, which propagates. Also worth noting: that script AGGREGATES rather than `&&`-chains — the defect CLAUDE.md records for `verify:dev`, which reaches 4 of 16 steps |
@@ -83998,11 +83999,14 @@ reds **4+**:
 > HEARTBEAT — CSR intake → book → schedule → dispatch → KPI click-through → copilot citation → exception
 > pulse"* · *"a fully-evidenced pickup+delivery appends every event and the chain verifies"*
 
-**The observation worth keeping: the chain's WRITER is defended by the acceptance demos, not by a unit test.**
-The heartbeats are registered in `demos.ts` as the code-provable half of CLAUDE.md's five acceptance demos —
-and they are carrying invariant coverage that nothing else provides. **A demo that is also the only witness to
-a core invariant is not a showcase; it is load-bearing**, which is an argument for §889's assertion floors on
-those exact files that is stronger than the one §889 gave itself.
+**The observation worth keeping: the chain's WRITER is defended mostly by the acceptance demos.** ~~not by a
+unit test … a demo that is also the ONLY witness to a core invariant~~ — **CORRECTED at §1455.** Three of the
+four reds are registered spine demos (`airplane-soak`, `heartbeat`, `command-heartbeat`); the fourth,
+*"a fully-evidenced pickup+delivery appends every event and the chain verifies"*, lives in
+`workers/api/test/gates.test.ts`, which is **not** a registered spine file. So the demos are the MAJORITY of
+the witnesses, not the sole one, and "not by a unit test" was too strong. The weaker claim still stands and is
+worth the same conclusion: **a demo carrying invariant coverage is load-bearing**, which argues for §889's
+assertion floors on those files more strongly than §889 argued for itself.
 
 **Both halves, both defended, by tests that name what they protect.** Of everything mutated in this block, the
 chain is the subject where a silent failure would be worst — a ledger that still verifies while no longer
@@ -84013,3 +84017,45 @@ after their mutations. 132 tools files / 1,413 tests green. Board: **21 PASS · 
 `b451f43`** (§1451, 3 commits ago). Carry-forward unchanged and entirely owner-held: vendor the nine private
 fixtures + `IDENTITY_DENYLIST` · commit the `genesis/09` rows · the five filed operational REQ rows and the
 `quote.priced` / `SERVER_EMITTED_KINDS` decision. One watch item stands (§1443).
+
+## §1455 — PHASE GATE: measuring the floors §1454 leaned on, and correcting §1454
+
+§1454 closed on an observation — the acceptance demos carry invariant coverage, so §889's assertion floors on
+them protect more than a showcase. Before building on that, both halves were measured.
+
+**The floors, measured.** All seven registered spine files, floor against live `expect(` count:
+
+| spine file | floor | live | headroom |
+|---|---|---|---|
+| `heartbeat.test.ts` | 40 | 48 | 8 |
+| `command-heartbeat.test.ts` | 33 | 40 | 7 |
+| `quote-book.test.ts` | 30 | 37 | 7 |
+| `stop-flow.test.ts` | 30 | 36 | 6 |
+| `MapCanvas.test.tsx` | 28 | 34 | 6 |
+| `airplane-soak.test.ts` | 24 | 29 | 5 |
+| `signup-to-quote.e2e.test.ts` | 10 | 13 | 3 |
+
+**Zero of seven are tight** (within 2), and none is loose enough to be decorative — headroom runs 8–23% of the
+live count. **What that buys is exactly what §889 claims and no more: a spine test may not be GUTTED.** It
+does not stop a targeted deletion; `heartbeat.test.ts` could shed the specific assertion that catches a broken
+chain link and sit at 47 against a floor of 40. §889's own title says *gutted*, not *weakened*, so this is a
+stated scope rather than a gap — but §1454's observation makes the residue sharper, because a targeted
+deletion there would remove invariant coverage, not demo coverage.
+
+**And §1454's observation was too strong.** It read *"the chain's WRITER is defended by the acceptance demos,
+**not by a unit test**"*. Measured: three of the four reds are registered spine demos; the fourth —
+*"a fully-evidenced pickup+delivery appends every event and the chain verifies"* — lives in
+`workers/api/test/gates.test.ts`, which is **not** a registered spine file. **The demos are the majority of
+the witnesses, not the only one.** Struck and corrected in place.
+
+**Fourth self-correction of this session, and the fourth distinct failure mode.** §1430 a claim too WIDE (one
+of two implementations described as the rule) · §1436 too STRONG (an absence inferred from a different
+absence) · §1437 the wrong KIND (a unique count labelling an occurrence floor) · **§1455 too STRONG AGAIN,
+and for a new reason: I read a list of four failing test NAMES and did not check which FILES they came from.**
+Three of them shared a shape — heartbeat, heartbeat, soak — and the fourth was assimilated to the pattern
+rather than looked up. **A list of failures is a list of names until you resolve each to its file.**
+
+**Phase gate.** No source changes; one prose correction. 132 tools files / 1,413 tests green. Board: **21 PASS
+· 0 FAIL · 5 BLOCKED at `b451f43`** (§1451, 4 commits ago). Carry-forward unchanged and entirely owner-held:
+vendor the nine private fixtures + `IDENTITY_DENYLIST` · commit the `genesis/09` rows · the five filed
+operational REQ rows and the `quote.priced` / `SERVER_EMITTED_KINDS` decision. One watch item stands (§1443).
