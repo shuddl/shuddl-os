@@ -15,6 +15,7 @@ import {
   checkControlMigrationsExercised,
   GUARDED_TABLES,
   checkTableClassification,
+  createdTableNames,
   isCollisionDuplicate,
   checkDoMutexIntact,
   checkSurfaceBudget,
@@ -1244,5 +1245,86 @@ describe("§1416 REQ-118/I3: application source may not REMOVE the append-only g
   it("the guarded-table list is DERIVED, so a fourth append-only table is covered on arrival", () => {
     // §266's rule: two literals naming the same tables is how the REPLACE ban silently missed one.
     for (const t of GUARDED_TABLES) expect(scan(`DROP TABLE ${t}`), `${t} is guarded but droppable`).not.toHaveLength(0);
+  });
+});
+
+// §1465 (REQ-118/I8) — ONE `CREATE TABLE` MATCHER, PROVEN OVER ONE CORPUS.
+//
+// Two matchers for one concept lived in this file: the I8 budget built from the shared fragments, and a
+// hand-written copy in the classification scan. They disagreed on three shapes, and the disagreement was a
+// SILENT BYPASS rather than a bad message — a truncated name that lands on an already-classified prefix passes
+// the check. `CREATE TABLE assets2` read as `assets`, so a new tenant table was never asked whether it is
+// append-only, which is what decides whether it gets guard triggers and a REPLACE-ban entry.
+//
+// The corpus below is the three divergences plus the ordinary case, fed through the ONE builder. The last
+// assertion is the structural half: nothing in this file may hand-roll `CREATE TABLE` again, which is the
+// failure mode the `share-lint-matchers-with-parity-tests` skill exists to prevent and which this file had
+// already met once at §71.
+describe("§1465 I8: one CREATE TABLE matcher, and no second copy", () => {
+  const CORPUS: readonly (readonly [string, string, string])[] = [
+    ["CREATE TABLE money_lines (id TEXT);", "money_lines", "the ordinary case"],
+    ["CREATE TABLE edi_214_sent (id TEXT);", "edi_214_sent", "a DIGIT in the name — the old copy truncated to `edi_`"],
+    ["CREATE TABLE IF NOT EXISTS main.t9 (id TEXT);", "t9", "schema-qualified — the old copy captured `main`"],
+    ['CREATE TABLE"abutting" (id TEXT);', "abutting", "zero-width boundary before a quote — the old copy did not match at all"],
+    ["CREATE TABLE [bracketed] (id TEXT);", "bracketed", "bracket delimiter"],
+  ];
+
+  it("captures the UNQUALIFIED table name for every delimiter and character shape", () => {
+    for (const [sql, expected, why] of CORPUS) {
+      expect(createdTableNames(sql), `${why} — got the wrong name from: ${sql}`).toEqual([expected]);
+    }
+  });
+
+  it("a name that PREFIXES a classified table is not mistaken for it (the silent-bypass case)", () => {
+    // The bypass in one assertion: if this ever returns `assets`, `CREATE TABLE assets2` passes the
+    // classification check and ships a table nobody declared append-only or mutable.
+    expect(createdTableNames("CREATE TABLE assets2 (id TEXT);"), "a digit-suffixed table collapsed onto its prefix").toEqual(["assets2"]);
+    expect(checkTableClassification(createdTableNames("CREATE TABLE assets2 (id TEXT);")), "assets2 must be UNCLASSIFIED, not read as assets").not.toEqual([]);
+  });
+
+  it("checkConstraintValues finds its table under EVERY delimiter (the third copy, §1465)", () => {
+    // The third `CREATE TABLE` matcher in this file split on `CREATE\s+TABLE\s+`, so an abutting quote never
+    // split and the function returned null — a CHECK constraint reading as ABSENT rather than as itself.
+    // MEASURED before the fix: spaced → ["shipper","carrier"], abutting → null, on identical DDL.
+    const mk = (head: string): string => `CREATE TABLE${head} (id TEXT, kind TEXT CHECK (kind IN ('shipper','carrier')));`;
+    for (const head of [" parties", '"parties"', " [parties]", " IF NOT EXISTS parties"]) {
+      expect(checkConstraintValues(mk(head), "parties", "kind"), `the CHECK read as absent for: CREATE TABLE${head}`).toEqual(["shipper", "carrier"]);
+    }
+    // The reason the split exists at all must survive the change: `kind` carries a DIFFERENT value set on legs.
+    const two = "CREATE TABLE legs (kind TEXT CHECK (kind IN ('pickup')));\nCREATE TABLE parties (kind TEXT CHECK (kind IN ('shipper')));";
+    expect(checkConstraintValues(two, "parties", "kind")).toEqual(["shipper"]);
+    expect(checkConstraintValues(two, "legs", "kind")).toEqual(["pickup"]);
+  });
+
+  it("commented-out DDL never counts (both call sites share ONE comment policy)", () => {
+    // The second divergence: the classification scan read the RAW file while the budget read stripped SQL,
+    // so a `--` line was a table to one of them and not to the other.
+    expect(createdTableNames("-- CREATE TABLE ghost (id TEXT);")).toEqual([]);
+    expect(createdTableNames("/* CREATE TABLE ghost2 (id TEXT); */")).toEqual([]);
+  });
+
+  it("no second hand-rolled CREATE TABLE matcher exists in invariants.ts", () => {
+    // Structural, not behavioural: the divergence above could only happen because a second copy was written.
+    // `createTableRe` is the one permitted construction; any other `CREATE\s+TABLE` regex literal is a new copy.
+    // ONE declared exception, and it is a SPLITTER, not a name extractor: `checkConstraintValues` delimits
+    // per-table blocks so a same-named column on another table cannot answer for this one. It captures no
+    // name, so it cannot diverge on WHAT a table is called — and §1465 removed its trailing `\s+`, which had
+    // made `CREATE TABLE"parties"` read as having NO CHECK constraint at all. Its delimiter handling is now
+    // the block matcher's, pinned by the four-form case above.
+    const DECLARED_SPLITTER = "/CREATE\\s+TABLE/i";
+    const src = readFileSync(join(REPO, "tools/checks/invariants.ts"), "utf8");
+    const literals = [...src.matchAll(/\/CREATE\\s\+TABLE[^/\n]*\/[gimsuy]*/g)]
+      .map((m) => m[0])
+      .filter((l) => l !== DECLARED_SPLITTER);
+    expect(
+      src.includes(DECLARED_SPLITTER),
+      "the declared splitter is gone — delete the exception rather than leaving it to bless something else",
+    ).toBe(true);
+    expect(
+      literals,
+      "a second `CREATE TABLE` regex literal was added. Call `createTableRe()`/`createdTableNames()` instead — " +
+        "§1465 is what a divergent copy costs (a silent classification bypass), and §71 is the same lesson for " +
+        "`INSERT INTO`:\n  " + literals.join("\n  "),
+    ).toEqual([]);
   });
 });

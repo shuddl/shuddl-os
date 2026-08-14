@@ -128,6 +128,36 @@ export const insertIntoRe = (tables: string): RegExp =>
 const onConflictUpdateRe = (tables: string): RegExp =>
   new RegExp(`\\bINSERT\\s+(?:OR\\s+(?:ROLLBACK|ABORT|FAIL|IGNORE|REPLACE)\\s+)?INTO${DELIM}${SCHEMA}${Q}(${tables})\\b[^;]*?\\bON\\s+CONFLICT\\b[^;]*?\\bDO\\s+UPDATE\\b`, "gi");
 
+/**
+ * §1465 — ONE `CREATE TABLE` MATCHER, for the reason §71 states one line above.
+ *
+ * There were two. The I8 BUDGET built its matcher from the shared fragments; the CLASSIFICATION scan (*"is
+ * each tenant table APPEND-ONLY or MUTABLE?"*) carried a hand-written copy — `\s+["'\`\[]?([a-z_]+)` — which
+ * differed in three ways, all measured against one corpus:
+ *
+ *   `CREATE TABLE edi_214_sent`      budget → edi_214_sent   copy → edi_        (no digits in the class)
+ *   `CREATE TABLE IF NOT EXISTS main.t9`  budget → t9        copy → main        (no SCHEMA fragment)
+ *   `CREATE TABLE"x"`                budget → x             copy → (no match)   (\s+ cannot see a zero-width
+ *                                                                               boundary before a quote)
+ *
+ * The consequence was not a bad message, it was a SILENT BYPASS. Truncation lands the name on a PREFIX, and
+ * when that prefix is already classified the check passes: `CREATE TABLE assets2` reads as `assets`, so a new
+ * tenant table was never asked whether it is append-only — meaning no guard triggers and no REPLACE-ban entry,
+ * on a table nobody classified. MEASURED at §1465: planting `assets2` and `messages2` produced NO
+ * classification failure, only the I8 spare-slot warning — and that warning fired only because the repo
+ * happens to sit at 21/22. At any lower table count the plant is completely unexamined.
+ *
+ * The copy also read the RAW file while the budget reads `stripSqlComments` output, so commented-out DDL was
+ * visible to one and not the other. Both divergences close here: one builder, one comment policy.
+ */
+export const createTableRe = (): RegExp =>
+  new RegExp(`CREATE\\s+TABLE(?:\\s+IF\\s+NOT\\s+EXISTS)?${DELIM}${SCHEMA}${Q}(\\w+)`, "gi");
+
+/** Every table name a chunk of migration SQL creates, comments stripped first. The ONE way to ask. */
+export function createdTableNames(sql: string): string[] {
+  return [...stripSqlComments(sql).matchAll(createTableRe())].map((m) => (m[1] as string).toLowerCase());
+}
+
 export type InvariantResult = { ok: boolean; tableCount: number; violations: string[]; warnings: string[] };
 
 // ---- guard-completeness (Task 5, REQ-002/011) --------------------------------------------------------
@@ -268,7 +298,7 @@ export function checkMigrationSql(sqlFiles: string[]): InvariantResult {
   // and a real mutation must never hide behind a `--`/`/* */` marker.
   const clean = stripSqlComments(sqlFiles.join("\n"));
 
-  for (const m of clean.matchAll(new RegExp(`CREATE\\s+TABLE(?:\\s+IF\\s+NOT\\s+EXISTS)?${DELIM}${SCHEMA}${Q}(\\w+)`, "gi"))) {
+  for (const m of clean.matchAll(createTableRe())) {
     const name = m[1];
     if (name) tables.add(name.toLowerCase());
   }
@@ -757,8 +787,12 @@ export function checkConstraintValues(sql: string, table: string, column: string
   // Split on CREATE TABLE so a same-named column on a DIFFERENT table cannot answer for this one — the
   // reason this is not one flat regex: `kind` carries a CHECK on BOTH `parties` and `legs`, with different
   // value sets, and a flat match returns whichever appears first.
-  const blocks = sql.split(/CREATE\s+TABLE\s+/i).slice(1);
-  const block = blocks.find((b) => new RegExp(`^(IF\\s+NOT\\s+EXISTS\\s+)?["'\`\\[]?${table}\\b`, "i").test(b));
+  // §1465 — the trailing `\s+` used to live in this split, which meant `CREATE TABLE"parties"` never split and
+  // this function returned null — the CHECK constraint reading as ABSENT rather than as itself. Measured: the
+  // spaced form returned ["shipper","carrier"] and the abutting form returned null on identical DDL. The
+  // delimiter is now the BLOCK matcher's job (it already tolerated the quote), so both forms find their table.
+  const blocks = sql.split(/CREATE\s+TABLE/i).slice(1);
+  const block = blocks.find((b) => new RegExp(`^\\s*(IF\\s+NOT\\s+EXISTS\\s+)?["'\`\\[]?${table}\\b`, "i").test(b));
   if (block === undefined) return null;
   const m = new RegExp(`\\b${column}\\b[^,]*?CHECK\\s*\\(\\s*${column}\\s+IN\\s*\\(([^)]*)\\)`, "i").exec(block);
   if (m === null) return null;
@@ -1012,9 +1046,7 @@ function main(): void {
   // Every tenant table is classified append-only or mutable (see checkTableClassification).
   const created: string[] = [];
   for (const f of globSync("db/tenant/migrations/*.sql")) {
-    for (const m of readFileSync(f, "utf8").matchAll(/CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+["'`\[]?([a-z_]+)/gi)) {
-      created.push(m[1]!.toLowerCase());
-    }
+    created.push(...createdTableNames(readFileSync(f, "utf8")));
   }
   const classViolations = isCheckout ? checkTableClassification(created) : [];
   if (classViolations.length > 0) {

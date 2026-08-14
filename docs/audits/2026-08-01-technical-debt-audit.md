@@ -686,6 +686,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 908 | §1461 | **§1462** | **THE COMPLETENESS DERIVATION MATCHED STORAGE CONSUMERS AND MISSED THE PROVIDER.** Put §1461's question to REQ-025, the build-failure law. `tenant-scope.test.ts` already had a completeness floor (§702) — and it required the BODY to touch storage, so `tenantDb(env, tenantSlug): D1Database`, which returns a handle and touches nothing, was never derived. Its sibling `resolveTenantDb` passed INCIDENTALLY (its body happens to match). One live call site: `pub/quote.ts`, the UNAUTHENTICATED guest-quote route — safe (tenant from the CF-routed hostname, not the forgeable Host header) but enforced by nothing. Fixed by deriving provider-ness from the RETURN TYPE; the gate then named its own gap. Three mutations RED where previously invisible. **Also qualified §826:** laundering is caught *unless the local REUSES an allowlisted name* — `const tenant = c.req.query("t") ?? …` stayed GREEN. New direct-binding rule closes it (population 3, zero FPs). **When a gate classifies by what a function DOES, check the one that does nothing and merely hands out the capability.** |
 | 909 | §1462 | **§1463** | **A TEST THAT RE-IMPLEMENTS THE PRODUCTION RESOLUTION TESTS THE PLATFORM, NOT THE PRODUCT.** Aggregate re-confirmed first (**21 PASS · 0 FAIL · 5 BLOCKED at `dba4fac`**). Then §1462's form applied to DO naming, where the name IS the namespace. All 11 `idFromName` sites are partitioned; what ENFORCES it differs per DO. `SHIPMENT_SEQ` self-verifies (`expected.equals(this.ctx.id)`) — measured, not read: de-tenanting a route reds **124**. The two meters cannot self-verify (no tenant in the request), so the call site is the whole isolation — and `CAPS_METER` reds 9 while **`SPARK_METER` red NOTHING (144/144)**. Cause: the case titled *"TENANT ISOLATION (REQ-025)"* resolves the DO via the test file's OWN helper re-implementing `idFromName(tenant)`, so it proves a CLOUDFLARE property and never calls `sparkGateFor`. Cost: every Spark tenant shares one AI-credit counter (REQ-122/125 mis-metering). Fixed through the composition root; RED on both mutations. **When a test builds its own handle, ask what would break it — if the answer is "a bug in Cloudflare", it is not testing this repo.** |
 | 910 | §1463 | **§1464** | **GATE THE POPULATION THE DISCRIMINATOR RANGES OVER, NOT THE ONE THE TELL FINDS.** Swept §1463's syntactic tell across 407 test files / 10,377 production expressions. **It returned ZERO and the POSITIVE CONTROL caught it** — the index stripped a leading `return ` but not `const stub = `, so the known instance could not match itself. Fixed: **15 hits — 4 generic-idiom FPs, 10 safe (`SHIPMENT_SEQ` self-verifies, 124 red), 1 the §1463 defect**. So §1463 was ONE instance, not the first of N. A gate on the tell would be **93% noise** with a SEMANTIC discriminator, which no filter reaches — so instead gated the population the discriminator ranges over: **the 3 Durable Objects**, a complete roster cross-checked against the wrangler `class_name` bindings both ways. `do-name-trust.test.ts`: self-verify or declare who drives your naming path. RED 3 ways. **The right gate is often one level up from the evidence that found the bug.** |
+| 911 | §1464 | **§1465** | **THREE COPIES OF ONE MATCHER, AND THE COPY THAT BYPASSED A GATE SILENTLY.** Asked §1461's question of binding parity: **zero env drift** across 9 wrangler configs — but the first probe said zero because its section class `[a-z_.]+` **excluded digits**, so `d1_databases` matched nowhere (24 parsed → 99 after the fix; the shipped gate uses `[\w.]+` and was never wrong). Sweeping that bug found `invariants.ts` holding **THREE `CREATE TABLE` matchers**: the I8 budget built from shared fragments, and a hand-written copy in the CLASSIFICATION scan differing on digits, schema and abutting quotes. **The cost was a SILENT BYPASS** — `CREATE TABLE assets2` truncates to `assets`, an already-classified name, so a new tenant table was never asked append-only-or-mutable (measured: no classification failure, only the 21/22 budget warning that fired by luck). Fixed with `createTableRe()`/`createdTableNames()` (the §71 shape). The new no-second-copy rule then found a **third**: `checkConstraintValues` split on `CREATE\s+TABLE\s+`, so `CREATE TABLE"parties"` returned `null` — a CHECK reading as ABSENT. Also repointed **8 citations across 3 files** drifted by the insert (third recorded occurrence). **Ask not whether copies differ, but what the difference COLLAPSES ONTO.** |
 | 856 | §1409 | **§1410** | **SWEEPING MY OWN SECTIONS FOR §1409's ERROR, AND A DETECTOR THAT COULD NOT HAVE FOUND IT.** §1404's precedent: a class like this gets ONE measurement, not a gate, since a correction necessarily quotes what it corrects. **The first sweep returned ZERO and was worthless** — it extracted superseded text as `~~struck~~` only, but the very case §1409 found is marked the other way, as *"a 16-step chain …"* **until audit §1029**. **My detector encoded one of the repo's TWO conventions, so it could never have found the known positive.** Twelfth instance of the session's constant, caught because a zero is the answer this session has learned never to accept. **A second false signal inside the control:** asking *"is it inside `~~…~~`?"* with `~~[^~]*16-step` returned True — because an unrelated `~~` sits earlier and `[^~]*` spanned the gap. **A regex answering "is X inside a delimiter" by searching for the delimiter anywhere before X will say yes to the whole file.** Re-run over both conventions: **109 superseded passages, zero quoted without a marker** — and that zero is worth something, because the corrected detector demonstrably flags a reconstruction of §1408's sentence. **§1409's error was singular, not a habit** |
 | **855** | §1408 | **§1409** | **I QUOTED STRUCK TEXT AS CURRENT, AND THE REPO HAD SOLVED IT 380 SECTIONS EARLIER.** §1408 cited CLAUDE.md's account of `verify:dev` as *"a 16-step chain … reaches 4 of 16"*. Measured: **18 steps**. **But the drift is my quotation's, not the law's** — CLAUDE.md's current text says that reading held *"until audit §1029"*, was *"invalidated hours later by `7b61624`"*, and that **the total is stated no longer, only the position that matters: step 4, and nothing after it**. I quoted the struck half of a correction as the claim. **Eleventh measurement error, and the first where the artifact had already anticipated the failure I was about to report.** **§1029's move is exactly §1402's, reached 373 sections apart and independently:** faced with a number that rots, REMOVE the number and keep the invariant. A convention arrived at twice from opposite ends of the record is the closest this audit has to a law about documentation. Substantively: `verify:dev` is still an unaggregated `&&` chain at 18 steps, and that is **not** a defect — CLAUDE.md documents it, names `verify:merge` as the real verdict, and `wp-exit-audit.test.ts:19` records that a naive matcher yields *"4 of 16"* and *"reads as a serious constitutional finding and is an artifact"*. **Tenth clean negative** |
 | 854 | §1407 | **§1408** | **VERIFYING MY OWN DELIVERABLE IS WIRED, BY THE STANDARD §1304 SET.** Five gates were built this session and each reported as working; §1304's standard is **verified WIRED before the board is read**, because a gate that runs when I invoke it and not when CI does is decoration with a green tick. **First measurement said ZERO** — searching the merge log for the five names returns 0 mentions each, which reads as "they never ran". It is the §1362 reporter difference: the tools suite runs under vitest v4 (summary only) while worker suites at v3.2.7 print per-file. The same run reports **125 files passed**, 120 + 5. **Tenth measurement error avoided by not believing a zero.** Measured properly three ways: `vitest list` shows **21 cases** across the five; `run-gate.ts:46` wires `unit-tests` to the `test` script; and `test` is `test:tools; t=$?; … ; exit $(( t \|\| p ))`. **Proved end-to-end:** breaking `law-enforcers` makes `pnpm test:tools` exit 1, which propagates. Also worth noting: that script AGGREGATES rather than `&&`-chains — the defect CLAUDE.md records for `verify:dev`, which reaches 4 of 16 steps |
@@ -10082,7 +10083,7 @@ roughly half the flagged set is likely rot and the rest is window tightness, and
 Five rotted citations across three skills, each re-pointed **and given a content anchor**, which is the
 only rule that catches this failure — `invoice-gate.ts:16@GATE_BLOCKED_PREFIX`,
 `transition-gates.ts:74@VALIDATION_FAILED`, `isolation.test.ts:29@WPs`,
-`invariants.ts:470@FORBIDDEN_REPLACE` (×2), plus `invariants.ts:102@SCHEMA`. Anchored citations went
+`invariants.ts:500@FORBIDDEN_REPLACE` (×2), plus `invariants.ts:102@SCHEMA`. Anchored citations went
 **28 → 34**; 987 citations resolve; the ratchet holds at its frozen 130.
 
 The remaining ~48 candidates are **not** swept in this pass, and saying so is the point (§175 is not a
@@ -20978,7 +20979,7 @@ on all three.
 
 ### Carry-forward
 
-`tools/checks/invariants.ts:581@committedLock` returns `{}` when there is no committed lockfile. That is
+`tools/checks/invariants.ts:611@committedLock` returns `{}` when there is no committed lockfile. That is
 the exact shape of [[fail-closed-is-about-the-fallback-value]] — the fallback VALUE, not the catch — and a
 `{}` there would make any "every dependency matches the lock" comparison vacuously true. It may well be
 correct here; it has not been checked. **Next section's first item.**
@@ -20991,7 +20992,7 @@ correct here; it has not been checked. **Next section's first item.**
 
 ### The carry-forward: not a defect
 
-`tools/checks/invariants.ts:581@committedLock` returns `{}` when `git show HEAD:<lock>` fails. `checkLock`
+`tools/checks/invariants.ts:611@committedLock` returns `{}` when `git show HEAD:<lock>` fails. `checkLock`
 uses that value as the **forward-only anchor** — the thing a locally-deleted or hand-edited lock line
 cannot reset. An empty anchor therefore re-opens the exact bypass `checkLock` exists to close, and the
 tests for it pass `committed` in as a parameter, so they prove the *guard* and say nothing about its
@@ -22293,7 +22294,7 @@ defect, whose header quotes the same omission verbatim (*"0003's events_guard_in
 whose two triggers enumerate **all three** surfaces the row names: `hash = NEW.hash`,
 `device_seq = NEW.device_seq`, `corrects_event_id = NEW.corrects_event_id`.
 
-**The lint.** `tools/checks/invariants.ts:243@checkGuardCompleteness` walks every UNIQUE target on every
+**The lint.** `tools/checks/invariants.ts:273@checkGuardCompleteness` walks every UNIQUE target on every
 `GUARDED_TABLES` entry and requires a BEFORE INSERT predicate enumerating it — a *derived* completeness
 check, not a roster, so it covers surfaces added later.
 
@@ -36107,7 +36108,7 @@ demands it. Sixteen skills exist. This sweeps the rest.
 
 | Skill | Cited | Verdict at HEAD |
 |---|---|---|
-| `share-lint-matchers-with-parity-tests` | `invariants.ts:470@FORBIDDEN_REPLACE` — a hand-written matcher | **FIXED** (§638): calls `replaceFamilyRe`; all four evasions blocked on both scanners |
+| `share-lint-matchers-with-parity-tests` | `invariants.ts:500@FORBIDDEN_REPLACE` — a hand-written matcher | **FIXED** (§638): calls `replaceFamilyRe`; all four evasions blocked on both scanners |
 | `enforce-server-side-gate-parity` | `positions.ts:15-60` — a REQ-166 CRITICAL bypass, no consent/assignment/device check | **FIXED**: `positions.ts:7` imports `assignmentOf`, `deviceOwnedBy`, `assertPositionConsent` from a shared `gate-context.js`, all three enforced before the INSERT |
 | `reconcile-gate-sentinels-with-exit-codes` | `run-gate.ts:118@reconcileSentinel` — a **fix**, not a defect | resolves exactly; `reconcileSentinel` is at 118 |
 
@@ -73210,7 +73211,7 @@ export function authoritativeSource(authority: AuthorityLevel, legacyValueAvaila
 
 Ten sites sharing a literal is §1225's shape **prospectively**: when Tasks 4/6/8 supply a real
 `legacyValueAvailable`, the sites get changed one at a time and N−1 are stale mid-flight. That is exactly what
-`invariants.ts:710@AUTHORITY-SEAM` covers — a **dormancy tripwire** that reds the moment any call site stops
+`invariants.ts:740@AUTHORITY-SEAM` covers — a **dormancy tripwire** that reds the moment any call site stops
 passing `false`. And §454 had already caught the weaker version of this gate: a test *named* *"TODAY every
 caller passes legacyValueAvailable=false"* whose body only checked the **function**, never the call sites — the
 same name-vs-body defect this session met at §1210.
@@ -84562,3 +84563,75 @@ byte-identical after mutations). 134 tools files / 1,427 tests green, lint clean
 BLOCKED**; this phase adds a test file only, so the aggregate verdict is unchanged in kind. The DO thread that
 opened at §1463 is now closed in both directions — every member defended, and the roster gated so a fourth
 member must answer. Carry-forward unchanged; one watch item (§1443).
+
+## §1465 — PHASE GATE: three copies of one matcher, and the copy that bypassed a gate silently (REQ-118/I8)
+
+§1464 gated one binding kind, so §1461's question came back at my own gate: is its population the LAW or a
+mechanism? Asked of every binding kind. **Two clean negatives first, both of which nearly went the other way.**
+
+Per-file, per-environment binding comparison across all nine wrangler configs: **zero drift**. The aggregate
+counts look alarming (`d1_databases` 25 default vs 23 staging vs 23 prod) and mean nothing — the delta is
+entirely files that declare no named environments. But the first run of that probe reported zero for a
+different reason: my section pattern was `[a-z_.]+`, which **excludes digits**, so `d1_databases` — the largest
+binding kind — matched nowhere, and every file where nothing parsed compared "equal" trivially. The
+positive control (*"how many bindings did you actually parse?"*) is what caught it: 24 parsed, then 99 after the
+fix. Second negative: the shipped gate does NOT have my bug — `binding-parity.test.ts:105@head` uses `[\w.]+`,
+which includes digits.
+
+**But my own bug was worth sweeping for**, because this repo is full of digit-bearing identifiers (`d1_databases`,
+`r2_buckets`, `sweep-214`, `map-204`, `build-990`). Eleven digit-excluding identifier classes exist in `tools/`;
+nine are harmless (CSS property names carry no digits). One was not.
+
+**`invariants.ts` held THREE `CREATE TABLE` matchers for one concept.** The I8 budget built its own from the
+shared `DELIM`/`SCHEMA`/`Q` fragments. The classification scan — *"is each tenant table APPEND-ONLY or
+MUTABLE?"*, which decides whether a table gets guard triggers and a REPLACE-ban entry — carried a hand-written
+copy, `\s+["'`\[]?([a-z_]+)`. One corpus through both:
+
+| DDL | budget | the copy | |
+|---|---|---|---|
+| `CREATE TABLE edi_214_sent` | `edi_214_sent` | `edi_` | no digits in the class |
+| `CREATE TABLE IF NOT EXISTS main.t9` | `t9` | `main` | no SCHEMA fragment |
+| `CREATE TABLE"abutting"` | `abutting` | *no match* | `\s+` cannot see a zero-width boundary |
+
+**And the consequence was a silent bypass, not a bad message.** Truncation lands the name on a PREFIX, and when
+that prefix is already classified the check simply passes. Measured: planting `CREATE TABLE assets2` and
+`CREATE TABLE messages2` produced **no classification failure at all** — only the I8 spare-slot warning, and
+that fired only because the repo happens to sit at 21/22. At any lower table count the plant is completely
+unexamined: a tenant table nobody declared append-only or mutable, therefore with no guard triggers, on a
+repo whose second law is that events are append-only. The two gates disagreed the whole time — the budget
+counted 22 distinct tables while classification saw 21 names — and neither could notice.
+
+A second divergence in the same pair: the copy read the RAW file while the budget read `stripSqlComments`
+output, so commented-out DDL was a table to one and not the other.
+
+**Fixed the way this file already fixed it once** — `createTableRe()` + `createdTableNames()`, one builder and
+one comment policy, exactly the shape `insertIntoRe` took at §71 after the identical defect. All three shapes
+now resolve correctly and `assets2` names itself.
+
+**Then the structural half found a third copy I had not.** The new rule *"no second hand-rolled `CREATE TABLE`
+literal in this file"* red immediately on `checkConstraintValues`, which splits per-table blocks on
+`CREATE\s+TABLE\s+`. Probed: identical DDL returned `["shipper","carrier"]` spaced and **`null` abutting** — a
+CHECK constraint reading as ABSENT. Fixed by moving the delimiter into the block matcher (which already
+tolerated a quote), pinned across four delimiter forms, with the two-table disambiguation that justifies the
+split re-asserted so the fix cannot have broken its purpose. It stays declared rather than banned: it is a
+SPLITTER, captures no name, and so cannot diverge on what a table is called.
+
+**One more thing this phase paid for.** The 30-line insert shifted **eight `path:line@symbol` citations across
+three files** — `FORBIDDEN_REPLACE`, `committedLock`, `checkGuardCompleteness`, `findStraySql`,
+`AUTHORITY-SEAM` — none of which I touched. The gate caught every one and named the new line, so repointing was
+mechanical. The `share-lint-matchers-with-parity-tests` skill records this happening at §175 and again at §253;
+this is the **third** time, and its history note now says so. Three drifts caused by edits ELSEWHERE in the file
+is the argument for `@symbol` anchoring, not for keeping numbers fresh.
+
+**The general form.** A copy of a matcher does not fail where it differs — it fails where the difference lands
+on something that already looks right. `edi_` is obviously wrong and fails loudly; `assets` is a real table, so
+the same truncation passes. **When auditing a duplicated matcher, do not ask whether the copies differ — ask
+what the difference COLLAPSES ONTO**, because a divergence that produces a valid-looking value is the one no
+gate reports.
+
+**Phase gate.** Source changed: `invariants.ts` (one shared builder, both call sites, the splitter's delimiter),
+`invariants.test.ts` (+3 cases, 218), three doc/skill files repointed. **No product code.** 134 tools files /
+1,432 tests green, `check:invariants` clean at 21/22, lint clean, citations 1,897 resolving with the ratchet at
+its frozen baseline. Board last MEASURED at `dba4fac` (§1463): **21 PASS · 0 FAIL · 5 BLOCKED** — this phase
+edits a gate that runs INSIDE the aggregate (`invariants` is non-skippable), so the next phase should re-run it.
+Carry-forward unchanged; one watch item (§1443).
