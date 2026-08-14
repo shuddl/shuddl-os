@@ -16,6 +16,18 @@ import type { Env } from "../src/index.js";
 //     → POST /v1/import  (a messy spreadsheet → parties + shipments + no-silent-drop gap rows)
 //     → POST /v1/rate    (a REAL priced SELL — the claimed tenant WRITING quote.priced through the now-wired sequencer)
 //
+// HONESTY NOTE (§1478) — the "<10 min" half of demo #2, stated to match `heartbeat.test.ts`'s note on the "<5s"
+// half of demo #1. That bound is HUMAN time: a stranger reading a form, typing a company name, choosing a
+// spreadsheet. It is not a machine latency, there is no human in a pool-workers harness, and NO minute count is
+// asserted or fabricated here. What THIS test proves is the other half, and it is the half that decides whether
+// the ten minutes are even possible: the chain is complete and UNASSISTED — signup claims a pool slot, the import
+// lands parties + shipments + gap rows, and /v1/rate returns a REAL priced sell written to the claimed tenant's
+// own D1, with no operator step anywhere in it. If any seam here needed a human, the demo would be impossible at
+// any duration; because none does, the only thing between a stranger and a quote is their own typing.
+//
+// Recorded because the asymmetry was the defect: demo #1 declared its unasserted number and demo #2 did not, so a
+// reader of the acceptance evidence could not tell whether "<10 min" was measured, waived, or forgotten.
+//
 // This is the WRITE-PATH proof of Task 10's gap-1 fix: BEFORE the fix the sequencer's #append resolved its D1 via
 // the STATIC allowlist (tenantDb), so a CLAIMED (pool) tenant FORBIDDENed on any ledger append — /v1/rate would
 // have surfaced that as a non-PRICED error, NOT a real quote. Now #resolveDb uses resolveTenantDb (static + claimed),
