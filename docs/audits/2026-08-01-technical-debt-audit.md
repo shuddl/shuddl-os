@@ -650,6 +650,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 872 | §1425 | **§1426** | **COUNTED THE PATHSPEC ERROR INSTEAD OF FIXING IT A THIRD TIME.** Twice this block a probe passed git `packages/*/src` and got ZERO (a directory-through-a-glob does not expand to its contents); both zeros read as findings about the CODEBASE until a positive control exposed them. §1360: the second instance is where you stop fixing and start counting. **Counted 38 literal glob pathspecs across `tools/`.** **CLEAN NEGATIVE — the gates do not have this bug:** they use the file-terminated form (`workers/*/src/*.ts` → 99, `**/*.ts` → 48, `db/*/migrations/*.sql` → 11). The defect was confined to MY probes, and the natural assumption *the gates probably share it* was wrong. Three literal specs match nothing and all are inert (`workers/**/*.tsx` — the paired half of a 14-file spec; `*.cjs`/`*.sh` — §1415's deliberately broad extension list). **A naive sweep reported SEVEN broken: four were TEMPLATE literals a static scan reads unexpanded — a scanner that cannot evaluate a thing must SKIP it, not fail it.** Gated anyway because emptiness is silent (`scanCorpus` already throws `EmptyGlobError`; raw `git ls-files` calls had no equivalent). **The gate flagged its own positive control** — excluded BY PATH, §1416's lesson ten sections later. Mutation-proved |
 | 873 | §1426 | **§1427** | **ARE THE SIX GATES I ADDED THIS BLOCK ACTUALLY RUN?** §1419's lesson — behaviour and WIRING are separate questions — applied to my own work. Proved link by link: collected by the tools config (128→130 files) · a planted `id: "I9"` in `schema-invariants` reds `pnpm test:tools` (**exit 1**) · the aggregating `test` script propagates it, measured on **all three** arithmetic cases (`exit $(( t \|\| p ))`) · `test` is `run-gate.ts:46`'s `unit-tests` roster entry · `ci.yml:62` runs `pnpm verify:merge` · and that CI↔roster relationship is itself gated by `gate-wiring.test.ts` (§691/§694 + staleness). **Clean negative at every link.** The aggregation was worth measuring rather than reading: §954 records the regression where an `&&` between the two halves short-circuited and **105 of 112 isolation cases stopped executing while the gate still reported PASS**. **One map refinement from reading CI:** row 1 read *"never executed … deliberately absent from the merge roster"*, inviting the reading that nothing runs `check:pr`; it is absent from `gatesFor("merge")` (its input does not exist locally) **and** `ci.yml:32` runs it on `pull_request`. *Never executed* is a fact about the PR count, not the wiring |
 | 874 | §1427 | **§1428** | **THE BOARD RE-MEASURED, AND THE CLAIM I HAD BEEN INHERITING.** Five sections closed with *"board unchanged from §1417"* — a measurement taken **11 commits earlier**. §804: a claim you INHERIT is a claim you are MAKING. Re-run at `53cdc23`: **26 gates — 21 PASS · 0 FAIL · 5 BLOCKED · 4,820 tests / 411 files, zero failing suites** (§1417: 4,807 / 408). Aggregate BLOCKED (exit 2), NOT PROMOTABLE, **repo-owned failure set EMPTY**; all five blocks owner-held; 12 concurrent-author files dirty throughout with no attributable failure — third consecutive board where that holds. Delta is exactly this block: +13 tests, +3 files. **Second inherited claim also checked:** `cwd-parity` covers package.json SCRIPTS, not vitest files, so it does not cover the six new gates — verified directly instead (all six call `repoRoot()`, none has an `execSync` without explicit `cwd`). **BLOCK CLOSES:** 17 phases, 6 instrument defects, then ten gate bodies + ten wirings + six more gates + all eight invariants each confirmed BY BREAKING THEM; both constitutional surfaces now machine-mapped requiring the MUTATION not the existence. **Zero product behaviour changed in seventeen phases** |
+| 875 | §1428 | **§1429** | **CHASED §1419's WATCH ITEM AND RE-DERIVED §389 FOR THE THIRD TIME IN ONE BLOCK.** `assertException` sits under a FALL-THROUGH policing TWO kinds (`exception.raised`, `osd.captured`) through one call, and only the first is tested; routing `osd.captured` around the gate leaves the **entire api suite green — 840 passed**, which reads as a REQ-050 hole in the OS&D flow. **It is not:** `OsdCapturedPayload` is `.strict()` with `photo_hash` and `reason_code` both REQUIRED, so an evidence-less capture is rejected at the boundary (**400 VALIDATION_FAILED**) and never reaches the gate — discovered by my own new test failing on UNMUTATED code, expecting 403 and getting 400. **And the repo already knew:** `gates.test.ts:354-358` at HEAD states it exactly, citing **§389's three explanations for a silent mutation — nothing watches it, nothing REACHES it, something SUBSUMES it.** I have re-derived that framework three times this block (§1420, §1425, §1429) without citing it once. **Watch item DOWNGRADED with reason:** all three thin wirings have a purpose-built integration case asserting GATE_BLOCKED + the exact evidence list + zero append; *defended by one test* was a COUNT, not a weakness. **Nothing added, nothing should be** |
 | 856 | §1409 | **§1410** | **SWEEPING MY OWN SECTIONS FOR §1409's ERROR, AND A DETECTOR THAT COULD NOT HAVE FOUND IT.** §1404's precedent: a class like this gets ONE measurement, not a gate, since a correction necessarily quotes what it corrects. **The first sweep returned ZERO and was worthless** — it extracted superseded text as `~~struck~~` only, but the very case §1409 found is marked the other way, as *"a 16-step chain …"* **until audit §1029**. **My detector encoded one of the repo's TWO conventions, so it could never have found the known positive.** Twelfth instance of the session's constant, caught because a zero is the answer this session has learned never to accept. **A second false signal inside the control:** asking *"is it inside `~~…~~`?"* with `~~[^~]*16-step` returned True — because an unrelated `~~` sits earlier and `[^~]*` spanned the gap. **A regex answering "is X inside a delimiter" by searching for the delimiter anywhere before X will say yes to the whole file.** Re-run over both conventions: **109 superseded passages, zero quoted without a marker** — and that zero is worth something, because the corrected detector demonstrably flags a reconstruction of §1408's sentence. **§1409's error was singular, not a habit** |
 | **855** | §1408 | **§1409** | **I QUOTED STRUCK TEXT AS CURRENT, AND THE REPO HAD SOLVED IT 380 SECTIONS EARLIER.** §1408 cited CLAUDE.md's account of `verify:dev` as *"a 16-step chain … reaches 4 of 16"*. Measured: **18 steps**. **But the drift is my quotation's, not the law's** — CLAUDE.md's current text says that reading held *"until audit §1029"*, was *"invalidated hours later by `7b61624`"*, and that **the total is stated no longer, only the position that matters: step 4, and nothing after it**. I quoted the struck half of a correction as the claim. **Eleventh measurement error, and the first where the artifact had already anticipated the failure I was about to report.** **§1029's move is exactly §1402's, reached 373 sections apart and independently:** faced with a number that rots, REMOVE the number and keep the invariant. A convention arrived at twice from opposite ends of the record is the closest this audit has to a law about documentation. Substantively: `verify:dev` is still an unaggregated `&&` chain at 18 steps, and that is **not** a defect — CLAUDE.md documents it, names `verify:merge` as the real verdict, and `wp-exit-audit.test.ts:19` records that a naive matcher yields *"4 of 16"* and *"reads as a serious constitutional finding and is an artifact"*. **Tenth clean negative** |
 | 854 | §1407 | **§1408** | **VERIFYING MY OWN DELIVERABLE IS WIRED, BY THE STANDARD §1304 SET.** Five gates were built this session and each reported as working; §1304's standard is **verified WIRED before the board is read**, because a gate that runs when I invoke it and not when CI does is decoration with a green tick. **First measurement said ZERO** — searching the merge log for the five names returns 0 mentions each, which reads as "they never ran". It is the §1362 reporter difference: the tools suite runs under vitest v4 (summary only) while worker suites at v3.2.7 print per-file. The same run reports **125 files passed**, 120 + 5. **Tenth measurement error avoided by not believing a zero.** Measured properly three ways: `vitest list` shows **21 cases** across the five; `run-gate.ts:46` wires `unit-tests` to the `test` script; and `test` is `test:tools; t=$?; … ; exit $(( t \|\| p ))`. **Proved end-to-end:** breaking `law-enforcers` makes `pnpm test:tools` exit 1, which propagates. Also worth noting: that script AGGREGATES rather than `&&`-chains — the defect CLAUDE.md records for `verify:dev`, which reaches 4 of 16 steps |
@@ -82821,3 +82822,56 @@ verified byte-identical to HEAD.
 **Watch items, not defects:** three gate wirings are defended by exactly one test each
 (`assertPickupDepart`, `assertInterline`, `assertException`), and rule 10's constitutional law is defended by
 one test.
+
+## §1429 — PHASE GATE: chasing §1419's watch item, and re-deriving §389 for the third time in one block
+
+§1428 closed the block with two watch items. The sharper one: **three gate wirings are defended by exactly one
+test each** — `assertPickupDepart`, `assertInterline`, `assertException`. A single test is one skip or rename
+away from being no test, so it was worth chasing.
+
+**The chase found a real asymmetry, then dissolved it.** `assertException` sits under a FALL-THROUGH and
+polices TWO kinds through one call:
+
+```ts
+case "exception.raised":
+case "osd.captured":
+  assertException(incoming, ctx);
+```
+
+Only `exception.raised` is tested. Routing `osd.captured` around the gate — its own `case` returning early,
+the other arm left gated — leaves the **entire api suite green: 840 passed.** That reads as a hole in REQ-050
+for the OS&D flow, which is exactly the flow where an over/short/damage capture with no photo and no reason
+code would be a claim with no evidence.
+
+**It is not a hole, and the test I wrote to close it cannot exist.** `OsdCapturedPayload` is `.strict()` with
+`photo_hash: Hash64` and a `reason_code` enum, **both required**, while `exception.raised` carries a loose
+`JsonObject` payload. So an evidence-less `osd.captured` is rejected at the boundary with **400
+VALIDATION_FAILED** and never reaches the gate — which my test discovered by failing on unmutated code,
+expecting 403 and getting 400.
+
+**And the repo already knew.** `workers/api/test/gates.test.ts:354-358` at HEAD says it in full: *"Zod rejects
+a missing photo/reason at the boundary (400 VALIDATION_FAILED) and `assertException` never runs; its gate arm
+is redundant defence-in-depth, not the live protection. §389's third explanation for a silent mutation —
+nothing DISTINGUISHES it — rather than the first, nothing watches it."* The schema requirement itself is
+pinned by `packages/contracts/test/physical-events.test.ts`.
+
+**This is the finding, and it is about me.** §389 established that **a green mutation has three explanations,
+not two: nothing watches it, nothing reaches it, or something else subsumes it.** I have re-derived that
+framework THREE TIMES in this block without once citing it — §1420 (`assertViewBudget`, subsumed by three
+counting mechanisms), §1425 (I7's first mutation, unreachable on that corpus), and now §1429 (`osd.captured`,
+unreachable behind its schema). Each time the conclusion was right and the route was expensive. **The record
+had the answer at §389 and the specific case annotated at HEAD in the very file I was editing.**
+`search-the-record-before-the-code`, fourth instance this session.
+
+**The watch item itself is downgraded, with reason.** All three thin wirings have a dedicated, purpose-built
+integration case in `gates.test.ts` — pickup-depart (`:90`), interline custody (`:163`), exception (`:195`) —
+each asserting `GATE_BLOCKED`, the exact required-evidence list, AND zero append. **"Defended by one test" was
+a COUNT, not a weakness:** one precise integration test per gate arm is the right shape, and the second arm of
+the one fall-through is protected by a stricter mechanism upstream. Nothing was added, and nothing should be.
+
+**Phase gate.** No source or test changes: the two cases I drafted were reverted, `gates.test.ts` verified
+byte-identical to HEAD. 130 tools files / 1,407 tests green. Board unchanged from §1428's full run at
+`53cdc23` — 21 PASS · 0 FAIL · 5 BLOCKED, all owner-held. Carry-forward unchanged: vendor the nine private
+fixtures + `IDENTITY_DENYLIST`, commit the `genesis/09` rows, the five filed operational REQ rows. **Remaining
+watch item: rule 10 (no silent drops in migration) is defended by one test** — not yet chased, and it should
+be chased by reading §389 and the file's own header first.
