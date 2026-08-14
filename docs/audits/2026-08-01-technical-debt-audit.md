@@ -693,6 +693,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 915 | §1468 | **§1469** | **AN EXCLUSION GUARD IS AN ALLOWLIST WRITTEN BACKWARDS.** Five phases of gates auditing gates, so I measured what that had left unexamined: **35 of 277 shipped files this audit has never named**. One was `workers/mcp/src/confirm.ts` — the confirm-before-money gate on `book_shipment`, acceptance demo #4's money commitment. The gate is well built (server sell is authority, fail-closed, memoized); the gap is that it opens `if (tool.name !== BOOK_TOOL) return`, so everything else passes **by exclusion**. Measured: the hand-kept pass-through list names TWO tools that are `mutating: false` (they never reach the chokepoint) and **omits `dispute`, which is `mutating: true`** — nobody was ever asked whether filing a claim carries a confirm. Roster now DERIVED from the registry, set-equal both ways, with a behavioural pass-through check; `dispute` recorded exempt with its reason and a revisit trigger. **No behaviour changed** — gating it is a register decision. RED both ways. **When a guard names what it acts on, find the set it declines to act on and ask who maintains it.** |
 | 916 | §1469 | **§1470** | **SHARING THE PRIMITIVE IS NOT SHARING THE COMPOSITION.** Board re-measured (**21 PASS · 0 FAIL · 5 BLOCKED at `c2e410b`**). Next never-named file: `driver-core/src/device-key.ts`. `device_id` = `dev_` + SHA-256(SPKI) is computed INDEPENDENTLY there and in `api/routes/devices.ts`, whose comment states the coupling — *"EXACTLY as the client does"* — the shape that is always a missing test. Nothing fed one key through both; the existing case used a TEST-LOCAL JWK and asserted only `startsWith("dev_")`. Cost, traced: the driver's id is the offline dedupe key and `sequencer.ts:305@device_id` requires it to equal `actor.device`, so a divergence refuses EVERY device-namespaced append (fail-closed → availability cliff). Fixed with an INTEGRATION parity test using the real `generateDeviceKey()`. RED 1/1/2 — and the `spki`→`raw` mutation is caught by **nothing else**, because both sides stay self-consistent. Both already share `sha256Hex`; what is duplicated is the RECIPE. |
 | 917 | §1470 | **§1471** | **A MUTATION THAT REDS NOTHING IS A STATEMENT ABOUT YOUR CORPUS.** Two clean negatives (`legacy-project-out.ts` genuinely shares + has a bidirectional echo soak; all 8 MCP tools dispatched in 2–7 files) **corrected the method**: *never named in the audit* is a weak proxy for *unexamined* — 33 → 30 → 3, and all 3 are exercised. The real tell behind §1469/§1470 was a STATED COUPLING, which is mechanical: 106 lockstep comments, **4 MUTUAL pairs**, two already closed. The finding is the third: `pub/quote.ts` ↔ `routes/rate.ts` — two pricing surfaces sharing `priceShipment`, whose five `/v1/rate` references are ALL AUTH assertions, so the twinning was asserted about SHAPE and never about the ANSWER. Added GQ-6 (one body, both surfaces, same sell_cents). **My own accessorial mutation then reded NOTHING** — the corpus had no accessorials; widened, both mutations red 2 and 1. §389's *nothing REACHES it* is a property of the INPUT too, and that one is yours. Fourth pair (`legacy-mirror` ↔ `mirror-sweep`) carried. |
+| 918 | §1471 | **§1472** | **THE MUTUAL-PAIR CLASS CLOSED, AND WHAT MAKES A COMMENT SURVIVE SCRUTINY.** Verified §1471's carried item, the 4th pair `legacy-mirror.ts` ↔ `mirror-sweep.ts` — a different SHAPE (pure core + worker, nothing duplicated), so the coupling is a DEPENDENCE on the core's behaviour. Removing the mapper's ECHO-SKIP reds **4 in adapters and 4 in agents**: REQ-022's ping-pong guarantee is pinned on both sides. **Class closed 4/4.** The comment at `mirror-sweep.ts:227@echo` is the one that survived: it claims *removing this `continue` changes no test (measured)* and *this branch owns the `echoed` COUNTER* — measured now as **0 red** and **1 red**, both exactly true. The difference from §1470's and §1465's failed couplings is not care but **FALSIFIABILITY**: *X mirrors Y* cannot be run; *removing this reds nothing, and it owns the counter* is two experiments written down. A prose-scanning gate DECLINED (§1399 — an English boundary cannot close); the class is recorded with a mechanical reopen trigger instead. |
 | 856 | §1409 | **§1410** | **SWEEPING MY OWN SECTIONS FOR §1409's ERROR, AND A DETECTOR THAT COULD NOT HAVE FOUND IT.** §1404's precedent: a class like this gets ONE measurement, not a gate, since a correction necessarily quotes what it corrects. **The first sweep returned ZERO and was worthless** — it extracted superseded text as `~~struck~~` only, but the very case §1409 found is marked the other way, as *"a 16-step chain …"* **until audit §1029**. **My detector encoded one of the repo's TWO conventions, so it could never have found the known positive.** Twelfth instance of the session's constant, caught because a zero is the answer this session has learned never to accept. **A second false signal inside the control:** asking *"is it inside `~~…~~`?"* with `~~[^~]*16-step` returned True — because an unrelated `~~` sits earlier and `[^~]*` spanned the gap. **A regex answering "is X inside a delimiter" by searching for the delimiter anywhere before X will say yes to the whole file.** Re-run over both conventions: **109 superseded passages, zero quoted without a marker** — and that zero is worth something, because the corrected detector demonstrably flags a reconstruction of §1408's sentence. **§1409's error was singular, not a habit** |
 | **855** | §1408 | **§1409** | **I QUOTED STRUCK TEXT AS CURRENT, AND THE REPO HAD SOLVED IT 380 SECTIONS EARLIER.** §1408 cited CLAUDE.md's account of `verify:dev` as *"a 16-step chain … reaches 4 of 16"*. Measured: **18 steps**. **But the drift is my quotation's, not the law's** — CLAUDE.md's current text says that reading held *"until audit §1029"*, was *"invalidated hours later by `7b61624`"*, and that **the total is stated no longer, only the position that matters: step 4, and nothing after it**. I quoted the struck half of a correction as the claim. **Eleventh measurement error, and the first where the artifact had already anticipated the failure I was about to report.** **§1029's move is exactly §1402's, reached 373 sections apart and independently:** faced with a number that rots, REMOVE the number and keep the invariant. A convention arrived at twice from opposite ends of the record is the closest this audit has to a law about documentation. Substantively: `verify:dev` is still an unaggregated `&&` chain at 18 steps, and that is **not** a defect — CLAUDE.md documents it, names `verify:merge` as the real verdict, and `wp-exit-audit.test.ts:19` records that a naive matcher yields *"4 of 16"* and *"reads as a serious constitutional finding and is an artifact"*. **Tenth clean negative** |
 | 854 | §1407 | **§1408** | **VERIFYING MY OWN DELIVERABLE IS WIRED, BY THE STANDARD §1304 SET.** Five gates were built this session and each reported as working; §1304's standard is **verified WIRED before the board is read**, because a gate that runs when I invoke it and not when CI does is decoration with a green tick. **First measurement said ZERO** — searching the merge log for the five names returns 0 mentions each, which reads as "they never ran". It is the §1362 reporter difference: the tools suite runs under vitest v4 (summary only) while worker suites at v3.2.7 print per-file. The same run reports **125 files passed**, 120 + 5. **Tenth measurement error avoided by not believing a zero.** Measured properly three ways: `vitest list` shows **21 cases** across the five; `run-gate.ts:46` wires `unit-tests` to the `test` script; and `test` is `test:tools; t=$?; … ; exit $(( t \|\| p ))`. **Proved end-to-end:** breaking `law-enforcers` makes `pnpm test:tools` exit 1, which propagates. Also worth noting: that script AGGREGATES rather than `&&`-chains — the defect CLAUDE.md records for `verify:dev`, which reaches 4 of 16 steps |
@@ -84943,3 +84944,59 @@ investigation. A parity test is only as wide as the fields its body populates.
 `check:citations` and `check:section-refs` clean. Board MEASURED at `c2e410b` (§1470, 1 commit ago): **21 PASS ·
 0 FAIL · 5 BLOCKED**. Carry-forward gains one concrete item — the fourth mutual pair, `legacy-mirror.ts` ↔
 `mirror-sweep.ts`, unverified — plus §1469's `dispute` question; one watch item (§1443).
+
+## §1472 — PHASE GATE: the mutual-pair class closed, and what makes a comment survive scrutiny (REQ-118/REQ-021/022)
+
+§1471 carried one concrete item: the fourth mutual lockstep pair, `legacy-mirror.ts` ↔ `mirror-sweep.ts`,
+unverified. Verified — and it is a different SHAPE from the other three, which is why it needed reading rather
+than a parity test.
+
+The other pairs are two implementations of one derivation (`mulDivHalfUp`, `device_id`) or two halves of a
+round-trip. This one is a **pure core and its worker**: `mirror-sweep.ts:35` imports `mapLegacyExport`,
+`parseSheet`, `LegacyMirrorConfigSchema` and `stableStringify` from `@shuddl/adapters`. Nothing is duplicated,
+so there is no corpus to feed through both sides. What exists instead is a **dependency on the core's
+behaviour**, and that is what got measured.
+
+**The class is now closed, 4 of 4:**
+
+| mutual pair | what must hold | proof |
+|---|---|---|
+| `money.ts` ↔ `split.ts` | two `mulDivHalfUp` agree | §1441 — one corpus through both |
+| `legacy-mirror.ts` ↔ `legacy-project-out.ts` | the round-trip converges | shares imports + re-exports `stableStringify`; bidirectional echo soak |
+| `pub/quote.ts` ↔ `routes/rate.ts` | same physics → same price | §1471 — GQ-6, one body through both |
+| `legacy-mirror.ts` ↔ `mirror-sweep.ts` | the worker's echo-skip reliance | **this phase** — removing the mapper's ECHO-SKIP reds **4 in `packages/adapters` and 4 in `workers/agents`** |
+
+REQ-022's ping-pong guarantee is therefore pinned on both sides of the seam, not just where it is implemented.
+
+**And the comment at `mirror-sweep.ts:227@echo` is the one that survived scrutiny — worth recording because
+almost nothing else in this block did.** It makes two falsifiable claims, and both are still true:
+
+> *this line does NOT enforce LAW 3(b) — the mapper does … Removing this `continue` changes no append behaviour
+> and no test (measured). What this branch owns is the `echoed` COUNTER.*
+
+Measured now: removing the `continue` reds **0** — exactly as claimed; removing `echoed += 1` reds **1** — the
+branch does own the counter, exactly as claimed. Scoped correctly in both directions.
+
+Contrast the couplings that failed: §1470's *"EXACTLY as the client does"* asserted an agreement nothing tested,
+and §1465's `CREATE TABLE` copies asserted sameness that was measurably false. **The difference is not care, it
+is FALSIFIABILITY.** A comment saying *"X mirrors Y"* cannot be run. A comment saying *"removing this changes no
+test, and what it owns is the counter"* is two experiments written down — and the reason this one is still
+accurate is that whoever wrote it had already run them.
+
+**A gate deliberately NOT built, with the reason.** The obvious §1464 move is to gate the mutual pairs so a
+fifth must declare its proof. The population derives from PROSE, and §1399's rule is that a detector whose
+boundary is English can never be complete — such a gate would sample, then read as closure. So the class is
+recorded here with its proofs instead, and the reopen trigger is mechanical: **a new pair appears when a
+lockstep comment names a file that names it back**, which is one grep when someone next asks.
+
+**A recurring error of my own, third time this session.** Two mutations failed to apply because I anchored on
+text copied from `sed`-prefixed output, so every string carried four phantom leading spaces. The
+mutation-not-applied assert caught both. The habit that fixes it: read with the line-numbered reader before
+anchoring, never from a display that adds a prefix.
+
+**Phase gate.** **No source changed at all** — this phase is verification: `legacy-mirror.ts` and
+`mirror-sweep.ts` byte-identical after three mutations. `packages/adapters` 43 tests, `workers/agents` 145,
+`workers/api` 842, 134 tools files / 1,433 — all green; lint, `check:citations`, `check:section-refs` clean.
+Board MEASURED at `c2e410b` (§1470, 2 commits ago): **21 PASS · 0 FAIL · 5 BLOCKED**. Carry-forward: the
+mutual-pair item is DISCHARGED; §1469's `dispute` question and the five owner-side items stand; one watch item
+(§1443).
