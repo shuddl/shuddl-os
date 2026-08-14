@@ -82,7 +82,12 @@ describe("§1411 REQ-118: the strikethrough mask is line-local and offset-preser
     for (const rel of RECORDS) {
       const text = readFileSync(`${root}/${rel}`, "utf8");
       const before = visibleCitations(text);
-      expect(before, `${rel}: no citations found — the probe broke`).toBeGreaterThan(20);
+      expect(
+        before,
+        `${rel}: no citations found — the probe broke, not the record. LIVE COUNT 182 (audit) / 154 ` +
+          `(checklist) at §1413; the floor is 20, far below both: a tripwire for a broken matcher, and NOT a ` +
+          `citation-count assertion — the records grow every phase and this must not need editing.`,
+      ).toBeGreaterThan(20);
       expect(
         visibleCitations("a note about the `~~` convention\n\n" + text),
         `${rel}: adding ONE unpaired marker changed what the rest of the document means. Every gate that ` +

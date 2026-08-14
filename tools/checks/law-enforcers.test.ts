@@ -147,7 +147,12 @@ describe("§1394 REQ-118: every non-negotiable rule has a live, named enforcer",
     const section = /## Non-negotiable engineering rules\n([\s\S]*?)\n## /.exec(claudeMd);
     expect(section, "the non-negotiable rules section is gone or renamed — that is a governance change").not.toBeNull();
     const numbered = [...section![1]!.matchAll(/^(\d+)\.\s+\*\*/gm)].map((m) => Number(m[1]));
-    expect(numbered.length, "no numbered rules parsed — the matcher broke, not the constitution").toBeGreaterThanOrEqual(5);
+    expect(
+      numbered.length,
+      "no numbered rules parsed — the matcher broke, not the constitution. LIVE COUNT 10; the floor is 5, " +
+        "deliberately loose because the NEXT assertion compares the parsed set to this roster EXACTLY — that " +
+        "is where a changed rule count must fail, not here.",
+    ).toBeGreaterThanOrEqual(5);
     expect(
       LAW_ENFORCERS.map((e) => e.rule),
       "CLAUDE.md's numbered rules and this roster disagree. A rule without an enforcer row is a law nobody has " +

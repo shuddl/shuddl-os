@@ -76,8 +76,17 @@ describe("§1418 REQ-030: every server-side gate is named by a test", () => {
   it("derives a real population (non-vacuity — an empty roster certifies everything)", () => {
     // §1387: floor the INPUT. There were TEN at §1418; a broken extractor reporting zero would pass every
     // assertion below while checking nothing.
-    expect(gates.length, "no gate functions found — the extractor broke, not the tree; there were 18 at §1419").toBeGreaterThanOrEqual(15);
-    expect(testFiles.length, "no test files found — the scan broke").toBeGreaterThan(50);
+    expect(
+      gates.length,
+      "no gate functions found — the extractor broke, not the tree. LIVE COUNT 18 (§1419, re-measured §1437); " +
+        "the floor is 15, deliberately below it and far above zero: a TRIPWIRE for a broken extractor, not a " +
+        "gate count anyone must maintain. Deleting a gate should fail the roster tests below, not this one.",
+    ).toBeGreaterThanOrEqual(15);
+    expect(
+      testFiles.length,
+      "no test files found — the scan broke, not the tree. LIVE COUNT ~410 (§1428's board); the floor is 50, " +
+        "orders of magnitude below it: a tripwire for a broken `git ls-files`, never a coverage assertion.",
+    ).toBeGreaterThan(50);
   });
 
   it("no gate is unnamed by every test in the repo", () => {

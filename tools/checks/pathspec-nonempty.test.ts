@@ -89,8 +89,16 @@ describe("§1426 REQ-118: every literal pathspec a gate passes to git matches at
     // the "38" written here at §1426 was the UNIQUE spec count. A floor whose message compares a different
     // kind of number sends the next reader to the wrong place. Both are stated now, and both are floored, so
     // a collapse in either is loud: 64 occurrences / 36 unique when this was written.
-    expect(specs.length, "no literal pathspec OCCURRENCES found — the extractor broke; there were 64 at §1437").toBeGreaterThanOrEqual(40);
-    expect(new Set(specs.map((s) => s.spec)).size, "unique pathspec count collapsed; there were 36 at §1437").toBeGreaterThanOrEqual(25);
+    expect(
+      specs.length,
+      "no literal pathspec OCCURRENCES found — the extractor broke. LIVE COUNT 64 (§1437); the floor is 40, " +
+        "below it because gates legitimately come and go: a tripwire, not a figure to maintain.",
+    ).toBeGreaterThanOrEqual(40);
+    expect(
+      new Set(specs.map((s) => s.spec)).size,
+      "unique pathspec count collapsed. LIVE COUNT 36 (§1437); the floor is 25 for the same reason as the " +
+        "occurrence floor above — both are stated so neither can drift into the other's role (§1437's defect).",
+    ).toBeGreaterThanOrEqual(25);
   });
 
   it("no pathspec silently matches nothing", () => {
