@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| 830 | §1383 | **§1384** | **THE WHOLE OF §1382 WAS ALREADY IN THE RECORD, AND ONE COMMAND WOULD HAVE SAID SO.** Examining §1383's four "unexamined" ids closed §1382 in the opposite direction: **all four were already recorded** via the coverage-manifest NOTE pattern the tool's message names, and REQ-278 carries §866's finding that it is cited **eight times across four files, every citation about a different requirement**. Then the harder part: **§1382's own two rows were recorded by audit §112 on 2026-08-03**, ten days earlier, and REQ-254's entry is SHARPER than mine (*"three of four DoD clauses ship, pinned"* vs my "implemented"). **The GO-LIVE row I filed was worse than the one that existed** — §1085's row lists all ten ids and explains the root cause I never reached: they need a **`wp` amendment, not a status edit**, because a status edit routes them to `unclassified` and FAILS the gate. Mine recommended re-tagging, the action that breaks the build; deleted. **One command would have prevented the phase:** `pnpm recall REQ-170`. I did run recall — on the FRAMING (*"actionable message"*), never on the SUBJECT. **Recall the noun, not the narrative.** Net: zero new findings, three corrections to my own record. **Pattern now at three: I measured the artifact and skipped the record about the artifact** |
 | 829 | §1382 | **§1383** | **I READ A TRUNCATED LINE AND REASONED ABOUT WHAT I HAD NOT SEEN.** §1382 claimed the coverage tool prints the drift count *without* the rows and built a paragraph on it. **False** — the message ends `${res.drift.join(", ")}` and prints all eleven ids; I read it through `cut -c1-150`. Worse, the tool's author had already triaged the deferral-marker class (the comment names REQ-184 and REQ-276 and records the message was reworded because *"following the old advice would mark unbuilt scope as built"*), and I presented that same class as a discovery. **What survives:** REQ-170 and REQ-254 really are implemented while tagged deferred — reached from source and tests, not from the tool's output. **Evidence gathered independently of a claim survives the claim being wrong.** **How it was caught:** not by re-reading — by sweeping for OTHER instances, getting **zero**, and positive-controlling the zero. The control failed because I had written a **200-character window**, three sections after building the gate that bans them. So a fifth fixed window found the mistake a fifth fixed window caused. **Probes are where this error now lives and are unreviewed by construction**, so the discipline cannot be a gate: a probe returning zero must first be shown to find something. **Second instance of a pattern worth naming:** §1369 and §1382 both mis-attributed a failing to SOMEONE ELSE'S instrument from partial output, generously to my own finding |
 | 828 | §1381 | **§1382** | **AN ADVISORY NOBODY HAD READ, AND TWO REQs THE REGISTER SAYS ARE NOT BUILT.** Every merge run prints *"11 status-drift row(s) … Per row, VERIFY…"* — advisory, gate PASSes, and **the tool prints the count without the rows**, so verifying per row is not something its output enables. A real signal with no actionable detail behind a passing gate is how an advisory becomes wallpaper. Measured independently against the COMMITTED register (the working copy is being edited — a race): of **89** deferred rows, **7** are cited in shipped source; **5 are correct deferral notes** (*"DEFERRAL … nothing writes a ratecon document yet"*, *"is V2-E; this is the conservative V1 floor"*, one warning AGAINST implementing without a row). One is **my own false positive** — `perf.spec.ts`, because my filter excluded `.test.` and not `.spec.`. **Two are the register lagging the source: REQ-254 (`vNEXT`) device revocation is ENFORCED** (a `revoked_ts IS NULL` clause in the sequencer, mirrored in `deviceOwnedBy`, 4 test files) **and REQ-170 (`WP06-DISCOVERED`) the Biller's evidence precondition is LIVE** (`evidence_missing` is a real hold reason). **A register that under-states a shipped SECURITY control invites implementing it twice.** Not fixed — `genesis/09` is register-amendment territory; filed with the evidence the advisory could not supply |
 | **827** | §1380 | **§1381** | **STOPPING POINT — FOUR ROSTERS STANDING, AND THE CLASS AT ZERO.** Measured at `6aa3dc2` after nine phases touching merge-set gates and a constitutional suite: **21 PASS · 0 FAIL · 5 BLOCKED**, **4,771 tests** (was 4,761), zero failing suites, same owner-held five. **One finding touched a constitutional guarantee** — §1375's isolation-suite double, keyed on the bare event id where production keys on (tenant\|stream), so it could swallow a cross-tenant append in the file whose whole purpose is REQ-025. **No leak existed; a detector for one was blind** — the same exposure-vs-violation distinction §1369 drew, and the reason these findings matter: a blind detector becomes a false clean, the only defect that stops anyone looking. **Four derived rosters now stand** (`dark-stub-roster`, `git-glob-toplevel`, `collapsing-doubles`, `fixed-window-verdicts`), each replacing a rule that had failed by attention — and **three of the four found something on their first run that my hand-scan had missed.** Seven short hand-counts this session, every one from encoding a surface form instead of the behaviour; the answer was gates, not care. Phase gate: 5 triggers, two of them new |
@@ -80665,9 +80666,15 @@ predicate existed *"revoking a stolen device removed it from the enrollment surf
 accepting its signed appends."* A register that under-states a shipped security control invites someone to
 "implement" it a second time, or to plan around its absence.
 
-**Not fixed here, deliberately.** `genesis/09` is the owner's file and CLAUDE.md's first rule is that scope
-changes are register amendments — reconciling a status tag is exactly that. Filed as an owner action with the
-evidence attached, which is the part that was missing: the advisory said *verify per row* and gave no rows.
+~~**Not fixed here, deliberately.** `genesis/09` is the owner's file … Filed as an owner action with the
+evidence attached, which is the part that was missing.~~
+**CORRECTED BY §1384 — THE FINDING WAS ALREADY HELD, AND MY FILED ROW WAS WORSE THAN THE ONE THAT EXISTED.**
+Both verdicts were recorded on **2026-08-03 by audit §112** in the coverage-manifest NOTE pattern — the exact
+mechanism the tool's message names — and REQ-254's entry is SHARPER than mine (*"PARTIALLY BUILT … the row DoD
+has four clauses and three now ship, pinned"*, where I wrote only "implemented"). A GO-LIVE row filed at §1085
+already lists all ten drift ids and explains the root cause I never reached: these need a **`wp` amendment, not
+a status edit**, because their `wp` cells name no active WP, so a status edit routes them to `unclassified` and
+FAILS the gate. My row, which recommended re-tagging, has been DELETED.
 
 **And a correction to my own method**: my scan called `perf.spec.ts` shipped source because it filtered `.test.`
 and not `.spec.`. Two file-naming conventions, one filter — the same class as every short count this session,
@@ -80717,3 +80724,41 @@ clean.
 
 Verification: no source changed; §1382 and its GO-LIVE row are amended in place so the wrong sentence stays
 visible beside its correction.
+
+## §1384 — PHASE GATE: the whole of §1382 was already in the record, and one command would have said so
+
+§1383 listed four ids as *"unexamined rather than implied clean"* and examining them closed §1382 entirely — in
+the opposite direction from the one I expected.
+
+**All four were already recorded**, each through the coverage-manifest NOTE pattern the tool's own message
+points at: REQ-276 *"not built"*, REQ-284 and REQ-285 *"PARTIALLY BUILT (recorded 2026-08-01)"*, and REQ-278
+carrying §866's finding that **it is cited eight times across four files and every citation is about a different
+requirement**. §866 had already decided not to edit `genesis/09` for the same reason I did.
+
+**Then the harder finding: §1382's own two rows were also already recorded.** REQ-170 and REQ-254 carry verdicts
+from **audit §112, dated 2026-08-03** — ten days before I "found" them — and REQ-254's is SHARPER than mine:
+*"PARTIALLY BUILT … the row DoD has four clauses and three now ship, pinned"*, where I wrote "implemented".
+
+**And the GO-LIVE row I filed was worse than the one that already existed.** §1085's row lists all ten drift ids
+and explains the root cause I never reached: they need a **`wp` amendment, not a status edit**, because their
+`wp` cells name no active WP, so a status edit routes each to `unclassified` and **fails the gate**
+(`coverage.ts:105`). My row recommended re-tagging — the action that breaks the build. It has been deleted, and
+§1382 amended to point at what was there.
+
+**One command would have prevented the entire phase.** `pnpm recall REQ-170` surfaces §1085's row immediately.
+I did run recall that phase — on *"actionable message"*, the FRAMING I was writing about, and it correctly told
+me the terms were not novel. I never ran it on the SUBJECT. **Recall the noun, not the narrative:** the
+identifiers are unique and the framing never is, which is exactly what the tool's own help says when it prints
+*"the exact phrase is absent, but ITS TERMS ARE NOT."*
+
+**What this phase actually produced, stated without inflation:** zero new findings and three corrections to my
+own record. That is a real result — a duplicate row that recommended a build-breaking action is now gone, and
+§1382 no longer reads as a discovery — but it cost a phase that a five-second command would have redirected.
+
+**The pattern, now at three.** §1369 mis-attributed blindness to gates I had not run; §1382 mis-attributed an
+unactionable message to a tool I had not read; §1382 also re-derived a verdict the record already held. All
+three shared one shape: **I measured the artifact and skipped the record about the artifact.** The record is
+50,000 lines and ships a search command precisely because reading it whole is not the alternative.
+
+Verification: my duplicate GO-LIVE row deleted and the §1085 row asserted still present; `check:tables` OK;
+no source changed.
