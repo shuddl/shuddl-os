@@ -198,3 +198,58 @@ describe("GQ-5: shipment_id footgun", () => {
     }
   });
 });
+
+// ── GQ-6 (§1471, REQ-051/189/004) — THE GUEST TWIN AND /v1/rate PRICE THE SAME INPUT IDENTICALLY ──────────────
+//
+// `routes/rate.ts` and `pub/quote.ts` name each other as twins in comments — *"the guest twin (src/pub/quote.ts)
+// declares these fields EXCLUDED forever for the same reason"*, *"Mirrors routes/rate.ts"* — and one half of that
+// coupling is genuinely SHARED (rate.ts EXPORTS its transit-window mapper so the no-auth surface maps through the
+// same function). The other half is behavioural and was pinned by nothing.
+//
+// Everything in this file until now tests the guest surface in ISOLATION: margin leak, zero residue, no price on
+// air, guest-cannot-book, the shipment_id footgun. The five `/v1/rate` references are all AUTH assertions (401 for
+// no bearer, 403 for a portal role) — none compares a PRICE. So the twinning was asserted about the SHAPE of the
+// two surfaces and never about their ANSWER.
+//
+// Both call the same `priceShipment(request, config)`, which is exactly what makes a divergence plausible rather
+// than absurd: the engine is shared, so a drift lives in how each surface BUILDS the request or which config it
+// loads, and each side's own tests would stay green through it. What it would cost is acceptance demo #2 — a
+// stranger quotes 
+// a number, then hears a different one from a CSR pricing the same freight.
+//
+// One body, both surfaces, same answer.
+describe("GQ-6: the guest twin and /v1/rate price the SAME physics identically (§1471)", () => {
+  it("one body through both surfaces yields the same status, sell_cents and transit", async () => {
+    // §1471 — the body carries an ACCESSORIAL on purpose. The first cut used PRICED_BODY, which has none, and
+    // a mutation dropping the accessorial mapping from the guest surface reded NOTHING: the corpus could not
+    // reach the code the test claimed to cover. `liftgate` is priced by TEST_RATE_CONFIG (3500), so the two
+    // surfaces now have to agree about a charge line, not just a linehaul.
+    const PARITY_BODY = { ...PRICED_BODY, accessorials: ["liftgate"] };
+    const guest = await quote(PARITY_BODY);
+    expect(guest.status, "the guest surface must price this body").toBe(200);
+    expect(guest.json?.status).toBe("PRICED");
+
+    const opsTok = await token({ sub: "u-gq6-ops", tenant: TENANT_SLUG, role: "ops" });
+    const authed = await SELF.fetch("https://api.local/v1/rate", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${opsTok}`, "Idempotency-Key": crypto.randomUUID(), "content-type": "application/json" },
+      // The SAME physics — only `shipment_id` differs, which is the ops-only field the guest surface rejects.
+      // It is passed BARE: the route builds the stream as `s:${shipment_id}`, so an `s:`-prefixed value here
+      // yields `s:s:…` and trips STREAM_ID_RE (measured — a 400 'malformed stream id', not a pricing failure)
+      // by design (GQ-5). Nothing else may differ, or this stops being a comparison.
+      body: JSON.stringify({ shipment_id: "gq6-parity", ...PARITY_BODY }),
+    });
+    expect(authed.status, "the authenticated surface must price the same body").toBe(200);
+    const rate = (await authed.json()) as { status: string; sell_cents: number; transit?: unknown };
+
+    expect(rate.status, "the two surfaces disagree on whether this freight is priceable at all").toBe(guest.json?.status);
+    expect(
+      rate.sell_cents,
+      "the guest twin and /v1/rate returned DIFFERENT sell_cents for identical physics. Both call the same " +
+        "priceShipment, so the drift is in how one surface builds its RateRequest or which rate_config it loads — " +
+        "and a stranger who is quoted one number, then hears another from a CSR, is acceptance demo #2 failing in " +
+        "the only way that matters commercially.",
+    ).toBe(guest.json?.sell_cents);
+    expect(rate.transit, "the two surfaces disagree on transit for identical physics").toEqual(guest.json?.transit);
+  });
+});
