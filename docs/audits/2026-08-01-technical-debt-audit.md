@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| **835** | §1388 | **§1389** | **STOPPING POINT — THE REGION SWEEP COMPLETED, TWO GAPS IN EIGHT.** §1386's remedy was a method: enumerate the regions, visit the unvisited, point the existing lens. Complete now. **GAPS:** `tools/design` (a blocking constitutional gate scanned `.js` under `apps` but not `packages`) and `tools/fixtures` (an emptied manifest turned a merge BLOCK into a PASS). **CLEAN:** `acceptance` (roster pinned by EQUALITY), `rater` (exact per-dir counts, stronger than a floor), `harness` (§609's per-gate floor), `concierge`, `audit`, `docs`. **Two gaps in eight regions, both never visited this session, both found within minutes, neither needing a new technique.** Five prior stopping points reported a clean board while these sat there, because **coverage of the tooling was never measured — it was assumed from effort**, and effort had concentrated in `tools/checks` (110 of 196 files). **Board at HEAD: 21 PASS · 0 FAIL · 5 BLOCKED, 4,772 tests, zero failing suites** — and it did not stay clean by itself: §1388 measured 20/2 because §1387's own fix fired an expiry trigger on a row naming that file. **Before believing a coverage claim, ask what it was measured over** |
 | 834 | §1387 | **§1388** | **MY OWN CHANGE FIRED A DOCUMENTED EXPIRY TRIGGER, AND THE GATE COLLECTED.** §1387's shape swept across all of `tools/`: four candidates, **all four false positives of my detector**, which looked only for NUMERIC floors — `design-mode-parity` carries *"both sides parse (non-vacuity)"*, `unbounded-reads-roster` asserts the doc's CLAIMED count equals the roster length (a cross-artifact equality, stronger than a floor). **§1387's fixtures gate was the exception, not the rule.** Then the board, re-measured because §1387 changed a merge gate: **regressed to 20 PASS · 2 FAIL**, and `evidence-expiry` was RIGHT — *"row dated 2026-08-09 < tools/fixtures/verify.ts @ 2026-08-13; the row says its verdict dies when that file changes"*. I changed `verify.ts` and left a row naming it on stale evidence. **The expiry mechanism working on its author, within one phase** — and the first time this session a gate caught a RECORD defect I created rather than a code one. **Re-verified, not re-dated:** the §1387 diff touches zero lines of `hashPath`, the length prefix stands, `check:fixtures` reports the same 9 pending. **A trigger's job is to make someone look, not to be right about what they will find** — one narrow enough never to fire spuriously is how §995 found five rows standing on dead evidence |
 | **833** | §1386 | **§1387** | **EMPTYING THE FIXTURE MANIFEST TURNED A MERGE BLOCK INTO A PASS.** §1386's method continued: eight `tools/` subdirs had never been named this session. `tools/acceptance` is clean (demo roster pinned by EQUALITY, manifest-drift derived, five entries match CLAUDE.md in order). **`tools/fixtures` had no corpus floor.** Measured: 17 fixtures → `--mode merge` exits **2 (BLOCKED)**; `fixtures: []` → exits **0 (PASS)**. **Emptying the manifest removes one of the five BLOCKs AND disables every hash pin, while the board reads closer to PROMOTABLE.** Its unit tests cover `verify()`'s logic thoroughly with synthetic manifests; nothing asserted anything about the real one. §1148's rule landing on a gate whose **PASS path has never run in anger**, because it has been BLOCKED its whole life — always-BLOCKED is never observed passing incorrectly. Fixed with a corpus floor AND a required-id check, both mutation-proved; the second matters because the floor alone misses a SINGLE deletion, and the required ids are the two **CLAUDE.md rule 4 names by name**. **Coverage of the tooling was never measured; it was assumed from effort** |
 | **832** | §1385 | **§1386** | **THE CONVERGENCE CLAIM FALSIFIED, IN THE ONE REGION I HAD NEVER AUDITED.** §1385 called the instrument layer finished on four clean negatives; every phase this session had read `tools/checks`, `deploy`, `release`, `traceability` and **never `tools/design/`**, which rule 7 makes constitutional and blocking. **The tell was an asymmetry (§1369's shape):** the corpus is two parallel glob lists and `apps` scanned `.js` while `packages` did not. A `.js` under `packages/` with a raw hex, a shadow or an over-budget radius would never have been scanned by a BLOCKING gate — safe only **by accident** (zero such files today). Fixed by construction: a `TREES × EXTENSIONS` cross-product makes asymmetry unrepresentable, plus a parity case, mutation-proved by re-introducing the exact gap. **And the fix broke a gate I did not know existed, which is the better half:** §895's `design-corpus-coverage` obtained the corpus by REGEX-PARSING `audit.ts` for string literals, so a cross-product yielded ZERO globs — caught by its own non-vacuity floor doing precisely §1148's job on someone else's refactor. Repointed to call `scanPatterns()`: **a consumer that parses another module's source is coupled to its FORM, not its meaning.** **The convergence claim was a statement about where I had been looking, not about the repo** |
@@ -80934,3 +80935,52 @@ triggers so narrow they never fire — is how §995 found five rows standing on 
 
 Verification: `evidence-expiry` 7/7 after the re-verification; `check:tables` OK; the row now records what
 changed, what was measured, and why the verdict held.
+
+## §1389 — PHASE GATE / STOPPING POINT: the region sweep completed, two gaps in eight
+
+§1386 falsified the convergence claim by observing that four clean negatives had all landed in regions this
+session had already worked. The remedy was a method, not a technique: **enumerate the regions, visit the
+unvisited ones, point the existing lens at them.** That sweep is now complete.
+
+| region | verdict |
+|---|---|
+| `tools/design` | **GAP** — `apps` scanned `.js`, `packages` did not, in a blocking constitutional gate (§1386, fixed by a `TREES × EXTENSIONS` cross-product) |
+| `tools/fixtures` | **GAP** — an emptied manifest turned a merge BLOCK into a PASS (§1387, fixed by a corpus floor + required-id check) |
+| `tools/acceptance` | clean — the demo roster is pinned by **equality**, the manifest-drift gate derives from `DEMOS`, all five match CLAUDE.md in order |
+| `tools/rater` | clean, and stronger than a floor — exact per-directory case counts tied to the audited numbers (`48-tests=48, 504-sweep=504`), with *"present but yielded 0 cases"* distinguished from a short set |
+| `tools/harness` | clean — §609's per-gate corpus floor, with the rule that *"a new browser gate cannot be added without deciding its floor"* |
+| `tools/concierge` | clean — mirrors the rater harness's honest contract, decisions driven by the real gates |
+| `tools/audit`, `tools/docs` | clean — both handle the empty case; `check-table-shape` caught two of my own defects today |
+| `tools/seed`, `tools/traceability` | the concurrent author's, deliberately untouched |
+
+**Two gaps in eight regions, both in regions never visited this session, both found within minutes of looking.**
+Neither needed a new technique. That is the finding about METHOD: five prior stopping points reported a clean
+board while these sat there, because **coverage of the tooling was never measured — it was assumed from effort**,
+and effort had been concentrated in `tools/checks`.
+
+**THE BOARD, measured at HEAD after §1388's re-verification:**
+
+| | §1381 | §1389 |
+|---|---|---|
+| PASS | 21 | **21** |
+| FAIL | 0 | **0** |
+| BLOCKED | 5 | **5** (the same owner-held five) |
+| tests passed | 4,771 | **4,772** |
+| suites failing | 0 | **0** |
+
+It did not stay clean by itself. §1388 measured `20 PASS · 2 FAIL` because §1387's fix to `verify.ts` fired a
+documented expiry trigger on a row naming that file — the mechanism catching its own author within one phase.
+Re-verified (the diff touches zero lines of `hashPath`), and the board returned.
+
+**THE PHASE GATE.** Unchanged from §1381 except:
+
+1–4. Wiring the legacy feed / webhook source / Anthropic bindings, and vendoring the private fixtures — all as
+   §1381 recorded, each with a test that REDs.
+5. **NEW (§1387):** emptying or truncating `fixtures/manifest.json` now fails loudly instead of clearing a
+   BLOCK, and dropping either fixture **CLAUDE.md rule 4 names** fails on the law's own terms.
+6. **NEW (§1386):** the design corpus is a cross-product, so a tree cannot silently lose an extension.
+
+**What I would tell the next reader.** The sweep's value was not the two fixes. It was learning that "we have
+audited the tooling" was a claim about `tools/checks/`, which holds 110 of the 196 files. **Before believing a
+coverage claim, ask what it was measured over** — the same question this session asked of gates twenty times and
+never once asked of itself until §1386.
