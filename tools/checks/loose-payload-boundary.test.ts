@@ -62,9 +62,51 @@ function looseAliases(root: string): string[] {
   return [...aliases].sort();
 }
 
+/**
+ * §1468 — EVERY LOCAL NAME IN `events.ts` THAT BINDS TO `JsonObject`.
+ *
+ * §1467 closed ONE spelling (a package-level `export const X = JsonObject`) and its own fix was measured
+ * incomplete the next hour: `import { JsonObject as Loose }` followed by `ev("invoice.issued", Loose)` is a
+ * ninth loose kind that the alias resolver above cannot see, because nothing is exported and no const is
+ * assigned. It left the gate at 0 failures — the same blindness, one spelling over.
+ *
+ * Fixing spellings one at a time is how a gate acquires a long tail. This enumerates the binding forms
+ * instead, over the single file the gate reads, to a fixpoint:
+ *
+ *   1. package-level aliases  `export const MoneyBasis = JsonObject;`   (looseAliases, above)
+ *   2. import bindings        `import { JsonObject, MoneyBasis as M }`  — the LOCAL name is what `ev()` sees
+ *   3. local consts           `const L = M;`                            — inside events.ts itself
+ *
+ * A spelling outside these three would have to be a runtime construction (`const L = cond ? A : B`), which is
+ * not a thing this contract file does and would be visible in review as something other than a rename.
+ */
+function looseNamesInEvents(root: string): string[] {
+  const src = readFileSync(`${root}/packages/contracts/src/events.ts`, "utf8");
+  const exported = new Set(looseAliases(root));
+  const local = new Set<string>();
+  // 2 — import specifiers, `X` or `X as Y`; the local binding is Y when present.
+  for (const imp of src.matchAll(/import\s*\{([^}]*)\}\s*from/g)) {
+    for (const spec of (imp[1] as string).split(",")) {
+      const m = /^\s*([A-Za-z_]\w*)(?:\s+as\s+([A-Za-z_]\w*))?\s*$/.exec(spec);
+      if (m !== null && exported.has(m[1] as string)) local.add((m[2] ?? m[1]) as string);
+    }
+  }
+  // 3 — local re-bindings, to a fixpoint.
+  for (let grew = true; grew; ) {
+    grew = false;
+    for (const m of src.matchAll(/(?:^|\n)\s*(?:export\s+)?const ([A-Za-z_]\w*)\s*=\s*([A-Za-z_]\w*)\s*;/g)) {
+      if (local.has(m[2] as string) && !local.has(m[1] as string)) {
+        local.add(m[1] as string);
+        grew = true;
+      }
+    }
+  }
+  return [...local].sort();
+}
+
 function looseKindsInContract(root: string): string[] {
   const src = readFileSync(`${root}/packages/contracts/src/events.ts`, "utf8");
-  const alt = looseAliases(root)
+  const alt = looseNamesInEvents(root)
     .map((a) => a.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
     .join("|");
   return [...src.matchAll(new RegExp(`ev\\("([\\w.]+)",\\s*(?:${alt})\\)`, "g"))].map((m) => m[1] as string).sort();
@@ -95,6 +137,13 @@ describe("§1268 REQ-118: the loose-payload boundary the type-guard sweep covere
     expect(aliases, "the alias resolver collapsed to the bare name — the very shape §1467 measured as evadable").toContain("JsonObject");
     expect(aliases.length, "no JsonObject alias found at all; MoneyBasis existed when this was written").toBeGreaterThan(1);
     expect(aliases, "MoneyBasis is gone — if it was renamed the resolver should have followed it; if deleted, drop this control").toContain("MoneyBasis");
+
+    // §1468 — the LOCAL binding set is what `ev()` actually names, and it is what §1467's fix did not resolve.
+    // It must always contain the direct import; if it ever equals just that, the import-rename and local-const
+    // spellings have stopped being followed and a ninth loose kind can arrive under either.
+    const names = looseNamesInEvents(root);
+    expect(names, "events.ts no longer binds JsonObject under any name the resolver can see").toContain("JsonObject");
+    expect(names.every((n) => /^[A-Za-z_]\w*$/.test(n)), "a resolved binding is not an identifier — the parser is matching prose").toBe(true);
   });
 
   it("every loose kind is a real event kind, and the typed remainder is the rest of the 35", () => {
