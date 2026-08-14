@@ -47,7 +47,13 @@ const LAW_ENFORCERS: readonly Enforcer[] = [
     enforcer: "check:pr",
     kind: "script",
     inMergeRoster: false,
-    note: "EXISTS, never executed — 0 PRs have ever been opened. §1035 verified the property by history instead: 224/224 product commits carry a REQ-ID. Deliberately absent from the merge roster; if it is ever wired, this row must say so.",
+    note: "EXISTS and IS WIRED, but has never executed — 0 PRs have ever been opened. §1035 verified the property " +
+      "by history instead: 224/224 product commits carry a REQ-ID. §1427 sharpened the second half of this " +
+      "note, which read \"deliberately absent from the merge roster; if it is ever wired, this row must say " +
+      "so\" and invited the reading that nothing runs it. It is absent from `gatesFor(\"merge\")` — correctly, " +
+      "since its input does not exist locally — AND `.github/workflows/ci.yml:32` runs it under " +
+      "`if: github.event_name == 'pull_request'` with $PR_BODY. So \"never executed\" is a fact about the PR " +
+      "count, not about the wiring: the first PR ever opened runs it.",
   },
   { rule: 2, proven: "§1414/§1416 — planted `INSERT OR REPLACE INTO events` and `DROP TRIGGER events_guard_upd` in application source; check:invariants exits 1 (and exited 0 before §1414/§1416 closed those routes).", what: "Events are append-only (I3/I7)", enforcer: "check:invariants", kind: "script", inMergeRoster: true },
   { rule: 3, proven: "§1415 — planted a raw `INSERT INTO events` outside the sequencer; check:chokepoint exits 1. §1418/§1419 additionally mutation-proved all ten gate bodies AND their call sites.", what: "Gates are server-side (REQ-030)", enforcer: "check:chokepoint", kind: "script", inMergeRoster: true },
