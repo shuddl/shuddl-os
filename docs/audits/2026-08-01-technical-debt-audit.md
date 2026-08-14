@@ -657,6 +657,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 879 | §1432 | **§1433** | **CLASSIFIED CLAUDE.md's "DO NOT BUILD" LIST BY WHAT ACTUALLY ENFORCES EACH ITEM** — the third constitutional list, never classified. **Probed the motion prohibition:** a stylesheet with an overshooting `cubic-bezier(0.34, 1.56, 0.64, 1)` and an infinite `@keyframes` tweening translateY fired **THREE** detectors for two planted violations — spring/overshoot, bob/float loop, **and a `prefers-reduced-motion` guard I had not planted for**; the gate is stricter than the prohibition. **Classification:** pattern-enforced and probed — shadows/radius/palette (§1423), springs/bob-loops/reduced-motion (§1433), class-as-foundation + organ banks (§1415) · count-enforced — a fourth surface (`SURFACE_ROSTER` at `invariants.ts:951`) · owner-held — REQ-167 identity leak (BLOCKED) · register-governed — the CONFIRM-gated rows · **not gated and correctly so** — native GL/period close, report builder, driver pay v1, seat-based pricing, a fifth primitive. **Those five are ABSENCE prohibitions: no pattern means "someone built a report builder", and a gate would assert the non-existence of an unwritten feature.** The repo states them where the adjacent code lives instead — native GL appears in FIVE files, each at the place a reader would be tempted. **Second phase to decline building a gate for the same reason, which makes it a principle: the budgets line is the closed list of counted things** |
 | 880 | §1433 | **§1434** | **ARE THE FIVE BLOCKs HONEST? PROBING THE ONE THAT GUARDS A SECURITY LAW.** Every phase since §1417 closed with *"five BLOCKED, all owner-held"* — a claim about the gates' HONESTY: a BLOCK must mean *I could not run*, never *I ran and found nothing*. §1387 proves that is not free (an emptied manifest once turned a merge BLOCK into a **PASS**). Probed `identity-leak` (REQ-167): **empty denylist → exit 2 BLOCKED**, `executed:false, assertions:0` — the §1387 shape is closed · **a term that DOES occur → exit 1**, 155 reporting lines, detection works · **a term occurring nowhere → exit 0**, *"clean (1 terms checked)"* — the message states the TERM COUNT, so a one-term denylist cannot masquerade as a thorough scan. The gate also carries §1387's lesson internally (*"denylist present but ZERO files were scanned"*). **So carry-forward item #1 is not a rubber stamp: when the denylist lands, the gate that unblocks demonstrably DETECTS.** `rater-parity` probed less completely — planting `fixtures/rater/probe.json` = `[]` left it PENDING/exit 2, but that tested the WRONG-FILENAMES shape, not correctly-named-but-empty; **testing that would mean fabricating engagement data, so it is recorded as NOT tested** rather than folded in. Structurally covered: `run-gate` consumes `executed`/`assertions`, and PROMOTABLE reads *every gate executed with assertions* |
 | 881 | §1434 | **§1435** | **RULE 6 NAMES FOUR FIXTURE GATES — DO FOUR EXIST?** Rule 6 is an ENUMERATION, not a sentence: *legacy-export replay ±2% · routes ±10% · QB export to the penny · airplane-mode soak*, citing `fixtures/README.md`. §1423 proved the rule FIRES; it never asked whether all four SUBJECTS exist. Mapped: `legacy-export-replay` **pending** (owner-held) · `qb-journal-month` **vendored** · `airplane-soak` **in-repo-test** · **routes ±10% → NO manifest row, NO README row**. **The airplane-soak row is the checkable one and it checks out:** it names `path: workers/api/test/airplane-soak.test.ts` — a row naming a path and a status is FALSIFIABLE, unlike one that says only *pending* — and the file exists with **2 cases passing**. **The fourth is resolved by the register, not by the cited README:** REQ-023 *"Authority map per module with parity gates ±2%/±10%/2-closes, WP-15, F0-SPEC'D"* — the routes tolerance is authority-map parity, specified and deliberately unbuilt, exactly the category §1432 showed traceability allows on purpose. **No defect.** The source-of-truth ordering did the work: the cited README could not answer, `genesis/09` (order #1) answered in one row — the alternative reading (*the constitution enumerates a gate that does not exist*) was available and wrong |
+| 882 | §1435 | **§1436** | **TURNED THE SESSION'S OWN FINDING ON THE SIX GATES I ADDED.** Six clean negatives said the surfaces were exhausted; the honest response is to ask whether MY gates watch anything no other gate watches. **Broke four gates' globs one at a time:** `named-resources` reds **itself (3 cases)** + mine · `idb-durability` **itself** + mine · `mcp-api-seam` **itself ONLY** · `event-payload-strictness` **itself ONLY** (the last two call `scanCorpus`, which throws `EmptyGlobError`, so they are outside my gate's population). **All four protect themselves; `pathspec-nonempty` is the sole watcher for nothing.** So §1426's claim — *"raw `git ls-files` calls had no such protection"* — is **struck in place**: the premise is true, the conclusion does not follow, because §487/§490's non-vacuity convention is already near-universal. The gate's own header now carries the correction too, so a reader who never opens the audit gets the corrected version. **Not deleted:** its value is STRUCTURAL rather than conventional protection — a new gate without a floor is covered the day it lands — *defence in depth, described as defence in depth*, which is what §1420/§1429 demanded of guards belonging to others. **Second self-correction in three phases** (§1430 too WIDE, §1436 too STRONG); **seventeen phases measuring others' claims, two measuring my own, and both of mine were wrong** |
 | 856 | §1409 | **§1410** | **SWEEPING MY OWN SECTIONS FOR §1409's ERROR, AND A DETECTOR THAT COULD NOT HAVE FOUND IT.** §1404's precedent: a class like this gets ONE measurement, not a gate, since a correction necessarily quotes what it corrects. **The first sweep returned ZERO and was worthless** — it extracted superseded text as `~~struck~~` only, but the very case §1409 found is marked the other way, as *"a 16-step chain …"* **until audit §1029**. **My detector encoded one of the repo's TWO conventions, so it could never have found the known positive.** Twelfth instance of the session's constant, caught because a zero is the answer this session has learned never to accept. **A second false signal inside the control:** asking *"is it inside `~~…~~`?"* with `~~[^~]*16-step` returned True — because an unrelated `~~` sits earlier and `[^~]*` spanned the gap. **A regex answering "is X inside a delimiter" by searching for the delimiter anywhere before X will say yes to the whole file.** Re-run over both conventions: **109 superseded passages, zero quoted without a marker** — and that zero is worth something, because the corrected detector demonstrably flags a reconstruction of §1408's sentence. **§1409's error was singular, not a habit** |
 | **855** | §1408 | **§1409** | **I QUOTED STRUCK TEXT AS CURRENT, AND THE REPO HAD SOLVED IT 380 SECTIONS EARLIER.** §1408 cited CLAUDE.md's account of `verify:dev` as *"a 16-step chain … reaches 4 of 16"*. Measured: **18 steps**. **But the drift is my quotation's, not the law's** — CLAUDE.md's current text says that reading held *"until audit §1029"*, was *"invalidated hours later by `7b61624`"*, and that **the total is stated no longer, only the position that matters: step 4, and nothing after it**. I quoted the struck half of a correction as the claim. **Eleventh measurement error, and the first where the artifact had already anticipated the failure I was about to report.** **§1029's move is exactly §1402's, reached 373 sections apart and independently:** faced with a number that rots, REMOVE the number and keep the invariant. A convention arrived at twice from opposite ends of the record is the closest this audit has to a law about documentation. Substantively: `verify:dev` is still an unaggregated `&&` chain at 18 steps, and that is **not** a defect — CLAUDE.md documents it, names `verify:merge` as the real verdict, and `wp-exit-audit.test.ts:19` records that a naive matcher yields *"4 of 16"* and *"reads as a serious constitutional finding and is an artifact"*. **Tenth clean negative** |
 | 854 | §1407 | **§1408** | **VERIFYING MY OWN DELIVERABLE IS WIRED, BY THE STANDARD §1304 SET.** Five gates were built this session and each reported as working; §1304's standard is **verified WIRED before the board is read**, because a gate that runs when I invoke it and not when CI does is decoration with a green tick. **First measurement said ZERO** — searching the merge log for the five names returns 0 mentions each, which reads as "they never ran". It is the §1362 reporter difference: the tools suite runs under vitest v4 (summary only) while worker suites at v3.2.7 print per-file. The same run reports **125 files passed**, 120 + 5. **Tenth measurement error avoided by not believing a zero.** Measured properly three ways: `vitest list` shows **21 cases** across the five; `run-gate.ts:46` wires `unit-tests` to the `test` script; and `test` is `test:tools; t=$?; … ; exit $(( t \|\| p ))`. **Proved end-to-end:** breaking `law-enforcers` makes `pnpm test:tools` exit 1, which propagates. Also worth noting: that script AGGREGATES rather than `&&`-chains — the defect CLAUDE.md records for `verify:dev`, which reaches 4 of 16 steps |
@@ -82715,8 +82716,14 @@ evaluate a thing must skip it, not fail it**; the gate skips template-built spec
 surviving population so the skip cannot swallow the corpus.
 
 **Gated anyway, because the emptiness is silent.** `scanCorpus` already throws `EmptyGlobError` for exactly
-this reason, but raw `git ls-files` calls in individual gates had no such protection: a directory rename hands
-a gate an empty corpus and it reports clean. `tools/checks/pathspec-nonempty.test.ts` requires every literal
+this reason, but ~~raw `git ls-files` calls in individual gates had no such protection: a directory rename
+hands a gate an empty corpus and it reports clean.~~ **CORRECTED at §1436 — that was too strong.** Measured by
+breaking four gates' globs one at a time: **all four red on their own** (`named-resources` 3 cases,
+`idb-durability` 1, `mcp-api-seam` 1, `event-payload-strictness` 1), because this repo's non-vacuity
+convention (§487/§490 — *"a scan that reads nothing reports clean"*) is already near-universal. This gate has
+not been shown to be the SOLE watcher for any pathspec. Its value is that the protection becomes STRUCTURAL
+rather than per-gate convention — a NEW gate written without a floor is covered on the day it lands — not
+that it closed an open hole. `tools/checks/pathspec-nonempty.test.ts` requires every literal
 spec to match ≥1 tracked file, with the three inert ones declared and each declaration re-checked (still
 empty, still used). Its positive control asserts the broken shape is STILL broken, so if git ever changes the
 rule is guarding a hazard that no longer exists and says so.
@@ -83158,3 +83165,48 @@ verified present and passing. Board unchanged from §1428's full run at `53cdc23
 5 BLOCKED, all owner-held, repo-owned failure set empty. Carry-forward unchanged and entirely owner-held:
 vendor the nine private fixtures + `IDENTITY_DENYLIST` · commit the `genesis/09` rows · the five filed
 operational REQ rows and the `quote.priced` / `SERVER_EMITTED_KINDS` decision.
+
+## §1436 — PHASE GATE: turning the session's own finding on the six gates I added
+
+Six consecutive clean negatives said the surfaces were exhausted. The honest response is not another probe of
+the same kind — it is to point this block's recurring finding at **my own work**. Every phase since §1411 has
+concluded some gate certifies less than its name; six new gates landed in this block; §389 says a green
+mutation has three explanations. **Is each of my gates watching something no other gate already watches?**
+
+**Measured, by breaking four gates' globs one at a time and recording every gate that reds:**
+
+| gate whose glob was broken | which gates noticed |
+|---|---|
+| `named-resources` | **itself (3 cases)** + `pathspec-nonempty` |
+| `idb-durability` | **itself** + `pathspec-nonempty` |
+| `mcp-api-seam` | **itself only** — `pathspec-nonempty` never sees it |
+| `event-payload-strictness` | **itself only** |
+
+**All four protect themselves**, and the last two are outside my gate's population entirely because they call
+`scanCorpus`, which throws `EmptyGlobError`. **`pathspec-nonempty` has not been shown to be the sole watcher
+for any pathspec in this tree.**
+
+**So §1426's claim was too strong, and it is struck in place.** It read: *"raw `git ls-files` calls in
+individual gates had no such protection: a directory rename hands a gate an empty corpus and it reports
+clean."* The first half is true — they do not call `scanCorpus` — and the conclusion does not follow, because
+this repo's non-vacuity convention (§487/§490: *"a scan that reads nothing reports clean"*) is already
+near-universal and each of those gates carries its own floor. The gate's own header now says the same thing,
+so a reader who never opens the audit gets the corrected version.
+
+**The gate is not deleted, and the reason is stated rather than assumed.** Its value is that the protection
+becomes STRUCTURAL instead of conventional: a new gate written without its own floor is covered the day it
+lands, rather than depending on its author remembering §487. **Defence in depth, described as defence in
+depth** — which is precisely what §1420 and §1429 required of guards I was judging when they belonged to
+someone else.
+
+**This is the second self-correction in three phases** — §1430 struck a claim that was too WIDE (one of two
+implementations described as the rule), §1436 strikes one that was too STRONG (an absence inferred from a
+different absence). Both were mine, both were found by measuring rather than re-reading, and both would have
+survived indefinitely as plausible prose. **The asymmetry worth naming: I have spent seventeen phases
+measuring other people's claims and two measuring my own, and both of mine were wrong.**
+
+**Phase gate.** No behaviour changed: two prose corrections, all four probes reverted, `tools/checks/` verified
+clean. 130 tools files / 1,407 tests green. Board unchanged from §1428's full run at `53cdc23` — 21 PASS ·
+0 FAIL · 5 BLOCKED, all owner-held, repo-owned failure set empty. Carry-forward unchanged and entirely
+owner-held: vendor the nine private fixtures + `IDENTITY_DENYLIST` · commit the `genesis/09` rows · the five
+filed operational REQ rows and the `quote.priced` / `SERVER_EMITTED_KINDS` decision.

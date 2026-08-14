@@ -13,10 +13,18 @@ import { repoRoot } from "./repo-root.js";
 //
 // THE ANSWER WAS A CLEAN NEGATIVE: the gates use the file-terminated form (`workers/*/src/*.ts` → 99 files,
 // `workers/*/src/**/*.ts` → 48) and not one of them uses the directory-only shape that bit me. The defect was
-// in my probes, not in the tree. This gate exists anyway, for the reason `scanCorpus` already throws
-// `EmptyGlobError`: a pathspec that matches nothing is SILENT, and a directory rename can hand any gate an
-// empty corpus that reports clean. That is the "gates that cannot fail for lack of input" class, and it has
-// cost this repo before.
+// in my probes, not in the tree.
+//
+// WHAT THIS GATE IS AND IS NOT, measured at §1436 rather than assumed. Four gates had their globs broken one
+// at a time; ALL FOUR red on their own — `named-resources` (3 cases), `idb-durability`, `mcp-api-seam` and
+// `event-payload-strictness` (1 each) — because the repo's non-vacuity convention (§487/§490, "a scan that
+// reads nothing reports clean") is already near-universal, and the `scanCorpus` callers additionally throw
+// `EmptyGlobError`. So this gate is NOT the sole watcher for any pathspec in the tree today, and the earlier
+// claim that raw `git ls-files` callers "had no such protection" was too strong.
+//
+// It earns its place as STRUCTURAL rather than conventional protection: a new gate written without its own
+// floor is covered the day it lands, instead of depending on its author remembering §487. Defence in depth,
+// stated as defence in depth.
 //
 // SCOPE. Only pathspecs written as literals can be evaluated here; a spec built from a template
 // (`${ROUTES_DIR}/*.ts`) is invisible to a static scan and is skipped rather than guessed at — those are
