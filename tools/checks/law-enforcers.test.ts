@@ -22,6 +22,8 @@ interface Enforcer {
   readonly rule: number;
   readonly what: string;
   readonly enforcer: string;
+  /** A SECOND file when one law bundles two clauses with different enforcers (§1421). Existence-checked. */
+  readonly also?: string;
   /** `script` — a package.json script · `file` — a pinned test or module · `none` — no gate is possible. */
   readonly kind: "script" | "file" | "none";
   /** True when §1035 records this enforcer as part of the merge roster. */
@@ -44,10 +46,17 @@ const LAW_ENFORCERS: readonly Enforcer[] = [
   {
     rule: 5,
     what: "Interline floors compare the executing share, never gross (REQ-040)",
-    enforcer: "packages/rater/test/anomaly.test.ts",
+    enforcer: "packages/rater/test/approval.test.ts",
+    also: "packages/rater/test/anomaly.test.ts",
     kind: "file",
     inMergeRoster: false,
-    note: "a pinned test, not a command: the $222,084 / 35-lb anomaly regression is permanent.",
+    note:
+      "§1421 — CORRECTED. Law 5 bundles TWO clauses and they have DIFFERENT enforcers, which this row got " +
+      "wrong: it stated the share-vs-gross clause and named the anomaly file. Measured by mutating the " +
+      "interline branch of `assessApproval` to compare the GROSS: `approval.test.ts` reds FIVE, one of them " +
+      "named \"PROOF the executing-share rule changed the outcome: gross alone would have been none\" — while " +
+      "`anomaly.test.ts` stayed 18/18 GREEN. The $222,084 / 35-lb regression is a cents-per-lb detector; it " +
+      "is permanent and it is a different mechanism. Both files are existence-checked below.",
   },
   { rule: 6, what: "Fixtures gate merges", enforcer: "check:fixtures", kind: "script", inMergeRoster: true },
   { rule: 7, what: "Design CI", enforcer: "audit:design", kind: "script", inMergeRoster: true, note: "blocking since WP-10 (§258)." },
@@ -106,8 +115,12 @@ describe("§1394 REQ-118: every non-negotiable rule has a live, named enforcer",
   });
 
   it("every file-kind enforcer still exists on disk", () => {
-    const missing = LAW_ENFORCERS.filter((e) => e.kind === "file" && !existsSync(`${root}/${e.enforcer}`)).map(
-      (e) => `rule ${e.rule} → ${e.enforcer}`,
+    const missing = LAW_ENFORCERS.flatMap((e) =>
+      e.kind === "file"
+        ? [e.enforcer, ...(e.also === undefined ? [] : [e.also])]
+            .filter((f) => !existsSync(`${root}/${f}`))
+            .map((f) => `rule ${e.rule} → ${f}`)
+        : [],
     );
     expect(missing, `a rule's pinned enforcer file is gone:\n  ${missing.join("\n  ")}`).toEqual([]);
   });
