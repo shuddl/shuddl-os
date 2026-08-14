@@ -632,6 +632,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 436 | §988 | **§989** | **THE THIRD RULE NAME — AND §815's *THREE DISJOINT BLOCKS* WAS FOUR WITH A DELIBERATE OVERLAP.** `no-restricted-globals` carries **REQ-024's `fetch` ban**, and §815 had recorded its safety as prose. Re-measured: **four blocks, not three**, and two overlap — `packages/ledger/**` (fetch banned) and `packages/ledger/src/tsa/**` (**`"off"`**). My own first scan also said three: it matched array-valued rules and missed `"off"`, the STRONGEST form of deletion — two counts agreed on the wrong number because both looked for the same shape. The overlap is CORRECT (the sanctioned TSA egress; injectable `fetchImpl`, verified protocol). So the true property is not *disjoint* but **only the named TSA exemption overlaps** — a materially different claim, and neither was checked. Tripwire asserts the exact scope list; **a second `"off"` goes RED**. Family closed: 3 rule names, 4 gates, 1 hazard |
 | 437 | §989 | **§990** | **THE SUBSTITUTIVE-CONFIG HAZARD ON PRODUCTION INFRASTRUCTURE — CLEAN, AFTER THREE WRONG PROBES.** Wrangler `[env.X]` blocks do NOT inherit bindings, so one omission deploys prod without it. `binding-parity.test.ts` (10 cases) aims at a different hazard — worker-vs-worker agreement, not top-level-vs-env presence. Measured: **13 env scopes, 0 missing a code-facing binding** (top-level counts: agents 7, api 9, billing 6, mcp 2, translator 6). **Three probes were wrong first:** a section regex that consumed `[[env.staging.d1_databases]]` without recording the kind → **13 of 13 'missing'**, saved only by §968's rule that a 100% hit rate is a broken probe; then kind-level parity (too coarse); then comparing `queue = "…-dev"`, the PHYSICAL name that is SUPPOSED to differ → 4 differences that were not defects. Clean on the hazard whose failure mode is `no such binding` AFTER a deploy, not during |
 | 438 | §990 | **§991** | **STOPPING POINT III — THE ENFORCEMENT LAYER, CLOSED.** Board at `353a06d`: 19 PASS · 2 FAIL · 5 BLOCKED. §972 found every gate worked and none enforced; §973–§990 closed that layer: CI's skipped 26-gate step (§962) and its true cause, a **vacuity floor not a budget** (§963); the four browser gates §962's fix had left fragile (§978) plus the rule gated both ways (§979/§980); and the **lint-config family** — one hazard, four phases: `no-restricted-imports` (§814), `no-restricted-syntax` (§815/§988), `no-restricted-globals` (§989), with REQ-024/163/035/127 all blind to `import()` (§985/§986) and five scopes deleting the repo-wide ban (§988). Plus MCP's api seam (§983), the chokepoint end-to-end (§984), action pinning (§974), Wrangler env bindings clean (§990). **14 gates, every one mutation-proved.** Nine phases contained a defect in my own INSTRUMENT — all failing by producing LESS — which produced the `checked=N` rule |
+| **847** | §1400 | **§1401** | **STOPPING POINT — THE CONSTITUTIONAL COUNTS ARE ALREADY DOUBLE-ROUTED.** §1400's corollary turned on the audit's most load-bearing numbers, CLAUDE.md's hard budgets. `claude-md-budgets` already compares the law's PROSE against constants PARSED FROM SOURCE (two routes by construction), asserts BOTH halves parse (*"either would compare undefined to undefined and pass — the class this repo met in eleven gates"*), and carries §743's roster completeness, measured by inserting a fake budget. The parse-vs-import trade is recorded as deliberate. **Eighth clean negative of the session** — where this repo has a claim it usually also has the mechanism, and the mechanism is usually stronger than the one I arrive with. **Board at `9b3b260`: 21 PASS · 0 FAIL · 5 BLOCKED, 4,777 tests, zero failing suites.** The block §1396–§1400 is **the first with no new gate**: two fixes (nine fixture ids not two; the blessed README's two dead claims), **one gate designed, measured and REJECTED** on a permanent FP floor, two clean negatives. New trigger: dropping any of the nine BLOCKED fixture ids now fails |
 | **846** | §1399 | **§1400** | **EVERY GATE CAN BE SHOWN TO FAIL — AND MY SEVENTH NARROW DETECTOR.** §1399 warned the instrument count could become the thing nobody measures; §613 set the standard (*"a gate that cannot fail is decoration"*). Measured across **all 125 gate files**: does the audit record a mutation/plant/RED near its name? **121 of 125.** The four that did not each carry their OWN control — `teal-scope` has four, and `decision-bearing-orphans` has a calibration case whose message spells out both readings (*"it was either fixed … or the scan is broken"*). **So: 125 of 125**, by recorded mutation or self-control. The instrument population is not decoration. **And the measurement failed once more:** my detector matched `detector finds` / `detector detects` while the file says *"the detector **still** finds"* — one word between two I anticipated, and a well-built gate read as unproven. **Seventh narrow-pattern failure this session**, all with one structure: **I encoded the SHAPE I expected the evidence to take, and it took a neighbouring shape.** The successful moves were never better patterns but SECOND ROUTES. **Treat a bare count in this audit as provisional unless the section says how it was cross-checked — where it mattered, re-measuring changed the number six times out of seven** |
 | 845 | §1398 | **§1399** | **A GATE CONSIDERED AND REJECTED, WITH THE MEASUREMENT THAT KILLED IT.** §1398's closing line reads like a work item — three READMEs, three dead claims, and three instances is this session's threshold for a mechanism (five gates built on exactly that reasoning). **This one should not be.** The design was sound — detect the VIOLATION not the claim (§1378): a README asserting a path is absent while it is tracked, which would have caught §1398 exactly. **Run at HEAD it finds two hits and BOTH ARE MINE:** my correction, which QUOTES the false claim, and the original, STRUCK rather than deleted. The gate fires on the fix, not the defect. **Filters do not save it and this repo measured that** — [[semantic-false-positives-need-a-marker]] records an FP rate going **76% → 95% AFTER all three filters**, floored by docs quoting known-bad values. Here the floor is the audit's own convention: **a correction strikes the wrong sentence rather than deleting it**, so every fixed claim leaves a permanent correctly-shaped false positive. **A proposed MECHANISM needs the same triage as a population (§1360)** — a session that only ever builds will eventually build the gate that cries wolf, after which its neighbours get ignored too |
 | **844** | §1397 | **§1398** | **A README THAT WOULD HAVE TOLD YOU TO DESTROY THE BASELINE.** §1397's rule pointed at the design CI's baseline — five blessed PNGs consumed BY PATH — and §1396's said read the README first. Two stale claims, one file, constitutional region. **(1)** *"the refs are not committed yet"* — they have been since `7b45707`, **2026-07-25**; the README was touched **2026-08-05**, ten days later, and the sentence survived. It is followed by instructions to run `--update-snapshots`, which **re-blesses all five against whatever the UI renders today**, silently replacing the reference the gate diffs against. **A visual gate can be neutered while still reporting `5 passed`** — §1387's shape exactly. **(2)** *"report-only until WP-10 exits"* and *"`pnpm verify` never depends on any of this"* — CLAUDE.md rule 7 records design CI **BLOCKING as of WP-10 exit** (§258), and `visual` runs in the merge roster. **The README contradicts the constitution on a constitutional matter**, and the constitution carries the struck original, so the correction existed and never reached this file. Both struck in place. **Three for three this block: every README opened held either my answer or a dead claim — a README is the least-gated artifact in a repo that gates everything** |
@@ -81442,3 +81443,52 @@ cross-checked.
 
 Verification: 125 gate files enumerated from `git ls-files`; the four flagged were each opened and read;
 `decision-bearing-orphans`' calibration case confirmed to assert its known positive by name.
+
+## §1401 — PHASE GATE / STOPPING POINT: the constitutional counts are already double-routed
+
+**§1400's corollary, turned on the audit's most load-bearing numbers.** If a bare count is only as good as one
+pattern, the counts that matter most are CLAUDE.md's **hard budgets** — ≤22 tables, 3 surfaces, 12 canonical
+views, 35 event kinds, 5 colour tokens, 2 font families. A reader acts on those.
+
+**They are already double-routed, and better guarded than anything I would have added:**
+
+| property | how `claude-md-budgets` handles it |
+|---|---|
+| two routes | CLAUDE.md's PROSE compared against constants **parsed from their source** (`TABLE_BUDGET`, `SURFACE_ROSTER`, `EVENT_KINDS`, `TOKENS`) — a second route by construction |
+| vacuity | *"every budget is stated in CLAUDE.md and readable from its source"* — because *"either would compare undefined to undefined and pass — the class this repo met in **eleven gates**"* |
+| roster completeness | §743: a budget stated in the law but missing from `BUDGETS` is invisible to a gate whose job is "stated equals enforced" — **measured** by inserting `· 7 agent queues ·` |
+| the parse-vs-import trade | recorded in the file: importing the constants would pull app/package code into the gate, so parsing was chosen **deliberately**, not by default |
+
+**Eighth clean negative of the session.** §1382→§112, §1384→§866/§1085, §1385→§679, §1391→§632, §1396→§513,
+§1397's rater README, §1400's four gates, and now this. The pattern is stable enough to state as a property of
+the work rather than a run of luck: **where this repo has a claim, it usually also has the mechanism — and the
+mechanism is usually stronger than the one I arrive with.**
+
+**BOARD, measured at `9b3b260`** after §1397 widened a merge gate's coverage:
+
+| | §1395 | §1401 |
+|---|---|---|
+| PASS | 21 | **21** |
+| FAIL | 0 | **0** |
+| BLOCKED | 5 | **5** (the same owner-held five) |
+| tests passed | 4,777 | **4,777** |
+| suites failing | 0 | **0** |
+
+**THE BLOCK §1396–§1400, and it is the first with no new gate.** §1396 (a README answered me on line 31),
+§1397 (the rater README named a fixture my floor missed — **fixed**, nine ids not two), §1398 (the blessed
+README would have told a reader to destroy the baseline — **fixed**, both claims struck), §1399 (a gate designed,
+measured and **rejected** on a permanent false-positive floor), §1400 (125 of 125 gates can be shown to fail).
+
+**Two fixes, one rejection, two clean negatives** — and the rejection is the one I would defend hardest, because
+§1399 is the only phase this session that ended by NOT building something, and the reason it did is measured
+rather than felt.
+
+**THE PHASE GATE.** Unchanged from §1395, plus:
+
+7. **NEW (§1397):** dropping ANY of the nine BLOCKED fixture ids from the manifest now fails, not just the two
+   CLAUDE.md quotes — because a fixture a gate consumes BY PATH must be registered BY ID, or its bytes ship
+   unpinned the day it is vendored.
+
+**CARRY-FORWARD (owner-held, unchanged):** vendor the nine private fixtures + `IDENTITY_DENYLIST` — still the
+only path to PROMOTABLE · commit the `genesis/09` rows · the five filed operational REQ rows · §632's
+code-coverage row · the `quote.priced` / `SERVER_EMITTED_KINDS` decision.
