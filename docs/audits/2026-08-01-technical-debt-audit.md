@@ -649,6 +649,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 871 | §1424 | **§1425** | **THE EIGHT SCHEMA INVARIANTS, EACH CONFIRMED BY BREAKING IT — AND THE MAP THAT WAS MISSING.** Discharges §1424's named obligation. **8/8 confirmed by mutation:** I1 (`event_id: ""` → 4+ red incl. the D1-backed projection) · I2 (§1418, 5 red) · I3 (§1417, *"I3 VIOLATION: missing guard trigger"*) · I4 (disabled `!hasDevice && !unwitnessed` → 3 red incl. *"EventInput enforces I4 too"*) · I5 (`rate_config_ids: []` → 4 red incl. the named I5 case) · I6 (`visibility <> 'internal'` → `IS NOT NULL` → red in TWO suites incl. *"table-driven I6 visibility sweep"*) · I7 (credit leg `+1` → 4 red incl. the 8-correction netting fixture) · I8 (§1424). Unlike the ten laws, **no row here is unprovable.** **Three probes failed first:** I4's mutation **did not apply** (anchor matched twice; the assert refused, and the resulting `331 passed` is exactly what *defended by nothing* looks like) · I7's first mutation was **vacuous** (`Math.abs` changed nothing — recorded as a question, answered by a second) · the location sweep returned `<none>` for all five from the **same broken `packages/*/src` pathspec as §1419**, caught by a positive control. **And the map caught its own author:** two of eight enforcer paths were written from memory and do not exist. Map derives its rows from genesis/10, quotes it verbatim, and requires a mutation citation per row |
 | 872 | §1425 | **§1426** | **COUNTED THE PATHSPEC ERROR INSTEAD OF FIXING IT A THIRD TIME.** Twice this block a probe passed git `packages/*/src` and got ZERO (a directory-through-a-glob does not expand to its contents); both zeros read as findings about the CODEBASE until a positive control exposed them. §1360: the second instance is where you stop fixing and start counting. **Counted 38 literal glob pathspecs across `tools/`.** **CLEAN NEGATIVE — the gates do not have this bug:** they use the file-terminated form (`workers/*/src/*.ts` → 99, `**/*.ts` → 48, `db/*/migrations/*.sql` → 11). The defect was confined to MY probes, and the natural assumption *the gates probably share it* was wrong. Three literal specs match nothing and all are inert (`workers/**/*.tsx` — the paired half of a 14-file spec; `*.cjs`/`*.sh` — §1415's deliberately broad extension list). **A naive sweep reported SEVEN broken: four were TEMPLATE literals a static scan reads unexpanded — a scanner that cannot evaluate a thing must SKIP it, not fail it.** Gated anyway because emptiness is silent (`scanCorpus` already throws `EmptyGlobError`; raw `git ls-files` calls had no equivalent). **The gate flagged its own positive control** — excluded BY PATH, §1416's lesson ten sections later. Mutation-proved |
 | 873 | §1426 | **§1427** | **ARE THE SIX GATES I ADDED THIS BLOCK ACTUALLY RUN?** §1419's lesson — behaviour and WIRING are separate questions — applied to my own work. Proved link by link: collected by the tools config (128→130 files) · a planted `id: "I9"` in `schema-invariants` reds `pnpm test:tools` (**exit 1**) · the aggregating `test` script propagates it, measured on **all three** arithmetic cases (`exit $(( t \|\| p ))`) · `test` is `run-gate.ts:46`'s `unit-tests` roster entry · `ci.yml:62` runs `pnpm verify:merge` · and that CI↔roster relationship is itself gated by `gate-wiring.test.ts` (§691/§694 + staleness). **Clean negative at every link.** The aggregation was worth measuring rather than reading: §954 records the regression where an `&&` between the two halves short-circuited and **105 of 112 isolation cases stopped executing while the gate still reported PASS**. **One map refinement from reading CI:** row 1 read *"never executed … deliberately absent from the merge roster"*, inviting the reading that nothing runs `check:pr`; it is absent from `gatesFor("merge")` (its input does not exist locally) **and** `ci.yml:32` runs it on `pull_request`. *Never executed* is a fact about the PR count, not the wiring |
+| 874 | §1427 | **§1428** | **THE BOARD RE-MEASURED, AND THE CLAIM I HAD BEEN INHERITING.** Five sections closed with *"board unchanged from §1417"* — a measurement taken **11 commits earlier**. §804: a claim you INHERIT is a claim you are MAKING. Re-run at `53cdc23`: **26 gates — 21 PASS · 0 FAIL · 5 BLOCKED · 4,820 tests / 411 files, zero failing suites** (§1417: 4,807 / 408). Aggregate BLOCKED (exit 2), NOT PROMOTABLE, **repo-owned failure set EMPTY**; all five blocks owner-held; 12 concurrent-author files dirty throughout with no attributable failure — third consecutive board where that holds. Delta is exactly this block: +13 tests, +3 files. **Second inherited claim also checked:** `cwd-parity` covers package.json SCRIPTS, not vitest files, so it does not cover the six new gates — verified directly instead (all six call `repoRoot()`, none has an `execSync` without explicit `cwd`). **BLOCK CLOSES:** 17 phases, 6 instrument defects, then ten gate bodies + ten wirings + six more gates + all eight invariants each confirmed BY BREAKING THEM; both constitutional surfaces now machine-mapped requiring the MUTATION not the existence. **Zero product behaviour changed in seventeen phases** |
 | 856 | §1409 | **§1410** | **SWEEPING MY OWN SECTIONS FOR §1409's ERROR, AND A DETECTOR THAT COULD NOT HAVE FOUND IT.** §1404's precedent: a class like this gets ONE measurement, not a gate, since a correction necessarily quotes what it corrects. **The first sweep returned ZERO and was worthless** — it extracted superseded text as `~~struck~~` only, but the very case §1409 found is marked the other way, as *"a 16-step chain …"* **until audit §1029**. **My detector encoded one of the repo's TWO conventions, so it could never have found the known positive.** Twelfth instance of the session's constant, caught because a zero is the answer this session has learned never to accept. **A second false signal inside the control:** asking *"is it inside `~~…~~`?"* with `~~[^~]*16-step` returned True — because an unrelated `~~` sits earlier and `[^~]*` spanned the gap. **A regex answering "is X inside a delimiter" by searching for the delimiter anywhere before X will say yes to the whole file.** Re-run over both conventions: **109 superseded passages, zero quoted without a marker** — and that zero is worth something, because the corrected detector demonstrably flags a reconstruction of §1408's sentence. **§1409's error was singular, not a habit** |
 | **855** | §1408 | **§1409** | **I QUOTED STRUCK TEXT AS CURRENT, AND THE REPO HAD SOLVED IT 380 SECTIONS EARLIER.** §1408 cited CLAUDE.md's account of `verify:dev` as *"a 16-step chain … reaches 4 of 16"*. Measured: **18 steps**. **But the drift is my quotation's, not the law's** — CLAUDE.md's current text says that reading held *"until audit §1029"*, was *"invalidated hours later by `7b61624`"*, and that **the total is stated no longer, only the position that matters: step 4, and nothing after it**. I quoted the struck half of a correction as the claim. **Eleventh measurement error, and the first where the artifact had already anticipated the failure I was about to report.** **§1029's move is exactly §1402's, reached 373 sections apart and independently:** faced with a number that rots, REMOVE the number and keep the invariant. A convention arrived at twice from opposite ends of the record is the closest this audit has to a law about documentation. Substantively: `verify:dev` is still an unaggregated `&&` chain at 18 steps, and that is **not** a defect — CLAUDE.md documents it, names `verify:merge` as the real verdict, and `wp-exit-audit.test.ts:19` records that a naive matcher yields *"4 of 16"* and *"reads as a serious constitutional finding and is an artifact"*. **Tenth clean negative** |
 | 854 | §1407 | **§1408** | **VERIFYING MY OWN DELIVERABLE IS WIRED, BY THE STANDARD §1304 SET.** Five gates were built this session and each reported as working; §1304's standard is **verified WIRED before the board is read**, because a gate that runs when I invoke it and not when CI does is decoration with a green tick. **First measurement said ZERO** — searching the merge log for the five names returns 0 mentions each, which reads as "they never ran". It is the §1362 reporter difference: the tools suite runs under vitest v4 (summary only) while worker suites at v3.2.7 print per-file. The same run reports **125 files passed**, 120 + 5. **Tenth measurement error avoided by not believing a zero.** Measured properly three ways: `vitest list` shows **21 cases** across the five; `run-gate.ts:46` wires `unit-tests` to the `test` script; and `test` is `test:tools; t=$?; … ; exit $(( t \|\| p ))`. **Proved end-to-end:** breaking `law-enforcers` makes `pnpm test:tools` exit 1, which propagates. Also worth noting: that script AGGREGATES rather than `&&`-chains — the defect CLAUDE.md records for `verify:dev`, which reaches 4 of 16 steps |
@@ -82764,3 +82765,59 @@ verified against HEAD. Every gate added in this block is wired into `verify:merg
 which is the difference between having written a gate and having one. Carry-forward unchanged and owner-held:
 vendor the nine private fixtures + `IDENTITY_DENYLIST`, commit the `genesis/09` rows, the five filed
 operational REQ rows.
+
+## §1428 — PHASE GATE / STOPPING POINT: the board re-measured, and the claim I had been inheriting
+
+Five sections in a row closed with *"board unchanged from §1417's full run"*. That measurement was taken at
+`9c30f40`; **eleven commits have landed since**, six of them adding gates and several mutating product source
+(all restored). §804's rule is the one that applies to my own writing: **a claim you INHERIT is a claim you
+are MAKING.** So it was re-measured rather than repeated.
+
+**Full `pnpm verify:merge` at `53cdc23` — 26 gates:**
+
+| | §1417 (`9c30f40`) | **§1428 (`53cdc23`)** |
+|---|---|---|
+| PASS | 21 | **21** |
+| FAIL | 0 | **0** |
+| BLOCKED | 5 | **5** |
+| tests passed | 4,807 | **4,820** |
+| test files | 408 | **411** |
+| failing suites | 0 | **0** |
+
+Aggregate **BLOCKED (exit 2)** → **NOT PROMOTABLE**, and every block is owner-held: `identity-leak` (no
+`IDENTITY_DENYLIST`), `fixtures`, `rater-parity`, `invoice-parity`, `concierge-parse` (unvendored engagement
+fixtures). **The repo-owned failure set is empty.** The tree carried **12 files dirty from the concurrent
+author** throughout and produced no attributable failure, which is now the third consecutive board where that
+holds.
+
+The delta is exactly what this block added: **+13 tests, +3 test files** — the six new gates, net of the
+tools-suite files already counted at §1417.
+
+**A second inherited claim, also checked rather than repeated.** My memory of this repo records seven gates
+that once had CWD-relative scans, and I added six gates. `cwd-parity` does not cover them — its population is
+package.json *scripts*, and these are vitest files — so the property was verified directly instead: all six
+call `repoRoot()`, and none contains an `execSync` without an explicit `cwd`. Cwd-independent by
+construction, not by roster.
+
+**Where this block ends.** Seventeen phases, §1411–§1428. Six defects in the measuring apparatus (§1411–§1416),
+one of them a route by which `INSERT OR REPLACE INTO events` was invisible to law #2's own enforcer. Then the
+technique turned on the product: **ten gate bodies, ten gate wirings, six more gates outside the first
+roster, and all eight schema invariants — each confirmed by BREAKING it and watching a named test red.** Both
+constitutional surfaces now carry machine-checked maps that require the mutation, not the existence:
+CLAUDE.md's ten laws (8 confirmed, 2 explicitly `NOT PROVEN` with reasons) and `genesis/10`'s eight invariants
+(8 of 8). Three of the ten law rows named the wrong evidence and had passed an existence audit; none could
+have been caught without breaking the clause.
+
+**Zero product behaviour changed in seventeen phases.** Every product mutation was a probe, restored and
+verified byte-identical to HEAD.
+
+**Carry-forward — unchanged, owner-held, and the only work that moves this board:**
+1. Vendor the nine private fixtures + `IDENTITY_DENYLIST` — clears all five BLOCKs; **the only path to
+   PROMOTABLE**.
+2. Commit the `genesis/09` register rows.
+3. The five filed operational REQ rows (interline-split marker, split backstop, collector page bound, import
+   bound, mirror-sweep page size) · the `quote.priced` / `SERVER_EMITTED_KINDS` API-contract decision.
+
+**Watch items, not defects:** three gate wirings are defended by exactly one test each
+(`assertPickupDepart`, `assertInterline`, `assertException`), and rule 10's constitutional law is defended by
+one test.
