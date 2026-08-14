@@ -208,3 +208,56 @@ describe("serializeJournalIIF — degenerate + docnum", () => {
     }
   });
 });
+
+// §1498 (REQ-020/118) — THE GRID GUARD WAS DEFENDED BY NOTHING.
+//
+// `clean()` exists because a tab or a record terminator inside any field would corrupt a tab-delimited,
+// CRLF-terminated grid: a tab in CLASS shifts every column to its right by one, and a newline in DOCNUM ends
+// the record early and starts a fake one. Its header says exactly that. MEASURED at §1498: replacing its body
+// with `return s;` leaves the ledger suite **728/728 green** — the same silence `csvField` had in
+// `packages/adapters`, and the second instance of one idiom (§1349's rule: at instance two, count the class).
+//
+// It is not redundant, which is the other explanation for a silent mutation (§1389). The account is canonical
+// and the ids are synthetic, but **CLASS carries `division` and DOCNUM carries a caller-supplied label** —
+// tenant text, unconstrained. A division named `North<TAB>West` silently moves every amount one column left in
+// a file that still imports.
+//
+// The cases pin the contract as WRITTEN — control characters become a SPACE (not stripped, not escaped, not
+// quoted) — so a future "improvement" to strip or quote them is a deliberate change to the artifact rather
+// than a silent one. The grid invariant is asserted as a COUNT, computed from the header line, never restated.
+describe("§1498 serializeJournalIIF — a hostile field cannot break the tab-delimited grid", () => {
+  const OPTS = { date: Date.UTC(2026, 7, 14) };
+  const dataRows = (iif: string): string[] => iif.split(EOL).filter((l) => l.startsWith("TRNS\t") || l.startsWith("SPL\t"));
+  /** The declared column count, read off the `!TRNS` header rather than restated. */
+  const width = (iif: string): number => iif.split(EOL)[0]!.split("\t").length;
+
+  it("a TAB in the division does not add a column", () => {
+    const iif = serializeJournalIIF(arPair(306_030, "north\twest", "evt_1", "ml_1"), OPTS);
+    const rows = dataRows(iif);
+    expect(rows).toHaveLength(2);
+    for (const r of rows) expect(r.split("\t")).toHaveLength(width(iif));
+    expect(rows[0]!.split("\t").at(-1)).toBe("north west"); // CLASS is last: the tab became a space, in place
+  });
+
+  it("a CR/LF/CRLF in the docNum does not create a record", () => {
+    for (const brk of ["\r", "\n", "\r\n"]) {
+      const iif = serializeJournalIIF(arPair(100, "north", "evt_1", "ml_1"), { ...OPTS, docNum: `P1${brk}P2` });
+      expect(dataRows(iif), `a ${JSON.stringify(brk)} split the record`).toHaveLength(2);
+      const docnum = dataRows(iif)[0]!.split("\t")[5];
+      expect(docnum).toBe(brk === "\r\n" ? "P1  P2" : "P1 P2"); // each control char → one space, none dropped
+    }
+  });
+
+  it("a control character in the MEMO (event_id) is neutralised in place", () => {
+    const iif = serializeJournalIIF(arPair(100, "north", "evt\r\n1", "ml_1"), OPTS);
+    expect(dataRows(iif)).toHaveLength(2);
+    for (const r of dataRows(iif)) expect(r.split("\t")).toHaveLength(width(iif));
+  });
+
+  it("a benign field is passed through untouched (the guard does not rewrite ordinary values)", () => {
+    const iif = serializeJournalIIF(arPair(100, "north-west 2", "evt_1", "ml_1"), { ...OPTS, docNum: "2026-08" });
+    const cols = dataRows(iif)[0]!.split("\t");
+    expect(cols[5]).toBe("2026-08");
+    expect(cols.at(-1)).toBe("north-west 2"); // spaces and hyphens are not control characters
+  });
+});

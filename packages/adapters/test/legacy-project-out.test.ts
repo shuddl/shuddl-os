@@ -254,3 +254,93 @@ describe("THE BIDIRECTIONAL ECHO SOAK — no ping-pong: the round-trip converges
     expect(led.size()).toBe(2);
   });
 });
+
+// §1498 (REQ-022/118) — THE CSV ESCAPING IS LOAD-BEARING AND WAS DEFENDED BY NOTHING.
+//
+// `csvField` carries the whole wire contract in one line — *"RFC-4180 escaping that round-trips through
+// parseSheet: quote a field containing a comma, quote, CR or LF, and double any embedded quote"* — and every
+// existing round-trip above feeds it values that contain NONE of those characters (`120000`, `nat_q_0001`,
+// `SH-N1`). MEASURED at §1498: replacing the whole function body with `return value;` leaves the adapters
+// suite **43/43 green**. The escaping had no watcher at all.
+//
+// It is not redundant either, which is the other explanation for a silent mutation (§1389). The cells are not
+// SHUDDL-shaped ids: `keyColumn` carries `naturalKey` — the INCUMBENT'S OWN reference, read verbatim out of
+// their export — and the field inverse writes `division`, `invoice_id`, `facility_id`, `slot_key`,
+// `driver_user_id` and `asset_id` straight through. A division named `North, Central` or a legacy ref like
+// `PO 12, LOT "A"` is ordinary freight data, and unescaped it shifts every column to its right by one for the
+// rest of that row — a file that IMPORTS CLEANLY into the incumbent and is silently wrong. That is the
+// output-defect shape: a bad output works, it just reaches the wrong person as the wrong number.
+//
+// These cases pin BOTH directions. Round-tripping alone would also pass if `csvField` quoted every field
+// unconditionally, which would change the bytes the incumbent's importer reads; so the benign case asserts the
+// field is emitted BARE, and the adversarial cases assert it survives out-and-back byte-identical.
+
+describe("§1498 — serializeOutboundCsv escaping: adversarial cells survive the round trip", () => {
+  // The column set is CONFIG-DERIVED (control columns + every mapped field column), so it is read off the
+  // serializer's own header line rather than restated here — a restated list would pass while describing a
+  // different file the day the config gains a record.
+  const row = (cells: Record<string, string>): { eventId: string; kind: "quote.priced"; cells: Record<string, string> } => ({
+    eventId: cells["shuddl_ref"] ?? "e1",
+    kind: "quote.priced",
+    cells,
+  });
+  const BASE = { rec_type: "RATE", feed_seq: "10", shuddl_ref: "nat_q_1", rec_id: "N-Q1", ship_ref: "SH-1" };
+  /** The value that came back in the column named `header`. */
+  const cellOf = (feed: { headers: string[]; rows: string[][] }, header: string): string | undefined =>
+    feed.rows[0]?.[feed.headers.indexOf(header)];
+
+  it("a benign value is emitted BARE — the escaping does not quote what needs no quoting", () => {
+    const csv = serializeOutboundCsv([row({ ...BASE })], CONFIG);
+    const [head, data] = csv.split("\n");
+    // Computed from the header line, never restated: each column is its cell or empty, comma-joined, unquoted.
+    expect(data).toBe(head!.split(",").map((h) => (BASE as Record<string, string>)[h] ?? "").join(","));
+    expect(data).not.toContain('"'); // no gratuitous quoting — these are the bytes the incumbent's importer reads
+  });
+
+  it("a comma inside a cell does not create a column", () => {
+    const cells = { ...BASE, rec_id: "PO 12, LOT 4" };
+    const csv = serializeOutboundCsv([row(cells)], CONFIG);
+    const feed = parseSheet(csv);
+    expect(feed.headers).toEqual(csv.split("\n")[0]!.split(",")); // the header line itself is unshifted
+    expect(feed.rows).toHaveLength(1);
+    expect(feed.rows[0]).toHaveLength(feed.headers.length); // the load-bearing invariant: no column shift
+    expect(cellOf(feed, "rec_id")).toBe("PO 12, LOT 4");
+    expect(cellOf(feed, "ship_ref")).toBe("SH-1"); // the cell to its RIGHT is still itself, not the comma's tail
+  });
+
+  it("embedded quotes are doubled and recovered verbatim", () => {
+    const csv = serializeOutboundCsv([row({ ...BASE, rec_id: 'LOT "A"' })], CONFIG);
+    expect(csv).toContain('"LOT ""A"""'); // RFC-4180: quote the field, double the inner quotes
+    expect(cellOf(parseSheet(csv), "rec_id")).toBe('LOT "A"');
+  });
+
+  it("a CR, an LF and a CRLF inside a cell do not create a record", () => {
+    for (const brk of ["\r", "\n", "\r\n"]) {
+      const feed = parseSheet(serializeOutboundCsv([row({ ...BASE, rec_id: `LINE1${brk}LINE2` })], CONFIG));
+      expect(feed.rows, `a ${JSON.stringify(brk)} split the record`).toHaveLength(1);
+      expect(cellOf(feed, "rec_id")).toBe(`LINE1${brk}LINE2`); // both halves stayed in the one cell, verbatim
+      expect(cellOf(feed, "ship_ref")).toBe("SH-1");
+    }
+  });
+
+  it("EVERY cell survives out-and-back byte-identical, whichever column carries the hostile value", () => {
+    const hostile = 'North, "Central"\r\nsouth';
+    for (const col of Object.keys(BASE)) {
+      const cells: Record<string, string> = { ...BASE, [col]: hostile };
+      const feed = parseSheet(serializeOutboundCsv([row(cells)], CONFIG));
+      expect(feed.rows, `${col} broke the record count`).toHaveLength(1);
+      for (const header of feed.headers) {
+        expect(cellOf(feed, header), `${col} hostile → ${header} came back wrong`).toBe(cells[header] ?? "");
+      }
+    }
+  });
+
+  it("the mirror-IN still recovers the number when the legacy ref carries a comma (the real path)", () => {
+    const ev: ProjectableEvent = { ...nativeQuote(), naturalKey: 'PO 12, LOT "A"' };
+    const [projected] = projectOut([ev], CONFIG);
+    const cleared = { eventId: "", kind: "quote.priced" as const, cells: { ...projected!.cells, shuddl_ref: "" } };
+    const feed = parseSheet(serializeOutboundCsv([cleared], CONFIG));
+    const { records } = mapLegacyExport(feed, CONFIG);
+    expect(records[0]?.event?.payload["sell"]).toBe(120_000); // the number is still in the number's column
+  });
+});
