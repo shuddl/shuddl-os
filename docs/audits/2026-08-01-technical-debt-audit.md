@@ -696,6 +696,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 918 | §1471 | **§1472** | **THE MUTUAL-PAIR CLASS CLOSED, AND WHAT MAKES A COMMENT SURVIVE SCRUTINY.** Verified §1471's carried item, the 4th pair `legacy-mirror.ts` ↔ `mirror-sweep.ts` — a different SHAPE (pure core + worker, nothing duplicated), so the coupling is a DEPENDENCE on the core's behaviour. Removing the mapper's ECHO-SKIP reds **4 in adapters and 4 in agents**: REQ-022's ping-pong guarantee is pinned on both sides. **Class closed 4/4.** The comment at `mirror-sweep.ts:227@echo` is the one that survived: it claims *removing this `continue` changes no test (measured)* and *this branch owns the `echoed` COUNTER* — measured now as **0 red** and **1 red**, both exactly true. The difference from §1470's and §1465's failed couplings is not care but **FALSIFIABILITY**: *X mirrors Y* cannot be run; *removing this reds nothing, and it owns the counter* is two experiments written down. A prose-scanning gate DECLINED (§1399 — an English boundary cannot close); the class is recorded with a mechanical reopen trigger instead. |
 | 919 | §1472 | **§1473** | **A CLAIM'S DURABILITY IS WHETHER A STRANGER CAN RUN IT.** Swept §1472's falsifiability lesson: 40 'measured' comments, **4 naming a re-runnable outcome — all four re-run, all four still TRUE** (two FALSIFY recipes red their promised case verbatim; planting an `email` producer reds the named gate; §1472's counter claims hold 0-red/1-red). **Against the record's own 3-of-4 reopen triggers WRONG** — the difference is structural: a trigger is a PREDICTION nobody can execute, a recipe is an EXPERIMENT anyone can run in a minute. Ladder: relationship < measured outcome < recipe < named gate. **Two probe artifacts of mine:** the §749 mutation deleted `(?!\d)` from the COMMENT (its only occurrence — the real regex builds it in a template), so *an assert that an anchor is UNIQUE is not an assert that it is the RIGHT anchor*; and a single-line extractor called 2 of 4 recipes caseless because the name WRAPPED — a gate built on it would have failed two correct recipes. Gate added (marker-scoped, so gateable where §1472's prose was not); RED 2 ways. |
 | 920 | §1473 | **§1474** | **WHEN A CLAIM'S TRUTH IS OUT OF REACH, VERIFY ITS PRECONDITION.** Board re-measured (**21 PASS · 0 FAIL · 5 BLOCKED at `e03f289`**). Applied §1473's ladder to the 43 OPEN rows' reopen triggers — the sentences deciding when carried debt stops being true — and **ran every one that could be run: 34 checks, all clean.** 4 command-form hold (`split.computed` 0 hits; REQ-289 in the working copy, absent from the commit); 6 observable-change **none fired** (`collector.ts` still unbounded, `MAX_ROWS` still 5000, cron still daily); 24 named paths all resolve. Qualifies the record's *3 of 4 were wrong*: the survivors are phrased as an observable change to a NAMED ARTIFACT. Gate added for the decidable half — not *is the trigger true* (§1472 declined that) but **can it fire at all**: a trigger keyed to a renamed file is unfirable, and **looks exactly like one that has not fired**. RED 2 ways; my own suffix-resolution false positive pinned as a control. |
+| 921 | §1474 | **§1475** | **FOUR OF THE NINE BLOCKING FIXTURES WOULD LAND INERT.** Applied §1474's precondition lens to the five BLOCKED gates — the only thing between this repo and PROMOTABLE. §1458 proved the consumers DETECT; this asks whether they are WIRED. Measured across all 17 manifest entries: **every VENDORED fixture has a code consumer; the only four with ZERO are pending** — `customer-roster`, `legacy-import-formats`, **`legacy-export-replay`** and `synthetic-blitz-3100`. So the owner could vendor all nine and four would change nothing. The sharp one: **CLAUDE.md rule 6 names *legacy-export replay ±2% aggregate* as a MERGE gate** and nothing reads its declared path — a stated law with no implementation. Recorded, not fixed (new scope, register row). Gate added; RED 2 ways, with the vendored set as its own positive control. **It caught its own author first**: quoting the four paths in its declarations made them look consumed — self now excluded BY PATH (§1416/§1426). |
 | 856 | §1409 | **§1410** | **SWEEPING MY OWN SECTIONS FOR §1409's ERROR, AND A DETECTOR THAT COULD NOT HAVE FOUND IT.** §1404's precedent: a class like this gets ONE measurement, not a gate, since a correction necessarily quotes what it corrects. **The first sweep returned ZERO and was worthless** — it extracted superseded text as `~~struck~~` only, but the very case §1409 found is marked the other way, as *"a 16-step chain …"* **until audit §1029**. **My detector encoded one of the repo's TWO conventions, so it could never have found the known positive.** Twelfth instance of the session's constant, caught because a zero is the answer this session has learned never to accept. **A second false signal inside the control:** asking *"is it inside `~~…~~`?"* with `~~[^~]*16-step` returned True — because an unrelated `~~` sits earlier and `[^~]*` spanned the gap. **A regex answering "is X inside a delimiter" by searching for the delimiter anywhere before X will say yes to the whole file.** Re-run over both conventions: **109 superseded passages, zero quoted without a marker** — and that zero is worth something, because the corrected detector demonstrably flags a reconstruction of §1408's sentence. **§1409's error was singular, not a habit** |
 | **855** | §1408 | **§1409** | **I QUOTED STRUCK TEXT AS CURRENT, AND THE REPO HAD SOLVED IT 380 SECTIONS EARLIER.** §1408 cited CLAUDE.md's account of `verify:dev` as *"a 16-step chain … reaches 4 of 16"*. Measured: **18 steps**. **But the drift is my quotation's, not the law's** — CLAUDE.md's current text says that reading held *"until audit §1029"*, was *"invalidated hours later by `7b61624`"*, and that **the total is stated no longer, only the position that matters: step 4, and nothing after it**. I quoted the struck half of a correction as the claim. **Eleventh measurement error, and the first where the artifact had already anticipated the failure I was about to report.** **§1029's move is exactly §1402's, reached 373 sections apart and independently:** faced with a number that rots, REMOVE the number and keep the invariant. A convention arrived at twice from opposite ends of the record is the closest this audit has to a law about documentation. Substantively: `verify:dev` is still an unaggregated `&&` chain at 18 steps, and that is **not** a defect — CLAUDE.md documents it, names `verify:merge` as the real verdict, and `wp-exit-audit.test.ts:19` records that a naive matcher yields *"4 of 16"* and *"reads as a serious constitutional finding and is an artifact"*. **Tenth clean negative** |
 | 854 | §1407 | **§1408** | **VERIFYING MY OWN DELIVERABLE IS WIRED, BY THE STANDARD §1304 SET.** Five gates were built this session and each reported as working; §1304's standard is **verified WIRED before the board is read**, because a gate that runs when I invoke it and not when CI does is decoration with a green tick. **First measurement said ZERO** — searching the merge log for the five names returns 0 mentions each, which reads as "they never ran". It is the §1362 reporter difference: the tools suite runs under vitest v4 (summary only) while worker suites at v3.2.7 print per-file. The same run reports **125 files passed**, 120 + 5. **Tenth measurement error avoided by not believing a zero.** Measured properly three ways: `vitest list` shows **21 cases** across the five; `run-gate.ts:46` wires `unit-tests` to the `test` script; and `test` is `test:tools; t=$?; … ; exit $(( t \|\| p ))`. **Proved end-to-end:** breaking `law-enforcers` makes `pnpm test:tools` exit 1, which propagates. Also worth noting: that script AGGREGATES rather than `&&`-chains — the defect CLAUDE.md records for `verify:dev`, which reaches 4 of 16 steps |
@@ -85114,3 +85115,57 @@ mutated twice and restored byte-identical. 136 tools files / 1,440 tests green, 
 and `check:section-refs` clean. Board **MEASURED at `e03f289`: 21 PASS · 0 FAIL · 5 BLOCKED** — repo-owned
 failure set empty. Carry-forward unchanged and now **re-verified**: every locally-checkable trigger on all 43
 open rows holds.
+
+## §1475 — PHASE GATE: four of the nine blocking fixtures would land inert (REQ-118/119)
+
+§1474's lens — *when a claim's truth is out of reach, verify its PRECONDITION* — has one obvious remaining
+subject: the **five BLOCKED gates**, the only thing standing between this repo and PROMOTABLE. §1458 proved
+their consumers DETECT (a planted divergence reds `runParity`). The untested half is whether the instrument is
+still WIRED: a fixture vendored into a path no code reads satisfies nothing, and from the outside is
+indistinguishable from one that has not arrived — the board prints BLOCKED either way.
+
+Measured across all 17 manifest entries, and the pattern is clean enough to be decisive: **every VENDORED
+fixture has at least one code consumer, and the only four with NONE are pending.**
+
+| fixture | declares | consumers |
+|---|---|---|
+| `rater-48-tests`, `rater-504-sweep` | WP-04 | 2 each |
+| `zone-tariff-v1` | WP-04 config seeds | 5 |
+| `invoice-500-replay` | WP-06 DoD | 2 |
+| `concierge-parse-50` | WP-07 DoD | 2 |
+| **`customer-roster`** | WP-14/15 Migrator | **0** |
+| **`legacy-import-formats`** | WP-15 projections | **0** |
+| **`legacy-export-replay`** | **WP-02/04/15 ±2% aggregate** | **0** |
+| **`synthetic-blitz-3100`** | WP-15 shadow tooling | **0** |
+
+**So the owner could vendor all nine and four would change nothing.** Five unblock the three parity gates; four
+satisfy the manifest hash check and stop there. `legacy-export-replay` is the sharp one: **CLAUDE.md rule 6
+names *"legacy-export replay ±2% aggregate"* as a merge gate**, and nothing reads the path its manifest entry
+declares — a stated merge law with no implementation behind it. That the *routes ±10%* member of the same rule
+has neither a REQ row nor a fixture is already OPEN on the checklist; this is the same shape one row over, and
+it was not recorded.
+
+Recorded, not fixed: building those consumers is new scope needing a register row, and the corpora they would
+read do not exist yet. What `tools/checks/fixture-consumers.test.ts` prevents is the two silent decays — a NEW
+manifest entry landing unconsumed, and an EXISTING consumer renamed away from its path, which turns a wired
+fixture inert with no signal at all. The vendored-fixtures assertion is the detector's own positive control:
+they are demonstrably wired, so a zero elsewhere is a fact about wiring rather than about the scan. RED both
+ways (a new unconsumed entry; a vendored fixture's path moved).
+
+**The gate caught its own author on the first run.** Its `DECLARED_UNCONSUMED` reasons quote
+`fixtures/roster/` and the other three, so scanning itself made every unconsumed fixture look consumed — and
+the "no exemption outlives its subject" assertion is what noticed, reporting *"customer-roster now HAS a code
+consumer"*. §1416's shape exactly (a scanner flagging its own message), and fixed the way §1426 requires: self
+excluded **by path**, never by a phrase filter, because a named file cannot quietly widen and a phrase can.
+
+**The general form.** §1474 verified that a claim's subject still exists. This is the next question in the same
+direction: **does the thing the claim promises have anyone waiting for it?** A blocked gate names its missing
+input, and that name is checked — but nothing checks that the input has a READER. The failure is silent
+because both states print the same word, and it is expensive at exactly the wrong moment: the owner does the
+vendoring work, the board does not move, and the diagnosis starts from scratch.
+
+**Phase gate.** Source changed: one new gate file. **No product code, no manifest edits** — `fixtures/manifest.json`
+mutated twice and restored byte-identical. 137 tools files / 1,444 tests green, lint clean, `check:citations`
+and `check:section-refs` clean. Board MEASURED at `e03f289` (§1474, 1 commit ago): **21 PASS · 0 FAIL · 5
+BLOCKED**. Carry-forward gains a precise qualifier: **of the nine pending fixtures, five are wired and four are
+not** — worth knowing before the vendoring session, not during it.
