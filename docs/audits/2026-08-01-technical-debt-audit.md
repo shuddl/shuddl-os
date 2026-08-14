@@ -695,6 +695,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 917 | §1470 | **§1471** | **A MUTATION THAT REDS NOTHING IS A STATEMENT ABOUT YOUR CORPUS.** Two clean negatives (`legacy-project-out.ts` genuinely shares + has a bidirectional echo soak; all 8 MCP tools dispatched in 2–7 files) **corrected the method**: *never named in the audit* is a weak proxy for *unexamined* — 33 → 30 → 3, and all 3 are exercised. The real tell behind §1469/§1470 was a STATED COUPLING, which is mechanical: 106 lockstep comments, **4 MUTUAL pairs**, two already closed. The finding is the third: `pub/quote.ts` ↔ `routes/rate.ts` — two pricing surfaces sharing `priceShipment`, whose five `/v1/rate` references are ALL AUTH assertions, so the twinning was asserted about SHAPE and never about the ANSWER. Added GQ-6 (one body, both surfaces, same sell_cents). **My own accessorial mutation then reded NOTHING** — the corpus had no accessorials; widened, both mutations red 2 and 1. §389's *nothing REACHES it* is a property of the INPUT too, and that one is yours. Fourth pair (`legacy-mirror` ↔ `mirror-sweep`) carried. |
 | 918 | §1471 | **§1472** | **THE MUTUAL-PAIR CLASS CLOSED, AND WHAT MAKES A COMMENT SURVIVE SCRUTINY.** Verified §1471's carried item, the 4th pair `legacy-mirror.ts` ↔ `mirror-sweep.ts` — a different SHAPE (pure core + worker, nothing duplicated), so the coupling is a DEPENDENCE on the core's behaviour. Removing the mapper's ECHO-SKIP reds **4 in adapters and 4 in agents**: REQ-022's ping-pong guarantee is pinned on both sides. **Class closed 4/4.** The comment at `mirror-sweep.ts:227@echo` is the one that survived: it claims *removing this `continue` changes no test (measured)* and *this branch owns the `echoed` COUNTER* — measured now as **0 red** and **1 red**, both exactly true. The difference from §1470's and §1465's failed couplings is not care but **FALSIFIABILITY**: *X mirrors Y* cannot be run; *removing this reds nothing, and it owns the counter* is two experiments written down. A prose-scanning gate DECLINED (§1399 — an English boundary cannot close); the class is recorded with a mechanical reopen trigger instead. |
 | 919 | §1472 | **§1473** | **A CLAIM'S DURABILITY IS WHETHER A STRANGER CAN RUN IT.** Swept §1472's falsifiability lesson: 40 'measured' comments, **4 naming a re-runnable outcome — all four re-run, all four still TRUE** (two FALSIFY recipes red their promised case verbatim; planting an `email` producer reds the named gate; §1472's counter claims hold 0-red/1-red). **Against the record's own 3-of-4 reopen triggers WRONG** — the difference is structural: a trigger is a PREDICTION nobody can execute, a recipe is an EXPERIMENT anyone can run in a minute. Ladder: relationship < measured outcome < recipe < named gate. **Two probe artifacts of mine:** the §749 mutation deleted `(?!\d)` from the COMMENT (its only occurrence — the real regex builds it in a template), so *an assert that an anchor is UNIQUE is not an assert that it is the RIGHT anchor*; and a single-line extractor called 2 of 4 recipes caseless because the name WRAPPED — a gate built on it would have failed two correct recipes. Gate added (marker-scoped, so gateable where §1472's prose was not); RED 2 ways. |
+| 920 | §1473 | **§1474** | **WHEN A CLAIM'S TRUTH IS OUT OF REACH, VERIFY ITS PRECONDITION.** Board re-measured (**21 PASS · 0 FAIL · 5 BLOCKED at `e03f289`**). Applied §1473's ladder to the 43 OPEN rows' reopen triggers — the sentences deciding when carried debt stops being true — and **ran every one that could be run: 34 checks, all clean.** 4 command-form hold (`split.computed` 0 hits; REQ-289 in the working copy, absent from the commit); 6 observable-change **none fired** (`collector.ts` still unbounded, `MAX_ROWS` still 5000, cron still daily); 24 named paths all resolve. Qualifies the record's *3 of 4 were wrong*: the survivors are phrased as an observable change to a NAMED ARTIFACT. Gate added for the decidable half — not *is the trigger true* (§1472 declined that) but **can it fire at all**: a trigger keyed to a renamed file is unfirable, and **looks exactly like one that has not fired**. RED 2 ways; my own suffix-resolution false positive pinned as a control. |
 | 856 | §1409 | **§1410** | **SWEEPING MY OWN SECTIONS FOR §1409's ERROR, AND A DETECTOR THAT COULD NOT HAVE FOUND IT.** §1404's precedent: a class like this gets ONE measurement, not a gate, since a correction necessarily quotes what it corrects. **The first sweep returned ZERO and was worthless** — it extracted superseded text as `~~struck~~` only, but the very case §1409 found is marked the other way, as *"a 16-step chain …"* **until audit §1029**. **My detector encoded one of the repo's TWO conventions, so it could never have found the known positive.** Twelfth instance of the session's constant, caught because a zero is the answer this session has learned never to accept. **A second false signal inside the control:** asking *"is it inside `~~…~~`?"* with `~~[^~]*16-step` returned True — because an unrelated `~~` sits earlier and `[^~]*` spanned the gap. **A regex answering "is X inside a delimiter" by searching for the delimiter anywhere before X will say yes to the whole file.** Re-run over both conventions: **109 superseded passages, zero quoted without a marker** — and that zero is worth something, because the corrected detector demonstrably flags a reconstruction of §1408's sentence. **§1409's error was singular, not a habit** |
 | **855** | §1408 | **§1409** | **I QUOTED STRUCK TEXT AS CURRENT, AND THE REPO HAD SOLVED IT 380 SECTIONS EARLIER.** §1408 cited CLAUDE.md's account of `verify:dev` as *"a 16-step chain … reaches 4 of 16"*. Measured: **18 steps**. **But the drift is my quotation's, not the law's** — CLAUDE.md's current text says that reading held *"until audit §1029"*, was *"invalidated hours later by `7b61624`"*, and that **the total is stated no longer, only the position that matters: step 4, and nothing after it**. I quoted the struck half of a correction as the claim. **Eleventh measurement error, and the first where the artifact had already anticipated the failure I was about to report.** **§1029's move is exactly §1402's, reached 373 sections apart and independently:** faced with a number that rots, REMOVE the number and keep the invariant. A convention arrived at twice from opposite ends of the record is the closest this audit has to a law about documentation. Substantively: `verify:dev` is still an unaggregated `&&` chain at 18 steps, and that is **not** a defect — CLAUDE.md documents it, names `verify:merge` as the real verdict, and `wp-exit-audit.test.ts:19` records that a naive matcher yields *"4 of 16"* and *"reads as a serious constitutional finding and is an artifact"*. **Tenth clean negative** |
 | 854 | §1407 | **§1408** | **VERIFYING MY OWN DELIVERABLE IS WIRED, BY THE STANDARD §1304 SET.** Five gates were built this session and each reported as working; §1304's standard is **verified WIRED before the board is read**, because a gate that runs when I invoke it and not when CI does is decoration with a green tick. **First measurement said ZERO** — searching the merge log for the five names returns 0 mentions each, which reads as "they never ran". It is the §1362 reporter difference: the tools suite runs under vitest v4 (summary only) while worker suites at v3.2.7 print per-file. The same run reports **125 files passed**, 120 + 5. **Tenth measurement error avoided by not believing a zero.** Measured properly three ways: `vitest list` shows **21 cases** across the five; `run-gate.ts:46` wires `unit-tests` to the `test` script; and `test` is `test:tools; t=$?; … ; exit $(( t \|\| p ))`. **Proved end-to-end:** breaking `law-enforcers` makes `pnpm test:tools` exit 1, which propagates. Also worth noting: that script AGGREGATES rather than `&&`-chains — the defect CLAUDE.md records for `verify:dev`, which reaches 4 of 16 steps |
@@ -85057,3 +85058,59 @@ cannot prove a recipe still reds; that is a phase's work, and this phase did it 
 MEASURED at `c2e410b` (§1470, 3 commits ago): **21 PASS · 0 FAIL · 5 BLOCKED**; the three intervening phases
 changed one test/gate file each and no product code, so the aggregate is unchanged in kind — but this is again
 the longest span since a measured board, so the next phase should re-run it. Carry-forward unchanged.
+
+## §1474 — PHASE GATE: when a claim's truth is out of reach, verify its PRECONDITION (REQ-118/119)
+
+§1473's gate asked for a board re-run. **Confirmed: 21 PASS · 0 FAIL · 5 BLOCKED at `e03f289`**, 26 gates.
+
+Then §1473's ladder — *a claim's durability is whether a stranger can run it* — applied to the highest-stakes
+prose this repo owns: the **reopen triggers on 43 OPEN checklist rows**. They are the sentences that decide when
+carried debt stops being true, and this record's own memory is that 3 of 4 such triggers were once WRONG.
+
+**Every trigger that could be run, was.** 34 checks, all clean:
+
+| kind | checked | result |
+|---|---|---|
+| command form (*"re-run `git grep …`"*) | 4 | all hold — `split.computed` in `ledger/src/queries`: **0 hits**; GTM/research **0 staged**; REQ-289 present in the working copy and **absent from the commit**, exactly as the row claims; §702's 30s timeout present |
+| observable change (*"when X gains Y"*) | 6 | **none has fired** — `collector.ts` still has no LIMIT, `import.ts` still `MAX_ROWS = 5000` with no batch, `interline-split.ts` has 0 terminal-hold markers, the agents cron is still `["0 1 * * *"]`, `PROVISIONING_ENABLED` still gates signup, `captures.ts` still at its cited path |
+| path resolution | 24 | every path a trigger names resolves |
+
+So the carried-debt record is accurate, and the earlier finding is qualified rather than contradicted: **the
+triggers that survive are the ones phrased as an observable change to a NAMED ARTIFACT.** *"When `collector.ts`
+gains a page bound"* is checkable by a stranger in ten seconds. *"Re-measure when the backlog approaches the
+ceiling"* is not — and that is not sloppiness, it is a genuinely production-side fact.
+
+**Which is the gate this phase builds, and the reason it is narrow.** §1472 declined to gate lockstep prose
+because an English boundary can never close (§1399), and the same applies to trigger TRUTH. But a different
+question is mechanically decidable: **can the trigger fire at all?** A trigger keyed to `collector.ts` gaining a
+page bound becomes unfirable the moment that file is renamed — and **a row whose trigger can never fire looks
+exactly like a row whose trigger has not fired.** That is §1359's "exemption outlives its subject", arriving in
+the reopen column, where it is worse: the row keeps reading as monitored.
+
+`tools/checks/trigger-paths.test.ts` asserts every path named in an OPEN row's trigger still resolves. RED both
+ways — renaming a trigger's subject, and pointing one at a moved path.
+
+**My own false positive, pinned as a control.** The first resolver demanded a full tracked path and reported
+`routes/events.ts` DEAD. The triggers are written in the short form a reader recognises, so the correct rule is
+suffix resolution — and both directions are now controls, because a resolver that accepts anything would
+certify a dead trigger just as silently.
+
+**The general form.** Most claims worth auditing are not verifiable where you are standing: production volume,
+an owner's decision, a partner's behaviour. The instinct is to mark them unverified and move on. But every
+claim has a PRECONDITION that IS local — does its subject exist, is its instrument still wired, can the
+experiment still be run at all — and that precondition decays silently while the claim keeps its shape.
+**When a claim's truth is out of reach, verify what would have to be true for anyone to ever evaluate it.** A
+claim whose subject has vanished is not unverified; it is dead, and from the outside the two are identical.
+
+**And an existing gate caught this phase's own file.** `strip-struck.test.ts` red on `trigger-paths.test.ts`
+because I stripped `**`/`~~` markers with a private regex to build a readable row label. Not a false positive:
+checklist titles carry superseded counts as struck spans (`~~Two~~ ~~FOUR~~ SIX sites…`), so a marker-strip
+renders all three as live — §1411's 62%-of-the-record defect in miniature, inside a gate written to keep the
+record honest. Switched to the shared `stripStruck`. **The ban on re-authoring that mask has now paid for
+itself against its own author**, which is the argument for banning a shape rather than fixing its instances.
+
+**Phase gate.** Source changed: one new gate file. **No product code, no checklist edits** — the checklist was
+mutated twice and restored byte-identical. 136 tools files / 1,440 tests green, lint clean, `check:citations`
+and `check:section-refs` clean. Board **MEASURED at `e03f289`: 21 PASS · 0 FAIL · 5 BLOCKED** — repo-owned
+failure set empty. Carry-forward unchanged and now **re-verified**: every locally-checkable trigger on all 43
+open rows holds.
