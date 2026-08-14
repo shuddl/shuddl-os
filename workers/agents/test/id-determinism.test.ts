@@ -25,6 +25,46 @@ describe("REQ-039 — the id law is deterministic (the half testable inside this
     expect(await invoiceEventIdFor("pod-evt-42")).toBe(await invoiceEventIdFor("pod-evt-42"));
   });
 
+  // §1460 — THE ASSERTION ABOVE CANNOT FAIL FOR THE HAZARD IT NAMES. Both calls land in the same millisecond,
+  // so folding a clock into the seed (`biller:invoice-event:${podEventId}:${Date.now()}`) leaves it green —
+  // MEASURED: 142/142 in this worker, the whole suite, including the case literally named "a redelivered POD".
+  // The header above claims these assertions "close exactly that gap"; for the clock class they did not. A real
+  // redelivery is separated from its original by SECONDS (queue backoff), never by zero, so the property that
+  // matters is invariance ACROSS TIME — and the only way to assert that is to move the clock.
+  //
+  // Randomness is included for the same reason and is NOT redundant: `Math.random()` is defeated by the same
+  // seed being read twice, while `Date.now()` is defeated only by elapsed time. Two different escapes, so two
+  // different stubs — a single one would leave the other half of the class unwatched.
+  it("...and still re-derives it across a clock tick and a random draw (the hazard the case above cannot see)", async () => {
+    const realNow = Date.now;
+    const realRandom = Math.random;
+    try {
+      let t = 1_700_000_000_000;
+      Date.now = () => (t += 60_000); // every read is a minute later — a redelivery, not a same-tick repeat
+      let r = 0;
+      Math.random = () => (r += 0.25) % 1;
+      const first = await invoiceEventIdFor("pod-evt-42");
+      const second = await invoiceEventIdFor("pod-evt-42");
+      expect(second, "the invoice event id moved when only the clock did — a redelivery would mint a SECOND invoice on an append-only ledger AND a second `evidence-email/<id>` key, so the customer is emailed twice").toBe(first);
+    } finally {
+      Date.now = realNow;
+      Math.random = realRandom;
+    }
+  });
+
+  it("the clock/random stubs above are LIVE (positive control — a vacuous stub proves nothing)", () => {
+    // §1387: if `Date.now` could not be reassigned in this runtime, the case above would pass by asserting a
+    // property nothing perturbs — the exact failure it exists to correct.
+    const realNow = Date.now;
+    try {
+      Date.now = () => 42;
+      expect(Date.now(), "Date.now is not reassignable here — the clock-tick case is inert, not passing").toBe(42);
+    } finally {
+      Date.now = realNow;
+    }
+    expect(Date.now()).toBeGreaterThan(1_600_000_000_000);
+  });
+
   it("distinct seeds stay distinct — determinism must not collapse to a constant", async () => {
     const a = await uuidFromSeed("biller:invoice-event:ev-1");
     const b = await uuidFromSeed("biller:invoice-event:ev-2");

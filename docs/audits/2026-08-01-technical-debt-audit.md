@@ -681,6 +681,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 903 | §1456 | **§1457** | **THE SECOND CARRY-FORWARD COST, MEASURED — THE REGISTER ROWS ARE NOT BOOKKEEPING.** §1456 found the COST is the half that decays; applied to *"commit the `genesis/09` rows"*, which nine phases restated as though it were filing. **It is not.** Four uncommitted rows, every one already annotated in code: REQ-289 **11 annotations at HEAD, no row** · REQ-290 1 · REQ-291 **0 at HEAD but 3 in the working tree** · REQ-292 1. **With the register at its COMMITTED state, `check:traceability` FAILS:** *"built-but-unspec'd: REQ-292, REQ-291, REQ-290, REQ-289"* — §1432's direction B firing on four ids at once. **The board is green only because the working tree carries the rows the commits do not** — the same condition the 2026-08-09 board recorded for ONE row, now four. **Scope stated:** I compared the committed register against working-tree code; measuring HEAD alone would mean stashing another author's twelve dirty files, which is not a trade I will make. **The item's real content: the rows and their code must land TOGETHER** — committing the register alone fixes REQ-289 and leaves REQ-291 spec'd-but-unbuilt. Two of four carry-forward costs now measured; the other two are owner-side inputs I cannot cost from here, and saying so beats estimating |
 | 904 | §1457 | **§1458** | **REFINING "CANNOT MEASURE" — THE FIXTURES ARE OWNER-SIDE, THE MACHINERY IS NOT.** §1457 said the remaining carry-forward costs are *owner-side inputs whose cost I cannot measure* — true of the INPUT, **false of the CONSUMER**, and code that has never executed is dark code whose first run becomes the owner's problem at the worst moment. **Question: when the nine fixtures land, do they land on a harness that works?** Answered well by someone before me: `parity.harness.test.ts` exercises the runner with a SYNTHETIC stand-in whose cases *"live INLINE here, never under `fixtures/`, so they can never masquerade as vendored engagement data"*, and whose stated point is to *"prove `runParity` actually CATCHES a divergence … not merely that it rubber-stamps a match"*. **Verified by mutation, not by reading the header:** disabling the status-divergence check reds *"catches a PRICED-vs-UNKNOWN status divergence"*. **So all five BLOCKs are waiting on DATA and every mechanism behind them has been exercised** — identity detects (§1434), fixtures escalate BLOCKED→FAIL on a corrupted hash (§1423), parity catches divergence (§1458). **"Owner-side" describes who supplies the input, not who bears the risk: split the item — the INPUT is theirs, the CONSUMER is mine and entirely measurable** |
 | 905 | §1458 | **§1459** | **IDEMPOTENCE ANSWERS CORRECTNESS, NEVER COST.** Re-measured the last unmeasured carry-forward item (the five filed operational rows) on its DEFECT side. Three record claims hold at HEAD (`[limits] subrequests` absent from all 9 tomls; 5 static `prepare()`; the `import.ts` scoping is correct — `intake.ts` is a single-shipment POST, not a fourth name-scoping error). **Two corrections:** a static `prepare()` count is not an execution count — `findOrCreateParty`'s two SELECTs are `if/else` arms, so it executes 2, not 3. And the row's own *"a retry MAY progress"* resolves to **partially, and not in the phase that matters**: the party phase has a cheap found-path (`intake-core.ts:59@existingId`), the shipment phase has NO resume point, so it re-pays 2/row from row 0 on every attempt — the import completes iff it fits in ONE invocation. Headline restated: the shipment loop alone is 10,000 at `MAX_ROWS`, exactly the Paid ceiling. |
+| 906 | §1459 | **§1460** | **A SAME-TICK COMPARISON CANNOT SEE A CLOCK.** Applied §1459's discriminator to the queue retry path. The `pod.signed` branch claims *"Idempotent … so a redelivery that re-runs both is safe"* — and the send chain checks out (stable seed → `idempotency-key` header → RecordingSender dedupe, all pinned). **The defect is in a test:** *"a redelivered POD re-derives the SAME invoice event id"* calls the deriver twice in the SAME MILLISECOND, so a clock in the seed leaves it green — **142/142, the whole owning worker**. Nearly published "the repo is blind"; it is not (workers/api reds 6 — the guarantee is DELEGATED and the header says so). The false claim is the header's *"these close exactly that gap"*. Fixed both ways: a clock/random-stub case in the owning suite (RED 1 and 2) and `tools/checks/id-seed-purity.test.ts` over all 24 literal seeds in 337 files (RED on a planted violation), with mirror-sweep's deliberate re-raise declared. Also took back my own unmeasured "34 invisible seeds" → a reach gap of ~3. |
 | 856 | §1409 | **§1410** | **SWEEPING MY OWN SECTIONS FOR §1409's ERROR, AND A DETECTOR THAT COULD NOT HAVE FOUND IT.** §1404's precedent: a class like this gets ONE measurement, not a gate, since a correction necessarily quotes what it corrects. **The first sweep returned ZERO and was worthless** — it extracted superseded text as `~~struck~~` only, but the very case §1409 found is marked the other way, as *"a 16-step chain …"* **until audit §1029**. **My detector encoded one of the repo's TWO conventions, so it could never have found the known positive.** Twelfth instance of the session's constant, caught because a zero is the answer this session has learned never to accept. **A second false signal inside the control:** asking *"is it inside `~~…~~`?"* with `~~[^~]*16-step` returned True — because an unrelated `~~` sits earlier and `[^~]*` spanned the gap. **A regex answering "is X inside a delimiter" by searching for the delimiter anywhere before X will say yes to the whole file.** Re-run over both conventions: **109 superseded passages, zero quoted without a marker** — and that zero is worth something, because the corrected detector demonstrably flags a reconstruction of §1408's sentence. **§1409's error was singular, not a habit** |
 | **855** | §1408 | **§1409** | **I QUOTED STRUCK TEXT AS CURRENT, AND THE REPO HAD SOLVED IT 380 SECTIONS EARLIER.** §1408 cited CLAUDE.md's account of `verify:dev` as *"a 16-step chain … reaches 4 of 16"*. Measured: **18 steps**. **But the drift is my quotation's, not the law's** — CLAUDE.md's current text says that reading held *"until audit §1029"*, was *"invalidated hours later by `7b61624`"*, and that **the total is stated no longer, only the position that matters: step 4, and nothing after it**. I quoted the struck half of a correction as the claim. **Eleventh measurement error, and the first where the artifact had already anticipated the failure I was about to report.** **§1029's move is exactly §1402's, reached 373 sections apart and independently:** faced with a number that rots, REMOVE the number and keep the invariant. A convention arrived at twice from opposite ends of the record is the closest this audit has to a law about documentation. Substantively: `verify:dev` is still an unaggregated `&&` chain at 18 steps, and that is **not** a defect — CLAUDE.md documents it, names `verify:merge` as the real verdict, and `wp-exit-audit.test.ts:19` records that a naive matcher yields *"4 of 16"* and *"reads as a serious constitutional finding and is an artifact"*. **Tenth clean negative** |
 | 854 | §1407 | **§1408** | **VERIFYING MY OWN DELIVERABLE IS WIRED, BY THE STANDARD §1304 SET.** Five gates were built this session and each reported as working; §1304's standard is **verified WIRED before the board is read**, because a gate that runs when I invoke it and not when CI does is decoration with a green tick. **First measurement said ZERO** — searching the merge log for the five names returns 0 mentions each, which reads as "they never ran". It is the §1362 reporter difference: the tools suite runs under vitest v4 (summary only) while worker suites at v3.2.7 print per-file. The same run reports **125 files passed**, 120 + 5. **Tenth measurement error avoided by not believing a zero.** Measured properly three ways: `vitest list` shows **21 cases** across the five; `run-gate.ts:46` wires `unit-tests` to the `test` script; and `test` is `test:tools; t=$?; … ; exit $(( t \|\| p ))`. **Proved end-to-end:** breaking `law-enforcers` makes `pnpm test:tools` exit 1, which propagates. Also worth noting: that script AGGREGATES rather than `&&`-chains — the defect CLAUDE.md records for `verify:dev`, which reaches 4 of 16 steps |
@@ -84259,3 +84260,71 @@ make the ledger countable two ways; and `phase-index` refused the section itself
 carry the literal `— PHASE GATE` token and so would have been indexed as a gate that the doc did not contain.
 Convention breaks, every one, by the author who has written fifty of these. That is the argument for mechanical
 gates over remembered conventions, made against me rather than for me.
+
+## §1460 — PHASE GATE: a same-tick comparison cannot see a clock (REQ-118/REQ-039)
+
+§1459 ended with a mechanical discriminator: **does the second attempt SKIP anything?** The repo's other
+at-least-once surface is Cloudflare Queues, so I asked it there. One consumer exists
+(`workers/agents/src/index.ts:590@queue`), and it is the right shape — per-message `ack()`/`retry()`, not a
+batch throw, pinned by `queue-dispatch.test.ts:76`. Its `pod.signed` branch then makes the §1459 claim verbatim:
+
+> Idempotent (deterministic id + sequencer dedupe), so a redelivery that re-runs both is safe
+
+The Biller **sends an email**. So the question sharpens: idempotent APPEND is not idempotent SEND, and a
+duplicate invoice email is an output that works — it just reaches the customer twice. Tracing it gave a clean
+chain: the invoice event id is seeded on the POD event id, the sender forwards it as an `idempotency-key`
+header (`sender.test.ts:254`), and `RecordingSender` models Resend's semantics — same key + same payload → one
+message, same key + different payload → conflict (`sender.test.ts:140`/`:148`). Two more clean negatives on the
+way: `intake.ts` shares the intake verbs with `import.ts` but is a single-shipment POST, not a loop; and
+`mirror-sweep.ts`'s `lgm_gap_` id folds the clock **on purpose** — the file states the rule in both directions
+(`writeQuarantine` is idempotent by CONTENT *"NOT the clock — contrast the gap rows"*, and the loop is headed
+"LAW 2"), because gap rows are a recurring monitor that must re-raise.
+
+**The finding is in a test, not in the code.** `id-determinism.test.ts` carries a case named *"a redelivered POD
+re-derives the SAME invoice event id"*:
+
+```ts
+expect(await invoiceEventIdFor("pod-evt-42")).toBe(await invoiceEventIdFor("pod-evt-42"));
+```
+
+Both calls land in the same millisecond. Fold a clock into the seed and it stays green — **measured: 142/142,
+the entire owning worker**, including that case. The assertion cannot fail for the hazard its name describes.
+
+**And I nearly published the wrong conclusion.** "The repo is blind" was the obvious next sentence; it is false.
+Running the same mutation against `workers/api` reds **6 tests** — the guarantee is DELEGATED across a worker
+seam, and the file's own header says so and explains why (*"proving 'one invoice' needs the real DO"*). What
+the header gets wrong is its OTHER claim — that its cheap local assertions *"close exactly that gap"* for the
+PRECONDITION. For the clock class they never did. The scenario the header itself describes — an engineer edits
+`biller.ts`, runs the suite that owns the file, sees green — still ships.
+
+**Two fixes, both mutation-proved.**
+
+1. *Per-call-site, in the owning suite.* A case that moves `Date.now` and `Math.random` between the two
+   derivations, plus a positive control that the stubs are live (a stub that cannot take effect would restore
+   the exact vacuity being corrected). RED: clock → 1 failure, random → 2.
+2. *Class-wide, static.* `tools/checks/id-seed-purity.test.ts` reads the SEED — where the hazard is written —
+   across all **24** template-literal seeds in 337 shipped files, so it cannot go vacuous the way a same-tick
+   comparison did. Direct clock/randomness is banned; an injected clock requires a DECLARED exemption with a
+   reason (mirror-sweep is the only one, and the rule checks it still exists and still folds a clock). Proved by
+   planting a clock and a random draw in a real seed: RED both times, not merely on its synthetic control.
+
+**A number I had to take back mid-phase.** The gate reports 34 *indirect* seeds it cannot read, and I wrote
+"more than half the seeds are invisible" before classifying them. Classified: ~18 are the two primitives' own
+plumbing (the real seed is the caller's literal, which IS scanned), ~13 hash CONTENT BYTES where content-derivation
+is correct, leaving roughly **three** genuinely opaque. The reach gap is ~3, not 34 — and the alarming version
+would have made a nearly-complete gate read as mostly blind. I also wrote the live counts from memory (`335
+files, 13 indirect`) before running them (337, 34), which is §1437's defect committed again inside the fix for a
+different one.
+
+**The general form.** An idempotence test must separate its two attempts **by the thing that actually differs
+between them**. A redelivery differs from its original by ELAPSED TIME — seconds of queue backoff, never zero —
+so two calls in the same millisecond assert a property no redelivery has. This is §389's "nothing REACHES it",
+but reached by a dimension rather than a path: the code under test runs, the assertion runs, and the variable
+that carries the bug is held constant by the harness. When the property is invariance across *X*, the test has
+to move *X*.
+
+**Phase gate.** Source changed: one test file hardened, one gate added, no product code (`biller.ts` restored
+byte-identical after four mutations). 133 tools files / 1,418 tests green; `workers/agents` 6/6 on the touched
+file; `check:citations` and `check:section-refs` clean. Board: **21 PASS · 0 FAIL · 5 BLOCKED at `b451f43`**
+(§1451, 9 commits ago) — not re-run here, and this is the first phase in that span to change source, so the next
+gate should re-measure rather than cite it again. Carry-forward unchanged.
