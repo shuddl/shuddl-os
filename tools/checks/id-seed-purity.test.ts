@@ -55,15 +55,47 @@ interface Seed {
   readonly text: string;
 }
 
-function seeds(root: string): { readonly literal: Seed[]; readonly indirect: number; readonly files: number } {
-  const files = execSync(`git ls-files -- ${SOURCE_SCAN_GLOBS.map((g) => `'${g}'`).join(" ")}`, {
+/**
+ * The SECOND population, added at §1461 after the §1460 sweep found it: an id that is a plain template literal,
+ * built by a small named function and never hashed — `dunningDraftId` returns `msg:dunning:${invoiceId}:${bucket}`.
+ * These are idempotency keys just as much as the seeded ones (the Collector's `INSERT OR IGNORE` into `messages`
+ * is the ONLY thing standing between a redelivery and a second dunning draft), and the scan above cannot see them
+ * because they never reach `uuidFromSeed`/`sha256Hex`.
+ *
+ * All 18 were clean when this landed — so this half is a TRIPWIRE, not a fix. It is here because the alternative
+ * is that the whole class holds by convention, and §1460's lesson is precisely that a convention with no gate
+ * survives exactly as long as everyone remembers it.
+ *
+ * Deliberately NOT flagged: ids keyed on a PERIOD (`anchorDocId` → `anchor:${day}`, `snapshotKey` →
+ * `watchtower/${tenant}/${isoWeekStr}.json`, `usageCreditsId` → `${tenantSlug}:${period}`). There the time
+ * component IS the identity — a weekly snapshot is supposed to differ week over week — and `CLOCKISH` matches
+ * only clock-INSTANT names (`now`, `ts`, `timestamp`, …), never `day`/`period`/`isoWeekStr`. Widening it to
+ * those would turn three correct designs into permanent false positives.
+ */
+const ID_BUILDER = /function\s+(\w*(?:Id|Ref|Key))\s*\([^)]*\)[^{]*\{\s*return\s+(`[^`]*`)\s*;/g;
+
+function idBuilders(root: string, files: readonly string[]): Seed[] {
+  const out: Seed[] = [];
+  for (const file of files) {
+    const src = stripComments(readFileSync(`${root}/${file}`, "utf8"));
+    for (const m of src.matchAll(ID_BUILDER)) {
+      out.push({ file, line: src.slice(0, m.index).split("\n").length, text: m[2] as string });
+    }
+  }
+  return out;
+}
+
+function corpus(root: string): string[] {
+  return execSync(`git ls-files -- ${SOURCE_SCAN_GLOBS.map((g) => `'${g}'`).join(" ")}`, {
     cwd: root,
     encoding: "utf8",
     maxBuffer: 32 * 1024 * 1024,
   })
     .split("\n")
     .filter((f) => f !== "" && !isTestPath(f));
+}
 
+function seeds(root: string, files: readonly string[]): { readonly literal: Seed[]; readonly indirect: number } {
   const literal: Seed[] = [];
   let indirect = 0;
   for (const file of files) {
@@ -76,12 +108,13 @@ function seeds(root: string): { readonly literal: Seed[]; readonly indirect: num
       literal.push({ file, line: src.slice(0, m.index).split("\n").length, text: m[1] });
     }
   }
-  return { literal, indirect, files: files.length };
+  return { literal, indirect };
 }
 
 describe("§1460 REQ-039: no deterministic-id seed carries a clock or a random draw", () => {
   const root = repoRoot();
-  const { literal, indirect, files } = seeds(root);
+  const files = corpus(root);
+  const { literal, indirect } = seeds(root, files);
 
   it("derives a real corpus (§1148: a floor must bound the corpus READ, not the hits found)", () => {
     // Both floors are stated because they fail differently: a collapsed FILE count means the glob roster or
@@ -97,7 +130,7 @@ describe("§1460 REQ-039: no deterministic-id seed carries a clock or a random d
     // event bytes, a position row) which are supposed to be content-derived and for which a clock would be a
     // different bug entirely; leaving roughly THREE genuinely opaque string variables. The reach gap is ~3, not
     // 34. Stating it the other way would make this gate read as mostly-blind when it is nearly complete.
-    expect(files, "the shared SOURCE_SCAN_GLOBS corpus collapsed — the roster broke, not the repo").toBeGreaterThan(200);
+    expect(files.length, "the shared SOURCE_SCAN_GLOBS corpus collapsed — the roster broke, not the repo").toBeGreaterThan(200);
     expect(literal.length, "no template-literal seed found — the call pattern changed and this gate reads nothing").toBeGreaterThanOrEqual(15);
     expect(indirect, "the indirect count collapsed; if seeds stopped being built in variables that is a REAL change, confirm it").toBeGreaterThanOrEqual(5);
   });
@@ -147,5 +180,35 @@ describe("§1460 REQ-039: no deterministic-id seed carries a clock or a random d
     expect(CLOCKISH.test("`biller:invoice-event:${podEventId}`"), "CLOCKISH fired on a pure seed").toBe(false);
     // `now` must match as a WHOLE interpolation, never as a substring of a legitimate name.
     expect(CLOCKISH.test("`${knownShipper}:${nowhere}`"), "CLOCKISH matched a substring — it would cry wolf").toBe(false);
+  });
+});
+
+describe("§1461 REQ-039: the same law over UNHASHED id builders (the class §1460's sweep found)", () => {
+  const root = repoRoot();
+  const builders = idBuilders(root, corpus(root));
+
+  it("derives a real population", () => {
+    // LIVE, MEASURED at §1461: 18 single-return template-literal id builders. Floor 10 — a tripwire for the
+    // pattern breaking, never a number anyone maintains.
+    expect(builders.length, "no plain-literal id builder found — the pattern broke, not the repo").toBeGreaterThanOrEqual(10);
+  });
+
+  it("no id builder reads a clock or randomness", () => {
+    const bad = builders.filter((b) => IMPURE.test(b.text) || CLOCKISH.test(b.text)).map((b) => `${b.file}:${b.line}  ${b.text}`);
+    expect(
+      bad,
+      "an id built for idempotency reads the clock or a random draw, so the SAME logical thing gets a NEW id on " +
+        "every attempt and the `INSERT OR IGNORE` protecting it stops protecting anything — the Collector would " +
+        "draft a fresh dunning message every tick. If the time component IS the identity (a daily anchor, a " +
+        "weekly snapshot), name it for the PERIOD (`day`, `period`, `isoWeekStr`), which this rule does not " +
+        "match, rather than for the instant:\n  " + bad.join("\n  "),
+    ).toEqual([]);
+  });
+
+  it("the extractor finds a known builder, and the period-keyed ones are NOT flagged (positive + negative control)", () => {
+    expect(builders.some((b) => b.text.includes("msg:dunning:")), "the extractor missed dunningDraftId — it reads nothing").toBe(true);
+    const periodKeyed = builders.filter((b) => /\$\{\s*(day|period|isoWeekStr)\s*\}/.test(b.text));
+    expect(periodKeyed.length, "the period-keyed builders vanished — this control no longer proves the rule ignores them").toBeGreaterThanOrEqual(2);
+    for (const b of periodKeyed) expect(CLOCKISH.test(b.text), `${b.file} period key wrongly flagged as an instant`).toBe(false);
   });
 });
