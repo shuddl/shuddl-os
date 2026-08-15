@@ -90044,5 +90044,6 @@ contention into a hot loop inside a Worker's CPU budget; exhaustion is a 409 `CO
 > second is what a compare-and-set makes.
 
 **Phase gate.** Without the fix at least one case reds every run (both, in 2 of 3); with it, **16/16 across
-three runs**. Full api suite **71 files / 873 tests**; typecheck and lint 0. One production route changed —
-board re-measured below.
+three runs**. Full api suite **71 files / 873 tests**; typecheck and lint 0. One production route changed, so
+the board was re-measured at `e272b13`: **21 PASS · 0 FAIL · 5 BLOCKED** (aggregate BLOCKED, exit 2 — the five
+owner-side private-fixture holds).
