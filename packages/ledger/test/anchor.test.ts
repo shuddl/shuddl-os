@@ -644,6 +644,35 @@ describe("REQ-014 — determinism, bucketing, gaps, failures, positions", () => 
 // blind every one of them at once, with no test failing to announce it. This assertion is the
 // one that survives that refactor, because asserting the literal shape IS its purpose.
 // Measured, not assumed: mutating each builder alone, then re-running both suites (audit §174).
+// §1570 (REQ-014/118) — THE PER-RUN BACKFILL CAP, WHICH NOTHING EXERCISED.
+//
+// `MAX_DAYS_PER_RUN = 30` bounds how many unanchored days one invocation will take on, oldest-first. It was the
+// last unasserted item on §1550's bound work-list, and it is not a cosmetic ceiling: each anchored day costs
+// R2 writes, a TSA round trip and a documents INSERT, and Cloudflare caps subrequests per invocation — a filed
+// go-live row (*"SIX sites make ONE-OR-MORE subrequests per row, over an unbounded row set"*). Without the cap
+// a tenant idle for a year would try ~365 days in one tick and throw `Too many subrequests` partway, which the
+// R2-before-row ordering makes safe but not complete.
+//
+// The fixture seeds ONE event 40 days back, so the gap-free day chain spans well past the cap with a single
+// seed — the loop includes empty days deliberately (a gap-free chain is what makes the root verifiable).
+describe("§1570 the anchor backfill is capped per run, and the remainder is left for the next tick", () => {
+  it("a 40-day backlog anchors at most MAX_DAYS_PER_RUN days in one invocation", async () => {
+    const oldest = "2026-05-30"; // ~40 days before the suite's FIRE clock
+    await seed("stop.arrived", { stream_id: "s:cap", shipment_id: "cap", seq: 0, recorded_at: noon(oldest) });
+
+    const res = await runDailyAnchor({ db: DB, r2: R2, tsa: new FakeTsaClient(), tenant: TENANT, now: FIRE });
+    expect(
+      res.anchored.length,
+      "one invocation took on more than the per-run cap — each day costs R2 writes plus a TSA round trip, and " +
+        "Cloudflare caps subrequests per invocation, so an unbounded backlog throws partway",
+    ).toBeLessThanOrEqual(30);
+    expect(res.anchored.length, "the fixture did not produce a backlog at all — this case would pass vacuously").toBeGreaterThan(1);
+    // OLDEST-FIRST is the half that makes the remainder recoverable: the next tick resumes where this one
+    // stopped rather than re-racing the newest days forever.
+    expect(res.anchored[0], "the run did not start at the oldest unanchored day").toBe(oldest);
+  });
+});
+
 describe("REQ-025 — anchor R2 keys are tenant-partitioned", () => {
   it("both builders embed the tenant, so no two tenants can address the same object", () => {
     expect(anchorManifestKey("tenant-a", "2026-07-15")).toBe("anchors/tenant-a/2026-07-15/manifest.json");
