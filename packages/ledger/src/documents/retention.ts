@@ -90,11 +90,21 @@ interface CandidateRow {
   created_ts: number;
 }
 
-// ACTIVE (not already tombstoned) + NON-POD in SQL — POD/tsa_receipt are the 7yr compliance kinds and are
-// EXCLUDED here (belt) so the sweep can never even consider them, independent of retentionMsFor (suspenders).
+// ACTIVE (not already tombstoned) + the 7yr compliance kinds excluded, DERIVED from POD_RETAINED_KINDS rather
+// than restated — the same list decides the stamped class (retentionClassFor) and the sweep's blind spot, so a
+// kind added to one must reach the other. It read `NOT IN ('POD','tsa_receipt')` until 2026-08-15 (audit §1536):
+// a hand-written second copy, drift-ready in the same file as its own constant. Bound, not interpolated.
+//
+// AND IT IS NOT A BELT. The struck comment here claimed this exclusion was redundant with retentionMsFor
+// ("independent of ... (suspenders)"), which is TRUE for a POD the evidence route writes — real created_ts +
+// the 7yr window — and FALSE for the row that actually needs it. `anchor.ts` inserts its daily tsa_receipt
+// WITHOUT created_ts, taking the column DEFAULT of 0 (0007), and `0 + any finite window` is a date in the
+// past: a created_ts of 0 defeats every duration-based guard there is. This list is the SOLE watcher for the
+// merkle receipts that make the ledger verifiable — measured by deleting 'tsa_receipt' from it, which reds
+// exactly one case and silently deleted the receipt bytes before that case existed.
 const CANDIDATES_SQL =
   "SELECT id, kind, r2_key, lifecycle_class, created_ts FROM documents " +
-  "WHERE retention_status = 'active' AND kind NOT IN ('POD','tsa_receipt')";
+  `WHERE retention_status = 'active' AND kind NOT IN (${POD_RETAINED_KINDS.map(() => "?").join(",")})`;
 
 // The TOMBSTONE — a plain UPDATE (documents is a mutable projection table, no append-only guard). Guarded by
 // `retention_status='active'` so it is a strict active→expired transition (idempotent: an already-expired row
@@ -119,7 +129,7 @@ export async function sweepTenantExpiredDocuments(
   tenant: string,
   now: number,
 ): Promise<RetentionSweepResult> {
-  const rows = (await db.prepare(CANDIDATES_SQL).all<CandidateRow>()).results;
+  const rows = (await db.prepare(CANDIDATES_SQL).bind(...POD_RETAINED_KINDS).all<CandidateRow>()).results;
   let deleted = 0;
   let retained = 0;
   let skippedForeignKey = 0;

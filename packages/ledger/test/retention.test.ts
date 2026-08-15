@@ -2,6 +2,7 @@ import { env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 import { applyMigrations } from "../src/migrate.js";
 import {
+  POD_RETAINED_KINDS,
   RETENTION_CLASS_DEFAULT,
   RETENTION_CLASS_POD_7YR,
   computeTenantStorageBytes,
@@ -339,5 +340,60 @@ describe("§915: retention_status is constrained by the DB, which is its only gu
     await doc("ret-active", "active"); // controls: both legal states insert cleanly…
     await doc("ret-expired", "expired");
     await expect(doc("ret-bad", "archived")).rejects.toThrow(/CHECK/i); // …so this refusal is the domain
+  });
+});
+
+// §1536 (REQ-116/023/118) — THE EXCLUSION LIST IS THE SOLE GUARD FOR A created_ts OF 0.
+//
+// `anchor.ts` inserts the daily merkle receipt WITHOUT created_ts, taking 0007's column DEFAULT of 0 — and it
+// says so, calling the retention clock "moot" because a tsa_receipt is never swept. That is true, and it is
+// true because of a STRING IN ANOTHER FILE. Every retention decision is `created_ts + window`, so a start of 0
+// puts EVERY finite window in the past: the 7-year compliance class does NOT protect this row. CANDIDATES_SQL's
+// exclusion is the only thing standing between the bytes that make the ledger verifiable and a DELETE.
+//
+// The comment above that query claimed the exclusion was a redundant "belt … independent of retentionMsFor
+// (suspenders)". Measured at §1536: deleting 'tsa_receipt' from the list left 734/734 GREEN, and the receipt's
+// bytes were silently swept. The claim is true for a POD (real created_ts + 7yr) and false for the one row that
+// needs it. Two guards are only redundant where BOTH can fire.
+//
+// This derives its subject from POD_RETAINED_KINDS rather than naming the kinds, so a kind added to the
+// constant is covered here on the same commit — which is also the drift the fix closed (the SQL was a
+// hand-written second copy of that constant, in the same file as the constant).
+describe("§1536 REQ-116: the retained-kind exclusion, not the duration, is what saves a created_ts of 0", () => {
+  it("every POD_RETAINED_KIND survives a sweep at created_ts 0 — including anchor's receipt", async () => {
+    expect(POD_RETAINED_KINDS.length, "an empty retained list would make this pass over nothing").toBeGreaterThanOrEqual(2);
+    const keys: string[] = [];
+    for (const [i, kind] of POD_RETAINED_KINDS.entries()) {
+      keys.push(
+        await seedDoc({
+          db: A, tenant: "tenant-a", id: `ret-zero-${i}`, kind, shipment: "ret-shp-zero",
+          hash: String(i).repeat(64).slice(0, 64),
+          // COMPUTED from the same map the writers call — not a hardcoded class, so a re-classified kind
+          // cannot make this case quietly stop describing what production stores.
+          lifecycleClass: retentionClassFor(kind), createdTs: 0, // the 0007 column DEFAULT anchor.ts relies on
+        }),
+      );
+    }
+    // A sweep a century after the epoch: every finite retention window has long since elapsed from 0.
+    const res = await sweepTenantExpiredDocuments(A, R2, "tenant-a", 100 * YEAR_MS);
+    expect(res.deleted, "a retained kind was swept — the exclusion list no longer covers POD_RETAINED_KINDS").toBe(0);
+    for (const [i, key] of keys.entries()) {
+      expect(await R2.head(key), `${POD_RETAINED_KINDS[i]} bytes were deleted — for tsa_receipt that is the ledger's own witness`).not.toBeNull();
+      expect(await retentionStatus(A, `ret-zero-${i}`)).toBe("active");
+    }
+  });
+
+  it("CONTROL: the SAME row with a non-retained kind IS swept at created_ts 0 — so 0 really is born-expired", async () => {
+    // Without this the case above proves only that a sweep ran and deleted nothing, which is also what a
+    // broken sweep looks like. This is the same fixture minus the hostile part (§1534): identical tenant,
+    // shipment and created_ts, one field changed — and it must DIE where the retained kinds live.
+    const key = await seedDoc({
+      db: A, tenant: "tenant-a", id: "ret-zero-control", kind: "photo", shipment: "ret-shp-zero",
+      hash: "c".repeat(64), lifecycleClass: retentionClassFor("photo"), createdTs: 0,
+    });
+    expect(POD_RETAINED_KINDS.includes("photo"), "the control must NOT be a retained kind, or it proves nothing").toBe(false);
+    const res = await sweepTenantExpiredDocuments(A, R2, "tenant-a", 100 * YEAR_MS);
+    expect(res.deleted, "created_ts 0 did NOT expire — then the case above is not testing what it claims").toBe(1);
+    expect(await R2.head(key)).toBeNull();
   });
 });

@@ -757,6 +757,8 @@ triggers — the table below is the complete list, and its last row is the curre
 | 979 | §1532 | **§1533** | **THE SAME FALSE MECHANISM, A SECOND TIME — and the premise is now a test.** §1516 states `legs: 10_000` *writes all ten thousand into an append-only payload — permanent, unshrinkable storage*. **Measured: it does not.** A marker `executor` and `tenant_party` appear in NEITHER appended event. That is the second time I wrote this clause — §1527 corrected it for the zip, and the same sentence had been written about the legs one phase earlier without my noticing while correcting its twin. Three measurements now agree (zip, dims, executor): **`/v1/rate` appends nothing verbatim; the `basis` is DERIVED.** Pinned in `rate.test.ts` with four markers, mutation-proved by stamping the zip into `basis`; the failure message says the change is *not automatically wrong* and names the sections whose verdicts assumed otherwise. **§1516's open item shrinks from ledger-SIZE to COMPUTE — an open item whose stakes are overstated is what gets prioritised over something truer.** |
 | 980 | §1533 | **§1534** | **THE LENGTH BOUND IMPLIED A COUNT BOUND THAT WAS NEVER WRITTEN.** §1533's trigger sent me to the one persisted client-string path never checked: `refs` is `z.record(string.max(200), string.max(200))` — **every key and value bounded, the COUNT unbounded** — and the constant's own comment says the lengths are bounded because it *rides inline in the shipments row*. Measured with a control: `{pro:"P-1"}` → 201, and **10,000 keys × 200 chars → 201 with 2,108,891 bytes stored in one cell**. `MAX_REF_KEYS = 64` is two orders above real use (the MCP tool stamps ONE; the largest map in the tree has TWO). **The probe took three tries and the control is why that was cheap** — the first 400 looked like *the route already refuses it*, but the control 400'd too (wrong fixture: the parties field is `id`). **A refusal is only evidence when the same fixture, minus the hostile part, is accepted.** |
 | 981 | §1534 | **§1535** | **THE REGRESSION A BOUND-ADDING PHASE CREATES.** §1534's trigger asked who ELSE writes `shipments.refs`: the import path does, carrying every unmapped legacy column because **rule 10 forbids losing them** (up to 171 in a real export). **Had the 64-key cap reached that path, the fix would have been a rule-10 violation.** It does not — `import.ts` calls `materializeShipment` directly — and both writers are bounded by different numbers for different reasons (64 client-named keys vs 200 columns × 2,000 chars). Measured: 100 unmapped columns import at 200 and store 2,181 bytes. **Mutation-proved by pushing the cap one function deeper, which reds it — the exact regression this shape creates, and nothing in §1534 would have caught it.** Also: the first mutation was a compile error and the run printed `Tests no tests` — **third collapsed run this block; the tell is the count, never the word.** |
+| 982 | §1535 | **§1536** | **A `created_ts` OF 0 DEFEATS EVERY DURATION GUARD.** §1535's carry-forward swept as a count: 19 tables written, **11 with more than one writing module**; diffing column SETS found one disagreement — `anchor.ts` omits `documents.created_ts`, taking the DEFAULT 0. Safe only because the sweep excludes `tsa_receipt`, whose header claimed that exclusion was a **belt redundant with `retentionMsFor`**. It is not: `0 + any finite window` is in the past, so the 7yr class cannot fire and the list is the **SOLE watcher for the merkle receipts that make the ledger verifiable**. Second defect in the same five lines: the SQL was a hand-written copy of `POD_RETAINED_KINDS`, declared 51 lines above it. Both fixed; **3-cell grid, M1 vs M2 a controlled pair** (same constant mutation, only the derivation differs, only the hardcoded cell reds); M3 is the original blind spot and **was 734/734 green** before. |
+| 983 | §1536 | **§1537** | **I BROKE THE TYPECHECK GATE AND SIX COMMITS SHIPPED ON IT.** `pnpm typecheck` red in `@shuddl/adapters` — not the concurrent workstream's, not pre-existing: **my own `b28d90d`**, a spread that cannot supply a required field. Unseen because I ran that package's vitest suite and got **51/51** — **esbuild strips types without checking them**, so a suite's green is not evidence about its types; the two gates share no checker. Which is what CLAUDE.md already says: **green means `verify:merge`, not a suite.** Fixed; typecheck exits 0 repo-wide. **Habit: any commit touching a `.ts` runs `pnpm typecheck` before it lands.** |
 | 856 | §1409 | **§1410** | **SWEEPING MY OWN SECTIONS FOR §1409's ERROR, AND A DETECTOR THAT COULD NOT HAVE FOUND IT.** §1404's precedent: a class like this gets ONE measurement, not a gate, since a correction necessarily quotes what it corrects. **The first sweep returned ZERO and was worthless** — it extracted superseded text as `~~struck~~` only, but the very case §1409 found is marked the other way, as *"a 16-step chain …"* **until audit §1029**. **My detector encoded one of the repo's TWO conventions, so it could never have found the known positive.** Twelfth instance of the session's constant, caught because a zero is the answer this session has learned never to accept. **A second false signal inside the control:** asking *"is it inside `~~…~~`?"* with `~~[^~]*16-step` returned True — because an unrelated `~~` sits earlier and `[^~]*` spanned the gap. **A regex answering "is X inside a delimiter" by searching for the delimiter anywhere before X will say yes to the whole file.** Re-run over both conventions: **109 superseded passages, zero quoted without a marker** — and that zero is worth something, because the corrected detector demonstrably flags a reconstruction of §1408's sentence. **§1409's error was singular, not a habit** |
 | **855** | §1408 | **§1409** | **I QUOTED STRUCK TEXT AS CURRENT, AND THE REPO HAD SOLVED IT 380 SECTIONS EARLIER.** §1408 cited CLAUDE.md's account of `verify:dev` as *"a 16-step chain … reaches 4 of 16"*. Measured: **18 steps**. **But the drift is my quotation's, not the law's** — CLAUDE.md's current text says that reading held *"until audit §1029"*, was *"invalidated hours later by `7b61624`"*, and that **the total is stated no longer, only the position that matters: step 4, and nothing after it**. I quoted the struck half of a correction as the claim. **Eleventh measurement error, and the first where the artifact had already anticipated the failure I was about to report.** **§1029's move is exactly §1402's, reached 373 sections apart and independently:** faced with a number that rots, REMOVE the number and keep the invariant. A convention arrived at twice from opposite ends of the record is the closest this audit has to a law about documentation. Substantively: `verify:dev` is still an unaggregated `&&` chain at 18 steps, and that is **not** a defect — CLAUDE.md documents it, names `verify:merge` as the real verdict, and `wp-exit-audit.test.ts:19` records that a naive matcher yields *"4 of 16"* and *"reads as a serious constitutional finding and is an artifact"*. **Tenth clean negative** |
 | 854 | §1407 | **§1408** | **VERIFYING MY OWN DELIVERABLE IS WIRED, BY THE STANDARD §1304 SET.** Five gates were built this session and each reported as working; §1304's standard is **verified WIRED before the board is read**, because a gate that runs when I invoke it and not when CI does is decoration with a green tick. **First measurement said ZERO** — searching the merge log for the five names returns 0 mentions each, which reads as "they never ran". It is the §1362 reporter difference: the tools suite runs under vitest v4 (summary only) while worker suites at v3.2.7 print per-file. The same run reports **125 files passed**, 120 + 5. **Tenth measurement error avoided by not believing a zero.** Measured properly three ways: `vitest list` shows **21 cases** across the five; `run-gate.ts:46` wires `unit-tests` to the `test` script; and `test` is `test:tools; t=$?; … ; exit $(( t \|\| p ))`. **Proved end-to-end:** breaking `law-enforcers` makes `pnpm test:tools` exit 1, which propagates. Also worth noting: that script AGGREGATES rather than `&&`-chains — the defect CLAUDE.md records for `verify:dev`, which reaches 4 of 16 steps |
@@ -87869,3 +87871,69 @@ second type-correct). `@shuddl/api` **855/855** (was 854). Tools 140 files / 145
 §1534's is discharged. The general form is worth carrying instead: **when a phase adds a bound, ask who else
 writes the field, and pin the answer**; the asymmetry between two writers is invisible in the schema and
 obvious in a test.
+
+## §1536 — PHASE GATE: a created_ts of 0 defeats every duration guard, so the exclusion list is the SOLE watcher (REQ-116/023/118)
+
+§1535's carry-forward was *"when a phase adds a bound, ask who else writes the field."* Applied as a sweep:
+**19 tables are written in this repo; 11 have more than one writing module.** Diffing the COLUMN SETS each
+writer supplies found one disagreement — `documents`, where `anchor.ts` sets 8 columns and `evidence.ts` sets 9.
+The missing one is `created_ts`.
+
+That omission is deliberate and documented: anchor writes only `tsa_receipt`, the sweep's candidate query
+excludes that kind, so the retention clock is "moot". **True — and true because of a string in another file.**
+
+**What the comment claimed, and what is actually so.** `CANDIDATES_SQL` was headed *"EXCLUDED here (belt) so the
+sweep can never even consider them, independent of retentionMsFor (suspenders)."* Every retention decision is
+`created_ts + retentionMsFor(class)`. Anchor's row takes 0007's column **DEFAULT of 0**, and `0 + any finite
+window` is a date in the past — so the 7-year compliance class does **not** protect it. The suspenders hold for
+a POD the evidence route writes (real `created_ts`) and fail for the one row that needs them. **Two guards are
+only redundant where both can fire**, and the comment asserting redundancy is what makes deleting the belt look
+safe. The bytes it protects are the daily merkle receipts that make the ledger verifiable.
+
+**Second defect, same five lines.** The SQL read `kind NOT IN ('POD','tsa_receipt')` — a hand-written second
+copy of `POD_RETAINED_KINDS`, **declared 51 lines above it in the same file**, and the list that decides the
+stamped class. Add a kind to the constant and it gets `pod-7yr` stamped while becoming a sweep candidate.
+
+**Fixed** by deriving the exclusion from the constant (bound, not interpolated) and by replacing the mechanism
+clause with the measured one. **The mutation grid — M1 vs M2 is a controlled pair, identical constant mutation,
+only the derivation differs:**
+
+| | SQL | constant | §1536 | reading |
+|---|---|---|---|---|
+| M1 | derived | + `claim` | **green** | the SQL follows the constant — the fix works |
+| M2 | hardcoded | + `claim` | **RED** | the drift the fix closed |
+| M3 | loses `tsa_receipt` | unchanged | **RED** | the belt is the SOLE watcher |
+
+M3 is the original blind spot, and before this case existed **the same mutation was 734/734 green.** M1's one
+RED is the pre-existing class-map test correctly pinning `retentionClassFor("claim")` — attributed before being
+credited, per §1414; it is not §1536 failing.
+
+**Phase gate.** `@shuddl/ledger` **736/736** (was 734). Typecheck clean. **Reopen trigger:** the case derives its
+subject from `POD_RETAINED_KINDS`, so a new retained kind is covered on the same commit — but a new *writer* of
+`documents` that omits `created_ts` is not. That is the general form and it now has a name: **a column DEFAULT
+that is never read is a landmine, not a default.**
+
+## §1537 — PHASE GATE: I broke the typecheck gate and six commits shipped on top of it (REQ-118/119)
+
+While verifying §1536, `pnpm typecheck` failed in `@shuddl/adapters` — a package this phase never touched. It
+was not the concurrent workstream's and it was not pre-existing: **`b28d90d`, my own commit earlier today,**
+added a `projectOut([{ ...ev!, … }])` whose spread cannot supply `ProjectableEvent.cursor`. **Six commits
+shipped on top of the break.**
+
+**Why it went unseen, and this is the transferable part.** After writing that case I ran
+`pnpm --filter @shuddl/adapters test` and got **51/51 green** — and vitest transpiles with esbuild, **which
+strips types without checking them.** A package's test suite passing certifies its RUNTIME behaviour and says
+nothing whatever about its types. The two gates do not share a checker, so no amount of green in one is
+evidence about the other. Every discipline this block has built — mutate the guard, plant a violation, attribute
+the RED — operates *inside* a suite, and all of it is blind to a gate the suite never invokes.
+
+It is also exactly what CLAUDE.md's working agreement already says and I did not do: **"green" means
+`pnpm verify:merge`, not a suite.** `verify:merge` runs typecheck as its own aggregated gate; a filtered vitest
+run is an inner loop, not a verdict.
+
+**Fixed** by supplying `cursor: 1` — the fixture's own `feed_seq`, so the round-trip stays a round trip.
+Repo-wide `pnpm typecheck` now exits **0**; adapters **51/51**.
+
+**Phase gate.** **Reopen trigger:** none — but the habit changes. **Any commit that touches a `.ts` file runs
+`pnpm typecheck` before it lands, not the package's vitest suite.** The suite cannot see this class of defect,
+and six commits is how long it stays invisible.
