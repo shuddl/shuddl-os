@@ -88196,7 +88196,17 @@ later by an `UPDATE` or an `ON CONFLICT` clause?*), which my first pass did not 
 looked like a constant and is appended by the authority projection on every flip. **That correction is the
 method**: a literal on INSERT is normal; a literal on insert AND never updated is the finding.
 
-**Four columns are never written non-literally. One matters.**
+**Four columns are never written non-literally. One matters — and the other three are classified here rather
+than waved past, because "one matters" is itself a claim (the §1539 lesson, applied on the same day it was
+learned):**
+
+| column | always | verdict |
+|---|---|---|
+| `approvals.object_kind` | `'shipment'` | **consistent.** Every read is also `WHERE object_kind = 'shipment'`, so writer and reader agree; a discriminator reserved for future object kinds, not a value anyone is missing. |
+| `users.auth` | `'{}'` | **inert.** No production read found; `device_keys` is the live credential column and `devices.ts` maintains it. |
+| `users.role` | `'admin'` | **ALREADY FILED — not a new finding.** The one production `INSERT INTO users` writes `'admin'`, so no shipped path creates a driver/ops/finance/read/portal principal, and `staging-smoke.ts:236` hand-inserts the driver exactly as it hand-inserts the fence. That is the SYMPTOM of a verdict this record already reached: checklist line 113, corrected at **§1187** — *"THERE IS NO DRIVER LOGIN: REQ-069 is `F0-SPEC'D` … a real driver cannot authenticate at all today."* I re-derived it from the column side and came within one commit of filing it twice. **Search the record before the code** — and note the sweep found a real gap by a route its own filer never took, which is why the duplicate was worth walking into. |
+| `legs.geo` | `'{}'` | **the finding**, below. |
+
 
 `legs.geo` has exactly one production writer — the `booking.created` skeleton at
 `packages/ledger/src/projection/status-cache.ts:118@legs`, binding the literal `'{}'` — and **no projection ever
