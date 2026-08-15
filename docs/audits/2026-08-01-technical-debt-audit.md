@@ -89779,6 +89779,17 @@ must agree on gets one definition** — the divergence existed only because copi
 > nothing; only reading the bodies does. Here 12 of 13 `sha256Hex` copies were fine and the interesting file
 > was the one with three copies, not the one with thirteen.
 
+**The class is bounded, and the bound is an ordering fact.** The same permissive shape —
+`typeof x === "object" && x !== null` with no array clause, then a cast to `Record<string, unknown>` — appears
+**12 more times** across `packages/agents`, `packages/ledger` and `workers/mcp`, including on `args` in
+`caps.ts:163` and `confirm.ts:44`, which read **model-supplied** tool arguments. None is reachable with an
+array, and the reason is measured rather than assumed: `dispatch` runs `tool.inputSchema.safeParse(rawArgs)` at
+`registry.ts:330` and hands `parsed.data` to `beforeMutation` at `:350`. **A Zod object schema rejects an
+array, and the chokepoint only ever sees post-validation data.** The remaining ten parse stored or
+already-validated JSON, where an array yields `undefined` fields and degrades exactly as the five sound call
+sites in `registry.ts` do. What made `toToolResult` different is that it sits on the **return** path, where
+nothing validates.
+
 **And adding one file reded a gate for the right reason.** `source-corpus.test.ts` failed with
 `missingFromGit: ["workers/mcp/src/is-record.ts"]` — the new module existed on disk but was **untracked**, so
 the glob engine saw it and the `git ls-files` engine did not. Every gate built on the git corpus — the LLM-purity
@@ -89787,5 +89798,6 @@ not a small mistake in a repo whose constitutional gates enumerate through git.*
 gate that found it was written for exactly this: **globs are not semantics**.
 
 **Phase gate.** mcp **14 files / 208 tests** (the new case included); typecheck 0; four production files
-changed (`registry.ts` narrowed, three copies removed, one module added). Board re-measured below — this is the
-first phase in the arc to touch production source.
+changed (`registry.ts` narrowed, three copies removed, one module added) — **the first phase in this arc to
+touch production source**. Board re-measured at `07a2021`: **21 PASS · 0 FAIL · 5 BLOCKED** (aggregate BLOCKED,
+exit 2 — the five owner-side private-fixture holds), unchanged by the change.
