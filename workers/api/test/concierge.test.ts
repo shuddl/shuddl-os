@@ -830,3 +830,45 @@ describe("REQ-092: the reply SLA is durable BEFORE the append (crash-ordering, a
     expect(row?.sla_due_ts, "sla_due_ts must be set BEFORE the append, not after").toBe(recordedAt + SLA_REPLY_WINDOW_MS);
   });
 });
+
+// §1501 (REQ-026/032/118) — A CR/LF RECIPIENT MUST HOLD, NOT POISON THE QUEUE.
+//
+// `concierge.ts`'s `mailSafe` refuses a recipient carrying CR/LF before the send, and its comment states the
+// mechanism precisely: *"The send port's schema ALSO rejects CR/LF, but as a ZodError (not a SendError); we
+// pre-check here so an undeliverable recipient HOLDS deterministically instead of throwing a non-retriable
+// ZodError into a redelivery loop."* MEASURED at §1501: dropping the `\r\n` half of that predicate left
+// `workers/agents` at 145/145 green — the guard had no watcher in either package.
+//
+// It is not redundant. `handleMessageReceived` maps a SendError to a HOLD and rethrows everything else so the
+// queue redelivers — correct for a transient fault, and exactly wrong for a ZodError, which is deterministic:
+// redelivery re-validates the same bytes and throws again, forever, on a message that can never succeed. So
+// the second layer does not merely produce a worse error message; it converts a clean HOLD into a poison
+// message. The address itself is attacker-shaped — `from_ref` is whatever arrived on the inbound email.
+//
+// The assertions are the three things the HOLD must be: the outcome, an untouched sender, and no throw.
+describe("§1501 — a header-injection recipient HOLDS send-pending (never a redelivery loop)", () => {
+  it("a from_ref carrying CR/LF is held before the send — the sender is never called", async () => {
+    await seedRateConfig(env.TENANT_A_DB, TEST_RATE_CONFIG);
+    const from = "hdr@shipper.example\r\nBcc: victim@evil.example";
+    const msgId = await appendInbound(
+      quoteEmail(from, "Please quote a shipment from 97201 to 80012, 1000 lbs, 48x40x48, 2 pallets."),
+      "crlf",
+    );
+
+    const sender = new RecordingSender();
+    const outcome = await handleMessageReceived(
+      { kind: "message.received", tenant: TENANT, event_id: msgId },
+      depsWith(sender, new DeterministicParser()),
+    );
+
+    expect(outcome.status, JSON.stringify(outcome)).toBe("issued_send_pending");
+    if (outcome.status !== "issued_send_pending") throw new Error("unreachable");
+    expect(outcome.reason).toBe("send_failed");
+    // The transport was never reached: without the pre-check the port's `.strict()` schema throws a ZodError,
+    // which this handler rethrows (non-SendError) and the queue redelivers forever on identical bytes.
+    expect(sender.messages, "the send must not be ATTEMPTED with a CR/LF recipient").toHaveLength(0);
+    // …and the ledger facts still stand: the quote was priced and the reply recorded before the hold.
+    expect(outcome.quote_priced_event_id).toBeTruthy();
+    expect(outcome.message_sent_event_id).toBeTruthy();
+  });
+});
