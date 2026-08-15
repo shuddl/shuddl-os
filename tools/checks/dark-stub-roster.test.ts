@@ -60,14 +60,19 @@ function bodyFrom(lines: readonly string[], start: number): string {
 // trip this rule — which is the point, because that is also what was said about `evidence-email-view.tsx`
 // until `formatCents` turned out to live there (float-money-division, same phase). A corpus should match
 // the RULE's subject, not the file type its author pictured; widening is free while the gate stays green.
+// §1506 — `apps` INCLUDED. The tree list was packages+workers, and the driver PWA composes its own transports
+// (`apps/driver/src/sync`) — exactly the shape this gate exists for. MEASURED at §1506: a root returning a
+// `new NotConfigured…()` planted in `apps/driver/src/sync/useSync.ts` left the suite 4/4 green, while the same
+// probe in a `packages` file reds. A composition root in a surface is still a composition root.
 function shippedFiles(root: string): string[] {
-  return execSync("git ls-files packages workers", { cwd: root, encoding: "utf8" })
+  return execSync("git ls-files packages workers apps", { cwd: root, encoding: "utf8" })
     .split("\n")
     .filter((f) => /\.tsx?$/.test(f) && !f.includes(".test.") && !f.includes("/test/"));
 }
 
 function testFiles(root: string): string[] {
-  return execSync("git ls-files packages workers", { cwd: root, encoding: "utf8" })
+  // …and the TEST side widens with it: a root in `apps` can only be pinned by a test in `apps`.
+  return execSync("git ls-files packages workers apps", { cwd: root, encoding: "utf8" })
     .split("\n")
     .filter((f) => f.includes(".test."));
 }

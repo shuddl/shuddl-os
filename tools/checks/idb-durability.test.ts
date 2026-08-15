@@ -61,9 +61,15 @@ export function offendingBlocks(files: readonly { path: string; text: string }[]
 }
 
 function storageFiles(root: string): { path: string; text: string }[] {
-  return execSync('git ls-files "apps/driver/src/storage/*.ts"', { cwd: root, encoding: "utf8" })
+  // §1506 — THE PATH WAS THE SCOPE. `apps/driver/src/storage/*.ts` is where the durable queue lives TODAY, and
+  // the rule is about IndexedDB transactions wherever they are opened. MEASURED at §1506: a readwrite
+  // transaction with no `oncomplete`, planted in `apps/driver/src/sync/useSync.ts` (which already touches
+  // `indexedDB`), left this suite 4/4 green — while the identical plant inside `storage/` reds. §1419's defect:
+  // the tree supplied the population and a PATH decided membership. Now the whole driver surface, both
+  // extensions (§1505 — a component can open a transaction as easily as a module can).
+  return execSync('git ls-files "apps/driver/src/*.ts" "apps/driver/src/**/*.ts" "apps/driver/src/*.tsx" "apps/driver/src/**/*.tsx"', { cwd: root, encoding: "utf8" })
     .split("\n")
-    .filter((f) => f !== "" && !f.endsWith(".test.ts"))
+    .filter((f) => f !== "" && !f.includes(".test."))
     .map((f) => ({ path: f, text: readFileSync(`${root}/${f}`, "utf8") }));
 }
 
