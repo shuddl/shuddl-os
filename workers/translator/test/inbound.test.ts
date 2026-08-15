@@ -277,6 +277,42 @@ describe("REQ-201/202 — inbound 204 → gated chain, NO booking.created", () =
     expect(await obj!.text()).toBe(bad);
   });
 
+  // (c2) §1539 (REQ-202/030) — A RESOLVED QUARANTINE MUST REOPEN WHEN THE DOCUMENT IS STILL BAD.
+  //
+  // `anomalies` has two writers with different recurrence semantics. Watchtower's raiseAlarm is an upsert that
+  // sets `status = 'open'` ON CONFLICT, and its clearAlarm comment states the property outright: *"a re-raise
+  // flips it back"*. The quarantine path used a plain INSERT OR IGNORE, which cannot flip anything — so once an
+  // operator cleared the row, every later redelivery of the SAME still-broken interchange was swallowed in
+  // silence. `status = 'open'` is the filter on all three ops reads of this table (the watchtower route, the
+  // sequencer's gate probe, the credit sweep), so the failure is invisible exactly where it is looked for while
+  // the handler keeps answering 200 "quarantined" — a fail-open on an ops surface, in the row that exists to
+  // satisfy rule 10's no-silent-drop law.
+  //
+  // The collapse-to-ONE-row property (a deterministic id per partner + ISA control) is DELIBERATE, and is
+  // asserted here beside the reopen because the fix must keep it: one row, reopened — never a second row.
+  it("(c2) a RESOLVED quarantine REOPENS when the same malformed interchange redelivers, still as ONE row", async () => {
+    const bad = "NOT-AN-EDI-DOCUMENT-AT-ALL";
+    const first = await handleInbound204(await signedRequest(bad), makeDeps(new RecordingSeq(), new RecordingTransport(), goodSecrets()));
+    expect(first.status).toBe(200);
+    const row = await env.TENANT_A_DB.prepare("SELECT id FROM anomalies LIMIT 1").first<{ id: string }>();
+    expect(row?.id, "no anomaly was raised — this case cannot test a reopen").toBeDefined();
+
+    // An operator clears it — byte-identical to watchtower's clearAlarm, the only clear this table has.
+    await env.TENANT_A_DB.prepare("UPDATE anomalies SET status = 'resolved' WHERE id = ?").bind(row!.id).run();
+
+    // The partner redelivers the SAME interchange. Nothing was fixed; the document is still unparseable.
+    const again = await handleInbound204(await signedRequest(bad), makeDeps(new RecordingSeq(), new RecordingTransport(), goodSecrets()));
+    expect(again.status).toBe(200);
+
+    expect(await count(env.TENANT_A_DB, "anomalies"), "a redelivery forked a second row — the deterministic id stopped collapsing").toBe(1);
+    const after = await env.TENANT_A_DB.prepare("SELECT status FROM anomalies WHERE id = ?").bind(row!.id).first<{ status: string }>();
+    expect(
+      after?.status,
+      "a still-failing document sits behind a 'resolved' anomaly — every ops read of this table filters " +
+        "status = 'open', so the operator sees nothing while documents keep quarantining",
+    ).toBe("open");
+  });
+
   // §1282 — THE OTHER FOUR REFUSALS. `authenticate()` has FIVE fail-closed exits and every one returns `null`,
   // so a test asserting 401 cannot tell which fired. Measured: only the HMAC comparison was pinned — dropping
   // `p.kind = 'edi'`, dropping `p.status = 'active'`, allowing an empty secret, and allowing an empty header

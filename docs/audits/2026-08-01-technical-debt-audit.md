@@ -760,6 +760,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 982 | §1535 | **§1536** | **A `created_ts` OF 0 DEFEATS EVERY DURATION GUARD.** §1535's carry-forward swept as a count: 19 tables written, **11 with more than one writing module**; diffing column SETS found one disagreement — `anchor.ts` omits `documents.created_ts`, taking the DEFAULT 0. Safe only because the sweep excludes `tsa_receipt`, whose header claimed that exclusion was a **belt redundant with `retentionMsFor`**. It is not: `0 + any finite window` is in the past, so the 7yr class cannot fire and the list is the **SOLE watcher for the merkle receipts that make the ledger verifiable**. Second defect in the same five lines: the SQL was a hand-written copy of `POD_RETAINED_KINDS`, declared 51 lines above it. Both fixed; **3-cell grid, M1 vs M2 a controlled pair** (same constant mutation, only the derivation differs, only the hardcoded cell reds); M3 is the original blind spot and **was 734/734 green** before. |
 | 983 | §1536 | **§1537** | **I BROKE THE TYPECHECK GATE AND SIX COMMITS SHIPPED ON IT.** `pnpm typecheck` red in `@shuddl/adapters` — not the concurrent workstream's, not pre-existing: **my own `b28d90d`**, a spread that cannot supply a required field. Unseen because I ran that package's vitest suite and got **51/51** — **esbuild strips types without checking them**, so a suite's green is not evidence about its types; the two gates share no checker. Which is what CLAUDE.md already says: **green means `verify:merge`, not a suite.** Fixed; typecheck exits 0 repo-wide. **Habit: any commit touching a `.ts` runs `pnpm typecheck` before it lands.** |
 | 984 | §1537 | **§1538** | **THE SENTINEL-DEFAULT CLASS, SWEPT — ONE INSTANCE, ALREADY CLOSED.** §1536's maxim made mechanical. The discriminating property is **not** "omitted": `retention_status DEFAULT 'active'` is omitted by both writers and is a genuine initial state. The hazard is a **numeric sentinel used as an arithmetic operand**. Three exist repo-wide — `documents.created_ts` (the instance, closed at §1536), `events.confidence` (dead but consistent; the contract requires the field), `passports.updated_at` (no consumer found, recorded at that strength — a grep proves presence, never absence). **Two measurement artifacts recorded because each looked like a finding**: a bare column name collided across tables (`money_lines.created_ts`), and a 23-column insert read as 2 because the regex split a `join(",")` inside a template literal. A clean negative from a bounded sweep is a result. |
+| 985 | §1538 | **§1539** | **TWO WRITERS OF `anomalies` DISAGREED ABOUT RECURRENCE.** §1536 stopped one table short of the biggest; finishing the sweep across all 11 found the column diffs benign — **and the defect in the CONFLICT CLAUSE instead.** Watchtower upserts to `status='open'` (its comment *"a re-raise flips it back"* measured TRUE); the EDI quarantine used `INSERT OR IGNORE`, which **cannot flip anything**. Collapse-to-one-row is deliberate, but collapse is not ignore: a cleared row stayed `'resolved'` while the same interchange kept failing and the handler kept answering 200, **invisible to every ops read — all of which filter `status='open'`**. **LATENT** (nothing resolves an EDI id today; no API write path exists) — §1536's shape again, safety living in an absence. Fixed with watchtower's own shape; `detail` deliberately untouched because the R2 key is deterministic on the same pair, so redelivery **overwrites** rather than orphans. RED first, `DO NOTHING` mutation reds only this case. **Fourth collapsed run of the block** — the plant that worked changed ONE TOKEN. |
 | 856 | §1409 | **§1410** | **SWEEPING MY OWN SECTIONS FOR §1409's ERROR, AND A DETECTOR THAT COULD NOT HAVE FOUND IT.** §1404's precedent: a class like this gets ONE measurement, not a gate, since a correction necessarily quotes what it corrects. **The first sweep returned ZERO and was worthless** — it extracted superseded text as `~~struck~~` only, but the very case §1409 found is marked the other way, as *"a 16-step chain …"* **until audit §1029**. **My detector encoded one of the repo's TWO conventions, so it could never have found the known positive.** Twelfth instance of the session's constant, caught because a zero is the answer this session has learned never to accept. **A second false signal inside the control:** asking *"is it inside `~~…~~`?"* with `~~[^~]*16-step` returned True — because an unrelated `~~` sits earlier and `[^~]*` spanned the gap. **A regex answering "is X inside a delimiter" by searching for the delimiter anywhere before X will say yes to the whole file.** Re-run over both conventions: **109 superseded passages, zero quoted without a marker** — and that zero is worth something, because the corrected detector demonstrably flags a reconstruction of §1408's sentence. **§1409's error was singular, not a habit** |
 | **855** | §1408 | **§1409** | **I QUOTED STRUCK TEXT AS CURRENT, AND THE REPO HAD SOLVED IT 380 SECTIONS EARLIER.** §1408 cited CLAUDE.md's account of `verify:dev` as *"a 16-step chain … reaches 4 of 16"*. Measured: **18 steps**. **But the drift is my quotation's, not the law's** — CLAUDE.md's current text says that reading held *"until audit §1029"*, was *"invalidated hours later by `7b61624`"*, and that **the total is stated no longer, only the position that matters: step 4, and nothing after it**. I quoted the struck half of a correction as the claim. **Eleventh measurement error, and the first where the artifact had already anticipated the failure I was about to report.** **§1029's move is exactly §1402's, reached 373 sections apart and independently:** faced with a number that rots, REMOVE the number and keep the invariant. A convention arrived at twice from opposite ends of the record is the closest this audit has to a law about documentation. Substantively: `verify:dev` is still an unaggregated `&&` chain at 18 steps, and that is **not** a defect — CLAUDE.md documents it, names `verify:merge` as the real verdict, and `wp-exit-audit.test.ts:19` records that a naive matcher yields *"4 of 16"* and *"reads as a serious constitutional finding and is an artifact"*. **Tenth clean negative** |
 | 854 | §1407 | **§1408** | **VERIFYING MY OWN DELIVERABLE IS WIRED, BY THE STANDARD §1304 SET.** Five gates were built this session and each reported as working; §1304's standard is **verified WIRED before the board is read**, because a gate that runs when I invoke it and not when CI does is decoration with a green tick. **First measurement said ZERO** — searching the merge log for the five names returns 0 mentions each, which reads as "they never ran". It is the §1362 reporter difference: the tools suite runs under vitest v4 (summary only) while worker suites at v3.2.7 print per-file. The same run reports **125 files passed**, 120 + 5. **Tenth measurement error avoided by not believing a zero.** Measured properly three ways: `vitest list` shows **21 cases** across the five; `run-gate.ts:46` wires `unit-tests` to the `test` script; and `test` is `test:tools; t=$?; … ; exit $(( t \|\| p ))`. **Proved end-to-end:** breaking `law-enforcers` makes `pnpm test:tools` exit 1, which propagates. Also worth noting: that script AGGREGATES rather than `&&`-chains — the defect CLAUDE.md records for `verify:dev`, which reaches 4 of 16 steps |
@@ -10407,7 +10408,7 @@ The metering plumbing is complete and honest end to end. `agent_runs` carries `c
 is **no** false-zero fail-open here).
 
 But **only one agent emits `agent.acted` at all**: the rater, from two byte-identical paths
-(`workers/api/src/routes/rate.ts:260@agent.acted` and `workers/translator/src/inbound.ts:581@agent.acted`),
+(`workers/api/src/routes/rate.ts:260@agent.acted` and `workers/translator/src/inbound.ts:593@agent.acted`),
 reporting `cost_cents: 0` because it is a deterministic engine with no LLM call. Since `agent.acted` **is**
 the metered AI action — billing counts it (`workers/billing/src/metering.ts:3@agent.acted`) and the
 Watchtower budgets it — the meter never observes the agents that would cost anything.
@@ -13216,7 +13217,7 @@ is no obvious place to put the assertion, and it is worth treating a well-writte
 claims and I have adjudicated five. Rather than work the remaining 59 one at a time, the useful question
 is whether they divide.
 
-They do, cleanly. Probed the money-critical one still open — `workers/translator/src/inbound.ts:556@byte-identical`, claiming the EDI
+They do, cleanly. Probed the money-critical one still open — `workers/translator/src/inbound.ts:568@byte-identical`, claiming the EDI
 `quote.priced` payload is *"byte-identical to rate.ts"*. Dropped `floors` from the EDI construction alone:
 
 ```
@@ -20903,7 +20904,7 @@ header is whatever the client typed.
 
 ### Inbound EDI from an external partner — load-bearing
 
-`workers/translator/src/inbound.ts:357@isUnknownTenant` — the discrimination that decides whether a
+`workers/translator/src/inbound.ts:369@isUnknownTenant` — the discrimination that decides whether a
 failure is *this partner sent us something for a tenant we do not have* (quarantine, keep the bytes) or *a
 real error* (rethrow).
 
@@ -25505,7 +25506,7 @@ copies. That is the *two mechanisms disagreeing* check returning a clean negativ
 weight as a delta.
 
 **The four production callers enumerated, not generalized.** `packages/agents/src/concierge/compose.ts:102` and
-`workers/translator/src/inbound.ts:615@assessApproval` are direct moves by construction; `workers/api/src/routes/rate.ts:272` is the interline
+`workers/translator/src/inbound.ts:627@assessApproval` are direct moves by construction; `workers/api/src/routes/rate.ts:272` is the interline
 path; `packages/agents/src/biller/compose.ts` composes the same two rater primitives for its different hold semantics. Only one
 rests on a sentence: the translator passes `assessApproval(quote, {})` on the strength of *"a 204 carries no
 negotiated sell / interline legs"*. True today — the translator constructs no legs — and unpinned, because
@@ -25744,7 +25745,7 @@ it describes.**
 
 ## §433 — a "parity LOCK" that locked one side, and the trap in fixing it
 
-`workers/translator/src/inbound.ts:227@persistParty` claims to mirror `intake.ts`'s party write — while
+`workers/translator/src/inbound.ts:239@persistParty` claims to mirror `intake.ts`'s party write — while
 `workers/api/src/intake-core.ts` opens by calling itself *"THE ONE implementation of net-new party/shipment
 materialization … no reimplement, no drift."* Two records, one subject, and they cannot both be right.
 
@@ -40125,8 +40126,8 @@ call the remainder an open item without asking the question.
 
 ```
 inbound.ts:204 → quarantineKey(… tenantSlug …)
-inbound.ts:387 → unresolvableKey(… tenantSlug …)
-inbound.ts:492 → tenderKey(… tenantSlug …)
+inbound.ts:399 → unresolvableKey(… tenantSlug …)
+inbound.ts:504 → tenderKey(… tenantSlug …)
 ```
 
 **Traced before judging.** `tenantSlug` is `pairing.slug` from a control-plane `pairings`⋈`tenants` lookup
@@ -86443,13 +86444,13 @@ watched.
 
 **Translator: two genuinely redundant, one not.**
 
-- `inbound.ts:217@capped` (the R2 quarantine cap) is silent, and correctly so: `quarantine` is reachable ONLY
+- `inbound.ts:229@capped` (the R2 quarantine cap) is silent, and correctly so: `quarantine` is reachable ONLY
   from `handleInbound204`, which 413s any over-cap body earlier in the same function. Verified by mutating the
   premise — deleting the post-read 413 reds case (3).
-- `inbound.ts:499@EDI_PLAN_SHAPE` (*"a defensive assertion, not a data path"*) is silent, and its premise is
+- `inbound.ts:511@EDI_PLAN_SHAPE` (*"a defensive assertion, not a data path"*) is silent, and its premise is
   pinned: `inbound.test.ts:233` asserts the exact append sequence `["quote.requested", "quote.priced",
   "agent.acted", "quote.accepted"]`, so a plan that stopped leading with `quote.requested` reds there first.
-- **`inbound.ts:309@declaredLen` — the up-front Content-Length refusal — was silent and is load-bearing.**
+- **`inbound.ts:321@declaredLen` — the up-front Content-Length refusal — was silent and is load-bearing.**
 
 **THE FINDING, and it is §1500's shape with the layers reversed.** REQ-202's storage-DoS cap is TWO guards for
 two situations, and the source says so: a declared Content-Length over the ceiling is refused *"without
@@ -87979,3 +87980,52 @@ and a grep proves presence, never absence (§1218). It is recorded at that stren
 and not an absence of one. Board at 0d571f7 stands: **21 PASS · 0 FAIL · 5 BLOCKED**, all blockers owner-side.
 **Reopen trigger:** a new `ALTER TABLE … ADD COLUMN … NOT NULL DEFAULT <number>` on a column any code adds,
 subtracts or compares — the table above is the whole population and re-running the sweep is minutes.
+
+## §1539 — PHASE GATE: two writers of `anomalies` disagreed about recurrence, and only one could reopen (REQ-202/030/118)
+
+§1536 diffed the column sets of six multi-writer tables. **It stopped one table short of the biggest.** Finishing
+the sweep across all eleven: `anomalies` (7 writers), `parties` (4 shapes/4 writers), `shipments` (3/5),
+`agent_runs`, `legs`, `invoices`, `integrations`, `users`. The column diffs are all benign — `parties` and
+`shipments` writers legitimately know different fields, and the one `anomalies` omission (`status`, by the
+translator) takes `DEFAULT 'open'`, which is the **correct** value and a real initial state, not a sentinel
+(§1538's distinction, applied and holding).
+
+**The defect was not in the columns. It was in the conflict clause.**
+
+| writer | on conflict | can it reopen a cleared row? |
+|---|---|---|
+| `watchtower.ts@raiseAlarm` | `ON CONFLICT(id) DO UPDATE SET … status = 'open'` | **yes** — and its `clearAlarm` comment says so outright: *"a re-raise flips it back"* (measured TRUE) |
+| `inbound.ts` quarantine | `INSERT OR IGNORE` | **no — it cannot flip anything** |
+
+The quarantine id is deterministic per `(partnerId, isaControl)` so a redelivery collapses to one row — correct,
+and deliberate. But **collapse is not ignore**: once an operator cleared that row, every later redelivery of the
+same still-unparseable interchange was swallowed in silence, while the handler kept answering `200 "quarantined"`.
+Every ops read of this table filters `status = 'open'` — the watchtower route **defaults** to it, the sequencer's
+gate probe (`:921`) and the credit reconciler hard-code it — so the failure became invisible **exactly where it is
+looked for**, in the row that exists to satisfy rule 10's no-silent-drop law.
+
+**Honest classification: LATENT.** Nothing resolves an `edi_quarantine_*` id today — `clearAlarm` only clears
+watchtower's own ids, the credit reconciler only its own rule, and **there is no API write path to this table at
+all**. So the fail-open was guarded by an absence, which is §1536's shape a second time: safety living in
+something that does not exist yet. The route already understands `?status=resolved`, so the absence is a
+schedule, not a design.
+
+**Fixed** with watchtower's own shape — `ON CONFLICT(id) DO UPDATE SET status = 'open'` — so the table now has
+**one** recurrence semantic instead of two. Only `status` is refreshed: `detail` stays first-written and stays
+ACCURATE, because `r2Key` is `quarantineKey(tenant, partnerId, isaControl)`, the same pair the id uses, so a
+redelivery **overwrites** the same R2 object rather than orphaning it. Measured before deciding — there are no
+stale bytes for a fresher `detail` to point at.
+
+**RED first, then proved.** The case failed before the fix on the exact assertion (`expected 'resolved' to be
+'open'`), and after the fix a `DO NOTHING` plant reds it again and nothing else. It asserts the one-row collapse
+**beside** the reopen, so a future fix cannot buy visibility by forking a second row.
+
+**A COLLAPSED RUN, FOURTH TIME.** The first mutation attempt left a stray paren and printed **`Tests no tests`**.
+§1519, §1529, §1535, now this. The plant that worked was a **one-token** edit (`DO UPDATE SET …` → `DO NOTHING`)
+that cannot unbalance the file. **Prefer a mutation that changes a token, never one that rewrites a call.**
+
+**Phase gate.** `@shuddl/translator` **133/133** (was 132). Typecheck 0, lint 0, `check:invariants` 0 — the
+upsert is legal here because `anomalies` is a mutable ops table, not one of the three guarded tables the
+REPLACE-family lint protects. **Reopen trigger:** if a resolve path for EDI anomalies ever ships, this case is
+what proves it still reopens — and the general form is now twice-confirmed: **when two writers touch one table,
+diff the CONFLICT CLAUSE, not only the column list.**

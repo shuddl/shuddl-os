@@ -211,7 +211,19 @@ async function quarantine(
     rule,
   });
   await db
-    .prepare("INSERT OR IGNORE INTO anomalies (id, rule, object_kind, object_id, severity, detail) VALUES (?,?,?,?,?,?)")
+    // REOPEN on conflict, never OR IGNORE (2026-08-15, audit §1539). The id is deterministic per
+    // (partnerId, isaControl), so a redelivery must collapse to ONE row — but "collapse" is not "ignore": with a
+    // plain OR IGNORE, an anomaly an operator had cleared stayed 'resolved' while the same interchange kept
+    // failing, and all three ops reads of this table filter `status = 'open'`. Watchtower's raiseAlarm already
+    // upserts to 'open' for exactly this reason; this is that shape, and now the table has one.
+    //
+    // ONLY `status` is refreshed. `detail` stays as first written and remains ACCURATE, because `r2Key` is
+    // `quarantineKey(tenant, partnerId, isaControl)` — the same pair the id uses — so a redelivery OVERWRITES
+    // the same R2 object rather than orphaning it. There are no stale bytes for a fresher detail to point at.
+    .prepare(
+      "INSERT INTO anomalies (id, rule, object_kind, object_id, severity, detail, status) VALUES (?,?,?,?,?,?,'open') " +
+        "ON CONFLICT(id) DO UPDATE SET status = 'open'",
+    )
     .bind(descriptor.anomalyId, descriptor.rule, descriptor.objectKind, descriptor.objectId, descriptor.severity, JSON.stringify(descriptor.detail))
     .run();
   const capped = rawBytes.byteLength > MAX_BODY_BYTES ? rawBytes.slice(0, MAX_BODY_BYTES) : rawBytes;

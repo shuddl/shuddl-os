@@ -120,8 +120,8 @@ Absolute; they override any local optimization, any "it's simpler," any "the tes
 - **At-risk tier projection** — `workers/api/src/routes/board.ts:36,37` — cleared when a risk projection emits `status:'at-risk'` from ledger-derived risk so `toMapStatus` returns all three tiers on real data. (REQ-073/080)
 
 **A5 · EDI (pure code — no human secret)**
-- **B2A 04/05 revision convergence** — `packages/edi/src/parse-204.ts:117`, `…/types.ts:82`, `workers/translator/src/core/map-204.ts:70`, `…/inbound.ts:267` — cleared when `parse-204` extracts purpose codes 04/05 (enum widened beyond `['00','01']`) and inbound converges a PO-only re-tender onto its prior shipment instead of minting a duplicate. (REQ-205/196/191)
-- **Partner-qualify 214/990 idempotency key** — `workers/translator/src/sweep-214.ts:182`, `…/inbound.ts:539` — cleared when the key passed to `send214`/`send990` contains `partnerId` (or the live adapter's dedup is documented to key by `(partnerId, idempotencyKey)`). (REQ-200/025)
+- **B2A 04/05 revision convergence** — `packages/edi/src/parse-204.ts:117`, `…/types.ts:82`, `workers/translator/src/core/map-204.ts:70`, `…/inbound.ts:279` — cleared when `parse-204` extracts purpose codes 04/05 (enum widened beyond `['00','01']`) and inbound converges a PO-only re-tender onto its prior shipment instead of minting a duplicate. (REQ-205/196/191)
+- **Partner-qualify 214/990 idempotency key** — `workers/translator/src/sweep-214.ts:182`, `…/inbound.ts:551` — cleared when the key passed to `send214`/`send990` contains `partnerId` (or the live adapter's dedup is documented to key by `(partnerId, idempotencyKey)`). (REQ-200/025)
 
 **A6 · CI wiring**
 - **Wire the 4 parity/purity DoD gates into `ci.yml`** — `.github/workflows/ci.yml:20-47`, `package.json:19,26-28,34` — cleared when `grep -E "rater-parity|invoice-parity|concierge-parity|rater-purity" .github/workflows/ci.yml` returns all four. (REQ-027/031/026/165/024)
@@ -163,7 +163,7 @@ Absolute; they override any local optimization, any "it's simpler," any "the tes
 - **NotConfigured composition roots — no live branch** (EDI AS2/SFTP/VAN, inbound HMAC, legacy feed, MCP OAuth/webhooks) — check: each factory still returns `NotConfigured*` and rejects loudly (`workers/translator/src/index.ts:27,36`; `inbound.ts:58`; `transport.ts:50`; `workers/mcp/src/webhooks.ts:222,256,360`; `workers/agents/src/index.ts:174`, `mirror-sweep.ts:54`). (REQ-034/154/200/201/109/152)
 - **NotConfigured roots WITH a live branch — DARK until secret bound** (Resend/Claude/Stripe/PlatformLedger) — check: each throws NotConfigured with no secret (`sender.ts:183`, `parse.ts:242`, `billing.ts:63`, `platform-ledger.ts:40`, `workers/agents/src/index.ts:208`); `billing.test.ts:19`/`test-send.test.ts:137` still assert DARK. (REQ-092/157/024/123/154)
 - **EDI per-partner LIVE activation + real-format fixtures** — check: `certifyPartner` (`partners.ts:85`) referenced only from tests; committed fixtures stay synthetic (SCAC `SYNC`, `.example`). (REQ-203/204/034/167)
-- **990 ack deferred with transport** — check: `send990` still throws NotConfigured, caught at `inbound.ts:545` so the 204 still records. (REQ-201)
+- **990 ack deferred with transport** — check: `send990` still throws NotConfigured, caught at `inbound.ts:557` so the 204 still records. (REQ-201)
 - **CORS `.example` placeholders** — check: `workers/api/src/middleware/cors.ts:16` still returns `null` (no ACAO/wildcard) for unlisted origins. *(Codex MAY replace placeholders with real env-driven origins + a rejection test if the prod origins are known; otherwise HOLD.)* (REQ-025/189/167)
 - **CF edge rate-limit / Turnstile on `/pub/*`** — check: `public.ts:12`/`signup.ts` remain limiter-free by design; the edge rule lives in the CF account. (REQ-193/125)
 - **Sender-domain warmup + apex/subdomain divergence** — check: `docs/ops/{DEPLOYMENT.md:48,secrets.md:24,GO-LIVE-CHECKLIST.md:45}` still flag the GAP. (REQ-157/092/159)
