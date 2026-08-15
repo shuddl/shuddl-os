@@ -87937,3 +87937,10 @@ Repo-wide `pnpm typecheck` now exits **0**; adapters **51/51**.
 **Phase gate.** **Reopen trigger:** none — but the habit changes. **Any commit that touches a `.ts` file runs
 `pnpm typecheck` before it lands, not the package's vitest suite.** The suite cannot see this class of defect,
 and six commits is how long it stays invisible.
+
+**SHARPENED BY THE BOARD RUN, and this is the part that matters.** `pnpm verify:merge` at 0d571f7 reads
+**21 PASS · 0 FAIL · 5 BLOCKED**, aggregate BLOCKED (exit 2), every blocker owner-side (nine unvendored private
+fixtures + the absent `IDENTITY_DENYLIST`) — unchanged across five consecutive measurements. `typecheck` is one
+of the 21, **non-skippable**. So the finding is NOT "no gate covers this": the gate covers it exactly, and would
+have failed the merge. **I did not run it for six commits.** A gate you do not run is indistinguishable from a
+gate you do not have, and the only difference is that this one was already paid for.
