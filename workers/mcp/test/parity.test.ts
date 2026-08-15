@@ -101,7 +101,15 @@ async function runRest(
 }
 
 function structured(body: RpcBody): Record<string, unknown> {
-  return body.result?.structuredContent ?? {};
+  // §1575: NOT `?? {}`. The production REST bridge applies exactly that fallback (`rest.ts:134`), so defaulting
+  // here too makes an empty body equal an empty body — `expect(rest.json).toEqual(structured(mcp.body))` then
+  // holds BECAUSE both sides lost the payload. Two of the three parity cases are incidentally defended (they
+  // also assert `status` is 'PRICED' / 'ACCEPTED'); the track case asserts nothing but this equality and the
+  // call set, so it passed with `toToolResult` stripped of `structuredContent` entirely. A helper must fail
+  // where the code under test falls back, never agree with it.
+  const sc = body.result?.structuredContent;
+  if (sc === undefined) throw new Error("§1575: MCP envelope carried no structuredContent — parity would be vacuous");
+  return sc;
 }
 function errData(body: RpcBody): { code?: unknown } {
   return (body.error?.data as { code?: unknown }) ?? {};
