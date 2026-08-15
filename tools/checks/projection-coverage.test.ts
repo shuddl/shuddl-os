@@ -33,7 +33,8 @@ import { stripComments } from "./source-corpus.js";
 function projections(root: string): Map<string, string> {
   const files = execSync('git ls-files "packages/ledger/src/projection"', { cwd: root, encoding: "utf8" })
     .split("\n")
-    .filter((f) => f.endsWith(".ts") && !f.includes(".test."));
+    // §1507 — `.tsx?`; no projection is a component today, and the corpus should not be the thing that decides.
+    .filter((f) => /\.tsx?$/.test(f) && !f.includes(".test."));
   const out = new Map<string, string>();
   for (const f of files) {
     for (const m of readFileSync(`${root}/${f}`, "utf8").matchAll(/^export function (project[A-Za-z]+)/gm)) {

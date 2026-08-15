@@ -140,7 +140,9 @@ export function handlerBody(src: string, from: number, root?: string, file?: str
 function listEndpoints(root: string): Endpoint[] {
   const files = execSync('git ls-files "workers/api/src"', { cwd: root, encoding: "utf8" })
     .split("\n")
-    .filter((f) => /\.ts$/.test(f) && !f.includes(".test.") && !f.includes("/test/"));
+    // §1507 — `.tsx?`, not `.ts`. There is no `.tsx` under workers today, so this is a no-op NOW; it is the
+    // §1506 lesson applied before the fact, and it is what `corpus-extension.test.ts` enforces repo-wide.
+    .filter((f) => /\.tsx?$/.test(f) && !f.includes(".test.") && !f.includes("/test/"));
   const out: Endpoint[] = [];
   for (const f of files) {
     const src = readFileSync(`${root}/${f}`, "utf8");
@@ -238,7 +240,7 @@ describe("§824: no NEW unpaginated list endpoint", () => {
     // relax this test. A blind spot that is measured once is a blind spot again on the next commit.
     const offenders = execSync('git ls-files "workers"', { cwd: repoRoot(), encoding: "utf8" })
       .split("\n")
-      .filter((f) => /\.ts$/.test(f) && !f.startsWith("workers/api/") && !f.includes(".test.") && !f.includes("/test/"))
+      .filter((f) => /\.tsx?$/.test(f) && !f.startsWith("workers/api/") && !f.includes(".test.") && !f.includes("/test/")) // §1507
       .filter((f) => {
         const src = readFileSync(`${repoRoot()}/${f}`, "utf8");
         return /from "hono"/.test(src) || /\.(get|post|put|delete)\(\s*"\//.test(src);
