@@ -218,6 +218,31 @@ describe("POST /v1/parties — deterministic find-or-create (REQ-195/025)", () =
 
 // ---- POST /v1/shipments — quote-stage materialization ---------------------------------------------
 describe("POST /v1/shipments — quote-stage row with party FKs (REQ-195/025)", () => {
+  // §1534 — THE KEY COUNT, which the per-key length bound implies but did not enforce. `z.record` has no size,
+  // so 10,000 keys × 200 chars parsed clean and stored **2,108,891 bytes in one `shipments.refs` cell**
+  // (measured against this route, with a small-refs control returning 201 beside it). The comment on
+  // MAX_REF_LEN says refs "rides inline in the shipments row" — that is exactly why the cardinality matters,
+  // and it is §1516's shape on a field which, unlike `legs`, really is persisted.
+  //
+  // Both directions, because a cap that refuses real use is the worse defect: the largest refs map anywhere in
+  // the tree has TWO keys and the MCP tool stamps ONE, so 64 cannot refuse anything real.
+  it("§1534: an over-cap refs map is a 400 and stores nothing; the cap itself is accepted", async () => {
+    const p = await threeParties("refs", await opsTok());
+    const base = { shipper_party_id: p.shipper, consignee_party_id: p.consignee, bill_to_party_id: p.billTo };
+    const before = await shipmentCount();
+
+    const over: Record<string, string> = {};
+    for (let i = 0; i < 65; i++) over[`k${i}`] = "v";
+    const bad = await createShipment({ ...base, refs: over }, await opsTok());
+    expect(bad.status, JSON.stringify(bad.json)).toBe(400);
+    expect(await shipmentCount(), "a refused body must materialize NO shipment").toBe(before);
+
+    const at: Record<string, string> = {};
+    for (let i = 0; i < 64; i++) at[`k${i}`] = "v";
+    const ok = await createShipment({ ...base, refs: at }, await opsTok());
+    expect(ok.status, "the cap itself must be accepted — a bound that excludes its own value is an off-by-one").toBe(201);
+  });
+
   it("materializes a quote-stage shipments row: no booking.created, status_cache not booked", async () => {
     const p = await threeParties("mat", await opsTok());
     const r = await createShipment({ shipper_party_id: p.shipper, consignee_party_id: p.consignee, bill_to_party_id: p.billTo }, await opsTok());

@@ -29,6 +29,16 @@ const MAX_NAME_LEN = 200; // bounded — the legal name rides in the parties.nam
 const MAX_EMAIL_LEN = 320; // RFC 5321 practical maximum
 const MAX_PARTY_ID_LEN = 200; // a created id is `party_<16hex>`; bound a supplied FK before any query
 const MAX_REF_LEN = 200; // each refs key/value is bounded (rides inline in the shipments row)
+// §1534 — …AND SO IS THE KEY COUNT, which the length bound above implies but did not enforce. `z.record` has
+// no size, so 10,000 keys × 200 chars parsed clean and stored **2,108,891 bytes in one `shipments.refs` cell**
+// (measured against the live route, with a small-refs control returning 201 beside it). The author bounded key
+// and value length precisely BECAUSE it rides inline; the cardinality was the half left open — §1516's shape
+// on a field that, unlike `legs`, really is persisted.
+//
+// 64 is generous by two orders of magnitude against real use: the schema's own comment names the vocabulary
+// (`pro/bol/master_job/partner`), the MCP tool stamps exactly one (`{pairing}`), and the largest map anywhere
+// in the tree has TWO keys.
+const MAX_REF_KEYS = 64;
 
 // POST /v1/parties body — bounded + .strict(). `email` is the one deliverable contact a CSR captures for a new
 // customer (optional: a party may be name-only, e.g. a consignee, and get a contact later). Every string is capped.
@@ -49,7 +59,10 @@ const ShipmentBody = z
     bill_to_party_id: z.string().min(1).max(MAX_PARTY_ID_LEN),
     mode: z.enum(SHIPMENT_MODES).optional(),
     division: z.string().min(1).max(MAX_REF_LEN).optional(),
-    refs: z.record(z.string().max(MAX_REF_LEN), z.string().max(MAX_REF_LEN)).optional(),
+    refs: z
+      .record(z.string().max(MAX_REF_LEN), z.string().max(MAX_REF_LEN))
+      .refine((r) => Object.keys(r).length <= MAX_REF_KEYS, `refs carries more than ${MAX_REF_KEYS} keys (§1534 — it rides inline in the shipments row)`)
+      .optional(),
   })
   .strict();
 
