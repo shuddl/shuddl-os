@@ -189,6 +189,9 @@ describe("cross-tenant matrix — a tenant-A pairing reads/writes ONLY tenant A 
     expect((a.calls.find((c) => c.path === "/v1/shipments")?.body?.refs as Record<string, unknown> | undefined)?.pairing).toBe(PAIRING_A1);
 
     const b = await runTool(TOK(PAIRING_B1), "quote_freight", priceable, happy());
+    // §1511 — FLOOR THE LOOP. "None of B's calls carried tenant A" is satisfied by B MAKING NO CALLS, so a
+    // tool that stopped issuing wire calls would pass the REQ-025 isolation case that exists to watch them.
+    expect(b.calls.length, "the B-pairing tool issued no wire calls — the isolation loop below asserts nothing").toBeGreaterThan(0);
     for (const c of b.calls) expect(c.tenant).toBe(TENANT_B); // B's writes never carry tenant A
   });
 

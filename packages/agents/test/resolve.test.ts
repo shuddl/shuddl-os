@@ -323,6 +323,11 @@ describe("resolveConcierge — tenant isolation", () => {
     const port = new FakePort({ "ops@acme.test": "party-existing-1" });
     await resolve(fullQuoteParse(), port, SRC);
     const known = new Set(["findPartyByEmail", "createParty", "createShipment"]);
+    // §1511 — FLOOR THE LOOP. "Every call landed on this port" is satisfied by NO CALLS AT ALL, so a resolve
+    // that stopped doing I/O entirely would pass the test named for its I/O. The sibling cases above assert
+    // `port.calls).toEqual([])` deliberately (a refusal path does no I/O); THIS case is the opposite claim and
+    // needs the opposite floor.
+    expect(port.calls.length, "no port call was made — the loop below asserts nothing").toBeGreaterThan(0);
     for (const call of port.calls) expect(known.has(call)).toBe(true);
   });
 });

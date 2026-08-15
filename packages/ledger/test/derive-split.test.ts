@@ -128,6 +128,14 @@ describe("REQ-019 DoD — the derived split matches the partner statement to the
   }
   const fixture = JSON.parse(statementText) as { statements: Statement[] };
 
+  // §1511 — FLOOR THE GENERATOR, and the reason is the SHRINK case, not the empty one. An EMPTY fixture is
+  // already caught by the runner ("No test found in suite …", measured §1511). A fixture that loses one of
+  // its two statements is not: vitest reports one test, the suite stays green, and the interline
+  // reconciliation silently covers half of what it did. LIVE, MEASURED at §1511: 2 statements.
+  it("the partner-statement fixture generates BOTH its cases (a shrink is silent; an empty fixture is not)", () => {
+    expect(fixture.statements.length, "fixtures/interline/partner-statement.json lost a statement").toBeGreaterThanOrEqual(2);
+  });
+
   for (const st of fixture.statements) {
     it(`${st.label}: derived allocations + cents reconcile to the statement`, () => {
       const split = deriveSplitFromLegs(st.legs, st.gross_sell_cents);

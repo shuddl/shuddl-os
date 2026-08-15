@@ -135,6 +135,9 @@ describe("REQ-032 Collector — tone-matched FIXED templates (no LLM, no clock, 
 
   it("is design-law clean — only blessed hexes, no shadow/gradient/oversized radius", () => {
     const html = renderDunningDraft(BASE).html;
+    // §1511 — FLOOR THE LOOP: a renderer that emitted no hex colours at all (a move to classes, a broken
+    // template) would satisfy "every hex is blessed" vacuously. The design law is about what IS emitted.
+    expect(extractHexes(html).length, "the draft emitted no hex colours — the blessed-palette loop asserts nothing").toBeGreaterThan(0);
     for (const hex of extractHexes(html)) {
       expect(BLESSED_HEX.has(hex.toUpperCase()) || SANCTIONED_TRANSPARENTS.has(hex.toLowerCase()), `unblessed color ${hex}`).toBe(true);
     }

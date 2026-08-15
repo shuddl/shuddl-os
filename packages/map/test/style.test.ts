@@ -47,6 +47,9 @@ describe("greigeStyleMapbox (opt-in Mapbox path, Streets v8 schema)", () => {
   });
 
   it("carries only the five blessed tokens — no sixth colour on the basemap", () => {
+    // §1511 — FLOOR THE LOOP: a style that carried NO colours at all would satisfy "only blessed tokens"
+    // while rendering nothing. The design law is about the colours that ARE there.
+    expect(hexes(s).length, "the basemap style declares no colours — the blessed-token loop asserts nothing").toBeGreaterThan(0);
     for (const h of hexes(s)) expect(BLESSED.has(h)).toBe(true);
   });
 

@@ -233,6 +233,9 @@ describe("REQ-020 DoD — a synthetic month reconciles to the penny (the QB jour
     expect(iif1).toBe(iif2); // two independent export→serialize passes are byte-identical
     expect(iif1.startsWith("!TRNS")).toBe(true);
     const full = await exportJournal(DB, RANGE);
+    // §1511 — FLOOR THE LOOP. "Every account is canonical" is satisfied by an EMPTY journal, and (g) below
+    // compares two lengths that would both be zero — so an export that returned nothing would pass both.
+    expect(full.length, "the journal exported no lines — the canonical-account loop asserts nothing").toBeGreaterThan(0);
     for (const l of full) expect(isCanonicalGlAccount(l.account)).toBe(true);
   });
 
