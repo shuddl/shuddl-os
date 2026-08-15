@@ -10,15 +10,32 @@
 // invoice that ages into a firmer bucket yields a NEW id (a firmer draft, never a clobber). `dunningDraftId`
 // (the messages PK) and `dunningBodyRef` (the render pointer Task 7 recovers) are the two canonical shapes.
 
+import { AGING_BUCKETS, daysPastDue, type AgingBucketSlug } from "@shuddl/contracts";
+
 /** The three escalation buckets, friendly → firm → final. */
 export type DunningBucket = "reminder" | "firm" | "final";
 
-/** reminder covers ≤30 days past due (friendly). */
-export const REMINDER_MAX_DAYS = 30;
-/** firm covers 31–60 days past due (past-due); >60 is final. */
-export const FIRM_MAX_DAYS = 60;
+// DERIVED from `contracts@AGING_BUCKETS`, not restated (2026-08-15, audit §1548). These were `= 30` and `= 60`
+// beside a sibling module whose header calls itself *"the SHARED AR-aging math. ONE definition of the aging
+// buckets + the days-past-due"* — and this file imported nothing from it. Same cut points, written twice: an
+// invoice at 31 days would read "1–30D" on the AR aging report and "firm" in the dunning email the moment
+// either side moved, both of them money-facing and customer-visible.
+//
+// Reading one side and COMPUTING the other is what makes them unable to disagree. The bucket table exposes
+// PREDICATES rather than bounds, so the bound is probed: the largest day count the bucket still admits.
+function lastDayIn(slug: AgingBucketSlug): number {
+  const bucket = AGING_BUCKETS.find((b) => b.slug === slug);
+  if (bucket === undefined) throw new Error(`aging: contracts@AGING_BUCKETS has no '${slug}' bucket — the shared table changed shape`);
+  let last = -1;
+  for (let d = 0; d <= 400; d += 1) if (bucket.test(d)) last = d;
+  if (last < 0) throw new Error(`aging: contracts@AGING_BUCKETS '${slug}' admits no day in 0..400 — the shared table changed meaning`);
+  return last;
+}
 
-const DAY_MS = 86_400_000; // integer canonical law: aging is a whole number of days
+/** reminder covers ≤30 days past due (friendly) — the upper edge of the shared `1-30` bucket. */
+export const REMINDER_MAX_DAYS = lastDayIn("1-30");
+/** firm covers 31–60 days past due (past-due); >60 is final — the upper edge of the shared `31-60` bucket. */
+export const FIRM_MAX_DAYS = lastDayIn("31-60");
 
 /**
  * Whole days overdue = floor((now − due_ts) / DAY), clamped at 0 (never negative). The clock is INJECTED
@@ -27,9 +44,9 @@ const DAY_MS = 86_400_000; // integer canonical law: aging is a whole number of 
  * function total.
  */
 export function overdueDays(nowMs: number, dueTsMs: number): number {
-  const delta = nowMs - dueTsMs;
-  if (delta <= 0) return 0;
-  return Math.floor(delta / DAY_MS);
+  // The shared signed computation, clamped. The CLAMP is this module's own rule (dunning never runs on a
+  // not-yet-due invoice); the DIVISION is the AR report's, and there is now one of it.
+  return Math.max(0, daysPastDue(dueTsMs, nowMs));
 }
 
 /** The escalation bucket for a whole-days-overdue count. ≤30 reminder · 31–60 firm · >60 final. */

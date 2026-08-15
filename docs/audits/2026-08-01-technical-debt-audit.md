@@ -769,6 +769,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 991 | §1544 | **§1545** | **THREE SWEEPS, THREE CLEAN NEGATIVES, MY INSTRUMENT WRONG TWICE.** §1544's form pushed down two levels. (a) The other two refusal lists name a route and **both routes are real** and append the kind — unlike `invoice.corrected`. (b) **Queues**: 3 queues, 2 producers / 1 consumer each — asymmetric on the surface, symmetric by design (REQ-169's recon sweep re-enqueues onto the queue its own worker consumes). **My first pass printed `0`** from a regex that matched no section header. (c) **Bindings per environment**: first pass produced 40+ false positives because the parser knew only `binding =`, not DO `name =`, `[vars]`, or that secrets never appear in a toml. Corrected, every gap is deliberate and self-documented (`EVIDENCE_FROM`: *DELIBERATELY ABSENT … stays a NotConfiguredSender*). **The class is already gated — proved by deleting a prod DO binding, which reds `preflight` AND `wrangler-scope-parity`**, while `binding-readers` owns the inverse direction and says so. **Two of three sweeps returned a confident wrong answer first, one a false ZERO and one false POSITIVES — never read a sweep until it has a control that would fail.** |
 | 992 | §1545 | **§1546** | **SEVEN EXPORTS NOTHING CALLS, AND THE ONE I CALLED A DEFECT WAS NOT.** §1543/§1544's class counted: exported production functions with zero production callers. Seven (twelve until `apps/` and `tools/` were counted as callers). Three intentional and self-documented (two RECEIVER-side verifiers, one test-only), one a parallel implementation, two an unreachable 4-function chain for a SKU **already recorded** at `GO-LIVE-CHECKLIST:94` as *Required? No*. **The correction is the point:** `assertHazmatEnabled` has no caller and REQ-060's acceptance is *"flag gates flows"* — but the rule IS enforced, via the sibling PREDICATE `hazmatEnabled()` at the append chokepoint, pinned behaviourally (neutering it reds a 403/zero-append test). The `assert*` is a second formulation, not the rule's only home. **A gate roster proves a gate is TESTED; nothing proves it is WIRED** — harmless here only because a sibling carries enforcement. **No gate added on purpose**: 7 candidates, 0 defects, so it would be an allowlist of six — gate a class when it has produced a defect, not a list. Fifth collapsed run; §1539's token-only rule worked first try. |
 | 993 | §1546 | **§1547** | **THE KEY'S FIRST HALF HAD ONE DEFINITION; ITS SECOND HALF HAD FOUR.** New axis — clock and calendar. The appointment path is exemplary (`localWall` derives the FACILITY-local day via `Intl`, server-computed, so a 6pm Pacific slot is not tomorrow). The residual: `usage_credits` is keyed `<slug>:<period>`, and the comment above `usageCreditsId` states the rule — *the workers re-export it, they do not redefine it* — which **was never carried to the period**. Four builders: `billing@periodOf`, `mcp@currentPeriod`, `agents@currentPeriod` (all byte-identical) and an inline `toISOString().slice(0,7)` in `provision.ts`. **Three carry a comment saying they MIRROR the others** — a drift hazard announcing itself; one character apart splits a tenant's meter across two ids for one month, on the table Stripe reconciles against. Extracted to `billingPeriodOf` beside the id, wrappers kept as one-line delegations, gated + mutation-proved on both halves. **The detector was wrong first**: it matched the INGREDIENT (`getUTCMonth()+1` + pad) and flagged two full-DATE formatters. The violation is the ingredient's neighbour — **a metering period has no day** — and both false positives are now the gate's negative control. |
+| 994 | §1547 | **§1548** | **THE SECOND INSTANCE, IN THE MODULE BESIDE THE ONE THAT CLAIMS TO BE THE DEFINITION.** §1547's form swept: **18 centralised key builders**, and for each, is every ARGUMENT computed one way? `isoWeek` and the anchor `day` survive. `agents/collector/aging.ts` does not — it **imported nothing** and restated its own `DAY_MS`, its own floor-division and its own `= 30` / `= 60`, while `contracts/aging.ts` opens with *"the SHARED AR-aging math. ONE definition of the aging buckets + the days-past-due"*. The numbers agreed; **nothing made them agree** — an invoice at 31 days would read *1–30D* on the AR report and *firm* in the dunning email the moment either moved, both customer-visible. Fixed by DERIVING the edges off `AGING_BUCKETS` (predicates, so the bound is probed) and delegating the division. **The mutation is the point: moving the shared edge to 45 left the parity corpus GREEN** — both modules moved together — **and reded only the edge test pinning today's value.** The corpus proves an invariant; the edge test pins a fact. |
 | 856 | §1409 | **§1410** | **SWEEPING MY OWN SECTIONS FOR §1409's ERROR, AND A DETECTOR THAT COULD NOT HAVE FOUND IT.** §1404's precedent: a class like this gets ONE measurement, not a gate, since a correction necessarily quotes what it corrects. **The first sweep returned ZERO and was worthless** — it extracted superseded text as `~~struck~~` only, but the very case §1409 found is marked the other way, as *"a 16-step chain …"* **until audit §1029**. **My detector encoded one of the repo's TWO conventions, so it could never have found the known positive.** Twelfth instance of the session's constant, caught because a zero is the answer this session has learned never to accept. **A second false signal inside the control:** asking *"is it inside `~~…~~`?"* with `~~[^~]*16-step` returned True — because an unrelated `~~` sits earlier and `[^~]*` spanned the gap. **A regex answering "is X inside a delimiter" by searching for the delimiter anywhere before X will say yes to the whole file.** Re-run over both conventions: **109 superseded passages, zero quoted without a marker** — and that zero is worth something, because the corrected detector demonstrably flags a reconstruction of §1408's sentence. **§1409's error was singular, not a habit** |
 | **855** | §1408 | **§1409** | **I QUOTED STRUCK TEXT AS CURRENT, AND THE REPO HAD SOLVED IT 380 SECTIONS EARLIER.** §1408 cited CLAUDE.md's account of `verify:dev` as *"a 16-step chain … reaches 4 of 16"*. Measured: **18 steps**. **But the drift is my quotation's, not the law's** — CLAUDE.md's current text says that reading held *"until audit §1029"*, was *"invalidated hours later by `7b61624`"*, and that **the total is stated no longer, only the position that matters: step 4, and nothing after it**. I quoted the struck half of a correction as the claim. **Eleventh measurement error, and the first where the artifact had already anticipated the failure I was about to report.** **§1029's move is exactly §1402's, reached 373 sections apart and independently:** faced with a number that rots, REMOVE the number and keep the invariant. A convention arrived at twice from opposite ends of the record is the closest this audit has to a law about documentation. Substantively: `verify:dev` is still an unaggregated `&&` chain at 18 steps, and that is **not** a defect — CLAUDE.md documents it, names `verify:merge` as the real verdict, and `wp-exit-audit.test.ts:19` records that a naive matcher yields *"4 of 16"* and *"reads as a serious constitutional finding and is an artifact"*. **Tenth clean negative** |
 | 854 | §1407 | **§1408** | **VERIFYING MY OWN DELIVERABLE IS WIRED, BY THE STANDARD §1304 SET.** Five gates were built this session and each reported as working; §1304's standard is **verified WIRED before the board is read**, because a gate that runs when I invoke it and not when CI does is decoration with a green tick. **First measurement said ZERO** — searching the merge log for the five names returns 0 mentions each, which reads as "they never ran". It is the §1362 reporter difference: the tools suite runs under vitest v4 (summary only) while worker suites at v3.2.7 print per-file. The same run reports **125 files passed**, 120 + 5. **Tenth measurement error avoided by not believing a zero.** Measured properly three ways: `vitest list` shows **21 cases** across the five; `run-gate.ts:46` wires `unit-tests` to the `test` script; and `test` is `test:tools; t=$?; … ; exit $(( t \|\| p ))`. **Proved end-to-end:** breaking `law-enforcers` makes `pnpm test:tools` exit 1, which propagates. Also worth noting: that script AGGREGATES rather than `&&`-chains — the defect CLAUDE.md records for `verify:dev`, which reaches 4 of 16 steps |
@@ -86879,7 +86880,7 @@ of those were unfloored:**
 | `packages/ledger/test/qb-journal.fixture.test.ts:236@full` | *every account is canonical* (**REQ-020**) | an empty journal |
 | `packages/agents/test/resolve.test.ts:326@port` | *I/O ONLY through the injected port* (REQ-025) | no I/O at all |
 | `packages/map/test/style.test.ts:50@hexes` | *only the five blessed tokens* | a style with no colours |
-| `packages/agents/test/collector.test.ts:138@extractHexes` | *only blessed hexes in the dunning draft* | a draft with no colours |
+| `packages/agents/test/collector.test.ts:141@extractHexes` | *only blessed hexes in the dunning draft* | a draft with no colours |
 | `packages/ledger/test/derive-split.test.ts:131@fixture` | the interline penny reconciliation | a shrunken fixture |
 
 **The two isolation cases are the sharp ones.** CLAUDE.md rule 8 makes a cross-tenant read a build failure,
@@ -88439,3 +88440,50 @@ became the gate's negative control so the discriminator cannot be quietly relaxe
 owner-side. **Reopen trigger:** none; the gate is the trigger. **The transferable half: when a repo centralises
 a composite key, check every COMPONENT of it — the discipline was written down, applied to the id, and stopped
 one identifier short of the thing the id is built from.**
+
+## §1548 — PHASE GATE: the second instance of §1547, in the module whose sibling claims to be the one definition (REQ-032/082/083/118)
+
+§1547's transferable form — **when a repo centralises a composite key, check every COMPONENT of it** — run as a
+sweep. **18 centralised key builders** in production; for each, is every argument computed one way? Most derived
+components survive: `isoWeek` has a single builder feeding both `snapshotKey` callers, and the anchor `day` has
+one (`workers/agents/src/biller.ts:169@formatUtc` formats a human-readable timestamp for an email — a different subject that merely shares a
+`slice`). One did not.
+
+**`packages/agents/src/collector/aging.ts` imported NOTHING and restated three things its sibling owns.**
+`packages/contracts/src/aging.ts` opens with *"the SHARED AR-aging math. ONE definition of the aging buckets +
+the days-past-due"* — and the collector carried its own `DAY_MS`, its own floor-division, and its own
+`REMINDER_MAX_DAYS = 30` / `FIRM_MAX_DAYS = 60`.
+
+| | contracts (the AR report) | collector (the dunning escalation) |
+|---|---|---|
+| day constant | `AGING_DAY_MS` | its own `DAY_MS` |
+| days past due | `daysPastDue` (signed) | its own floor, clamped at 0 |
+| cut points | `1–30`, `31–60`, `>60` | `= 30`, `= 60` |
+
+**The numbers agreed; nothing made them agree.** An invoice at 31 days would read **"1–30D" on the AR aging
+report and "firm" in the dunning email** the moment either side moved — both money-facing, both customer-visible,
+and a customer can see both. This is §1547's shape exactly, one level over: a discipline written down in one
+file and not reaching the module beside it.
+
+**Fixed by DERIVING, not by copying carefully.** `REMINDER_MAX_DAYS` and `FIRM_MAX_DAYS` are now probed off
+`contracts@AGING_BUCKETS` — the table exposes predicates rather than bounds, so the bound is *the largest day
+the bucket still admits* — and `overdueDays` delegates to `daysPastDue`, keeping only the clamp, which is
+genuinely this module's own rule (dunning never runs on a not-yet-due invoice). A missing slug throws by name at
+module load rather than resolving to a silent zero.
+
+**The mutation is the interesting part, because the two new tests failed DIFFERENTLY.** Moving the shared
+`31-60` bucket's edge from 60 to 45 left the **parity corpus green** — both modules moved together, which IS the
+fix — and reded only the edge test asserting `FIRM_MAX_DAYS === 60`. That division is deliberate: the corpus
+proves an **invariant** (the two can no longer disagree), the edge test pins a **fact** (today's boundary), and a
+boundary change is a register decision that should trip exactly one tripwire and not look like a bug in the
+other module. Respond to that RED by recomputing, never by raising the expectation.
+
+**The corpus is a RANGE, not the four edges.** Every day from 1 to 120 is mapped through both modules and
+compared, because an off-by-one shows up as a whole band of days carrying the wrong tone, and the edges alone
+would not say which side moved.
+
+**Phase gate.** contracts **340/340**, agents **235/235** (was 232), agents-worker 146/146, api 855/855,
+typecheck 0, lint 0. Board unchanged from **c384aff** — 21 PASS · 0 FAIL · 5 BLOCKED, all owner-side.
+**Reopen trigger:** none; the derivation plus the corpus are the trigger. **Second instance of the same shape in
+two consecutive phases, and both were found by asking one question of an existing centralisation: what does this
+thing's ARGUMENT come from?**

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CSS_VAR_LITERALS, TOKENS } from "@shuddl/design";
+import { AGING_BUCKETS, agingBucketFor, daysPastDue, AGING_DAY_MS } from "@shuddl/contracts";
 import {
   agingBucket,
   overdueDays,
@@ -143,5 +144,58 @@ describe("REQ-032 Collector — tone-matched FIXED templates (no LLM, no clock, 
     }
     expect(/box-shadow|gradient/i.test(html)).toBe(false);
     for (const m of html.matchAll(/border-radius\s*:\s*(\d+)px/gi)) expect(Number(m[1])).toBeLessThanOrEqual(4);
+  });
+});
+
+// §1548 (REQ-032/082/083) — THE DUNNING ESCALATION AND THE AR AGING REPORT AGREE, BY CONSTRUCTION AND HERE.
+//
+// Two modules bucket the same overdue invoice: `contracts/aging.ts` (the AR report — CURRENT / 1–30 / 31–60 /
+// >60) and this one (the dunning escalation — reminder / firm / final). Until §1548 the collector restated the
+// cut points as `= 30` and `= 60` and imported NOTHING from the sibling whose header calls itself *"the SHARED
+// AR-aging math. ONE definition of the aging buckets + the days-past-due."* Same numbers, written twice.
+//
+// They are now derived, so they cannot silently disagree — and this is the corpus that proves the derivation
+// means what it claims. It is deliberately a RANGE rather than the four edge cases: an off-by-one in either
+// module shows up as a whole band of days mapping to the wrong tone, and the edges alone would not say which.
+describe("§1548 the dunning buckets and the AR aging buckets partition the same line", () => {
+  const PAIRS: ReadonlyArray<readonly [string, DunningBucket]> = [
+    ["1–30D", "reminder"],
+    ["31–60D", "firm"],
+    [">60D", "final"],
+  ];
+
+  it("every day from 1 to 120 lands in corresponding buckets in both modules", () => {
+    const mismatches: string[] = [];
+    for (let d = 1; d <= 120; d += 1) {
+      const report = agingBucketFor(d);
+      const dunning = agingBucket(d);
+      const expected = PAIRS.find(([label]) => label === report)?.[1];
+      if (expected !== dunning) mismatches.push(`day ${d}: report=${report} dunning=${dunning}`);
+    }
+    expect(
+      mismatches,
+      "the AR aging report and the dunning escalation disagree about which bucket an invoice is in. Both are " +
+        "money-facing and customer-visible: the report shows a total, the email sets a tone, and a customer can " +
+        "see both. The cut points are DERIVED from contracts@AGING_BUCKETS precisely so this cannot happen:\n  " +
+        mismatches.slice(0, 8).join("\n  "),
+    ).toEqual([]);
+  });
+
+  it("the derived edges ARE the shared table's edges, not a coincidence that matches today", () => {
+    expect(REMINDER_MAX_DAYS, "REMINDER_MAX_DAYS is no longer the top of the shared 1-30 bucket").toBe(30);
+    expect(FIRM_MAX_DAYS, "FIRM_MAX_DAYS is no longer the top of the shared 31-60 bucket").toBe(60);
+    // …and the derivation reads the table rather than a literal: every slug it names must exist there.
+    for (const slug of ["1-30", "31-60"]) {
+      expect(AGING_BUCKETS.some((b) => b.slug === slug), `contracts@AGING_BUCKETS lost the '${slug}' bucket the derivation reads`).toBe(true);
+    }
+  });
+
+  it("overdueDays is the shared days-past-due, clamped — one division, not two", () => {
+    const due = Date.UTC(2026, 5, 1);
+    for (const days of [0, 1, 30, 31, 60, 61, 119]) {
+      const now = due + days * AGING_DAY_MS;
+      expect(overdueDays(now, due), `day ${days} diverges from the shared computation`).toBe(Math.max(0, daysPastDue(due, now)));
+    }
+    expect(overdueDays(due - 10 * AGING_DAY_MS, due), "the clamp is this module's own rule and must survive delegation").toBe(0);
   });
 });
