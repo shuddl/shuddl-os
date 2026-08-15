@@ -196,6 +196,30 @@ describe("REQ-046 assertDelivery — geofence + signature + placed-freight photo
     expect(() => assertDelivery([arrived(GEO), podSigned(), placed()], delivery(), { fence: FENCE })).not.toThrow();
   });
 
+  // §1543 (REQ-046/252/030) — THE ABSENT-FENCE REFUSAL, ON AN EVIDENCE-COMPLETE FIXTURE.
+  //
+  // This branch matters more than its one line suggests: in this repo `legs.geo` is written ONCE, as the literal
+  // `'{}'` skeleton, and NOTHING ever updates it (audit §1543). `#deliveryFence` therefore resolves to undefined
+  // for every real shipment, so this throw is what every production delivery currently meets. The authoritative
+  // stop centroid is REQ-252 (V2-E scope), so the refusal is CORRECT and must stay exactly this loud — an edit
+  // that "helpfully" treated an absent fence as nothing-to-check would turn a loud 400 into a silently UNGATED
+  // delivery, the REQ-030 failure this gate exists to prevent.
+  //
+  // IT WAS ALREADY PINNED, and the first draft of this comment said otherwise — a grep for the message text
+  // found nothing because `:288` asserts the throw without quoting it. What `:288` does NOT have is a clean
+  // fixture: it passes `[arrived(GEO), podSigned()]` with no `placed()`, so that evidence is INCOMPLETE and the
+  // gate has TWO reasons to refuse it. It survives today only because the fence check runs first. These two add
+  // what that leaves open — an evidence-COMPLETE fixture, so nothing but the fence can explain the throw, and
+  // the override control below, so the explanation is positively confirmed rather than merely un-contradicted.
+  it("§1543 NO fence is a hard GateValidationError even when every evidence pillar is present", () => {
+    expect(() => assertDelivery([arrived(GEO), podSigned(), placed()], delivery(), {})).toThrow(GateValidationError);
+    expect(() => assertDelivery([arrived(GEO), podSigned(), placed()], delivery(), {})).toThrow(/ctx\.fence/);
+  });
+
+  it("§1543 …and it is the FENCE that is missing, not evidence — the same fixture passes under an override", () => {
+    expect(() => assertDelivery([arrived(GEO), podSigned(), placed()], delivery(), { override: OK_OVERRIDE })).not.toThrow();
+  });
+
   it("a stop.arrived OUTSIDE the fence blocks with ['geofence']", () => {
     const outside = arrived({ lat_e6: 37_439_000, lon_e6: -122_084_000 }); // ~2 km north of the fence
     expect(blockedEvidence(() => assertDelivery([outside, podSigned(), placed()], delivery(), { fence: FENCE })))
