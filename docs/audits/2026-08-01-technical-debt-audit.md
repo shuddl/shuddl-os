@@ -88287,7 +88287,9 @@ acceptance test written against a constructed event asserts nothing about who co
 model, a payload contract and a gate set that no genesis doc specifies; inventing one is exactly the straying
 CLAUDE.md forbids. The deliverable for a missing producer is the measurement.
 
-**Phase gate.** **No source changed.** Board unchanged: **21 PASS · 0 FAIL · 5 BLOCKED**, all owner-side.
+**Phase gate.** **No source changed**, so no board was re-run for this section: the standing verdict is the one measured at **c3af8d8** — **21 PASS · 0 FAIL · 5 BLOCKED**, aggregate BLOCKED (exit 2), all five owner-side — **1 commit before this one**, and that commit touched only this record. *(The first draft of this line said "board unchanged" and named no commit; `board-citation-ratchet` rejected it — see the note below.)*
+**A GATE CAUGHT ME COMMITTING ON A RED.** This section first cited *"board unchanged: 21 PASS…"* naming no commit, which is precisely the defect `board-citation-ratchet` exists for — §1451 is what it costs: twenty-two phases restated a board that was 23 commits stale, invisible because no commit was named. Worse than writing it: **I ran `test:tools`, it failed, and I committed anyway** — the gate's verdict was on screen and the commit was already queued behind it in the same command. A gate only works if its exit code gates something; running it and proceeding is the same as not running it (§1537, one week and one lesson later). Fixed in the line above and recorded here rather than silently amended.
+
 **Reopen trigger:** when any `SERVER_EMITTED_KINDS` entry gains or loses a seam — the check is the table above,
 and it is a five-row grep. **The general form, now twice-earned: a refusal list is a promise that something else
 does the writing. Enumerate the something else.**
