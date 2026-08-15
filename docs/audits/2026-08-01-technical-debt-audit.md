@@ -733,6 +733,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 955 | §1508 | **§1509** | **THE SWEEP'S OWN COUNT WAS PROSE.** The carried "~23 defensive sites remain" counted the CLAIM, not the subject: of 49 idiom hits in `workers/*/src`, **32 are prose with no guard attached** — **17 code guards exist in all of `workers/`**, 12 already mutated. Corrected in place at §1500/§1502/§1503/§1508. The last three: `mirror-sweep`'s draft guard and `partners`' counter stop are both redundant **with a defended premise** (§676's member-by-member no-drop proof; the `json_type='object'` CASE, whose removal reds 2). And the watchtower pair needed THREE measurements: JS half green, SQL half green, **BOTH green — and I nearly recorded that the pricing alarm was pinned by nothing.** The behaviour is asserted across the worker seam in `workers/api`, where BOTH-removed reds and either half alone stays green: each half is the other's PREMISE. §1501 wrote the rule (ownership follows the CONSUMER) that would have prevented my own error eight phases later. **CLASS CLOSED: 22 mutated, 15 silent (68%) — 6 unwatched, 1 wrong-layer, 7 redundant-with-defended-premise, 1 self-enforcing.** |
 | 956 | §1509 | **§1510** | **THE DEBT LEDGER COUNTED BY ITS OWNER — 54 rows, 29 OPEN** (FIXED 20 · CLOSED 2 · TRIPWIRED 1 · RESOLVED 1 · N/A 1), via `ledger-status-vocabulary`'s exported `ledgerRows` rather than a new parser. **I wrote three ad-hoc parsers first and all three were wrong** — an `awk` that counted struck text, a hand-rolled mask that returned **0** (a markdown table is ONE paragraph, so the global pair re-pairs across rows — §1411's defect in my own probe), and a cell-wide scan that returned 37. §945's header records the identical sequence, and the gate that solves it has existed since then. **Also corrected: my own phrase.** §1497/§1503/§1508 say *the repo-owned failure set is empty* — true of the BOARD, and a skimming reader hears *no repo-owned debt*, which is false by 29 rows; both sentences now carry the distinction. Three OPEN rows re-measured, all still true. Nothing fixed, deliberately: **the cheap ones are cheap because they are DECISIONS.** |
 | 957 | §1510 | **§1511** | **SIX ASSERTIONS SATISFIED BY AN EMPTY COLLECTION.** `tools/checks` floors its input everywhere; the PRODUCT suites never had the rule applied. Of ~14 loop-assertions over DERIVED values, **six were unfloored** — including two isolation cases: mcp's *B's writes never carry tenant A* (**REQ-025**, satisfied by B making no calls) and the QB journal's *every account is canonical* (**REQ-020**, satisfied by an empty journal). Each floored and mutation-proved by emptying its collection. **The generator case corrected its own claim mid-phase**: vitest already fails an empty describe (*No test found in suite*), so the hazard is not the empty fixture but the SHRINK — 2→1 statements leaves 732 green with the interline reconciliation covering half. |
+| 958 | §1511 | **§1512** | **THE REST OF THE CLASS, AND A GATE THAT DID NOT EARN ITS PLACE.** Both uncovered cells swept (`.forEach`, `apps/**`): of 29 further loops over derived collections, **every high-stakes member is protected by a NAMED mechanism** — a sibling assertion floors `routes()`, `lens-adversarial` already asserts `pages > 1` as a *PREMISE*, `metering` floors via `readMetered`, `entities` via an exact id list. Then the mechanisation was attempted and REJECTED on measurement: the predictor *a loop is at risk when its collection appears in no other expect()* scores **3/6 recall at 13% precision** against HEAD~1 — the cry-wolf rate this repo rejected once already (§240). **My first run scored 0/6 because I measured the POST-FIX tree: a predictor evaluated after its subject is fixed measures the fix.** Class closed: 35 loops examined, 6 unprotected (fixed), 29 protected. |
 | 856 | §1409 | **§1410** | **SWEEPING MY OWN SECTIONS FOR §1409's ERROR, AND A DETECTOR THAT COULD NOT HAVE FOUND IT.** §1404's precedent: a class like this gets ONE measurement, not a gate, since a correction necessarily quotes what it corrects. **The first sweep returned ZERO and was worthless** — it extracted superseded text as `~~struck~~` only, but the very case §1409 found is marked the other way, as *"a 16-step chain …"* **until audit §1029**. **My detector encoded one of the repo's TWO conventions, so it could never have found the known positive.** Twelfth instance of the session's constant, caught because a zero is the answer this session has learned never to accept. **A second false signal inside the control:** asking *"is it inside `~~…~~`?"* with `~~[^~]*16-step` returned True — because an unrelated `~~` sits earlier and `[^~]*` spanned the gap. **A regex answering "is X inside a delimiter" by searching for the delimiter anywhere before X will say yes to the whole file.** Re-run over both conventions: **109 superseded passages, zero quoted without a marker** — and that zero is worth something, because the corrected detector demonstrably flags a reconstruction of §1408's sentence. **§1409's error was singular, not a habit** |
 | **855** | §1408 | **§1409** | **I QUOTED STRUCK TEXT AS CURRENT, AND THE REPO HAD SOLVED IT 380 SECTIONS EARLIER.** §1408 cited CLAUDE.md's account of `verify:dev` as *"a 16-step chain … reaches 4 of 16"*. Measured: **18 steps**. **But the drift is my quotation's, not the law's** — CLAUDE.md's current text says that reading held *"until audit §1029"*, was *"invalidated hours later by `7b61624`"*, and that **the total is stated no longer, only the position that matters: step 4, and nothing after it**. I quoted the struck half of a correction as the claim. **Eleventh measurement error, and the first where the artifact had already anticipated the failure I was about to report.** **§1029's move is exactly §1402's, reached 373 sections apart and independently:** faced with a number that rots, REMOVE the number and keep the invariant. A convention arrived at twice from opposite ends of the record is the closest this audit has to a law about documentation. Substantively: `verify:dev` is still an unaggregated `&&` chain at 18 steps, and that is **not** a defect — CLAUDE.md documents it, names `verify:merge` as the real verdict, and `wp-exit-audit.test.ts:19` records that a naive matcher yields *"4 of 16"* and *"reads as a serious constitutional finding and is an artifact"*. **Tenth clean negative** |
 | 854 | §1407 | **§1408** | **VERIFYING MY OWN DELIVERABLE IS WIRED, BY THE STANDARD §1304 SET.** Five gates were built this session and each reported as working; §1304's standard is **verified WIRED before the board is read**, because a gate that runs when I invoke it and not when CI does is decoration with a green tick. **First measurement said ZERO** — searching the merge log for the five names returns 0 mentions each, which reads as "they never ran". It is the §1362 reporter difference: the tools suite runs under vitest v4 (summary only) while worker suites at v3.2.7 print per-file. The same run reports **125 files passed**, 120 + 5. **Tenth measurement error avoided by not believing a zero.** Measured properly three ways: `vitest list` shows **21 cases** across the five; `run-gate.ts:46` wires `unit-tests` to the `test` script; and `test` is `test:tools; t=$?; … ; exit $(( t \|\| p ))`. **Proved end-to-end:** breaking `law-enforcers` makes `pnpm test:tools` exit 1, which propagates. Also worth noting: that script AGGREGATES rather than `&&`-chains — the defect CLAUDE.md records for `verify:dev`, which reaches 4 of 16 steps |
@@ -86865,3 +86866,53 @@ ledger **734** (was 733), mcp **190**, map **90**, adapters 49 — the counts mo
 `it`. Carry-forward unchanged. **Reopen trigger:** the sweep covered `for…of` over derived values in
 `workers|packages` test trees; `.forEach(…expect)` and `apps/**` component tests were NOT swept, and the rate
 here was 6 of ~14.
+
+## §1512 — PHASE GATE: the rest of the empty-collection class, and a gate that did not earn its place (REQ-118)
+
+§1511's reopen trigger named two uncovered cells — `.forEach(…expect)` and the `apps/**` component tests.
+Both swept. **The extended population is 29 loops over derived collections, and every high-stakes member is
+already protected — each by a NAMED mechanism, not by luck:**
+
+- `auth-surface.test.ts:53@paths` — its corpus `routes()` is floored by a SIBLING case at `:36`
+  (`expect(routes().some(r => r.path === "/v1/*" && handler.name === "auth")).toBe(true)`), so a broken route
+  introspection reds loudly before the vacuous loop can pass quietly. The pre-auth loop at `:46` is the
+  opposite shape: an EMPTY `before` list is the safe outcome, so vacuity there is the pass condition.
+- `lens-adversarial.test.ts:667@page` — floored on the right thing and already saying so: *"PREMISE, asserted
+  rather than assumed: this test only means anything if it actually PAGINATED"*, `expect(pages).toBeGreaterThan(1)`.
+- `metering.test.ts:125@rows` — floored by `readMetered(...)).toEqual({ rater: 2 })` two lines above; an empty
+  `usage_credits` fails there first.
+- `entities.test.ts` (5 loops) — floored by `expect(entityLayers().map(l => l.id)).toEqual([…])`, an exact
+  list, which no empty collection satisfies.
+- `plg-isolation-matrix.test.ts:201@pools` — iterates an imported literal roster whose emptiness breaks
+  provisioning elsewhere in the same file (`POOL_BINDINGS.find(...)` at `:68`).
+
+**THE GATE I DID NOT BUILD, and the measurement that decided it.** The obvious mechanisation is a predictor:
+*a loop-assertion is at risk exactly when its collection appears in no other `expect()` in the file.* Measured
+against **HEAD~1 — the PRE-FIX tree, because the six floors added at §1511 change the very thing being
+predicted — it scores 3 of 6 recall at 13% precision** (23 flagged, 3 real). That is the cry-wolf rate this
+repo has already rejected once, for the path-only citation extension at ~95% false positives (§240). **A gate
+at 13% precision trains readers to skim the one line that must never be noise.** So this class stays a reading
+task, and the number is recorded here so the next person does not re-derive it.
+
+**My first run of that predictor scored 0/6** — because I ran it against the working tree, where §1511's
+floors had already inserted the collection into an `expect()`. A predictor evaluated after its subject has
+been fixed measures the fix, not the predictor. The corrected run is the one above.
+
+**AN AMBIENT-LOAD OBSERVATION, recorded because it is a live instance of a carried row.** Midway through this
+phase the tools suite began taking >10 minutes and `evidence-expiry` failed one run on an ASSERTION (*"every
+terminal row is at least as new as the files its own trigger names"*). Measured: **108 orphaned `workerd`
+processes and a load average of 11.13**, debris from this session's own killed runs — exactly the mechanism
+the carried row *"An abnormally-terminated workerd run orphans its sandbox, and the debris raises ambient
+load"* describes. `pnpm reap` signalled all 108 with **SIGTERM** (no `-9`, no reboot, confirming §1356's
+correction that orphaned ≠ wedged), and the suite returned to **140 files / 1457 tests green in two
+consecutive runs** — the failure did not reproduce. Left as an observation rather than a finding: that gate
+shells out `git log` per terminal row and its own header already tracks its cost trend toward the timeout, so
+a one-off under load 18 is consistent with the row that exists for it. **The reap is the fix, and the lesson
+is that a session which kills its own runs must reap before trusting a red.**
+
+**Phase gate.** **No source changed at all** — this phase is a sweep and a rejected mechanism. The empty-
+collection class is now CLOSED: **35 loops over derived collections examined across §1511–§1512, 6 unprotected
+(all floored and mutation-proved), 29 protected by a named mechanism.** Suites unchanged: agents 232, ledger
+734, mcp 190, map 90, tools 140 files / 1457 tests. Carry-forward unchanged. **Reopen trigger:** a NEW
+loop-assertion over a derived collection in a test file that asserts nothing else about that collection — the
+predictor is too noisy to gate, but it is a fine thing to run by hand when a test file is added.
