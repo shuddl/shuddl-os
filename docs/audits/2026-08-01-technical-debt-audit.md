@@ -747,6 +747,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 969 | §1522 | **§1523** | **THE ONE MERGE GATE WHOSE FAIL-ABILITY HAD NEVER BEEN SHOWN.** §1487–§1494 asked every PASSING gate whether it could fail; `identity-leak` was never asked, because it is BLOCKED locally (no denylist → `executed: false`). It can be asked without the real one: the denylist is an INPUT. Measured with synthetic terms — none → SKIPPED; an absent term → **exit 0, executes**; a present term (`liftgate`, an accessorial code) → **exit 1, 45 hits**. **And the property nothing had checked: the term is never echoed** — every failure line reads `l*******`, zero raw occurrences. A leak lint that printed the denylisted name would publish the very identity it protects into CI logs. Also clarified: my `21 PASS · 5 BLOCKED` is the LOCAL board — CI passes the secret, so there it is **22 · 4**; and no CI step carries `continue-on-error`. |
 | 970 | §1523 | **§1524** | **I BUILT A GATE THAT ALREADY EXISTED, AND DELETED IT.** §1523's reopen trigger said the masking property *lives in this record and not in a test* and that *the suite cannot assert it without a denylist* — **both halves false**. I wrote the gate anyway (4 cases, mutation-proved, green), then asked §1485's question: running the whole suite under the masking mutation reds **`identity-leak.test.ts`** too. One layer looked plausibly mine — the CLI's own formatter, separate from the scan function — so I mutated ONLY that: it reds two files, mine and the existing disposition case. **Both layers were already watched, so the file is deleted.** Third time this block (§1510's three parsers, §1512's 13%-precision predictor, this): the failure is **writing a reopen trigger from memory rather than from a check**, and a trigger is the one sentence nobody re-measures before acting on it. §1523's false trigger is struck IN PLACE — a withdrawn claim that leaves no trace is how a record starts lying. |
 | 971 | §1524 | **§1525** | **MY OWN REOPEN TRIGGERS, AUDITED — 6 of 24 were already discharged.** §1524's rule (*search before building what a trigger asks for*) applied to the triggers themselves. Six still read as open while the work was done: five *N defensive sites remain* (§1509 closed the class; it corrected four and **missed §1502**), §1504's *if a THIRD scoping decision is found* (§1505/§1506 found all three), §1511's *`.forEach` and `apps/**` not swept* (§1512 swept both), §1517/§1518(b)'s *a magnitude nobody has picked* (§1519 measured, §1520 derived, §1521 guards it), and §1521's `allocateCents` (§1522, clean negative). **Each struck IN PLACE with the section that discharged it** — a trigger that vanishes leaves a reader unable to tell *done* from *forgotten*. **The live set is seven**, now stated plainly because the discharged ones were crowding it. |
+| 972 | §1525 | **§1526** | **THE TWO FIELDS I JUDGED BY READING, MEASURED — both non-issues.** §1515 flagged `import.ts:53@field` and `registry.ts:174@note` as reaching storage *judged by READING rather than probing*; §1525 carried it as live trigger #3. Probed: the import override's loose `z.string()` is narrowed by the mapper's `z.enum(CANONICAL_FIELDS)` and a 100k value returns **400 VALIDATION_FAILED, not a 500** — the boundary catch §1516 had to ADD for accessorials was already here — with a control (`shipper_name` → 200) so the refusal discriminates. And the `note` is on `noop_mutation`, a proof stub that performs no api write at all; §1515's description of it as a dispute note was wrong. **Both flags false, both in the SAFE direction — the mirror of §1523's false absence, same root: a judgement written from reading and carried as if measured.** Live set now six. |
 | 856 | §1409 | **§1410** | **SWEEPING MY OWN SECTIONS FOR §1409's ERROR, AND A DETECTOR THAT COULD NOT HAVE FOUND IT.** §1404's precedent: a class like this gets ONE measurement, not a gate, since a correction necessarily quotes what it corrects. **The first sweep returned ZERO and was worthless** — it extracted superseded text as `~~struck~~` only, but the very case §1409 found is marked the other way, as *"a 16-step chain …"* **until audit §1029**. **My detector encoded one of the repo's TWO conventions, so it could never have found the known positive.** Twelfth instance of the session's constant, caught because a zero is the answer this session has learned never to accept. **A second false signal inside the control:** asking *"is it inside `~~…~~`?"* with `~~[^~]*16-step` returned True — because an unrelated `~~` sits earlier and `[^~]*` spanned the gap. **A regex answering "is X inside a delimiter" by searching for the delimiter anywhere before X will say yes to the whole file.** Re-run over both conventions: **109 superseded passages, zero quoted without a marker** — and that zero is worth something, because the corrected detector demonstrably flags a reconstruction of §1408's sentence. **§1409's error was singular, not a habit** |
 | **855** | §1408 | **§1409** | **I QUOTED STRUCK TEXT AS CURRENT, AND THE REPO HAD SOLVED IT 380 SECTIONS EARLIER.** §1408 cited CLAUDE.md's account of `verify:dev` as *"a 16-step chain … reaches 4 of 16"*. Measured: **18 steps**. **But the drift is my quotation's, not the law's** — CLAUDE.md's current text says that reading held *"until audit §1029"*, was *"invalidated hours later by `7b61624`"*, and that **the total is stated no longer, only the position that matters: step 4, and nothing after it**. I quoted the struck half of a correction as the claim. **Eleventh measurement error, and the first where the artifact had already anticipated the failure I was about to report.** **§1029's move is exactly §1402's, reached 373 sections apart and independently:** faced with a number that rots, REMOVE the number and keep the invariant. A convention arrived at twice from opposite ends of the record is the closest this audit has to a law about documentation. Substantively: `verify:dev` is still an unaggregated `&&` chain at 18 steps, and that is **not** a defect — CLAUDE.md documents it, names `verify:merge` as the real verdict, and `wp-exit-audit.test.ts:19` records that a naive matcher yields *"4 of 16"* and *"reads as a serious constitutional finding and is an artifact"*. **Tenth clean negative** |
 | 854 | §1407 | **§1408** | **VERIFYING MY OWN DELIVERABLE IS WIRED, BY THE STANDARD §1304 SET.** Five gates were built this session and each reported as working; §1304's standard is **verified WIRED before the board is read**, because a gate that runs when I invoke it and not when CI does is decoration with a green tick. **First measurement said ZERO** — searching the merge log for the five names returns 0 mentions each, which reads as "they never ran". It is the §1362 reporter difference: the tools suite runs under vitest v4 (summary only) while worker suites at v3.2.7 print per-file. The same run reports **125 files passed**, 120 + 5. **Tenth measurement error avoided by not believing a zero.** Measured properly three ways: `vitest list` shows **21 cases** across the five; `run-gate.ts:46` wires `unit-tests` to the `test` script; and `test` is `test:tools; t=$?; … ; exit $(( t \|\| p ))`. **Proved end-to-end:** breaking `law-enforcers` makes `pnpm test:tools` exit 1, which propagates. Also worth noting: that script AGGREGATES rather than `&&`-chains — the defect CLAUDE.md records for `verify:dev`, which reaches 4 of 16 steps |
@@ -87461,8 +87462,8 @@ the same failure as a stale one pointing the wrong way.
 1. **§1508(a)/§1503(b)** — re-run the board on a CLEAN tree once the concurrent workstream commits. *(The
    only carry-forward that blocks a verdict rather than adding work.)*
 2. **§1513** — dims are unbounded; if a tariff ever prices by DENSITY they enter the BigInt math.
-3. **§1515** — `import.ts:53@field` and `registry.ts:174@note` reach storage and were judged by READING, not
-   probing.
+3. ~~**§1515** — `import.ts:53@field` and `registry.ts:174@note` reach storage and were judged by READING, not
+   probing.~~ **DISCHARGED at §1526 — both PROBED, both non-issues, and neither reaches storage.**
 4. **§1516** — the `legs` array is unbounded into an append-only payload; the bound is a product decision.
 5. **§1518(a)** — run the three `z.number()`/`z.string()`/`z.array()` sweeps whenever a request schema gains a
    field.
@@ -87475,3 +87476,42 @@ the same failure as a stale one pointing the wrong way.
 `check:section-refs` and `check:citations` clean. **Reopen trigger:** none new. The rule this phase applied is
 the one it should be judged by — **audit the triggers before acting on them, and disposition in place** — and
 the measured rate this block is **6 stale of 24**, which is why the sweep is worth its half hour.
+
+## §1526 — PHASE GATE: the two fields I judged by reading, measured — both non-issues (REQ-035/101/118)
+
+§1515 bounded two string fields and left two flagged: *"`import.ts:53@field` (a column name off an uploaded
+sheet) and `registry.ts:174@note` (an MCP dispute note) both reach storage and were judged by READING rather
+than by probing."* §1525 carried that as live trigger #3. §1524's rule says run the probe rather than trust
+the judgement, so:
+
+**`import.ts:53@field` — NOT a defect, and the reason is the shape §1516 had to ADD elsewhere.** The route's
+`ImportBody` takes `field: z.string()` (unbounded), but the pure mapper narrows it to
+`z.enum(CANONICAL_FIELDS)` — its own comment says *"an unknown field is a hard REJECT (a typo/smuggled key
+never silently no-ops)"*. Measured on the live route, with a control that PASSES so the refusals mean
+something:
+
+| body | result |
+|---|---|
+| `field: "shipper_name"` (a real canonical field) | **HTTP 200** — the path works |
+| no mapping at all | **HTTP 200** |
+| `field: "x".repeat(100_000)` | **HTTP 400** `VALIDATION_FAILED — INVALID MAPPING OVERRIDE (unknown canonical field)` |
+
+**A 400, not a 500** — someone had already done here what §1516 had to add for accessorials: the engine's
+refusal is caught at the boundary and reported as the client error it is. Nothing is stored.
+
+**`registry.ts:174@note` — not a storage path at all.** It is the `inputSchema` of `noop_mutation`, the
+proof stub whose entire body is `async (ctx) => ({ ok: true, idempotencyKey: ctx.idempotencyKey })` — it
+performs no api write by design (its comment says so: *"this exists only to exercise beforeMutation"*). The
+note reaches nothing. **§1515's description of it as an "MCP dispute note" was wrong** — the dispute tool is a
+different registration.
+
+**Both flags were false, and both were false in the SAFE direction** — I recorded a risk where there was
+none. That is the mirror of §1523, where I recorded an absence of coverage that was also not there. Same root:
+**a judgement written from reading, carried forward as if measured.** The two cost about the same to check
+and nothing to be wrong about, which is precisely why neither was checked at the time.
+
+**Phase gate.** **No source changed** — two probes against the live route and one file read, with a passing
+control in the probe so the 400s discriminate. §1525's live trigger #3 is struck in place; **the live set is
+now six**. Tools 140 files / 1457. **Reopen trigger:** none — but the pattern is worth the standing note: a
+flag raised by reading is not a finding, it is a QUESTION, and this record should say which it is at the
+moment it is written.
