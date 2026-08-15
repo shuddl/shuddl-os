@@ -1,4 +1,4 @@
-import { z, assertNotPlatformTenant, proofToCashEnabled, assertProofToCashEntitled, NO_ENTITLEMENTS, CLAIMED_TENANT_BY_SLUG_SQL, UNCLAIMED_TENANT_PLAN, RESERVED_TENANT_PLANS, usageCreditsId, type TenantEntitlementRow } from "@shuddl/contracts";
+import { z, MAX_EMAIL_LEN, assertNotPlatformTenant, proofToCashEnabled, assertProofToCashEntitled, NO_ENTITLEMENTS, CLAIMED_TENANT_BY_SLUG_SQL, UNCLAIMED_TENANT_PLAN, RESERVED_TENANT_PLANS, usageCreditsId, type TenantEntitlementRow } from "@shuddl/contracts";
 import { TENANT_BINDINGS } from "./tenants.js";
 import { seedColdStartTariff } from "./tariff-seed.js";
 import type { Env } from "./index.js";
@@ -54,7 +54,7 @@ export const ProvisionInput = z
     slug: z.string().regex(DNS_LABEL, "slug must be a DNS-hostname label ([a-z0-9-], no leading underscore)"),
     name: z.string().min(1).max(200),
     plan: z.string().min(1).max(40),
-    admin: z.object({ email: z.string().email(), user_id: z.string().min(1).optional() }).strict(),
+    admin: z.object({ email: z.string().email().max(MAX_EMAIL_LEN), user_id: z.string().min(1).optional() }).strict(), // §1515
     // The initial usage_credits meter period (YYYY-MM). Optional — defaults to the current month.
     period: z.string().min(1).max(20).optional(),
   })

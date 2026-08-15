@@ -1,6 +1,6 @@
 import type { Context } from "hono";
 import { z } from "zod";
-import { MAX_WEIGHT_LB } from "@shuddl/contracts";
+import { MAX_WEIGHT_LB, MAX_ZIP_LEN } from "@shuddl/contracts";
 import { priceShipment, resolveTransitDays } from "@shuddl/rater";
 import type { RateRequest, TransitResult } from "@shuddl/rater";
 import { ApiError, envelope } from "../middleware/error.js";
@@ -64,8 +64,9 @@ const GuestDims = z
 // accessorial list carried arbitrary bytes into the engine. Mirrors SignupBody's bounding discipline.
 const GuestQuoteBody = z
   .object({
-    origin_zip: z.string().min(1).max(16),
-    dest_zip: z.string().min(1).max(16),
+    // §1515 — the shared ceiling, not a local 16: three surfaces had three answers for one field.
+    origin_zip: z.string().min(1).max(MAX_ZIP_LEN),
+    dest_zip: z.string().min(1).max(MAX_ZIP_LEN),
     // §1513 — the SAME ceiling the authed surface uses, imported rather than restated. Unbounded, a guest
     // could send `weight_lb: 1e15` and reach `mulDivHalfUp`'s precision throw: an HTTP 500 on the anonymous
     // surface from one JSON field (measured §1513). Over-cap is a 400 here, like every other bounded field.

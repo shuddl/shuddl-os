@@ -156,10 +156,24 @@ const RateDims = z
 // PHYSICS decision (REQ-004, no price on air). The two must never collapse into one another.
 export const MAX_WEIGHT_LB = 1_000_000;
 
+// §1515 — THE SAME LAW FOR THE STRINGS BESIDE IT. `z.string()` bounds a TYPE, never a VALUE: measured at
+// §1515, `RateRequestPayload` accepted a **100,000-character** `origin_zip`, and that string lands in an
+// append-only `quote.priced` payload — permanent, unshrinkable bloat from one request. Three surfaces priced
+// with three different answers (`/pub/quote` capped at 16, the MCP tool at 20, `/v1/rate` at nothing), which
+// is §1514's drift on the neighbouring field. 20 characters holds a US ZIP+4 (`97201-1234`) twice over and
+// every international postcode in use.
+export const MAX_ZIP_LEN = 20;
+
+// RFC 5321 §4.5.3.1.3 caps a forward-path at 254 characters. `z.string().email()` enforces SHAPE and no
+// LENGTH — measured at §1515, it accepted a 100,000-character local part, on `/pub/signup`, which is the
+// UNAUTHENTICATED provisioning surface that writes `users.email`. A storage-amplification vector behind one
+// anonymous POST the day the provisioning flag flips.
+export const MAX_EMAIL_LEN = 254;
+
 export const RateRequestPayload = z
   .object({
-    origin_zip: z.string().min(1),
-    dest_zip: z.string().min(1),
+    origin_zip: z.string().min(1).max(MAX_ZIP_LEN),
+    dest_zip: z.string().min(1).max(MAX_ZIP_LEN),
     weight_lb: SafeInt.min(1).max(MAX_WEIGHT_LB).optional(),
     dims: RateDims.nullish(), // absent OR null ⇒ missing physics (the engine returns UNKNOWN)
     accessorials: z.array(z.string()).readonly().optional(),

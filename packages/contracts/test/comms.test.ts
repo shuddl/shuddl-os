@@ -8,6 +8,7 @@ import {
   MessageSentPayload,
   RateRequestPayload,
   MAX_WEIGHT_LB,
+  MAX_ZIP_LEN,
   QuoteRequestedPayload,
   QuoteSentPayload,
   QuoteAcceptedPayload,
@@ -180,6 +181,15 @@ describe("REQ-099: RateRequestPayload (the measured-physics request a quote is p
     // INCLUSIVE, and a real truckload still parses — a ceiling that refuses real freight is the worse defect.
     expect(RateRequestPayload.parse({ ...valid, weight_lb: MAX_WEIGHT_LB }).weight_lb).toBe(MAX_WEIGHT_LB);
     expect(RateRequestPayload.parse({ ...valid, weight_lb: 80_000 }).weight_lb).toBe(80_000);
+  });
+  // §1515 — THE STRINGS BESIDE IT, same law. `z.string()` bounds a TYPE, never a VALUE: measured at §1515,
+  // this payload accepted a 100,000-character `origin_zip`, and that string lands in an append-only
+  // `quote.priced` payload — permanent bloat from one request. 20 holds a US ZIP+4 twice over.
+  it("rejects a zip longer than the physical ceiling, and accepts a real ZIP+4", () => {
+    expect(() => RateRequestPayload.parse({ ...valid, origin_zip: "a".repeat(MAX_ZIP_LEN + 1) })).toThrow();
+    expect(() => RateRequestPayload.parse({ ...valid, dest_zip: "a".repeat(100_000) })).toThrow();
+    expect(RateRequestPayload.parse({ ...valid, origin_zip: "97201-1234" }).origin_zip).toBe("97201-1234");
+    expect(RateRequestPayload.parse({ ...valid, origin_zip: "a".repeat(MAX_ZIP_LEN) }).origin_zip).toHaveLength(MAX_ZIP_LEN);
   });
   it("rejects a FLOAT weight_lb (integer-only canonical law)", () => {
     expect(() => RateRequestPayload.parse({ ...valid, weight_lb: 12.5 })).toThrow();

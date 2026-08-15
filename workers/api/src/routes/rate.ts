@@ -1,7 +1,7 @@
 import { RATER_AGENT } from "@shuddl/ledger/queries/metrics";
 import type { Hono } from "hono";
 import { z } from "zod";
-import { MAX_WEIGHT_LB } from "@shuddl/contracts";
+import { MAX_WEIGHT_LB, MAX_ZIP_LEN } from "@shuddl/contracts";
 import { priceShipment, assessApproval, resolveTransitDays } from "@shuddl/rater";
 import type { RateRequest, Leg, PricedQuote, ApprovalDecision, TransitResult } from "@shuddl/rater";
 import { ApiError } from "../middleware/error.js";
@@ -60,8 +60,8 @@ const LegSchema = z
 const RateBody = z
   .object({
     shipment_id: z.string().min(1).max(MAX_SHIPMENT_ID_LEN),
-    origin_zip: z.string().min(BODY_LIMIT_ZIP_MIN),
-    dest_zip: z.string().min(BODY_LIMIT_ZIP_MIN),
+    origin_zip: z.string().min(BODY_LIMIT_ZIP_MIN).max(MAX_ZIP_LEN), // §1515 — a VALUE bound, not just a type
+    dest_zip: z.string().min(BODY_LIMIT_ZIP_MIN).max(MAX_ZIP_LEN),
     weight_lb: z.number().int().positive().max(MAX_WEIGHT_LB).optional(), // §1513 — magnitude, not just sign
     dims: Dims.nullish(), // absent OR null ⇒ UNKNOWN missing_physics
     accessorials: z.array(z.string()).optional(),

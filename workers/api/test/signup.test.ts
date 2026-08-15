@@ -198,6 +198,33 @@ describe("flag ON — signup provisions a tenant + mints an admin session (REQ-1
 // ---- COLLISION → a clean 409, never a 500 (WP-14 exit audit Finding D, REQ-121) ----------------------
 // A taken workspace slug / admin email is the SINGLE most common signup error. It must tell the user to pick
 // another (409 Conflict), not 5xx-alert. A genuine provisioning fault still surfaces as a 500 (never masked).
+// §1515 (REQ-121/118) — `.email()` BOUNDS A SHAPE, NEVER A LENGTH. Measured at §1515: `z.string().email()`
+// accepts a **100,000-character** local part, and this is the UNAUTHENTICATED provisioning surface — the one
+// that writes `users.email`. Every neighbouring field was already bounded (`company` 200, `slug` 63); the
+// email was not, because its refinement LOOKS like a constraint. RFC 5321 §4.5.3.1.3 caps a forward-path at
+// 254, which is now `MAX_EMAIL_LEN` in `@shuddl/contracts` and is shared with `ProvisionInput`, the only
+// other schema that takes an admin email.
+describe("§1515 — an over-length email is refused at the boundary (REQ-121)", () => {
+  // WHICH LAYER, stated because the pair is the guard and this case cannot tell them apart (§1500's shape).
+  // TWO schemas take an admin email on this one path — `SignupBody` here and `ProvisionInput` inside
+  // `provisionTenant` — and BOTH now carry `MAX_EMAIL_LEN`. Measured at §1515: removing only the SignupBody
+  // bound still yields this 400, because the other half fires. That is the same double-gating the route's
+  // own header describes for the provisioning flag ("checked TWICE on that path, so a future route that
+  // forgets the first still fail-closes"), and it is why this case asserts the OUTCOME rather than a layer.
+  it("a 100k-character local part is a 400, never a stored row", async () => {
+    const huge = `${"a".repeat(100_000)}@signup-huge.test`;
+    const res = await app.fetch(signupReq({ company: "Huge Co", email: huge, slug: "signup-huge" }), onEnv);
+    expect(res.status, "an unbounded email is storage amplification behind one anonymous POST").toBe(400);
+    const row = await env.CONTROL_DB.prepare("SELECT COUNT(*) AS n FROM tenants WHERE slug = ?").bind("signup-huge").first<{ n: number }>();
+    expect(row?.n, "nothing may be provisioned for a request that was refused").toBe(0);
+  });
+
+  it("a REAL address still signs up — the ceiling refuses nothing legitimate", async () => {
+    const res = await app.fetch(signupReq({ company: "Normal Co", email: "ap@normal-co.example", slug: "signup-normal" }), onEnv);
+    expect(res.status, await res.clone().text()).toBe(201);
+  });
+});
+
 describe("a slug/email collision at signup is a clean 409, never a 500 (REQ-121)", () => {
   it("a signup for a slug already claimed by an existing tenant → 409, no D1/secret leak", async () => {
     // tenant-a already owns the slug "tenant-a" in the control plane (seeded by ensureSchema).

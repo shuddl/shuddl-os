@@ -1,6 +1,6 @@
 import type { Context, Hono } from "hono";
 import { sign } from "hono/jwt";
-import { z } from "@shuddl/contracts";
+import { z, MAX_EMAIL_LEN } from "@shuddl/contracts";
 import { envelope } from "../middleware/error.js";
 import { provisionTenant, provisioningEnabled, ProvisionError } from "../provision.js";
 import type { Env, Vars } from "../index.js";
@@ -29,7 +29,7 @@ const SESSION_TTL_SECONDS = 60 * 60 * 8; // an 8h admin workspace session
 const SignupBody = z
   .object({
     company: z.string().min(1).max(200),
-    email: z.string().email(),
+    email: z.string().email().max(MAX_EMAIL_LEN), // §1515 — `.email()` bounds SHAPE, never LENGTH
     slug: z.string().min(1).max(63),
   })
   .strict();
