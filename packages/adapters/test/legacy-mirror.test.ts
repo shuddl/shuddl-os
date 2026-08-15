@@ -77,7 +77,9 @@ describe("§1529 — the incumbent's own key reaches the wire and survives it (�
     const { records } = mapLegacyExport(parseSheet(csv), CONFIG);
     const ev = records[0]?.event;
     expect(ev, "the row did not map to an event — the fixture drifted from the config").toBeDefined();
-    const out = serializeOutboundCsv(projectOut([{ ...ev!, id: "nat_1", source: "native" as const }], CONFIG), CONFIG);
+    // `cursor` is required by ProjectableEvent and is NOT part of a MirrorEventDraft, so the spread cannot
+    // supply it; 1 matches the fixture's own feed_seq, keeping the round trip a round trip.
+    const out = serializeOutboundCsv(projectOut([{ ...ev!, id: "nat_1", source: "native" as const, cursor: 1 }], CONFIG), CONFIG);
     const feed = parseSheet(out);
     expect(feed.rows, "the hostile key split the record").toHaveLength(1);
     expect(feed.rows[0]?.[feed.headers.indexOf("rec_id")]).toBe(HOSTILE_KEY);
