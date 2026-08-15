@@ -179,6 +179,34 @@ describe("GQ-4: guest cannot book", () => {
 // GQ-5 — SHIPMENT_ID FOOTGUN. A guest body carrying shipment_id is a 400 (.strict rejects it), no append. This
 // is the whole reason the guest schema does NOT reuse RateBody (which REQUIRES shipment_id): a future rewrite
 // can never derive an `s:${shipment_id}` stream for a stranger.
+// §1513 (REQ-051/189/004) — THE MAGNITUDE BOUND. `weight_lb` was `int().positive()` with no ceiling, and the
+// pricing chain forms `weight × cwt_cents` in BigInt and THROWS rather than return an imprecise JS number.
+// MEASURED at §1513 against this very route: `1e12` returned HTTP 200 with `sell_cents: 55_800_000_000_000`
+// (a $558-billion quote), and `1e15` returned **HTTP 500 INTERNAL — on the UNAUTHENTICATED surface, from one
+// JSON field**. The route's own header claims *"Every field is BOUNDED … this is an anonymous compute
+// endpoint"*; the bounding covered string LENGTHS and array SIZES and not the numeric MAGNITUDE that feeds
+// the money math, which is the only one that can reach a throw.
+//
+// Both directions are pinned, because a ceiling that also refuses real freight is a worse defect than the
+// 500: 1,000,000 lb is 12.5x a fully-loaded US truck's legal gross, so the last legal shipment still prices.
+describe("§1513 — the anonymous surface cannot be 500'd by an absurd weight (REQ-051/189)", () => {
+  it("an over-cap weight is a 400, never a 500 — the precision throw is unreachable from outside", async () => {
+    for (const w of [1_000_001, 1e12, 1e15, Number.MAX_SAFE_INTEGER]) {
+      const r = await quote({ origin_zip: "97201", dest_zip: "80012", weight_lb: w, dims: DIMS });
+      expect(r.status, `weight_lb=${w} must be refused at the boundary, not crash the engine`).toBe(400);
+      expect(r.json?.["code"]).toBe("VALIDATION_FAILED");
+    }
+  });
+
+  it("the heaviest LEGAL shipment still prices — the ceiling refuses nothing real", async () => {
+    const r = await quote({ origin_zip: "97201", dest_zip: "80012", weight_lb: 80_000, dims: DIMS });
+    expect(r.status, r.text).toBe(200);
+    expect(r.json?.["status"]).toBe("PRICED");
+    const cap = await quote({ origin_zip: "97201", dest_zip: "80012", weight_lb: 1_000_000, dims: DIMS });
+    expect(cap.status, "the cap itself is INCLUSIVE — a bound that excludes its own value is an off-by-one").toBe(200);
+  });
+});
+
 describe("GQ-5: shipment_id footgun", () => {
   it("a body carrying shipment_id is rejected 400 and appends nothing", async () => {
     const before = await eventCount();

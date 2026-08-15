@@ -72,7 +72,7 @@ admitted role `portal` and returned one `pricedResponse()` unbranched by lens: `
 the exact fields `REDACTIONS["quote.priced"]` strips on the events read. The SAME party saw `floors`
 stripped from the ledger and received them synchronously at pricing time. The skill's triggers all
 pointed at EventKind payloads and `redact.ts`, so a route handler never tripped it (2026-08-01
-audit, C1; fixed at `workers/api/src/routes/rate.ts:326@portalPricedResponse`).
+audit, C1; fixed at `workers/api/src/routes/rate.ts:342@portalPricedResponse`).
 
 The completeness rule therefore runs over EVERY wire a counterparty can read:
 1. The events read (redactEvent — the original scope).

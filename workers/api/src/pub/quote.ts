@@ -6,7 +6,7 @@ import { ApiError, envelope } from "../middleware/error.js";
 import { tenantDb, TENANT_BINDINGS } from "../tenants.js";
 import { loadTenantRatingConfig, loadTransitMatrix } from "../rate-config.js";
 import { authoritativeSource, resolveAuthority } from "../authority.js";
-import { transitWindow } from "../routes/rate.js";
+import { MAX_WEIGHT_LB, transitWindow } from "../routes/rate.js";
 import type { Env, Vars } from "../index.js";
 
 // REQ-051/189 (WP-09 Task 4) — POST /pub/quote: the SECOND no-auth public surface. A stranger prices freight
@@ -65,7 +65,10 @@ const GuestQuoteBody = z
   .object({
     origin_zip: z.string().min(1).max(16),
     dest_zip: z.string().min(1).max(16),
-    weight_lb: z.number().int().positive().optional(),
+    // §1513 — the SAME ceiling the authed surface uses, imported rather than restated. Unbounded, a guest
+    // could send `weight_lb: 1e15` and reach `mulDivHalfUp`'s precision throw: an HTTP 500 on the anonymous
+    // surface from one JSON field (measured §1513). Over-cap is a 400 here, like every other bounded field.
+    weight_lb: z.number().int().positive().max(MAX_WEIGHT_LB).optional(),
     dims: GuestDims.nullish(), // absent OR null ⇒ UNKNOWN missing_physics (the engine decides, not a 400)
     accessorials: z.array(z.string().max(64)).max(32).optional(),
   })
