@@ -90086,4 +90086,9 @@ every run.**
 > between a regression test and a coin flip.
 
 **Phase gate.** agents **24 files / 147 tests**; typecheck and lint 0. Two production files changed across
-§1587–§1588, both on the same class. Board re-measured below.
+§1587–§1588, both on the same class. Board re-measured at `1b815b6`: **21 PASS · 0 FAIL · 5 BLOCKED**
+(aggregate BLOCKED, exit 2 — the five owner-side private-fixture holds).
+
+**The class is now closed with two instances and one rule for choosing the remedy**: rewrite the whole value
+only when the whole value is the unit of change (§1587's array — compare-and-set); otherwise mutate the path
+(`json_set`). Every other JSON-column writer in the repo already took the second road.
