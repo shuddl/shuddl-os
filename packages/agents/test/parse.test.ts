@@ -276,6 +276,16 @@ describe("ClaudeParser — the live adapter, exercised only against a stub", () 
     expect(call.url).toBe("https://api.anthropic.com/v1/messages");
     expect(call.init.method).toBe("POST");
 
+    // §1555 — max_tokens is a COST ceiling on a paid API and was asserted by nothing. §1554's batch raised
+    // `MAX_TOKENS` to 9,000,000,000 across all three LLM callers with the agents suite fully green, because
+    // every test stubs the transport and none read the request BODY. The stub captures it, so the ceiling is
+    // checkable here at no cost. Bounded rather than pinned to a literal: the exact number is a tuning
+    // decision; whether there is a ceiling at all is not.
+    const sent = JSON.parse(String(call.init.body)) as { max_tokens?: unknown };
+    expect(typeof sent.max_tokens, "the Anthropic request carries no max_tokens — an unbounded completion is an unbounded bill").toBe("number");
+    expect(sent.max_tokens as number, "max_tokens is not a positive ceiling — this is the only thing bounding spend per call").toBeGreaterThan(0);
+    expect(sent.max_tokens as number, "max_tokens exceeds any sane per-call ceiling").toBeLessThanOrEqual(200_000);
+
     const headers = new Headers(call.init.headers);
     expect(headers.get("x-api-key")).toBe("sk-ant-test");
     expect(headers.get("anthropic-version")).toBe("2023-06-01");

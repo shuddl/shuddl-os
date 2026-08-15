@@ -41,9 +41,17 @@ describe("selectMigrator — degrades to deterministic when the LLM is unbound",
 
 describe("ClaudeMigrator — validated, fail-safe to deterministic", () => {
   it("a valid model response places an otherwise-unmapped header", async () => {
-    const fetchImpl = async () =>
-      anthropicOk(JSON.stringify([{ header: "Widget Code", field: "pro", confidence: 0.95 }]));
-    const guesses = await new ClaudeMigrator({ apiKey: "k", model: "m", fetchImpl }).guess(HEADERS);
+    // §1555 — capture the request so the COST ceiling is observable. This stub discarded it, which is why
+    // `MAX_TOKENS` could be raised to 9,000,000,000 here with the suite green (audit §1554).
+    const sent: RequestInit[] = [];
+    const fetchImpl = async (_url: unknown, init?: RequestInit) => {
+      sent.push(init ?? {});
+      return anthropicOk(JSON.stringify([{ header: "Widget Code", field: "pro", confidence: 0.95 }]));
+    };
+    const guesses = await new ClaudeMigrator({ apiKey: "k", model: "m", fetchImpl: fetchImpl as unknown as typeof fetch }).guess(HEADERS);
+    const tokens = (JSON.parse(String(sent[0]?.body ?? "{}")) as { max_tokens?: unknown }).max_tokens;
+    expect(typeof tokens, "the migrator Messages request carries no max_tokens — an unbounded completion is an unbounded bill").toBe("number");
+    expect(tokens as number, "max_tokens exceeds any sane per-call ceiling").toBeLessThanOrEqual(200_000);
     // The model's guess for "Widget Code" is merged; the other headers keep their deterministic guesses.
     expect(guesses.find((g) => g.header === "Widget Code")).toEqual({ header: "Widget Code", field: "pro", confidence: 0.95 });
     expect(guesses.find((g) => g.header === "mode")?.field).toBe("mode");

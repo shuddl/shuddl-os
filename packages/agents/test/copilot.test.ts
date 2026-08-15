@@ -174,6 +174,12 @@ describe("ClaudeCopilot — grounding is the gate; the model's word is not (stub
 
     expect(calls.length, "no Messages call was made — this case cannot see the bound").toBe(1);
     const body = String(calls[0]?.init.body ?? "");
+    // §1555 — the COST ceiling, in the same captured body. `MAX_TOKENS` was raised to 9,000,000,000 across all
+    // three LLM callers at §1554 with the agents suite fully green: every test stubs the transport and none
+    // read max_tokens. Bounded, not pinned — the number is a tuning decision, the existence of one is not.
+    const sentTokens = (JSON.parse(body) as { max_tokens?: unknown }).max_tokens;
+    expect(typeof sentTokens, "the copilot Messages request carries no max_tokens — an unbounded completion is an unbounded bill").toBe("number");
+    expect(sentTokens as number, "max_tokens exceeds any sane per-call ceiling").toBeLessThanOrEqual(200_000);
     // PREMISE: the payload really was oversized, or the truncation below is vacuous.
     expect(HUGE, "the payload must exceed MAX_PAYLOAD_CHARS for this to test anything").toBeGreaterThan(2_000);
     // The run of `x` that actually reached the prompt is the observable: it must be clipped, not whole.
