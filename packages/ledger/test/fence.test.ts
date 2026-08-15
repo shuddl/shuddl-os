@@ -130,3 +130,45 @@ describe("REQ-065 geofence: haversine distance + ±accuracy ambiguity band", () 
     });
   });
 });
+
+// §1576 (REQ-065/018/030/118) — OMITTING THE ACCURACY IS REWARDED; DISCLOSING IT IS PENALISED.
+//
+// `accuracy_m` is `.optional()` in all three contracts (`packages/contracts/src/events.ts:97@GeoStamp`,
+// `packages/contracts/src/events.ts:152@PositionUpdatedPayload`, `packages/contracts/src/position.ts:11@PositionInput`),
+// and `insideFence` reads `point.accuracy_m ?? 0` — an absent radius means "infinitely precise", so the
+// ambiguity band collapses to zero and `ambiguous` can only fire exactly ON the boundary.
+//
+// That verdict is a GATE input, not a display field: `transition-gates.ts:217` returns
+// `r.inside && !r.ambiguous`. So for one fixed position near the boundary, a client that DISCLOSES its ±50 m
+// is blocked as ambiguous, and the same client omitting the field is admitted. The gate's strictness is
+// chosen by the caller, which is the opposite of the intended direction (REQ-030: a server-side gate must
+// not be relaxable by the flow that calls it).
+//
+// THIS TEST TAKES NO SIDE. Fixing it means deciding what an absent radius MEANS — "unknown, therefore
+// maximally ambiguous" (fail-closed, but it would flag every stamp that omits the field, including manual
+// and replayed ones) or "trusted precise" (today). That is an owner decision, filed on GO-LIVE-CHECKLIST.
+// What is NOT acceptable is the fork being invisible, so this pins the asymmetry: if either branch changes,
+// this fails and the decision gets made deliberately rather than by edit.
+describe("§1576 REQ-065: the ambiguity band is chosen by the CALLER's disclosure (open owner decision)", () => {
+  const fence: Fence = { lat_e6: 40_000_000, lon_e6: 0, radius_m: 200 };
+  const NEAR_BOUNDARY = 40_001_619; // ≈180 m north of centre — inside, and 20 m from the 200 m boundary
+  const gatePasses = (r: { inside: boolean; ambiguous: boolean }): boolean => r.inside && !r.ambiguous;
+
+  it("one position, two disclosures: the SAME distance yields opposite gate verdicts", () => {
+    const undisclosed = insideFence(pt(NEAR_BOUNDARY, 0), fence);
+    const disclosed = insideFence(pt(NEAR_BOUNDARY, 0, 50), fence);
+
+    // Only the disclosure differs — pin that, or the case could drift into comparing two geometries.
+    expect(undisclosed.distance_m, "the two readings must be the same position").toBe(disclosed.distance_m);
+    expect(undisclosed.distance_m).toBe(180);
+    expect(undisclosed.inside && disclosed.inside, "both are inside the fence — only ambiguity may differ").toBe(true);
+
+    expect(gatePasses(undisclosed), "an omitted accuracy_m no longer admits a near-boundary stamp").toBe(true);
+    expect(gatePasses(disclosed), "a disclosed ±50 m no longer blocks the same near-boundary stamp").toBe(false);
+  });
+
+  it("the asymmetry is the DEFAULT's doing, not the geometry's — an explicit 0 behaves as the absence does", () => {
+    // Discriminates the `?? 0` fallback from the arithmetic: if these ever diverge, the default moved.
+    expect(insideFence(pt(NEAR_BOUNDARY, 0), fence)).toEqual(insideFence(pt(NEAR_BOUNDARY, 0, 0), fence));
+  });
+});
