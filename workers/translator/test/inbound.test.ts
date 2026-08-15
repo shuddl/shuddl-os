@@ -756,6 +756,32 @@ describe("REQ-201/202 — inbound 204 → gated chain, NO booking.created", () =
     expect(await readCounter(env.TENANT_A_DB, PARTNER_ID), "the outbound counter did NOT advance on redelivery").toBe(1);
   });
 
+  // §1502 (REQ-202/118) — THE UP-FRONT REFUSAL, which the over-cap case below cannot reach.
+  //
+  // The cap is TWO guards for two different situations, and the source says so: a declared Content-Length over
+  // the ceiling is refused *"without reading the stream"*, and the post-read `byteLength` check is *"the belt
+  // for a chunked/absent Content-Length"*. MEASURED at §1502: deleting the DECLARED branch left this suite
+  // 131/131 green while deleting the post-read branch reds case (3) — so the belt was pinned and the primary
+  // guard, the one that exists to avoid buffering a hostile body at all, was not.
+  //
+  // The failure it prevents is the whole point of REQ-202: without it a 10 GB declared body is fully read into
+  // the isolate by `request.arrayBuffer()` before anything rejects it. Case (3) cannot see this — it sends a
+  // genuinely large body, so BOTH branches fire and either one alone satisfies it.
+  //
+  // The discriminator is a SMALL body with a LARGE declared length: the post-read check passes it, so a 413
+  // can only have come from the declared branch.
+  it("(3a) a small body with an over-cap declared Content-Length → 413 before the read (the declared branch)", async () => {
+    const seq = new RecordingSeq();
+    const body = "A".repeat(64); // well under the cap — the post-read check would let this through
+    const req = await signedRequest(body, { signature: "00" });
+    const spoofed = new Request(req, { headers: new Headers({ ...Object.fromEntries(req.headers), "content-length": "1048577" }) });
+    expect(spoofed.headers.get("content-length"), "the harness could not set a declared length — this case proves nothing").toBe("1048577");
+    const res = await handleInbound204(spoofed, makeDeps(seq, new RecordingTransport(), goodSecrets()));
+    expect(res.status).toBe(413);
+    expect(seq.appended).toHaveLength(0);
+    expect(await count(env.TENANT_A_DB, "anomalies")).toBe(0); // refused before auth/persist — nothing written
+  });
+
   // ── Finding 3 (Low): a storage-DoS cap — an over-cap body is rejected 413 BEFORE any read/persist. ──
   it("(3) an over-cap POST → 413, nothing written (no shipment, no anomaly, no R2)", async () => {
     const seq = new RecordingSeq();
