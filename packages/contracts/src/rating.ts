@@ -140,11 +140,27 @@ const RateDims = z
   })
   .strict();
 
+// §1513/§1514 (REQ-004/051/189) — THE PHYSICAL CEILING ON WEIGHT, declared ONCE for every surface that prices.
+//
+// The pricing chain forms `weight × cwt_cents` in BigInt and THROWS rather than return an imprecise JS number
+// (`packages/rater/src/money.ts@mulDivHalfUp`). Unbounded, that throw is reachable from outside: measured at
+// §1513, `weight_lb: 1e15` on the UNAUTHENTICATED `/pub/quote` returned **HTTP 500**, and `1e12` returned a
+// PRICED $558-billion quote. Three surfaces price — the authed `/v1/rate`, the guest `/pub/quote`, and the MCP
+// `quote_freight` tool — and §1513 bounded only the first two, because it enumerated ROUTES rather than
+// surfaces. The constant lives HERE, in the vocabulary all three already import, so the next surface inherits
+// the ceiling instead of re-deciding it (`quote.ts`'s own header records what three-way drift already cost).
+//
+// PHYSICAL, not arbitrary: a fully-loaded US truck's legal GROSS is 80,000 lb, so this is 12.5× the heaviest
+// legal load and nine orders of magnitude below the precision ceiling — it cannot refuse a real shipment and
+// cannot reach the throw. Over-cap is a VALUE decision (a 400); ABSENT weight stays UNKNOWN, which is a
+// PHYSICS decision (REQ-004, no price on air). The two must never collapse into one another.
+export const MAX_WEIGHT_LB = 1_000_000;
+
 export const RateRequestPayload = z
   .object({
     origin_zip: z.string().min(1),
     dest_zip: z.string().min(1),
-    weight_lb: SafeInt.min(1).optional(),
+    weight_lb: SafeInt.min(1).max(MAX_WEIGHT_LB).optional(),
     dims: RateDims.nullish(), // absent OR null ⇒ missing physics (the engine returns UNKNOWN)
     accessorials: z.array(z.string()).readonly().optional(),
   })

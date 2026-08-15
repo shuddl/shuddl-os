@@ -1,6 +1,7 @@
 import { RATER_AGENT } from "@shuddl/ledger/queries/metrics";
 import type { Hono } from "hono";
 import { z } from "zod";
+import { MAX_WEIGHT_LB } from "@shuddl/contracts";
 import { priceShipment, assessApproval, resolveTransitDays } from "@shuddl/rater";
 import type { RateRequest, Leg, PricedQuote, ApprovalDecision, TransitResult } from "@shuddl/rater";
 import { ApiError } from "../middleware/error.js";
@@ -33,21 +34,8 @@ const BODY_LIMIT_ZIP_MIN = 1;
 // clean 400, not a 500 from the DO-name length limit. The DO owns the FORMAT check; this bounds LENGTH only.
 const MAX_SHIPMENT_ID_LEN = 200;
 
-// §1513 (REQ-051/189/004) — THE WEIGHT'S MAGNITUDE, bounded because the money math refuses to lose precision.
-//
-// `weight_lb` was `int().positive()` with no ceiling on BOTH rate surfaces, and the pricing chain forms
-// `weight × cwt_cents` in BigInt and THROWS rather than return an imprecise JS number
-// (`packages/rater/src/money.ts@mulDivHalfUp`). MEASURED at §1513 against the real routes: `weight_lb: 1e12`
-// prices to a $558-billion quote (HTTP 200), and `1e15` reaches the throw — **HTTP 500 INTERNAL on
-// `/pub/quote`, which is the UNAUTHENTICATED surface**. One JSON field, no account, a 500.
-//
-// The ceiling is physical, not arbitrary: a fully-loaded US truck's legal GROSS is 80,000 lb, so 1,000,000 is
-// 12.5× the heaviest legal load and nine orders of magnitude below the precision ceiling — it cannot refuse a
-// real shipment and cannot reach the throw. Over-cap is a 400 (the same shape an over-long zip already gets),
-// which is a decision about a VALUE; absent weight stays UNKNOWN, which is a decision about PHYSICS
-// (REQ-004 — no price on air). EXPORTED so `pub/quote.ts` bounds the guest surface with the same number:
-// two schemas, one constant, no drift.
-export const MAX_WEIGHT_LB = 1_000_000;
+// §1514 — the weight ceiling is `MAX_WEIGHT_LB`, declared in @shuddl/contracts so all three pricing
+// surfaces share ONE number (see its header there for the measurement and the physics).
 
 const Dims = z
   .object({

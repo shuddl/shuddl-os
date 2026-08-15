@@ -1,12 +1,13 @@
 import type { Context } from "hono";
 import { z } from "zod";
+import { MAX_WEIGHT_LB } from "@shuddl/contracts";
 import { priceShipment, resolveTransitDays } from "@shuddl/rater";
 import type { RateRequest, TransitResult } from "@shuddl/rater";
 import { ApiError, envelope } from "../middleware/error.js";
 import { tenantDb, TENANT_BINDINGS } from "../tenants.js";
 import { loadTenantRatingConfig, loadTransitMatrix } from "../rate-config.js";
 import { authoritativeSource, resolveAuthority } from "../authority.js";
-import { MAX_WEIGHT_LB, transitWindow } from "../routes/rate.js";
+import { transitWindow } from "../routes/rate.js";
 import type { Env, Vars } from "../index.js";
 
 // REQ-051/189 (WP-09 Task 4) — POST /pub/quote: the SECOND no-auth public surface. A stranger prices freight

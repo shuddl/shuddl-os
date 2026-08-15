@@ -14,6 +14,7 @@
 //   · NO PRICE ON AIR (REQ-004, end to end): a weightless/dimless quote returns the api's UNKNOWN verbatim —
 //     the tool NEVER fabricates a sell, and never even hops for a priced-event id (there is no priced fact).
 import { z } from "zod";
+import { MAX_WEIGHT_LB } from "@shuddl/contracts";
 import { defineTool, mutatingCallApi, ToolError, type ToolCtx } from "./registry.js";
 
 // Byte-identical to intake.ts / rate.ts (the api is the authority; these bound the tool input BEFORE the hop).
@@ -56,7 +57,12 @@ const QuoteFreightInput = z
     dest_zip: z.string().min(1).max(MAX_ZIP_LEN),
     // Physics is OPTIONAL on purpose: missing weight/dims is LEGAL and flows to the api's UNKNOWN (no price
     // on air) — it is never a client-side 400 here.
-    weight_lb: z.number().int().positive().optional(),
+    // §1514 — the SAME ceiling the two api surfaces use, from @shuddl/contracts. This tool creates a party
+    // and a SHIPMENT before it rates (`/v1/shipments` then `/v1/rate`), so an over-cap weight that the api
+    // refuses would leave ledger residue behind a request that can never succeed. Bounding it HERE refuses
+    // it before the first write — and stops the three pricing surfaces disagreeing about one payload,
+    // which is the exact drift this file's `dims` note above already records the cost of.
+    weight_lb: z.number().int().positive().max(MAX_WEIGHT_LB).optional(),
     // `.nullish()`, not `.optional()` (audit §821). `.optional()` accepts `undefined` and REJECTS `null` — so
     // `{"dims": null}`, which is what a JSON producer naturally emits for an absent optional field, was a 400
     // HERE while `/v1/rate` and the guest quote (both `.nullish()`) accepted it and returned UNKNOWN. That

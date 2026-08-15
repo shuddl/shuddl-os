@@ -3,6 +3,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { callApi, type Env } from "../src/index.js";
 import { buildRegistry, defaultDispatchDeps, dispatch, type ToolCtx } from "../src/tools/registry.js";
 import { applyControl, seedPairing, seedTenant } from "./helpers.js";
+import { MAX_WEIGHT_LB } from "@shuddl/contracts";
 
 // WP-13 Tasks 4-5 (REQ-101/107/195) — quote_freight + book_shipment, THE DoD booking path.
 //
@@ -132,6 +133,31 @@ beforeAll(async () => {
   const exp = Math.floor(Date.now() / 1000) + 3600;
   await env.GRANTS.put(`token:${TOKEN_A}`, JSON.stringify({ pairingId: PAIRING_A, scope: "mcp", exp }));
   await env.GRANTS.put(`token:${TOKEN_B}`, JSON.stringify({ pairingId: PAIRING_B, scope: "mcp", exp }));
+});
+
+// §1514 (REQ-101/051/004) — THE THIRD PRICING SURFACE, and why the bound belongs to the payload not the route.
+//
+// §1513 bounded `weight_lb` on `/v1/rate` and `/pub/quote` after measuring an HTTP 500 on the unauthenticated
+// surface — and missed THIS one, because it enumerated ROUTES rather than SURFACES THAT PRICE. The miss has a
+// consequence the other two do not: `quote_freight` creates a party and a SHIPMENT (`POST /v1/shipments`)
+// BEFORE it rates, so an over-cap weight the api now refuses would leave ledger residue behind a request that
+// can never succeed. Bounding it in the tool's own schema refuses it before the first write.
+//
+// The constant now lives in `@shuddl/contracts` and all three import it, so a fourth pricing surface inherits
+// the ceiling rather than re-deciding it — this file's own `dims` note records what three-way drift on one
+// payload already cost once.
+describe("§1514 — quote_freight bounds the weight BEFORE its first write (REQ-101/004)", () => {
+  it("an over-cap weight is refused by the tool's schema — no party, no shipment, no rate call", async () => {
+    const overCap = { ...PRICEABLE, weight_lb: MAX_WEIGHT_LB + 1 };
+    const { body, calls } = await runTool(TOKEN_A, "quote_freight", overCap, happyApi());
+    expect(JSON.stringify(body)).toMatch(/invalid|validation|weight/i);
+    expect(calls, "an unsatisfiable request must not create a party or a shipment first").toHaveLength(0);
+  });
+
+  it("the heaviest LEGAL shipment still prices through the tool (the ceiling refuses nothing real)", async () => {
+    const { calls } = await runTool(TOKEN_A, "quote_freight", { ...PRICEABLE, weight_lb: 80_000 }, happyApi());
+    expect(calls.some((c) => c.path === "/v1/rate"), "80,000 lb is a legal truckload and must still reach the rater").toBe(true);
+  });
 });
 
 describe("quote_freight (Task 4) — parties → shipment → rate, over the api verbs", () => {

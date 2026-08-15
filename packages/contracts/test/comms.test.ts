@@ -7,6 +7,7 @@ import {
   MessageReceivedPayload,
   MessageSentPayload,
   RateRequestPayload,
+  MAX_WEIGHT_LB,
   QuoteRequestedPayload,
   QuoteSentPayload,
   QuoteAcceptedPayload,
@@ -165,6 +166,20 @@ describe("REQ-099: RateRequestPayload (the measured-physics request a quote is p
   it("rejects an empty-string origin or dest (min 1)", () => {
     expect(() => RateRequestPayload.parse({ ...valid, origin_zip: "" })).toThrow();
     expect(() => RateRequestPayload.parse({ ...valid, dest_zip: "" })).toThrow();
+  });
+  // §1514 (REQ-004/051) — THE CEILING, which is a different law from the floor above it. `min(1)` says a
+  // shipment weighs something; `max(MAX_WEIGHT_LB)` says the pricing chain can express the answer. The chain
+  // forms `weight × cwt_cents` in BigInt and THROWS rather than lose precision, and §1513 measured that throw
+  // reaching an HTTP 500 on the UNAUTHENTICATED `/pub/quote`. The three pricing surfaces now derive their
+  // bound from this schema's constant — and this case is the reason that constant means anything: without it,
+  // deleting the `.max()` here left contracts 331/331 green (measured §1514).
+  it("rejects a weight ABOVE the physical ceiling, and accepts the ceiling itself (§1513's 500)", () => {
+    expect(() => RateRequestPayload.parse({ ...valid, weight_lb: MAX_WEIGHT_LB + 1 })).toThrow();
+    expect(() => RateRequestPayload.parse({ ...valid, weight_lb: 1e15 })).toThrow();
+    expect(() => RateRequestPayload.parse({ ...valid, weight_lb: Number.MAX_SAFE_INTEGER })).toThrow();
+    // INCLUSIVE, and a real truckload still parses — a ceiling that refuses real freight is the worse defect.
+    expect(RateRequestPayload.parse({ ...valid, weight_lb: MAX_WEIGHT_LB }).weight_lb).toBe(MAX_WEIGHT_LB);
+    expect(RateRequestPayload.parse({ ...valid, weight_lb: 80_000 }).weight_lb).toBe(80_000);
   });
   it("rejects a FLOAT weight_lb (integer-only canonical law)", () => {
     expect(() => RateRequestPayload.parse({ ...valid, weight_lb: 12.5 })).toThrow();
