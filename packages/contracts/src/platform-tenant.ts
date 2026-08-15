@@ -95,6 +95,21 @@ export function usageCreditsId(tenantSlug: string, period: string): string {
   return `${tenantSlug}:${period}`;
 }
 
+// The `period` half of that key, and it is here for the reason stated directly above: the workers re-export,
+// they do not redefine. Added 2026-08-15 (audit §1547), because that discipline had been applied to the id and
+// not to the component the id is built FROM — the metering period existed FOUR times, byte-identical, in
+// `billing/metering.ts@periodOf`, `mcp/caps.ts@currentPeriod`, `agents/spark-caps.ts@currentPeriod` and inline
+// in `api/provision.ts`, with three of the four carrying a comment saying they "mirror" the others. A mirror
+// comment is the drift hazard announcing itself: nothing made them agree except that nobody had edited one.
+//
+// UTC calendar month, deliberately. A billing window is platform-canonical, not tenant-local — the same choice
+// Stripe makes — so no facility timezone enters here (contrast `appointment-window.ts`, where the LOCAL day is
+// the business fact and `Intl` is used for exactly that reason).
+export function billingPeriodOf(tsMs: number): string {
+  const d = new Date(tsMs);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
 // ---- Is a tenant's control-plane policy USABLE? (2026-08-02 §19 — REQ-030/025/180) ---------------------
 //
 // `tenants.policy` is D1 `TEXT NOT NULL DEFAULT '{}'` — NOT NULL, but never constrained to valid JSON. The

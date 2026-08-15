@@ -1,4 +1,4 @@
-import { z, MAX_EMAIL_LEN, assertNotPlatformTenant, proofToCashEnabled, assertProofToCashEntitled, NO_ENTITLEMENTS, CLAIMED_TENANT_BY_SLUG_SQL, UNCLAIMED_TENANT_PLAN, RESERVED_TENANT_PLANS, usageCreditsId, type TenantEntitlementRow } from "@shuddl/contracts";
+import { z, MAX_EMAIL_LEN, assertNotPlatformTenant, billingPeriodOf, proofToCashEnabled, assertProofToCashEntitled, NO_ENTITLEMENTS, CLAIMED_TENANT_BY_SLUG_SQL, UNCLAIMED_TENANT_PLAN, RESERVED_TENANT_PLANS, usageCreditsId, type TenantEntitlementRow } from "@shuddl/contracts";
 import { TENANT_BINDINGS } from "./tenants.js";
 import { seedColdStartTariff } from "./tariff-seed.js";
 import type { Env } from "./index.js";
@@ -124,7 +124,7 @@ export async function provisionTenant(env: Env, input: ProvisionInput): Promise<
 
   const control = env.CONTROL_DB;
   const createdTs = Date.now();
-  const billingPeriod = period ?? new Date(createdTs).toISOString().slice(0, 7); // YYYY-MM
+  const billingPeriod = period ?? billingPeriodOf(createdTs); // the ONE builder (§1547), not a 5th inline form
   const userId = admin.user_id ?? `u-admin-${slug}`;
 
   // 5. COLLISION (the single most common signup error) — a taken workspace slug or admin email is CLIENT-

@@ -25,6 +25,7 @@
 // can only ever refuse a later booking), and NEVER under-counts (which would fail OPEN, the forbidden direction —
 // REQ-105). We choose this conservative over-count over a release path we cannot wire without a handler hook.
 import { MutationBlocked, type MutationCheck } from "./gate.js";
+import { billingPeriodOf } from "@shuddl/contracts";
 import type { ToolCtx, ToolDef } from "./tools/registry.js";
 import type { ReserveRequest, ReserveResult } from "./caps-meter.js";
 
@@ -80,10 +81,7 @@ export function parseCaps(raw: string | null | undefined): ParsedCaps | null {
 
 /** The metering period: the UTC calendar month, "YYYY-MM". A clear, deterministic window off the worker clock. */
 export function currentPeriod(now: number): string {
-  const d = new Date(now);
-  const y = d.getUTCFullYear();
-  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
-  return `${y}-${m}`;
+  return billingPeriodOf(now);
 }
 
 /** What the accepted quote contributes to the caps decision: its recorded sell + its lane tokens. */

@@ -768,6 +768,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 990 | §1543 | **§1544** | **A REFUSAL LIST IS A PROMISE THAT SOMETHING ELSE DOES THE WRITING.** The record already derived the CLIENT side of the catalog exactly (35 −5 −2 −1 = **27 client-appendable**) and never turned around: the 5 `SERVER_EMITTED_KINDS` are refused *because the server emits them*, so each implies a seam nobody had enumerated. **Three have one** (`invoice.issued`, `split.computed`, `payment.received`); **two do not.** `settlement.executed` is **CORRECT** — REQ-033/REQ-143 are CONFIRM-GATED and CLAUDE.md forbids building it, so the absent emitter IS the compliance. **`invoice.corrected` cannot be produced by anything**: refused for every client, owned by no route, constructed by no seam — so **an invoice can never be corrected, reissued or voided in production** — while REQ-012 (*corrections are reversal events*) is V1/WP-02 and the law it serves is in CLAUDE.md. Everything downstream is built: reversal+reissue, the documented VOID, `ux_ml_corrects`, I7 mapping, visibility inheritance, a parity module backed by it. **A complete machine with no throttle** — and REQ-012's acceptance (*correction nets to zero in GL fixture*) is satisfied by a PURE PROJECTION test on a hand-built event, so coverage is 100% green over a producer that does not exist. Filed, deliberately not built. |
 | 991 | §1544 | **§1545** | **THREE SWEEPS, THREE CLEAN NEGATIVES, MY INSTRUMENT WRONG TWICE.** §1544's form pushed down two levels. (a) The other two refusal lists name a route and **both routes are real** and append the kind — unlike `invoice.corrected`. (b) **Queues**: 3 queues, 2 producers / 1 consumer each — asymmetric on the surface, symmetric by design (REQ-169's recon sweep re-enqueues onto the queue its own worker consumes). **My first pass printed `0`** from a regex that matched no section header. (c) **Bindings per environment**: first pass produced 40+ false positives because the parser knew only `binding =`, not DO `name =`, `[vars]`, or that secrets never appear in a toml. Corrected, every gap is deliberate and self-documented (`EVIDENCE_FROM`: *DELIBERATELY ABSENT … stays a NotConfiguredSender*). **The class is already gated — proved by deleting a prod DO binding, which reds `preflight` AND `wrangler-scope-parity`**, while `binding-readers` owns the inverse direction and says so. **Two of three sweeps returned a confident wrong answer first, one a false ZERO and one false POSITIVES — never read a sweep until it has a control that would fail.** |
 | 992 | §1545 | **§1546** | **SEVEN EXPORTS NOTHING CALLS, AND THE ONE I CALLED A DEFECT WAS NOT.** §1543/§1544's class counted: exported production functions with zero production callers. Seven (twelve until `apps/` and `tools/` were counted as callers). Three intentional and self-documented (two RECEIVER-side verifiers, one test-only), one a parallel implementation, two an unreachable 4-function chain for a SKU **already recorded** at `GO-LIVE-CHECKLIST:94` as *Required? No*. **The correction is the point:** `assertHazmatEnabled` has no caller and REQ-060's acceptance is *"flag gates flows"* — but the rule IS enforced, via the sibling PREDICATE `hazmatEnabled()` at the append chokepoint, pinned behaviourally (neutering it reds a 403/zero-append test). The `assert*` is a second formulation, not the rule's only home. **A gate roster proves a gate is TESTED; nothing proves it is WIRED** — harmless here only because a sibling carries enforcement. **No gate added on purpose**: 7 candidates, 0 defects, so it would be an allowlist of six — gate a class when it has produced a defect, not a list. Fifth collapsed run; §1539's token-only rule worked first try. |
+| 993 | §1546 | **§1547** | **THE KEY'S FIRST HALF HAD ONE DEFINITION; ITS SECOND HALF HAD FOUR.** New axis — clock and calendar. The appointment path is exemplary (`localWall` derives the FACILITY-local day via `Intl`, server-computed, so a 6pm Pacific slot is not tomorrow). The residual: `usage_credits` is keyed `<slug>:<period>`, and the comment above `usageCreditsId` states the rule — *the workers re-export it, they do not redefine it* — which **was never carried to the period**. Four builders: `billing@periodOf`, `mcp@currentPeriod`, `agents@currentPeriod` (all byte-identical) and an inline `toISOString().slice(0,7)` in `provision.ts`. **Three carry a comment saying they MIRROR the others** — a drift hazard announcing itself; one character apart splits a tenant's meter across two ids for one month, on the table Stripe reconciles against. Extracted to `billingPeriodOf` beside the id, wrappers kept as one-line delegations, gated + mutation-proved on both halves. **The detector was wrong first**: it matched the INGREDIENT (`getUTCMonth()+1` + pad) and flagged two full-DATE formatters. The violation is the ingredient's neighbour — **a metering period has no day** — and both false positives are now the gate's negative control. |
 | 856 | §1409 | **§1410** | **SWEEPING MY OWN SECTIONS FOR §1409's ERROR, AND A DETECTOR THAT COULD NOT HAVE FOUND IT.** §1404's precedent: a class like this gets ONE measurement, not a gate, since a correction necessarily quotes what it corrects. **The first sweep returned ZERO and was worthless** — it extracted superseded text as `~~struck~~` only, but the very case §1409 found is marked the other way, as *"a 16-step chain …"* **until audit §1029**. **My detector encoded one of the repo's TWO conventions, so it could never have found the known positive.** Twelfth instance of the session's constant, caught because a zero is the answer this session has learned never to accept. **A second false signal inside the control:** asking *"is it inside `~~…~~`?"* with `~~[^~]*16-step` returned True — because an unrelated `~~` sits earlier and `[^~]*` spanned the gap. **A regex answering "is X inside a delimiter" by searching for the delimiter anywhere before X will say yes to the whole file.** Re-run over both conventions: **109 superseded passages, zero quoted without a marker** — and that zero is worth something, because the corrected detector demonstrably flags a reconstruction of §1408's sentence. **§1409's error was singular, not a habit** |
 | **855** | §1408 | **§1409** | **I QUOTED STRUCK TEXT AS CURRENT, AND THE REPO HAD SOLVED IT 380 SECTIONS EARLIER.** §1408 cited CLAUDE.md's account of `verify:dev` as *"a 16-step chain … reaches 4 of 16"*. Measured: **18 steps**. **But the drift is my quotation's, not the law's** — CLAUDE.md's current text says that reading held *"until audit §1029"*, was *"invalidated hours later by `7b61624`"*, and that **the total is stated no longer, only the position that matters: step 4, and nothing after it**. I quoted the struck half of a correction as the claim. **Eleventh measurement error, and the first where the artifact had already anticipated the failure I was about to report.** **§1029's move is exactly §1402's, reached 373 sections apart and independently:** faced with a number that rots, REMOVE the number and keep the invariant. A convention arrived at twice from opposite ends of the record is the closest this audit has to a law about documentation. Substantively: `verify:dev` is still an unaggregated `&&` chain at 18 steps, and that is **not** a defect — CLAUDE.md documents it, names `verify:merge` as the real verdict, and `wp-exit-audit.test.ts:19` records that a naive matcher yields *"4 of 16"* and *"reads as a serious constitutional finding and is an artifact"*. **Tenth clean negative** |
 | 854 | §1407 | **§1408** | **VERIFYING MY OWN DELIVERABLE IS WIRED, BY THE STANDARD §1304 SET.** Five gates were built this session and each reported as working; §1304's standard is **verified WIRED before the board is read**, because a gate that runs when I invoke it and not when CI does is decoration with a green tick. **First measurement said ZERO** — searching the merge log for the five names returns 0 mentions each, which reads as "they never ran". It is the §1362 reporter difference: the tools suite runs under vitest v4 (summary only) while worker suites at v3.2.7 print per-file. The same run reports **125 files passed**, 120 + 5. **Tenth measurement error avoided by not believing a zero.** Measured properly three ways: `vitest list` shows **21 cases** across the five; `run-gate.ts:46` wires `unit-tests` to the `test` script; and `test` is `test:tools; t=$?; … ; exit $(( t \|\| p ))`. **Proved end-to-end:** breaking `law-enforcers` makes `pnpm test:tools` exit 1, which propagates. Also worth noting: that script AGGREGATES rather than `&&`-chains — the defect CLAUDE.md records for `verify:dev`, which reaches 4 of 16 steps |
@@ -88383,3 +88384,58 @@ insertion only, cannot unbalance the file, and reded exactly one test.
 **c384aff** — 21 PASS · 0 FAIL · 5 BLOCKED, all owner-side. **Reopen trigger:** none. **The transferable half:
 when a sweep's most alarming hit is an `assert*` with no caller, look for the PREDICATE it wraps before writing
 anything — the enforcement may live one identifier away.**
+
+## §1547 — PHASE GATE: the key's first half had one definition; its second half had four (REQ-124/118)
+
+A different axis: **clock and calendar correctness**, under-audited and unusually load-bearing for freight.
+The appointment path is exemplary and closes immediately — `appointment-window.ts@localWall` derives the
+facility-local wall clock through `Intl.DateTimeFormat` with the facility's IANA zone, deterministic, no
+`Date.now`, and the occurrence key `(facility, slot, service_date)` is **server**-computed so a caller cannot
+smuggle a second instant for one slot. A UTC-day shortcut there would put a 6pm Pacific appointment on
+tomorrow's date; the code knows that and says so.
+
+The residual is the other direction — **where a UTC day or month is assumed elsewhere.** Elapsed-time division
+(aging buckets, DSO) is correct by construction, and UTC is the right canonical bucket for merkle anchors and
+weekly snapshots. One hit was not a bucket:
+
+**`usage_credits` is keyed `<slug>:<period>`, and the two halves had opposite disciplines.** The comment above
+`usageCreditsId` states the rule in plain terms — *"§13 fixed the shape but left TWO definitions, one of which
+called itself 'the ONE definition' while the other predated it. This is now genuinely the one: the workers
+re-export it, they do not redefine it."* **That was never carried to the period.** Measured:
+
+| site | form |
+|---|---|
+| `workers/billing/src/metering.ts@periodOf` | `getUTCFullYear()` + padded `getUTCMonth()+1` |
+| `workers/mcp/src/caps.ts@currentPeriod` | byte-identical |
+| `workers/agents/src/spark-caps.ts@currentPeriod` | byte-identical |
+| `workers/api/src/provision.ts` | inline `toISOString().slice(0, 7)` |
+
+**Three of the four carry a comment saying they "mirror" the others.** A mirror comment is a drift hazard
+announcing itself: nothing made them agree except that nobody had yet edited one. Had one drifted by a
+character, a tenant's meter row would **split across two ids for the same month** — on the table Stripe
+reconciles against, and the one whose UNIQUE collision this record has already watched surface as
+`PROVISION_FAILED`.
+
+**Fixed the way the file itself prescribes**, and the way the repo's own `share-lint-matchers-with-parity-tests`
+skill prescribes: `billingPeriodOf` now lives in `packages/contracts/src/platform-tenant.ts` beside the id it
+feeds; the three worker functions are kept as **one-line delegations** (every test imports them by their local
+names) and `provision.ts` calls the builder instead of inlining a fifth form. UTC is retained and its reason is
+now written down — a billing window is platform-canonical, not tenant-local, which is exactly why it differs
+from `appointment-window.ts` two paragraphs above.
+
+**Gated, and mutation-proved on both halves.** `billing-period-single-source.test.ts` fails if any production
+file outside contracts builds the string, and separately if a wrapper stops delegating. Restoring the old body
+in `metering.ts` reds **both** independently.
+
+**THE DETECTOR WAS WRONG FIRST, AND THE FIX WAS A SHARPER SUBJECT, NOT AN ALLOWLIST.** Version one matched the
+*ingredient* — `getUTCMonth() + 1` followed by a `padStart` — and flagged `edi/src/writer.ts` and `gl/iif.ts`,
+which use those same two lines on the way to a **full date**. Matching an ingredient finds every recipe
+containing it. The violation is the ingredient's *neighbour*: **a metering period has no day.** Discounting a
+hit when `getUTCDate` appears in the window is a statement about what a period IS, and both false positives
+became the gate's negative control so the discriminator cannot be quietly relaxed.
+
+**Phase gate.** contracts **340/340**, billing 76/76, mcp 193/193, agents-worker 146/146, api 855/855, tools
+**142 files**, typecheck 0, lint 0. Board unchanged from **c384aff** — 21 PASS · 0 FAIL · 5 BLOCKED, all
+owner-side. **Reopen trigger:** none; the gate is the trigger. **The transferable half: when a repo centralises
+a composite key, check every COMPONENT of it — the discipline was written down, applied to the id, and stopped
+one identifier short of the thing the id is built from.**

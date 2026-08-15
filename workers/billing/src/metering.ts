@@ -16,15 +16,12 @@
 // `<tenant>:<period>` keeps a tenant's rows in its own key space. LLM-free, deterministic. No new table — a
 // worker + a cron is not a table.
 import { allTenantSlugs, resolveTenantDb, type BillingEnv } from "./tenants.js";
-import { usageCreditsId } from "@shuddl/contracts";
+import { billingPeriodOf, usageCreditsId } from "@shuddl/contracts";
 
 // The metering period: the UTC calendar month, "YYYY-MM", off the event's ts (epoch ms). Mirrors
 // workers/mcp/src/caps.ts `currentPeriod` — a clear, deterministic window.
 export function periodOf(tsMs: number): string {
-  const d = new Date(tsMs);
-  const y = d.getUTCFullYear();
-  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
-  return `${y}-${m}`;
+  return billingPeriodOf(tsMs);
 }
 
 // The control-row identity for a (tenant, period). Deterministic, so a recompute OVERWRITES in place (one row

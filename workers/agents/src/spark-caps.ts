@@ -15,6 +15,7 @@
 // MALFORMED ⇒ ZERO (an unprovisioned Spark tenant is at its floor, never infinite). The plan/allotment come from
 // the SERVER control plane keyed on the SERVER-resolved tenant slug — never a client field.
 import type { SparkReserveRequest, SparkReserveResult } from "./spark-meter.js";
+import { billingPeriodOf } from "@shuddl/contracts";
 import type { AgentsEnv } from "./tenants.js";
 
 /** The metered tier. Any other plan (pilot/pro/scale/platform/…) is UNCAPPED. */
@@ -27,10 +28,7 @@ export const SPARK_ALLOTMENT_POLICY_KEY = "spark_ai_allotment";
 /** The metering period: the UTC calendar month, "YYYY-MM". Mirrors workers/mcp/src/caps.ts `currentPeriod` and
  *  workers/billing/src/metering.ts `periodOf` — one deterministic window off the worker clock. */
 export function currentPeriod(now: number): string {
-  const d = new Date(now);
-  const y = d.getUTCFullYear();
-  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
-  return `${y}-${m}`;
+  return billingPeriodOf(now);
 }
 
 /** The resolved plan posture for a tenant. `capped:false` ⇒ UNCAPPED (not a Spark tenant). */
