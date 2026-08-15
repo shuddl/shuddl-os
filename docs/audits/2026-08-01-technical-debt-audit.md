@@ -89957,5 +89957,5 @@ fail only the second.
 `secrets.md` or the checklist — the two gates therefore compose instead of contradicting.
 
 **Phase gate.** tools **145 files / 1473** (the new gate included); the three knobs documented; no production
-source changed. Board stands at `07a2021` (**21 PASS · 0 FAIL · 5 BLOCKED**) — re-measured below since `tools/`
-changed.
+source changed. `tools/` changed, so the board was re-measured rather than carried (§1569): at `fd8ef28`,
+**21 PASS · 0 FAIL · 5 BLOCKED** (aggregate BLOCKED, exit 2 — the five owner-side private-fixture holds).
