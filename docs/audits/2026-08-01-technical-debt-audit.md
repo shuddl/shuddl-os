@@ -743,6 +743,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 965 | §1518 | **§1519** | **THE OTHER OPERAND, and a ceiling DERIVED rather than chosen.** §1518's trigger named it: a tariff's `cwt_cents` at `1e15` returns **HTTP 500 on the unauthenticated `/pub/quote`** — §1513 bounded the request's weight, but the product has TWO operands and the other is tenant config. The ceiling comes from the FSC multiply, not the freight one: `fsc` forms `freight × 1e4`, so `1e8 × C < 9.007e15 ⇔ C < 9.0e7`; `MAX_CWT_CENTS = 1e7` leaves ~9× margin and is $100,000/cwt (~200× the most extreme real rate). **Verified empirically as well as algebraically** — the ceiling paired with `MAX_WEIGHT_LB` returns 200. **A caught mistake worth the line:** the constant landed after its first use (a temporal dead zone) and what flagged it was the COUNT — 334 → 75 tests — not the error text. **A collapsed count is a failure to COLLECT and reads exactly like a pass.** |
 | 966 | §1519 | **§1520** | **THE REST OF THE CHAIN — a property that is now PROVABLE.** §1519 bounded one operand of one multiply; measured here, **two more tenant-config money fields 500 the anonymous surface** (an accessorial at 9e15, a `min_charge_cents` at 9e15). One ceiling derived over the WHOLE chain — `(2e11 + 32M) × 1e4 < 9.007e15 ⇔ M < 2.5e10` — gives `MAX_CONFIG_CENTS = 1e9` ($10M per line item, 25× under the bound, four orders above any real accessorial). **Demonstrated rather than argued: every ceiling set at once, priced at `MAX_WEIGHT_LB`, returns HTTP 200 with `sell_cents: 125_000_000_000`.** The precision throw is now unreachable from every operand the chain takes — the request's weight, the tariff's rate, and every remaining config cents field. |
 | 967 | §1520 | **§1521** | **MY OWN DERIVATION, MADE FALSIFIABLE — and a discriminator I got wrong writing the test for it.** §1520 said *if any input moves, recompute* and nothing detected a move: a lockstep comment in code I wrote two commits earlier. The four inputs are now exported and `rating.test.ts` recomputes the algebra; **raising each in turn reds it** (weight ×100, cwt ×100, config-cents ×100, accessorial cap 32→100k), with a second assertion that the margin is real and a third that `MAX_FSC_BPS` still equals the `Bps` ceiling it copies. The cap that lived outside the file (`pub/quote`'s literal 32) now imports the constant. **And the discriminator: the first draft sent 33 accessorials named `acc-0…` and PASSED WITH THE CAP DELETED** — §1516's unknown-code guard returns the same 400. Fixed to 33 × `liftgate`, every code priceable. **Third instance this block: when a case asserts a refusal, make every OTHER reason for that refusal impossible in the fixture.** |
+| 968 | §1521 | **§1522** | **STOPPING POINT — seven product defects, one anonymous endpoint, a property with a proof.** Board at `db76d3b` after nine product commits: **21 PASS · 0 FAIL · 5 BLOCKED**, unmoved. §1521's trigger CLOSED as a clean negative — `allocateCents` is safe by construction (all-BigInt, parts ≤ total; measured exact at `MAX_SAFE_INTEGER`). Block: 26 commits, **185 insertions of product source across 8 files**. **Five of the seven defects needed no account, four of them on the SAME endpoint through four different fields** — and every one lived in the seam between a correct engine refusal and a permissive boundary. The arc: §1513 bounded one operand, §1519 derived a second, §1520 derived the rest and demonstrated the whole set (HTTP 200 at every ceiling), §1521 made the derivation falsifiable. **And the recurring error, three times: an assertion that passed while its named layer was deleted — make every OTHER reason for a refusal impossible in the fixture.** Ledger: 55 rows, 29 OPEN, 21 FIXED. |
 | 856 | §1409 | **§1410** | **SWEEPING MY OWN SECTIONS FOR §1409's ERROR, AND A DETECTOR THAT COULD NOT HAVE FOUND IT.** §1404's precedent: a class like this gets ONE measurement, not a gate, since a correction necessarily quotes what it corrects. **The first sweep returned ZERO and was worthless** — it extracted superseded text as `~~struck~~` only, but the very case §1409 found is marked the other way, as *"a 16-step chain …"* **until audit §1029**. **My detector encoded one of the repo's TWO conventions, so it could never have found the known positive.** Twelfth instance of the session's constant, caught because a zero is the answer this session has learned never to accept. **A second false signal inside the control:** asking *"is it inside `~~…~~`?"* with `~~[^~]*16-step` returned True — because an unrelated `~~` sits earlier and `[^~]*` spanned the gap. **A regex answering "is X inside a delimiter" by searching for the delimiter anywhere before X will say yes to the whole file.** Re-run over both conventions: **109 superseded passages, zero quoted without a marker** — and that zero is worth something, because the corrected detector demonstrably flags a reconstruction of §1408's sentence. **§1409's error was singular, not a habit** |
 | **855** | §1408 | **§1409** | **I QUOTED STRUCK TEXT AS CURRENT, AND THE REPO HAD SOLVED IT 380 SECTIONS EARLIER.** §1408 cited CLAUDE.md's account of `verify:dev` as *"a 16-step chain … reaches 4 of 16"*. Measured: **18 steps**. **But the drift is my quotation's, not the law's** — CLAUDE.md's current text says that reading held *"until audit §1029"*, was *"invalidated hours later by `7b61624`"*, and that **the total is stated no longer, only the position that matters: step 4, and nothing after it**. I quoted the struck half of a correction as the claim. **Eleventh measurement error, and the first where the artifact had already anticipated the failure I was about to report.** **§1029's move is exactly §1402's, reached 373 sections apart and independently:** faced with a number that rots, REMOVE the number and keep the invariant. A convention arrived at twice from opposite ends of the record is the closest this audit has to a law about documentation. Substantively: `verify:dev` is still an unaggregated `&&` chain at 18 steps, and that is **not** a defect — CLAUDE.md documents it, names `verify:merge` as the real verdict, and `wp-exit-audit.test.ts:19` records that a naive matcher yields *"4 of 16"* and *"reads as a serious constitutional finding and is an artifact"*. **Tenth clean negative** |
 | 854 | §1407 | **§1408** | **VERIFYING MY OWN DELIVERABLE IS WIRED, BY THE STANDARD §1304 SET.** Five gates were built this session and each reported as working; §1304's standard is **verified WIRED before the board is read**, because a gate that runs when I invoke it and not when CI does is decoration with a green tick. **First measurement said ZERO** — searching the merge log for the five names returns 0 mentions each, which reads as "they never ran". It is the §1362 reporter difference: the tools suite runs under vitest v4 (summary only) while worker suites at v3.2.7 print per-file. The same run reports **125 files passed**, 120 + 5. **Tenth measurement error avoided by not believing a zero.** Measured properly three ways: `vitest list` shows **21 cases** across the five; `run-gate.ts:46` wires `unit-tests` to the `test` script; and `test` is `test:tools; t=$?; … ; exit $(( t \|\| p ))`. **Proved end-to-end:** breaking `law-enforcers` makes `pnpm test:tools` exit 1, which propagates. Also worth noting: that script AGGREGATES rather than `&&`-chains — the defect CLAUDE.md records for `verify:dev`, which reaches 4 of 16 steps |
@@ -87297,3 +87298,55 @@ discriminator was fixed. **Reopen trigger:** the derivation now covers the QUOTE
 (interline splits) multiplies `total_cents × share_bps` on a payload whose `total_cents` is an unbounded
 `Cents` — its throw is already mapped to a 4xx (`money.ts:404@allocateCents`), so it is not a 500, but it is
 outside this algebra and no ceiling makes it unreachable.
+
+## §1522 — PHASE GATE: STOPPING POINT — seven product defects, one anonymous endpoint, and a property that now has a proof (REQ-118/119)
+
+**BOARD, RUN AT `db76d3b` after nine product-source commits: 21 PASS · 0 FAIL · 5 BLOCKED (of 26)**, aggregate
+`BLOCKED (exit 2)`, **NOT PROMOTABLE**. The same five owner-side blockers, unmoved by any of it. The
+concurrent workstream's files are still dirty; §1503's clean-tree run remains owed.
+
+**§1521's REOPEN TRIGGER, CLOSED — a clean negative.** `allocateCents` was the one money path outside the
+overflow algebra. It is **safe by construction**: every intermediate is BigInt (`largestRemainder(magnitude,
+weights, 10_000n)`) and each part is ≤ the total, so nothing wider than the input is ever formed. Measured at
+the ceiling — `total = MAX_SAFE_INTEGER` over three shares — parts sum **exactly**, every part a safe integer.
+Its throws are for MALFORMED shares, not magnitude, and §1500 already maps them to a 4xx.
+
+**THE BLOCK: 26 commits. Product source is 185 insertions across 8 files** — nine commits, seven defects,
+every one measured against a live route or a live schema before it was touched:
+
+| § | what | where |
+|---|---|---|
+| §1513 | `weight_lb` unbounded — **HTTP 500** at 1e15, a **$558bn** quote at 1e12 | `/pub/quote` + `/v1/rate` |
+| §1514 | the same field on the **third** pricing surface — write-then-refuse | MCP `quote_freight` |
+| §1515 | `.email()` bounds a shape, never a length — **100,000 chars** stored | `/pub/signup` |
+| §1515 | `zip` unbounded — 100k chars into an **append-only** payload | all three rate surfaces |
+| §1516 | one unknown accessorial code — **HTTP 500** | `/pub/quote` + `/v1/rate` |
+| §1517 | a schema-valid **inverted floors ladder** — 500 for **every visitor** | any tenant's stored config |
+| §1519/§1520 | the tariff's own cents fields — 500 from `cwt_cents`, an accessorial, a `min_charge` | any tenant's stored config |
+
+**Five of the seven were reachable with no account**, and four of those on the SAME endpoint through four
+different fields. The through-line held from the first to the last: **each defect lived in the seam between a
+correct engine refusal and a permissive boundary.** `mulDivHalfUp` refusing to lose precision, `compose`
+refusing an unpriceable code, `computeFloors` refusing an ambiguous ladder — every one right, every one
+delivered to a stranger as `INTERNAL 500` because nothing asked first.
+
+**What is different at the end from the middle: the money chain's no-overflow property is now PROVED rather
+than patched.** §1513 bounded one operand. §1519 derived a second from the algebra. §1520 derived the rest and
+demonstrated the whole set at once — every ceiling maxed, priced at `MAX_WEIGHT_LB`, **HTTP 200**,
+`sell_cents: 125_000_000_000`. §1521 made the derivation itself falsifiable: raising ANY of its four inputs
+reds a test that says *recompute, do not raise this expectation*. A sequence of spot fixes became a bounded
+system with a check behind it.
+
+**THE RECURRING ERROR, three instances, worth more than any single fix.** §1500's `CONTROL_PLANE_KINDS`,
+§1515's paired email bounds, §1521's accessorial-cap case: each time an assertion passed while the layer it
+named was deleted, because another layer produced the same observable. The rule, now stated: **when a case
+asserts a refusal, make every OTHER reason for that refusal impossible in the fixture.** I wrote the third
+instance four phases after establishing the rule.
+
+**Phase gate.** Board MEASURED. Repo-owned failure set empty; the debt LEDGER (a different artifact) reads
+**55 rows — 29 OPEN, 21 FIXED**, one more FIXED than at §1510 because §1513's row landed. Suites at close:
+contracts **336**, rater **171**, api **852**, mcp 192, ledger 734, agents 232, adapters 49, driver-core 53,
+translator 132, map 90, tools 140 files / **1457**. Every fix mutation-proved; every probe restored
+byte-identical. **Carry-forward:** the five owner-side blockers; the three measured decisions left to their
+owner (the `legs` bound, the broken-config posture, the signup oracle); the clean-tree board run; and the four
+derivation inputs, which are now guarded rather than remembered.
