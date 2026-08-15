@@ -215,6 +215,9 @@ export async function sweepTenantLegacyMirror(deps: MirrorSweepDeps): Promise<Mi
       sample: g.sample !== null ? truncate(g.sample, MAX_SAMPLE) : null,
     });
     await db
+      // anomaly-recurrence: one-shot — the id folds `now` (LAW 2 above), so every sweep mints a NEW gap row
+      // and a cleared one is never the row a later sweep needs. Contrast the quarantine writer in this same
+      // file, whose id folds CONTENT and therefore must reopen (audit §1540/§1541).
       .prepare("INSERT OR IGNORE INTO anomalies (id, rule, object_kind, object_id, severity, detail, status) VALUES (?,?,?,?,?,?,'open')")
       .bind(id, rule, "legacy_column", truncate(g.column, 120), "warn", detail)
       .run();

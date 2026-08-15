@@ -269,6 +269,37 @@ describe("REQ-183 — the credit.checked projection must not SILENTLY no-op (lou
     expect(await DB.prepare("SELECT id FROM events WHERE id = ?").bind(e.id).first()).not.toBeNull();
   });
 
+  // §1541 (REQ-183/035/030) — A RESOLVED CREDIT GAP MUST REOPEN WHILE THE PARTY IS STILL ABSENT.
+  //
+  // The third instance of §1539's class and the only `critical` one. The other two were `INSERT OR IGNORE`, so a
+  // sweep bucketing writers by conflict FORM caught them; this site already upserted, and what was wrong was the
+  // SET list — it refreshed `severity` and `detail` and never touched `status`. The id is keyed on the EVENT id,
+  // so no re-projection will ever mint a different row: once an operator marked it resolved, a re-projection
+  // that STILL cannot find the party silently left a defeated credit gate — the mis-bill risk this rule exists
+  // to announce — sitting behind a 'resolved' status that every ops read filters out.
+  it("a RESOLVED credit-projection gap REOPENS when a re-projection still cannot find the party", async () => {
+    const missing = "party-1541-absent";
+    const e = mkEvent("credit.checked", { shipment_id: undefined, payload: { party_id: missing, status: "hold" } });
+    await surfaceCreditProjectionGapIfMissed(DB, e, 0);
+    expect(await anomaly(`credit-projection-gap:${e.id}`), "no gap was raised — this case cannot test a reopen").not.toBeNull();
+
+    // An operator clears it — byte-identical to watchtower's clearAlarm, the only clear this table has.
+    await DB.prepare("UPDATE anomalies SET status = 'resolved' WHERE id = ?").bind(`credit-projection-gap:${e.id}`).run();
+
+    // Re-project the SAME event. Nothing was fixed: the party still does not exist, so the gate is still defeated.
+    expect(await partyExists(missing), "the party must still be absent, or the re-projection proves nothing").toBe(false);
+    await surfaceCreditProjectionGapIfMissed(DB, e, 0);
+
+    const rows = await DB.prepare("SELECT COUNT(*) AS n FROM anomalies WHERE id = ?").bind(`credit-projection-gap:${e.id}`).first<{ n: number }>();
+    expect(rows?.n, "the event-keyed id stopped collapsing — a re-projection forked a second row").toBe(1);
+    const after = await DB.prepare("SELECT status FROM anomalies WHERE id = ?").bind(`credit-projection-gap:${e.id}`).first<{ status: string }>();
+    expect(
+      after?.status,
+      "the credit gate is still defeated and the anomaly still reads 'resolved' — every ops read of this table " +
+        "filters status = 'open', so the mis-bill risk is invisible exactly where it is looked for",
+    ).toBe("open");
+  });
+
   it("a HIT does not surface a gap even when called directly (changes>0 short-circuits, no anomalies row)", async () => {
     const e = mkEvent("credit.checked", { shipment_id: undefined, payload: { party_id: "party-183-hit", status: "clear" } });
     await surfaceCreditProjectionGapIfMissed(DB, e, 1);

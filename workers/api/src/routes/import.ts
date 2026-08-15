@@ -187,6 +187,8 @@ export function mountImportRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>)
         sample: g.sample !== null ? truncate(g.sample, MAX_SAMPLE) : null,
       });
       await db
+        // anomaly-recurrence: one-shot — the id folds `importId`, which is unique per import RUN, so a later
+        // import of the same bad column mints a NEW row rather than needing this one reopened (audit §1541).
         .prepare("INSERT OR IGNORE INTO anomalies (id, rule, object_kind, object_id, severity, detail, status) VALUES (?,?,?,?,?,?,'open')")
         .bind(id, RULE_BY_REASON[g.reason], "import_field", truncate(g.column, MAX_HEADER), "warn", detail)
         .run();

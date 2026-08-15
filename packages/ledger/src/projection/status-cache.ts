@@ -77,7 +77,15 @@ export async function surfaceCreditProjectionGapIfMissed(
   // (that verb is lint-banned; ON CONFLICT DO UPDATE is not). Critical: a defeated credit gate is a mis-bill risk.
   await db
     .prepare(
-      "INSERT INTO anomalies (id, rule, object_kind, object_id, severity, detail, status) VALUES (?,?,?,?,?,?,'open') ON CONFLICT(id) DO UPDATE SET severity = excluded.severity, detail = excluded.detail",
+      // `status = 'open'` added 2026-08-15 (audit §1541 — the THIRD instance of §1539/§1540, and the only
+      // `critical` one). The id is keyed on the EVENT id, so no re-projection will ever mint a different one:
+      // if an operator marked this resolved and the party still did not exist, the next re-projection refreshed
+      // `detail` and left the row 'resolved' — a defeated credit gate, which this comment already calls a
+      // mis-bill risk, sitting invisible behind every ops read of the table (all of which filter status='open').
+      // The upsert FORM was already right here, which is why two conflict-clause sweeps walked past it: what
+      // was wrong was the SET list.
+      "INSERT INTO anomalies (id, rule, object_kind, object_id, severity, detail, status) VALUES (?,?,?,?,?,?,'open') " +
+        "ON CONFLICT(id) DO UPDATE SET severity = excluded.severity, detail = excluded.detail, status = 'open'",
     )
     .bind(
       `credit-projection-gap:${e.id}`,

@@ -762,6 +762,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 984 | §1537 | **§1538** | **THE SENTINEL-DEFAULT CLASS, SWEPT — ONE INSTANCE, ALREADY CLOSED.** §1536's maxim made mechanical. The discriminating property is **not** "omitted": `retention_status DEFAULT 'active'` is omitted by both writers and is a genuine initial state. The hazard is a **numeric sentinel used as an arithmetic operand**. Three exist repo-wide — `documents.created_ts` (the instance, closed at §1536), `events.confidence` (dead but consistent; the contract requires the field), `passports.updated_at` (no consumer found, recorded at that strength — a grep proves presence, never absence). **Two measurement artifacts recorded because each looked like a finding**: a bare column name collided across tables (`money_lines.created_ts`), and a 23-column insert read as 2 because the regex split a `join(",")` inside a template literal. A clean negative from a bounded sweep is a result. |
 | 985 | §1538 | **§1539** | **TWO WRITERS OF `anomalies` DISAGREED ABOUT RECURRENCE.** §1536 stopped one table short of the biggest; finishing the sweep across all 11 found the column diffs benign — **and the defect in the CONFLICT CLAUSE instead.** Watchtower upserts to `status='open'` (its comment *"a re-raise flips it back"* measured TRUE); the EDI quarantine used `INSERT OR IGNORE`, which **cannot flip anything**. Collapse-to-one-row is deliberate, but collapse is not ignore: a cleared row stayed `'resolved'` while the same interchange kept failing and the handler kept answering 200, **invisible to every ops read — all of which filter `status='open'`**. **LATENT** (nothing resolves an EDI id today; no API write path exists) — §1536's shape again, safety living in an absence. Fixed with watchtower's own shape; `detail` deliberately untouched because the R2 key is deterministic on the same pair, so redelivery **overwrites** rather than orphans. RED first, `DO NOTHING` mutation reds only this case. **Fourth collapsed run of the block** — the plant that worked changed ONE TOKEN. |
 | 986 | §1539 | **§1540** | **THE CONFLICT-CLAUSE SWEEP — THE CLASS HAD TWO INSTANCES AND I HAD FIXED ONE.** §1539's general form, run immediately: **3 of 7 multi-writer tables disagree**; two benignly (`shipments` = create-if-absent vs project-over, an INTENT difference; `usage_credits` = a plain INSERT whose THROW is the slug's exclusivity). `anomalies` had **four** writers, not two, and the discriminator is **the subject of the id**: keyed on a RECURRING CONDITION (`partner+ISA`, `tenant+naturalKey+raw`) it must reopen; keyed on a ONE-SHOT OCCURRENCE (a folded clock, a per-run `importId`) `OR IGNORE` is correct — which is why the gap-row and quarantine writers rightly differ **inside the same files**. Instance #2 fixed; its own comment drew the content-vs-clock distinction for the gap rows and never carried it to the clause, while the bad legacy row sits in the feed being re-read every sweep. RED at `expected +0 to be 2`, no-forking assertion passing first. **Lesson: run the sweep at instance #1, before writing the record — §1539 shipped as a one-file fix for a two-file class.** |
+| 987 | §1540 | **§1541** | **THE GATE FOUND THE THIRD INSTANCE ON ITS FIRST RUN — AND THE FORM WAS ALREADY RIGHT.** §1540 ended with a reopen trigger; **a trigger asks a future reader to remember, a gate does not**, so every production `INSERT INTO anomalies` must now reopen on conflict or declare itself one-shot **with a reason** (a marker, not a heuristic — both classes live 12 lines apart in one file, so nothing mechanical can read an id's SUBJECT). It failed immediately on `status-cache.ts`: `DO UPDATE SET severity, detail` — **no `status`**. Both earlier sweeps bucketed writers by `OR IGNORE` vs `DO UPDATE` and this IS a `DO UPDATE`; the **SET list** was wrong. It is also the only `critical` instance — its own comment calls it a defeated credit gate and a mis-bill risk. 7 sites now classified: 5 REOPEN, 2 ONE-SHOT. **Three instances of one class found by three different instruments, each blind to what the next caught — a sweep's BUCKETS are a hypothesis too.** |
 | 856 | §1409 | **§1410** | **SWEEPING MY OWN SECTIONS FOR §1409's ERROR, AND A DETECTOR THAT COULD NOT HAVE FOUND IT.** §1404's precedent: a class like this gets ONE measurement, not a gate, since a correction necessarily quotes what it corrects. **The first sweep returned ZERO and was worthless** — it extracted superseded text as `~~struck~~` only, but the very case §1409 found is marked the other way, as *"a 16-step chain …"* **until audit §1029**. **My detector encoded one of the repo's TWO conventions, so it could never have found the known positive.** Twelfth instance of the session's constant, caught because a zero is the answer this session has learned never to accept. **A second false signal inside the control:** asking *"is it inside `~~…~~`?"* with `~~[^~]*16-step` returned True — because an unrelated `~~` sits earlier and `[^~]*` spanned the gap. **A regex answering "is X inside a delimiter" by searching for the delimiter anywhere before X will say yes to the whole file.** Re-run over both conventions: **109 superseded passages, zero quoted without a marker** — and that zero is worth something, because the corrected detector demonstrably flags a reconstruction of §1408's sentence. **§1409's error was singular, not a habit** |
 | **855** | §1408 | **§1409** | **I QUOTED STRUCK TEXT AS CURRENT, AND THE REPO HAD SOLVED IT 380 SECTIONS EARLIER.** §1408 cited CLAUDE.md's account of `verify:dev` as *"a 16-step chain … reaches 4 of 16"*. Measured: **18 steps**. **But the drift is my quotation's, not the law's** — CLAUDE.md's current text says that reading held *"until audit §1029"*, was *"invalidated hours later by `7b61624`"*, and that **the total is stated no longer, only the position that matters: step 4, and nothing after it**. I quoted the struck half of a correction as the claim. **Eleventh measurement error, and the first where the artifact had already anticipated the failure I was about to report.** **§1029's move is exactly §1402's, reached 373 sections apart and independently:** faced with a number that rots, REMOVE the number and keep the invariant. A convention arrived at twice from opposite ends of the record is the closest this audit has to a law about documentation. Substantively: `verify:dev` is still an unaggregated `&&` chain at 18 steps, and that is **not** a defect — CLAUDE.md documents it, names `verify:merge` as the real verdict, and `wp-exit-audit.test.ts:19` records that a naive matcher yields *"4 of 16"* and *"reads as a serious constitutional finding and is an artifact"*. **Tenth clean negative** |
 | 854 | §1407 | **§1408** | **VERIFYING MY OWN DELIVERABLE IS WIRED, BY THE STANDARD §1304 SET.** Five gates were built this session and each reported as working; §1304's standard is **verified WIRED before the board is read**, because a gate that runs when I invoke it and not when CI does is decoration with a green tick. **First measurement said ZERO** — searching the merge log for the five names returns 0 mentions each, which reads as "they never ran". It is the §1362 reporter difference: the tools suite runs under vitest v4 (summary only) while worker suites at v3.2.7 print per-file. The same run reports **125 files passed**, 120 + 5. **Tenth measurement error avoided by not believing a zero.** Measured properly three ways: `vitest list` shows **21 cases** across the five; `run-gate.ts:46` wires `unit-tests` to the `test` script; and `test` is `test:tools; t=$?; … ; exit $(( t \|\| p ))`. **Proved end-to-end:** breaking `law-enforcers` makes `pnpm test:tools` exit 1, which propagates. Also worth noting: that script AGGREGATES rather than `&&`-chains — the defect CLAUDE.md records for `verify:dev`, which reaches 4 of 16 steps |
@@ -87991,6 +87992,13 @@ the sweep across all eleven: `anomalies` (7 writers), `parties` (4 shapes/4 writ
 translator) takes `DEFAULT 'open'`, which is the **correct** value and a real initial state, not a sentinel
 (§1538's distinction, applied and holding).
 
+*(That "benign" was asserted when written and is now measured — 2026-08-15. Every column any `parties`/`shipments`
+writer omits is a JSON-COLLECTION column whose schema default is the EMPTY collection: `addresses`/`contacts`
+`DEFAULT '[]'`, `external_refs` `DEFAULT '{}'`. So an omission encodes "this producer carried none", which is
+literally true of each — Concierge has no legacy refs, the EDI path no external refs, the mirror no contacts —
+and no consumer reads absence as an error. They are write-side carriers for the no-silent-drop law, not fields
+a reader depends on. A claim in this record is a claim I am making; this one now has a measurement under it.)*
+
 **The defect was not in the columns. It was in the conflict clause.**
 
 | writer | on conflict | can it reopen a cleared row? |
@@ -88072,3 +88080,53 @@ After the fix, a one-token `DO NOTHING` plant reds only this case.
 **Reopen trigger:** a new writer of `anomalies` — classify it by the table above before choosing a clause. **And
 the standing lesson: at instance #1 of a shape, run the sweep before writing the record, not after.** §1539 was
 committed as a fix to one file when it was a fix to two; only the general form it wrote down caught that.
+
+## §1541 — PHASE GATE: the gate found the third instance in its first run, and the form was already right (REQ-035/183/030/118)
+
+§1540 closed with a reopen trigger: *"a new writer of `anomalies` — classify it by the table above."* **A reopen
+trigger asks a future reader to remember. A gate does not**, and my own standing rule says to add the derived
+gate at the end of a class rather than the note. So `tools/checks/anomaly-recurrence.test.ts` requires every
+production `INSERT INTO anomalies` to either carry `ON CONFLICT(id) DO UPDATE SET … status = 'open'` **or**
+declare itself one-shot with a reason:
+
+    // anomaly-recurrence: one-shot — <why a fresh id arrives on its own>
+
+The marker is an escape hatch rather than a heuristic on purpose. Nothing mechanical can read an id's SUBJECT,
+and both classes live twelve lines apart in one file, so no path, name or table rule could separate them — the
+§1244 shape, where a filter fixes mechanical noise and never meaning.
+
+**It failed on its first run and named a third instance.** `status-cache.ts`'s credit-projection gap:
+
+```
+ON CONFLICT(id) DO UPDATE SET severity = excluded.severity, detail = excluded.detail
+                                                          ↑ no status
+```
+
+**The conflict FORM was already correct**, which is exactly why §1539's and §1540's sweeps walked past it — both
+bucketed writers by `OR IGNORE` vs `DO UPDATE`, and this is a `DO UPDATE`. What was wrong was the **SET list**.
+The id is keyed on the EVENT id, so no re-projection ever mints a different row: once an operator marked it
+resolved, a re-projection that still could not find the party refreshed `detail` and left `status = 'resolved'`.
+
+**And it is the only `critical` one of the three.** Its own comment says what is behind it: *"the REQ-042
+credit-hold gate would read NULL and PASS … a defeated credit gate is a mis-bill risk."* The two earlier
+instances were `warn`-level quarantines of a document. This one hides a credit gate that has stopped holding.
+
+**The population, classified — 7 production sites, all now declared:**
+
+| | site | why |
+|---|---|---|
+| **REOPEN** ×5 | `workers/translator/src/inbound.ts:224@anomalies`, `workers/agents/src/mirror-sweep.ts:179@anomalies`, `packages/ledger/src/projection/status-cache.ts:87@anomalies`, `workers/agents/src/watchtower.ts:161@anomalies`, `packages/ledger/src/anchor.ts:403@anomalies` | id keyed on a **recurring condition** — no new id will ever be minted |
+| **ONE-SHOT** ×2 | `workers/agents/src/mirror-sweep.ts:221@anomalies` (id folds `now`), `workers/api/src/routes/import.ts:192@anomalies` (id folds `importId`) | the next occurrence mints its **own** row |
+
+The gate's own positive control pins the discriminator that caught this one: an upsert refreshing
+`severity`/`detail` and never touching `status` **must not** read as a reopen — the third instance's exact shape,
+written as a control so the gate cannot regress into missing what it was built to find.
+
+**RED first, then mutation-proved.** Removing `status` from the SET list reds exactly the new projection case.
+The case asserts the single-row collapse beside the reopen, so no future fix can buy visibility by forking.
+
+**Phase gate.** `@shuddl/ledger` **738/738**, tools **141 files**, typecheck 0, lint 0. **Three instances of one
+class, found by three different instruments** — a hand read, a conflict-clause sweep, and a gate — each blind to
+what the next one caught. **Reopen trigger:** none for this class; the gate is the trigger now. The transferable
+half is that **a sweep's BUCKETS are a hypothesis too**: bucketing by conflict form made `DO UPDATE` look like a
+synonym for safe, and one of the five things it can update is the only one that mattered.
