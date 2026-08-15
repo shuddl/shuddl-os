@@ -138,6 +138,42 @@ beforeAll(async () => {
   await ensureSchema(env);
 });
 
+// §1561 (REQ-036/118) — THE UNBILLED ALARM'S ESCALATION, WHICH NOTHING EXERCISED.
+//
+// The warn case above is covered and its comment names both escalations — *"escalates by count/age"* — and
+// neither was asserted. Measured at §1561: replacing the whole severity expression with the literal `"warn"`,
+// so the alarm can NEVER become critical, left **1,014 tests green** across agents-worker and api.
+//
+// It is the one alarm about money already lost. `unbilled` means freight was DELIVERED (a committed pod.signed)
+// and never invoiced; warn is the routine state, and critical is the signal that a backlog has become material
+// — ten shipments, or a POD older than a week. An escalation nothing tests is an escalation nobody learns has
+// stopped working, on the alarm whose entire job is to be noticed.
+//
+// Both branches are asserted separately, and each fixture is built so ONLY its own branch can fire: the count
+// case keeps every POD fresh, the age case keeps the count at one. Without that, one case would cover both and
+// deleting either threshold would still look pinned (§1500).
+describe("§1561 the unbilled alarm escalates to CRITICAL by count and, independently, by age", () => {
+  it("COUNT: ten fresh unbilled shipments → critical (a material backlog)", async () => {
+    const scope = "wt-unb-count-";
+    for (let i = 0; i < 10; i += 1) await seedEvent("pod.signed", `${scope}shp${i}`, 0); // ts = NOW ⇒ all fresh
+    const r = await runWatchtowerSweep(env.TENANT_A_DB, TENANT, NOW, { scope });
+    expect(r.unbilled.count, "the fixture did not produce the backlog this case needs").toBe(10);
+    const a = await alarm(watchtowerAlarmId(TENANT, "unbilled", { scope }));
+    expect(a!.severity, "ten unbilled delivered shipments stayed at warn — the COUNT escalation never fires").toBe("critical");
+  });
+
+  it("AGE: a SINGLE unbilled shipment whose POD is older than a week → critical", async () => {
+    const scope = "wt-unb-age-";
+    const shp = `${scope}shp1`;
+    // One shipment only, so the count threshold cannot explain the escalation — the POD is simply stale.
+    await seedEvent("pod.signed", shp, 0, { ts: NOW - 8 * 86_400_000, recorded_at: NOW - 8 * 86_400_000 });
+    const r = await runWatchtowerSweep(env.TENANT_A_DB, TENANT, NOW, { scope });
+    expect(r.unbilled.count, "the age case must have exactly ONE shipment or it is testing the count branch").toBe(1);
+    const a = await alarm(watchtowerAlarmId(TENANT, "unbilled", { scope }));
+    expect(a!.severity, "a week-old uninvoiced delivery stayed at warn — the AGE escalation never fires").toBe("critical");
+  });
+});
+
 describe("Watchtower — the unbilled=0 alarm (REQ-036 DoD: fires on a seeded $0-revenue bill)", () => {
   it("RAISES an 'unbilled' alarm for a POD-signed shipment with NO invoice (the DoD), and CLEARS it once invoiced", async () => {
     const scope = "wt-unb-dod-";
