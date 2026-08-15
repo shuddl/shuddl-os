@@ -155,9 +155,11 @@ function preparedStatements(src: string): Array<{ line: number; sql: string }> {
 
 /** A SELECT with no WHERE, no LIMIT and no aggregate: it reads the whole table. */
 function tableScans(root: string): Array<{ site: string; sql: string }> {
+  // §1505 — `.tsx` included; see the note in dark-stub-roster for the measurement. A SELECT in a render view
+  // would be invisible here for no reason anyone chose.
   const files = execSync('git ls-files "workers" "packages"', { cwd: root, encoding: "utf8" })
     .split("\n")
-    .filter((f) => /\.ts$/.test(f) && !f.includes(".test.") && !f.includes("/test/"));
+    .filter((f) => /\.tsx?$/.test(f) && !f.includes(".test.") && !f.includes("/test/"));
   const found: Array<{ site: string; sql: string }> = [];
   for (const f of files) {
     for (const { line, sql } of preparedStatements(readFileSync(`${root}/${f}`, "utf8"))) {

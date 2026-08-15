@@ -132,9 +132,17 @@ describe("§801: every constant-time comparison accumulates instead of short-cir
     // §1448, `apps` contributes ZERO matches today and the suite stays at 10 green. It is included for the
     // same reason §1426 keeps an empty half of a paired glob — so the gate is not blind the day a surface
     // compares a token, which is exactly when nobody will think to widen it.
+    //
+    // §1504 — …AND THE EXTENSION FILTER KEPT MOST OF THAT TREE OUT. The widening above added `apps` while
+    // `/\.ts$/` still excluded every `.tsx`, which is **34 of the 65 non-test app sources — 52%**, and it is
+    // where a surface would actually compare a token (a component, not a module). MEASURED at §1505: a secret
+    // comparison planted in `apps/command/src/command/CommandBar.tsx` left this suite 10/10 green. The tree
+    // was widened and the filter silently un-widened it — §1504's shape, where a syntactic scope decides a
+    // population nobody re-measures. `.tsx` is now in the corpus, so "ZERO matches today" is a fact about the
+    // code rather than about the glob.
     const files = execSync('git ls-files "workers" "packages" "apps"', { cwd: root, encoding: "utf8" })
       .split("\n")
-      .filter((f) => /\.ts$/.test(f) && !f.includes(".test.") && !f.includes("/test/"));
+      .filter((f) => /\.tsx?$/.test(f) && !f.includes(".test.") && !f.includes("/test/"));
     const re = new RegExp(`(${SECRETISH})\\s*(?:===|!==)\\s*(${SECRETISH})`, "i");
     const out: string[] = [];
     for (const f of files) {

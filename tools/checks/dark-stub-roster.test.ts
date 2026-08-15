@@ -54,10 +54,16 @@ function bodyFrom(lines: readonly string[], start: number): string {
   return out.join("\n");
 }
 
+// §1505 — `.tsx` INCLUDED. The filter used to read `.ts` only, dropping the 14 `.tsx` files that live
+// inside the very trees this corpus names. Measured at §1505 by planting this gate's own violation in
+// `packages/agents/src/collector/dunning.tsx`: the suite stayed green. Nothing in a render view should
+// trip this rule — which is the point, because that is also what was said about `evidence-email-view.tsx`
+// until `formatCents` turned out to live there (float-money-division, same phase). A corpus should match
+// the RULE's subject, not the file type its author pictured; widening is free while the gate stays green.
 function shippedFiles(root: string): string[] {
   return execSync("git ls-files packages workers", { cwd: root, encoding: "utf8" })
     .split("\n")
-    .filter((f) => f.endsWith(".ts") && !f.includes(".test.") && !f.includes("/test/"));
+    .filter((f) => /\.tsx?$/.test(f) && !f.includes(".test.") && !f.includes("/test/"));
 }
 
 function testFiles(root: string): string[] {

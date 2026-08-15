@@ -132,10 +132,18 @@ const isAllowed = (h: Hit): boolean =>
 // fractional value, scanned across all three trees and green. The split is deliberate, and now written down.
 // Revisit if app-side money arithmetic ever appears, or if the skeleton learns to distinguish a URL path from
 // an interpolation.
+// §1505 — THE TREE DECISION ABOVE WAS ARGUED; THE EXTENSION DECISION WAS NOT. `/\.ts$/` dropped every `.tsx`
+// inside the trees this corpus explicitly INCLUDES — and one of them is `biller/evidence-email-view.tsx`,
+// whose `formatCents` turns integer cents into the dollar string printed on every customer invoice, under a
+// header that states this gate's exact rule: *"Integer/string arithmetic ONLY — no float division, no
+// toFixed."* MEASURED at §1505: a planted `cents / 100` in `collector/dunning.tsx` left this suite 10/10
+// green. The §1189 reasoning above ("money is DISPLAYED in apps, computed server-side") is about the APPS
+// tree and does not reach these — they are server-side renderers in an included tree, dropped by a filter
+// nobody argued for. `.tsx` is now in; the apps exclusion, which IS argued, stands.
 function prodSources(root: string): Array<{ path: string; text: string }> {
   return execSync('git ls-files "packages" "workers"', { cwd: root, encoding: "utf8" })
     .split("\n")
-    .filter((f) => /\.ts$/.test(f) && !f.includes(".test.") && !f.includes("/test/"))
+    .filter((f) => /\.tsx?$/.test(f) && !f.includes(".test.") && !f.includes("/test/"))
     .map((f) => ({ path: f, text: readFileSync(`${root}/${f}`, "utf8") }));
 }
 
