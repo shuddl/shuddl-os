@@ -731,6 +731,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 953 | §1506 | **§1507** | **SIX INSTANCES IS A CLASS, SO THE CLASS GETS A GATE.** Counted first: **37 gates build a production-tree corpus — 6 import the shared roster (declared at §493 for this exact reason), 31 roll their own**, and every instance found in §1504–§1506 was a roller that chose its TREE deliberately and never chose its EXTENSION at all. The last three `.ts`-only corpora were widened even though their trees hold zero `.tsx` today (§1506's argument applied before the fact). Then `corpus-extension.test.ts`: one rule, the six measured instances in its header, an INPUT floor of 37 calls, an end-of-statement window rather than a fixed reach (§1378), and a positive control — **mutation-proved a SOLE watcher** (narrowing float-money back reds it and nothing else in 140 files). A gate converts an expensive manual procedure into something the seventh author cannot skip. |
 | 954 | §1507 | **§1508** | **STOPPING POINT — the block closed, board re-measured AFTER the gate edits.** `eeed28b`: **21 PASS · 0 FAIL · 5 BLOCKED**, identical to §1503's run — nine gate files changed between them and the board did not move, which is the claim each widening made. Block: **11 commits, 19 files, 1,109 insertions, ZERO product source**; every mutation restored byte-identical. Found: 2 serializer escapes defended by nothing; 19 `defensive` guards mutated → 12 silent in four dispositions; **7 gates whose corpus excluded their own subject** (an `export` keyword, an extension ×4, a tree list, a path); 1 gate added so the eighth instance fails when written. **Every finding was a claim about coverage nobody had made the cheap measurement on — none was found by reading code for bugs, all by planting the violation the artifact claimed to catch.** |
 | 955 | §1508 | **§1509** | **THE SWEEP'S OWN COUNT WAS PROSE.** The carried "~23 defensive sites remain" counted the CLAIM, not the subject: of 49 idiom hits in `workers/*/src`, **32 are prose with no guard attached** — **17 code guards exist in all of `workers/`**, 12 already mutated. Corrected in place at §1500/§1502/§1503/§1508. The last three: `mirror-sweep`'s draft guard and `partners`' counter stop are both redundant **with a defended premise** (§676's member-by-member no-drop proof; the `json_type='object'` CASE, whose removal reds 2). And the watchtower pair needed THREE measurements: JS half green, SQL half green, **BOTH green — and I nearly recorded that the pricing alarm was pinned by nothing.** The behaviour is asserted across the worker seam in `workers/api`, where BOTH-removed reds and either half alone stays green: each half is the other's PREMISE. §1501 wrote the rule (ownership follows the CONSUMER) that would have prevented my own error eight phases later. **CLASS CLOSED: 22 mutated, 15 silent (68%) — 6 unwatched, 1 wrong-layer, 7 redundant-with-defended-premise, 1 self-enforcing.** |
+| 956 | §1509 | **§1510** | **THE DEBT LEDGER COUNTED BY ITS OWNER — 54 rows, 29 OPEN** (FIXED 20 · CLOSED 2 · TRIPWIRED 1 · RESOLVED 1 · N/A 1), via `ledger-status-vocabulary`'s exported `ledgerRows` rather than a new parser. **I wrote three ad-hoc parsers first and all three were wrong** — an `awk` that counted struck text, a hand-rolled mask that returned **0** (a markdown table is ONE paragraph, so the global pair re-pairs across rows — §1411's defect in my own probe), and a cell-wide scan that returned 37. §945's header records the identical sequence, and the gate that solves it has existed since then. **Also corrected: my own phrase.** §1497/§1503/§1508 say *the repo-owned failure set is empty* — true of the BOARD, and a skimming reader hears *no repo-owned debt*, which is false by 29 rows; both sentences now carry the distinction. Three OPEN rows re-measured, all still true. Nothing fixed, deliberately: **the cheap ones are cheap because they are DECISIONS.** |
 | 856 | §1409 | **§1410** | **SWEEPING MY OWN SECTIONS FOR §1409's ERROR, AND A DETECTOR THAT COULD NOT HAVE FOUND IT.** §1404's precedent: a class like this gets ONE measurement, not a gate, since a correction necessarily quotes what it corrects. **The first sweep returned ZERO and was worthless** — it extracted superseded text as `~~struck~~` only, but the very case §1409 found is marked the other way, as *"a 16-step chain …"* **until audit §1029**. **My detector encoded one of the repo's TWO conventions, so it could never have found the known positive.** Twelfth instance of the session's constant, caught because a zero is the answer this session has learned never to accept. **A second false signal inside the control:** asking *"is it inside `~~…~~`?"* with `~~[^~]*16-step` returned True — because an unrelated `~~` sits earlier and `[^~]*` spanned the gap. **A regex answering "is X inside a delimiter" by searching for the delimiter anywhere before X will say yes to the whole file.** Re-run over both conventions: **109 superseded passages, zero quoted without a marker** — and that zero is worth something, because the corrected detector demonstrably flags a reconstruction of §1408's sentence. **§1409's error was singular, not a habit** |
 | **855** | §1408 | **§1409** | **I QUOTED STRUCK TEXT AS CURRENT, AND THE REPO HAD SOLVED IT 380 SECTIONS EARLIER.** §1408 cited CLAUDE.md's account of `verify:dev` as *"a 16-step chain … reaches 4 of 16"*. Measured: **18 steps**. **But the drift is my quotation's, not the law's** — CLAUDE.md's current text says that reading held *"until audit §1029"*, was *"invalidated hours later by `7b61624`"*, and that **the total is stated no longer, only the position that matters: step 4, and nothing after it**. I quoted the struck half of a correction as the claim. **Eleventh measurement error, and the first where the artifact had already anticipated the failure I was about to report.** **§1029's move is exactly §1402's, reached 373 sections apart and independently:** faced with a number that rots, REMOVE the number and keep the invariant. A convention arrived at twice from opposite ends of the record is the closest this audit has to a law about documentation. Substantively: `verify:dev` is still an unaggregated `&&` chain at 18 steps, and that is **not** a defect — CLAUDE.md documents it, names `verify:merge` as the real verdict, and `wp-exit-audit.test.ts:19` records that a naive matcher yields *"4 of 16"* and *"reads as a serious constitutional finding and is an artifact"*. **Tenth clean negative** |
 | 854 | §1407 | **§1408** | **VERIFYING MY OWN DELIVERABLE IS WIRED, BY THE STANDARD §1304 SET.** Five gates were built this session and each reported as working; §1304's standard is **verified WIRED before the board is read**, because a gate that runs when I invoke it and not when CI does is decoration with a green tick. **First measurement said ZERO** — searching the merge log for the five names returns 0 mentions each, which reads as "they never ran". It is the §1362 reporter difference: the tools suite runs under vitest v4 (summary only) while worker suites at v3.2.7 print per-file. The same run reports **125 files passed**, 120 + 5. **Tenth measurement error avoided by not believing a zero.** Measured properly three ways: `vitest list` shows **21 cases** across the five; `run-gate.ts:46` wires `unit-tests` to the `test` script; and `test` is `test:tools; t=$?; … ; exit $(( t \|\| p ))`. **Proved end-to-end:** breaking `law-enforcers` makes `pnpm test:tools` exit 1, which propagates. Also worth noting: that script AGGREGATES rather than `&&`-chains — the defect CLAUDE.md records for `verify:dev`, which reaches 4 of 16 steps |
@@ -86451,7 +86452,8 @@ NEW guard should be mutated when written rather than swept for later.
 **BOARD, RUN AT `320653f`: 21 PASS · 0 FAIL · 5 BLOCKED (of 26)**, aggregate `BLOCKED (exit 2)`, **NOT
 PROMOTABLE**. All five blockers are the same owner-side inputs §1497 named — `identity-leak` (no denylist),
 `fixtures` (nine pending vendor items) and the three parity gates that read them. **The repo-owned failure set
-is empty.**
+is empty** — no GATE fails for a repo-owned reason. That is not the same claim as "no repo-owned debt": the
+debt LEDGER is a different artifact and carries **29 OPEN rows** (counted §1510).
 
 **Stated because it changes what the verdict certifies: the tree was DIRTY when this ran.** A concurrent
 workstream holds thirteen modified files — `apps/command`, `apps/driver`, `tools/traceability/*`,
@@ -86688,7 +86690,8 @@ gate files, and a board measured before those edits certifies nothing about them
 
 **BOARD, RUN AT `eeed28b`: 21 PASS · 0 FAIL · 5 BLOCKED (of 26)**, aggregate `BLOCKED (exit 2)`, **NOT
 PROMOTABLE** — byte-for-byte the same verdict as §1503's run at `320653f`, with the same five owner-side
-blockers and an empty repo-owned failure set. Nine gate files changed between the two runs (four corpora
+blockers and an empty repo-owned FAILURE set (no gate fails for a repo reason — not the same as the debt
+ledger, which carries 29 OPEN rows; §1510). Nine gate files changed between the two runs (four corpora
 widened, two scopes widened, one roster's population widened, one gate added, one gate's fixed window
 replaced) and the board did not move: **the widenings cost nothing on the real tree, which was the claim each
 one made.** The concurrent workstream's thirteen modified files were still in the tree for both runs — §1503's
@@ -86772,3 +86775,52 @@ unwatched and load-bearing (all fixed), 1 measuring the wrong layer (fixed), **7
 premise**, 1 self-enforcing. Suites unchanged — no new cases were needed, which is itself the result. Tools
 **140 files / 1457 tests**. Carry-forward unchanged. **Reopen trigger:** zero code guards remain unmutated in
 `workers/`; the next new one is the trigger, and the cheapest moment to mutate it is when it is written.
+
+## §1510 — PHASE GATE: the debt ledger counted by its owner, and a phrase of mine that invited the wrong reading (REQ-118/119)
+
+**"How much repo-owned debt is open?" — 54 ledger rows, 29 OPEN**, counted by importing
+`ledger-status-vocabulary.test.ts`'s own exported `ledgerRows` parser rather than writing another one. The
+full tally: **OPEN 29 · FIXED 20 · CLOSED 2 · TRIPWIRED 1 · RESOLVED 1 · NOT_APPLICABLE 1.**
+
+**I wrote three ad-hoc parsers before doing that, and all three were wrong** — an `awk` on `/OPEN/` (counted
+struck text, so FIXED rows read as open), a hand-rolled paragraph mask (returned **0**, because a markdown
+table is ONE paragraph and the global pair re-pairs across rows — §1411's defect, reproduced in my own probe),
+and a fixed-point-corrected version that returned **37** by scanning every cell of every table in the file
+rather than the ledger section's status column. §945's header records the identical sequence: *"I answered
+'how many are open?' four times with four ad-hoc parsers and got four different wrong answers."* **The gate
+that solves this has existed since §945, exports its parser, and I re-derived around it three times.** The
+record held the answer; searching it costs a minute and I spent thirty.
+
+**A WORDING DEFECT OF MY OWN, corrected in place.** §1497, §1503 and §1508 each say *"the repo-owned failure
+set is empty."* That is true and it is about the BOARD — no gate fails for a repo-owned reason. A reader
+skimming hears *"no repo-owned debt"*, which is false by 29 rows. Both §1503's and §1508's sentences now carry
+the distinction explicitly. The two artifacts answer different questions: the board asks *does anything fail
+today*, the ledger asks *what do we know is wrong and have not fixed*. A green board over a 29-row ledger is
+not a contradiction — but a sentence that lets one be read as the other is a record defect, and this record's
+own rule is that a claim you inherit is a claim you are making (§804).
+
+**Three OPEN rows re-measured, all still true** (§1474's method — a carried row's proof is the cheapest thing
+to re-verify and the likeliest to have decayed):
+
+- *"The workspace runs TWO vitest majors"* — **holds**: 12 packages on `^4.1.10`, 6 on `~3.2.4`, both
+  installed under `.pnpm`.
+- *"No line/branch coverage is measured anywhere"* — **holds**: all 12 tracked `vitest.config` files carry
+  zero `coverage` mentions. (My first check used a shell glob that matched nothing and printed no output; a
+  no-match is not a measurement — the count above comes from `git ls-files`.)
+- *"A 4-hour SLA is policed by a 24-hour detector"* — **holds**: `SLA_REPLY_WINDOW_MS` is 4h at
+  `workers/agents/src/concierge.ts:173@SLA_REPLY_WINDOW_MS`, and `sla-sweep.ts:149` still carries its own
+  CADENCE HOLD saying the schedule, not the sweep, is what is wrong.
+
+**Why nothing was fixed here, stated rather than implied.** Of the 29, the ones that are cheap are cheap
+because they are DECISIONS: the signup email-oracle response shape is a founder UX call and is recorded as
+accepted-for-now behind a dark flag; the path-only citation extension was measured twice and rejected at a
+~95% false-positive rate; the SLA cadence is a cron cost knob. The rest need a register row or an owner's
+input. **An audit that "closes" a decision by picking one is not an audit** — the correct output is the
+number, the proof, and who has to decide.
+
+**Phase gate.** **No product source changed** — one throwaway tally file created in `tools/checks/` and
+deleted, verified absent by `git status`. Two record wordings qualified in place. Tools **140 files / 1457
+tests**. Carry-forward unchanged, and now quantified: **29 OPEN repo-owned rows**, none of them repo-fixable
+without a decision or a register amendment. **Reopen trigger:** re-run the tally through `ledgerRows` after
+any block that closes rows; if the OPEN count ever falls without a commit that names the row, the parser
+drifted, not the debt.
