@@ -203,17 +203,25 @@ describe("syncOnce — the durable sync state machine (REQ-016/017/030)", () => 
   // which is the STRANDED-SIGNED-CAPTURE shape this state machine exists to prevent. Pinned by the drain,
   // by the untouched transport, and by the queue actually emptying.
   it("a REHYDRATED evidence_pending item whose bytes are gone DRAINS — sendEvidence is never called", async () => {
+    // §1530 — A REAL REHYDRATION, over a SECOND queue. The first draft persisted and then ran the SAME
+    // `OfflineQueue` instance, which pins the phase/`deferred` combination but not the mechanism §1499's
+    // section claims: *the queue is DURABLE, and every pass reads items back out of the store*. If a pass
+    // ever served from an in-memory list instead, that draft would still pass while the reload path — the
+    // only way this state arises — went unexercised. So the item is written through one queue and the pass
+    // is driven by another over the same store, exactly as `sync.test.ts`'s pre-existing RELOAD case does.
     const store = new MemStore();
-    const q = new OfflineQueue(store);
-    const id = await enqueue(q, { evidence: true });
+    const writer = new OfflineQueue(store);
+    const id = await enqueue(writer, { evidence: true });
     const item = store.m.get(id)!;
     // The rehydration shape: phase says evidence_pending, the record carries no bytes.
     const { deferred: _dropped, ...withoutBytes } = item;
-    await q.persist({ ...withoutBytes, sync: { phase: "evidence_pending", attempts: 0, nextAttemptAt: 0 } });
+    await writer.persist({ ...withoutBytes, sync: { phase: "evidence_pending", attempts: 0, nextAttemptAt: 0 } });
+    expect(store.m.get(id)?.deferred, "the store still holds the bytes — the fixture did not rehydrate").toBeUndefined();
 
-    const pass = await syncOnce(ports({ queue: q, sendEvent: forbidden, sendEvidence: forbidden }));
+    const reloaded = new OfflineQueue(store); // the "next launch": nothing in memory, everything from the store
+    const pass = await syncOnce(ports({ queue: reloaded, sendEvent: forbidden, sendEvidence: forbidden }));
     expect(pass.synced, "the item must drain rather than re-enter evidence_pending forever").toContain(id);
-    expect(await q.pending(), "a stranded item would still be here on the next pass").toHaveLength(0);
+    expect(await reloaded.pending(), "a stranded item would still be here on the next pass").toHaveLength(0);
   });
 
   it("monotonic ACK: an already event_acked item never re-sends the event (duplicate delivery is safe)", async () => {
