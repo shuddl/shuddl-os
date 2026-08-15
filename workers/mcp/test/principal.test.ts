@@ -111,3 +111,18 @@ describe("mint re-checks the grant's scope against the pairing's CURRENT allowli
     await expect(mintPrincipalJwt(env, PN)).resolves.toBeTypeOf("string");
   });
 });
+
+// §1559 (REQ-102/118) — THE FIRST REFUSAL BRANCH NAMES ITSELF; THE SECOND ALREADY DID.
+//
+// `mintPrincipalJwt` has two refusal branches and both throw `PrincipalMintError`. The scope branch was already
+// covered — and covered WELL, by the block above: it mints, has the operator narrow the pairing, re-mints, and
+// asserts `/scope no longer/`, which is the message discriminator §1558 argues for. What the FIRST branch's
+// three cases (inactive, non-mcp, unknown id) assert is only the error CLASS, which cannot tell the branches
+// apart. That matters for the same reason it did at §1558: deleting the `pairing === null` guard makes the next
+// line read `pairing.scopes` and throw a **TypeError**, so those cases are pinned by a crash rather than by the
+// refusal moving — and the day the code becomes null-tolerant they go green with the guard gone.
+describe("§1559 the pairing-lookup refusal names itself, so the two branches are distinguishable", () => {
+  it("an unknown pairing names the LOOKUP branch, not merely PrincipalMintError", async () => {
+    await expect(mintPrincipalJwt(env, "prn-nope")).rejects.toThrow(/no active mcp pairing/i);
+  });
+});
