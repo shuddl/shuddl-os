@@ -88125,7 +88125,7 @@ written as a control so the gate cannot regress into missing what it was built t
 **RED first, then mutation-proved.** Removing `status` from the SET list reds exactly the new projection case.
 The case asserts the single-row collapse beside the reopen, so no future fix can buy visibility by forking.
 
-**Phase gate.** `@shuddl/ledger` **738/738**, tools **141 files**, typecheck 0, lint 0. **Three instances of one
+**Phase gate.** `@shuddl/ledger` **737/737** (736 + this phase's one case; the first draft of this line said 738, corrected on measurement — a count in this record is an assertion like any other), `@shuddl/agents-worker` 146/146, `@shuddl/api` 855/855, tools **141 files / 1460**, typecheck 0, lint 0. **Three instances of one
 class, found by three different instruments** — a hand read, a conflict-clause sweep, and a gate — each blind to
 what the next one caught. **Reopen trigger:** none for this class; the gate is the trigger now. The transferable
 half is that **a sweep's BUCKETS are a hypothesis too**: bucketing by conflict form made `DO UPDATE` look like a
