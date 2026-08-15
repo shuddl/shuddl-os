@@ -89999,4 +89999,5 @@ naming it; removed, 7/7.
 > fails — the gap only appears the day something lands outside the list, and then it appears as silence.
 
 **Phase gate.** No product defect this phase; one coverage claim made total. tools **145 files / 1476**; board
-re-measured below since `tools/` changed.
+re-measured at `97a2251` since `tools/` changed: **21 PASS · 0 FAIL · 5 BLOCKED** (aggregate BLOCKED, exit 2 —
+the five owner-side private-fixture holds).
