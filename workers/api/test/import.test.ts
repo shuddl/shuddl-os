@@ -50,6 +50,40 @@ beforeAll(async () => {
   await ensureTenantBSchema(env); // REQ-025 — the tenant-scope assertion reads TENANT_B_DB
 });
 
+// §1535 (REQ-035/195/017) — THE TWO WRITERS OF `shipments.refs` ARE BOUNDED DIFFERENTLY, ON PURPOSE.
+//
+// §1534 capped the ROUTE at `MAX_REF_KEYS = 64` after measuring 2.1 MB stored from one authed request. Its
+// reopen trigger asked the obvious question: the IMPORT path also writes `refs` — the no-silent-drop values
+// of every unmapped column (rule 10) — and a legacy export carries up to 171 of them. If the cap reached
+// here it would DROP those values, which is the one thing that law forbids.
+//
+// It does not reach here: `import.ts` calls `materializeShipment` directly, never `ShipmentBody`. That is not
+// a hole — the import path has its own ceiling, `MAX_COLS = 200` headers × `MAX_CELL = 2000` chars — so both
+// writers are bounded and the numbers differ because the reasons do: a client naming its own refs has no
+// business sending 65, and a legacy sheet's unmapped columns must ride or be lost.
+//
+// This case exists so that asymmetry is MEASURED rather than assumed. It is the shape of regression a
+// bound-adding phase creates: the cap is right where it is and wrong one function deeper.
+describe("§1535 — a legacy sheet's unmapped columns still ride refs (the §1534 cap does not reach this path)", () => {
+  it("100 unmapped columns import cleanly, and their values are retained on the shipment", async () => {
+    const cols = 100;
+    const headers = ["shipper_name", "consignee_name", "bill_to_name", ...Array.from({ length: cols }, (_, i) => `legacy_col_${i}`)];
+    const row = ["Acme Shipper", "Beta Consignee", "Gamma Broker", ...Array.from({ length: cols }, (_, i) => `v${i}`)];
+    const res = await SELF.fetch("https://api.local/v1/import", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "Idempotency-Key": crypto.randomUUID(),
+        Authorization: `Bearer ${await token({ sub: "u1", tenant: "tenant-a", role: "ops" })}`,
+      },
+      body: JSON.stringify({ sheet: { headers, rows: [row] } }),
+    });
+    expect(res.status, `${cols} unmapped columns must import — the §1534 route cap must not reach materializeShipment`).toBe(200);
+    const stored = await env.TENANT_A_DB.prepare("SELECT MAX(length(refs)) AS n FROM shipments").first<{ n: number }>();
+    expect(stored?.n, "nothing rode refs — rule 10's no-silent-drop half is what this path exists for").toBeGreaterThan(1_000);
+  });
+});
+
 describe("the 3 messy files import → parties + shipments (idempotent)", () => {
   it("broker-loads imports parties + 3 shipments; a re-import (fresh key) makes NO dupes", async () => {
     const ops = await opsTok();
