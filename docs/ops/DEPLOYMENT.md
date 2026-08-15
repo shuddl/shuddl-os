@@ -63,6 +63,22 @@ pnpm check:runtime                         # fails closed, printing installed vs
 4. Secret: `printf '%s' "$JWT" | (cd workers/api && npx wrangler secret put JWT_SECRET --env staging)`. **Do NOT set `RESEND_API_KEY`** (keeps sending gated).
 5. Deploy in order: `cd workers/api && npx wrangler deploy --env staging`, then `cd workers/agents && npx wrangler deploy --env staging` (api first — the agents DO binding needs the api script to exist).
 
+## Optional runtime vars (unset is valid — the in-code default applies)
+
+Found undocumented 2026-08-15 (audit §1585). None of these blocks a deploy and each has a working default, which
+is exactly why they were invisible: an operator reading this file could not discover that they exist. Two of the
+three are **customer-visible** in sent mail.
+
+| Var | Worker | Unset ⇒ | Why you might set it |
+|---|---|---|---|
+| `CONCIERGE_FROM_NAME` | agents | `"Shuddl Dispatch"` | the display name on concierge mail — a tenant's own voice |
+| `DUNNING_FROM_NAME` | api | `"Shuddl Billing"` (REQ-098/167-clean) | the display name signed into the dunning body |
+| `MIGRATOR_MODEL` | api | the key is omitted, so the migrator's own default model applies | pin the column-guessing model (CONFIRM-gated with `ANTHROPIC_API_KEY`) |
+
+Set with `wrangler secret put` only if the value is sensitive; these are plain vars, so prefer a `[vars]` entry in
+the worker's `wrangler.toml` so the setting is visible in the repo. `tools/checks/binding-documentation.test.ts`
+fails if a NEW `env.*` read appears in neither a `wrangler.toml` nor a `docs/ops/` page.
+
 ## Smoke test (proves the deployed pipeline)
 
 ```
