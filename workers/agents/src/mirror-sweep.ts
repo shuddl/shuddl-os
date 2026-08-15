@@ -166,10 +166,19 @@ async function anchorStream(db: D1Database, streamKey: string, draft: MirrorEven
 async function writeQuarantine(db: D1Database, tenant: string, q: MirrorQuarantine): Promise<void> {
   // Idempotent by CONTENT (natural key + reason + the raw row), NOT the clock — a re-ingested identical bad row
   // dedupes, so quarantine never storms (contrast the gap rows, which fold the clock to re-raise every sweep).
+  //
+  // …and because the id folds CONTENT rather than the clock, a cleared row can never be replaced by a fresh one,
+  // so it must be REOPENED instead (2026-08-15, audit §1540 — the second instance of §1539). The gap rows below
+  // are safe under OR IGNORE precisely because their id folds `now`: each sweep mints a new id. The rule for
+  // this table is the id's subject — an id keyed on a RECURRING CONDITION must reopen; one keyed on a ONE-SHOT
+  // OCCURRENCE need not. This row keys on a legacy row that is still sitting in the feed.
   const id = `lgm_quar_${(await sha256Hex(`${tenant}:${q.naturalKey}:${q.reason}:${stableStringify(q.raw)}`)).slice(0, 24)}`;
   const detail = JSON.stringify({ reason: q.reason, detail: truncate(q.detail, MAX_SAMPLE), natural_key: q.naturalKey, raw: q.raw });
   await db
-    .prepare("INSERT OR IGNORE INTO anomalies (id, rule, object_kind, object_id, severity, detail, status) VALUES (?,?,?,?,?,?,'open')")
+    .prepare(
+      "INSERT INTO anomalies (id, rule, object_kind, object_id, severity, detail, status) VALUES (?,?,?,?,?,?,'open') " +
+        "ON CONFLICT(id) DO UPDATE SET status = 'open'",
+    )
     .bind(id, "legacy_mirror.quarantine", "legacy_row", truncate(q.naturalKey, 120), "warn", detail)
     .run();
 }

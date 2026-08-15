@@ -231,6 +231,41 @@ describe("REQ-035 — quarantine, never drop: a malformed row → an idempotent 
     ).resolves.toBeDefined();
     expect(await countAnomalies(A(), "legacy_mirror.quarantine")).toBe(2); // still 2 — idempotent
   });
+
+  // §1540 (REQ-035/030) — THE SECOND INSTANCE OF §1539. The quarantine id folds the ROW CONTENT, not the clock,
+  // which is what makes the case above hold — and it is exactly what makes a cleared row unable to come back.
+  // The gap rows in this same file re-raise safely because their id folds `now` (LAW 2), so each sweep mints a
+  // NEW id; a content-keyed id cannot do that, so the row must be REOPENED instead. With `INSERT OR IGNORE`
+  // it never was: an operator clears the quarantine, the legacy feed still carries the same bad row, every
+  // later sweep re-encounters it and writes nothing, and every ops read of `anomalies` filters `status='open'`.
+  //
+  // The discriminator, stated because it decides which writers of this table need which clause: an id keyed on a
+  // RECURRING CONDITION (this one; the EDI partner+ISA one) must reopen; an id keyed on a ONE-SHOT OCCURRENCE
+  // (`lgm_gap_`'s folded clock, `import.ts`'s per-run `importId`) mints a fresh row and OR IGNORE is correct.
+  it("a CLEARED quarantine reopens when the same bad row is swept again — still ONE row per bad row", async () => {
+    await seedConfig(A(), 0);
+    const seq = new RecordingSeq();
+    const feed = new StaticFeed(genericExport);
+    await sweepTenantLegacyMirror({ db: A(), seq, feed, integrationId: LEGACY_MIRROR_INTEGRATION_ID, tenant: "tenant-a", now: 1_000 });
+    expect(await countAnomalies(A(), "legacy_mirror.quarantine")).toBe(2);
+
+    // An operator clears them — byte-identical to watchtower's clearAlarm, the only clear this table has.
+    await A().prepare("UPDATE anomalies SET status = 'resolved' WHERE rule = 'legacy_mirror.quarantine'").run();
+
+    // The legacy feed is unchanged: the same bad rows are still there and the next sweep re-reads them.
+    await resetWatermark(A(), 0);
+    await sweepTenantLegacyMirror({ db: A(), seq, feed, integrationId: LEGACY_MIRROR_INTEGRATION_ID, tenant: "tenant-a", now: 3_000 });
+
+    expect(await countAnomalies(A(), "legacy_mirror.quarantine"), "the content-keyed id stopped collapsing — a re-sweep forked new rows").toBe(2);
+    const open = await A()
+      .prepare("SELECT COUNT(*) AS n FROM anomalies WHERE rule = 'legacy_mirror.quarantine' AND status = 'open'")
+      .first<{ n: number }>();
+    expect(
+      open?.n,
+      "the bad rows are still in the feed and still unmappable, but their anomalies sit at 'resolved' — every ops " +
+        "read filters status = 'open', so the quarantine is invisible while the sweep keeps hitting it",
+    ).toBe(2);
+  });
 });
 
 describe("fail-closed — no config / no feed is a clean no-op (production is inert until a pack wires it)", () => {
