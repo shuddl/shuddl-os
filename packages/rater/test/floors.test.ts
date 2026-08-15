@@ -44,31 +44,31 @@ describe("computeFloors — three floors as fractions of the cost basis (REQ-027
   });
 });
 
+// §1517 — THE ENGINE'S GUARD IS NOW DEFENCE IN DEPTH, and these cases construct what the schema refuses.
+//
+// `FloorsConfig` gained a `.refine()` making a misordered ladder UNREPRESENTABLE — a stored one had been
+// returning HTTP 500 on the anonymous `/pub/quote` for every visitor. `computeFloors`' own throw stays, and
+// it is still the thing these cases test: the schema stops the state arriving from a CONFIG, and the engine
+// stops it arriving from anywhere else (a hand-built object, a future caller, a refine someone deletes).
+// So the fixtures are CAST past the parser deliberately — testing a guard against a value its own type
+// system now forbids is the point of defence in depth, not a hole in it.
 describe("computeFloors — a misordered FloorsConfig fails loudly (never emits an unusable ladder)", () => {
   it("contribution_bps > target_or_bps ⇒ THROWS (ladder not monotonic)", () => {
-    // A schema-valid but MISCONFIGURED floors: contribution 99% > full 92% > target 85%.
-    const bad = FloorsConfig.parse({
-      kind: "floors",
-      id: "fl-bad",
-      version: "2026.07",
-      contribution_bps: 9_900,
-      full_cost_bps: 9_200,
-      target_or_bps: 8_500,
-    });
+    // MISCONFIGURED: contribution 99% > full 92% > target 85%. Cast past the schema (see the note above).
+    const bad = { kind: "floors", id: "fl-bad", version: "2026.07", contribution_bps: 9_900, full_cost_bps: 9_200, target_or_bps: 8_500 } as unknown as FloorsConfig;
     // cost 100000: contribution 99000 > full 92000 > target 85000 → out of order → throw.
     expect(() => computeFloors(100_000, bad)).toThrow(/monoton|ladder|contribution/i);
   });
 
   it("only full is out of order (contribution ≤ target but full > target) ⇒ THROWS", () => {
-    const bad = FloorsConfig.parse({
-      kind: "floors",
-      id: "fl-bad2",
-      version: "2026.07",
-      contribution_bps: 8_000,
-      full_cost_bps: 9_900,
-      target_or_bps: 9_000,
-    });
+    const bad = { kind: "floors", id: "fl-bad2", version: "2026.07", contribution_bps: 8_000, full_cost_bps: 9_900, target_or_bps: 9_000 } as unknown as FloorsConfig;
     expect(() => computeFloors(100_000, bad)).toThrow(/monoton|ladder|full/i);
+  });
+
+  it("…and the SCHEMA now refuses both of them outright (the layer above the engine)", () => {
+    const base = { kind: "floors", id: "fl-bad3", version: "2026.07" };
+    expect(() => FloorsConfig.parse({ ...base, contribution_bps: 9_900, full_cost_bps: 9_200, target_or_bps: 8_500 })).toThrow();
+    expect(() => FloorsConfig.parse({ ...base, contribution_bps: 8_000, full_cost_bps: 9_900, target_or_bps: 9_000 })).toThrow();
   });
 });
 

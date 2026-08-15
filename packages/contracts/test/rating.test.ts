@@ -107,11 +107,17 @@ describe("ZoneTariff", () => {
   });
 });
 
+// §1517 — THE FIXTURE THE ENGINE WOULD HAVE THROWN ON. This read `target 1500 / full 8500 / contribution 500`
+// — full ABOVE target — and called itself "a valid floors config". `computeFloors` rejects exactly that
+// ordering (`contribution > full || full > target`), so this file's "valid" and the rater's "misconfigured"
+// were the same shape, and nothing noticed because the contracts test only PARSED and the rater test only
+// COMPUTED. Corrected to a real ladder (5% / 85% / 98%) alongside the schema refinement that now makes the
+// disagreement impossible.
 const floors = {
   kind: "floors" as const,
   id: "fl-1",
   version: "2026.07",
-  target_or_bps: 1500,
+  target_or_bps: 9800,
   full_cost_bps: 8500,
   contribution_bps: 500,
 };
@@ -119,7 +125,7 @@ const floors = {
 describe("FloorsConfig", () => {
   it("parses a valid floors config", () => {
     const p = FloorsConfig.parse(floors);
-    expect(p.target_or_bps).toBe(1500);
+    expect(p.target_or_bps).toBe(9800);
     expect(p.full_cost_bps).toBe(8500);
     expect(p.contribution_bps).toBe(500);
   });
@@ -131,6 +137,17 @@ describe("FloorsConfig", () => {
   });
   it("rejects a negative bps (Bps range)", () => {
     expect(() => FloorsConfig.parse({ ...floors, contribution_bps: -1 })).toThrow();
+  });
+  // §1517 — THE RELATIONSHIP, not only each field's range. Every value below is a valid `Bps`; only the ORDER
+  // is wrong, and that ordering made `computeFloors` throw on every quote priced against it — measured as an
+  // HTTP 500 on the UNAUTHENTICATED `/pub/quote`, for every visitor, until someone noticed. Same idiom as
+  // `SplitComputedPayload`'s bps-sum refinement: a money schema asserts how its fields RELATE.
+  it("rejects a misordered ladder (each bps valid, the ORDER wrong) — §1517's anonymous 500", () => {
+    expect(() => FloorsConfig.parse({ ...floors, contribution_bps: 9_800, full_cost_bps: 9_200, target_or_bps: 8_500 })).toThrow();
+    expect(() => FloorsConfig.parse({ ...floors, full_cost_bps: 9_900 })).toThrow(); // full above target only
+    expect(() => FloorsConfig.parse({ ...floors, contribution_bps: 8_600 })).toThrow(); // contribution above full only
+    // …and EQUALITY is legal at both rungs — a flat ladder is degenerate, not misordered.
+    expect(FloorsConfig.parse({ ...floors, contribution_bps: 8_500, full_cost_bps: 8_500, target_or_bps: 8_500 }).full_cost_bps).toBe(8_500);
   });
   it("rejects a float bps (integer-only)", () => {
     expect(() => FloorsConfig.parse({ ...floors, target_or_bps: 15.5 })).toThrow();

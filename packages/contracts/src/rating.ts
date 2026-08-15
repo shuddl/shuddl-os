@@ -49,7 +49,25 @@ export const FloorsConfig = z
     full_cost_bps: Bps,
     contribution_bps: Bps,
   })
-  .strict();
+  .strict()
+  // §1517 (REQ-005/051/189) — THE LADDER IS PART OF THE SHAPE, not merely of the engine's output.
+  //
+  // `computeFloors` asserts monotonicity on the RESULT and throws — correctly, since a misordered ladder
+  // makes the approval matrix ambiguous. But three independent `Bps` values are all this schema required, so
+  // an inverted ladder was STORABLE, and every quote priced against it threw. MEASURED at §1517: a tenant
+  // whose stored floors read `contribution 9800 / full 9200 / target 8500` — each a valid Bps, only the ORDER
+  // wrong — returned **HTTP 500 on the UNAUTHENTICATED `/pub/quote`**, for every visitor, until someone
+  // noticed. The bad state was representable, so it was reachable.
+  //
+  // Refining HERE makes it unrepresentable in both directions: the write path refuses it (the same 400 an
+  // over-cap weight gets), and a row already stored fails this parse on READ — which the loader's header
+  // deliberately routes to a loud failure rather than a silent misprice, a posture this does not change.
+  // Mirrors `SplitComputedPayload`'s bps-sum refinement in `money.ts`: the money schemas assert the
+  // RELATIONSHIP between their fields, never only each field's range.
+  .refine(
+    (f) => f.contribution_bps <= f.full_cost_bps && f.full_cost_bps <= f.target_or_bps,
+    "floor ladder must be monotonic: contribution_bps ≤ full_cost_bps ≤ target_or_bps (a misordered ladder makes the approval matrix ambiguous)",
+  );
 export type FloorsConfig = z.infer<typeof FloorsConfig>;
 
 export const FscConfig = z
