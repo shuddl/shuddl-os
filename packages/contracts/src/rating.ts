@@ -8,6 +8,25 @@ import { Cents, Bps } from "./money.js";
 // valid price. Narrow to >= 0 here, mirroring money.ts InvoiceLine.amount_cents / SplitComputedPayload.
 const NonNegCents = Cents.refine((c) => c >= 0, "rate_config cents must be non-negative (a charge, never a credit)");
 
+// §1519 (REQ-005/051/189) — THE TARIFF SIDE OF THE SAME OVERFLOW, and the arithmetic that picks the number.
+//
+// §1513 bounded the REQUEST's weight; the product `weight × cwt_cents` has two operands, and the other one is
+// TENANT config. MEASURED at §1519: a tariff whose `cwt_cents` is `1e15` returns **HTTP 500 on the
+// unauthenticated `/pub/quote`** for every visitor — §1517's shape (a schema-valid stored row that 500s
+// strangers) reached through a magnitude rather than a relationship.
+//
+// THE CEILING IS DERIVED, not chosen. The whole chain must stay inside `Number.MAX_SAFE_INTEGER` (9.007e15),
+// and the widest intermediate is the FSC multiply, not the freight one:
+//
+//     freight     = (weight / 100) × cwt          ≤ (1e6 / 100) × C = 1e4 × C
+//     fsc         = mulDivHalfUp(freight, pct_bps ≤ 10_000, 10_000)  → intermediate = freight × 1e4 = 1e8 × C
+//     safe ⇔ 1e8 × C < 9.007e15  ⇔  C < 9.0e7
+//
+// So 1e7 leaves a ~9× margin on the binding term — and it is $100,000 per hundredweight, roughly 200× the
+// most extreme specialised freight rate in use (real LTL is $10–$500/cwt). It cannot refuse a real tariff and,
+// PAIRED WITH `MAX_WEIGHT_LB`, it makes `mulDivHalfUp`'s precision throw unreachable from either operand.
+export const MAX_CWT_CENTS = 10_000_000;
+
 // doc 10 §17: rate_config(kind[zone_tariff|floors|fsc|accessorials|transit_matrix|class_adapter],
 // version, payload, effective). This module models the PAYLOAD shape per kind — a tenant's rating
 // configuration, the SHAPE ONLY, with ZERO hardcoded tenant data. All money is INTEGER cents (Cents);
@@ -30,7 +49,7 @@ export const ZoneTariff = z
           .object({
             id: z.string().min(1),
             zones: z.array(z.string()).min(1),
-            breaks: z.array(z.object({ min_lb: SafeInt, cwt_cents: NonNegCents }).strict()).min(1),
+            breaks: z.array(z.object({ min_lb: SafeInt, cwt_cents: NonNegCents.refine((c) => c <= MAX_CWT_CENTS, `cwt_cents exceeds the ${MAX_CWT_CENTS}-cent ceiling (§1519 — beyond it the fsc multiply leaves MAX_SAFE_INTEGER)`) }).strict()).min(1),
             min_charge_cents: NonNegCents,
           })
           .strict(),
@@ -173,6 +192,7 @@ const RateDims = z
 // cannot reach the throw. Over-cap is a VALUE decision (a 400); ABSENT weight stays UNKNOWN, which is a
 // PHYSICS decision (REQ-004, no price on air). The two must never collapse into one another.
 export const MAX_WEIGHT_LB = 1_000_000;
+
 
 // §1515 — THE SAME LAW FOR THE STRINGS BESIDE IT. `z.string()` bounds a TYPE, never a VALUE: measured at
 // §1515, `RateRequestPayload` accepted a **100,000-character** `origin_zip`, and that string lands in an

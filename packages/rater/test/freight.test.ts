@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ZoneTariff } from "@shuddl/contracts";
+import { ZoneTariff, MAX_CWT_CENTS } from "@shuddl/contracts";
 import { priceFreight } from "../src/engine.js";
 import { roundHalfUp, mulDivHalfUp } from "../src/money.js";
 import type { ShipmentPhysics } from "../src/types.js";
@@ -335,7 +335,14 @@ describe("priceFreight — the monetary product is BigInt-exact (no float produc
     // exceeds Number.MAX_SAFE_INTEGER, so forming the product as a JS float loses precision and mis-rounds by
     // a cent. The freight core must route the product through mulDivHalfUp (BigInt) — the same primitive
     // compose/floors use — so no float ever forms the monetary product.
-    const bigTariff = ZoneTariff.parse({
+    // §1519 — CAST PAST THE PARSER, DELIBERATELY. `cwt_cents` now carries a derived ceiling
+    // (`MAX_CWT_CENTS`, 1e7) because a tariff at 1e15 returned HTTP 500 on the anonymous `/pub/quote` for
+    // every visitor. That ceiling makes THIS value unstorable — and this case is about the ENGINE, not about
+    // what a tariff may contain: the freight product must be BigInt-exact for any value that reaches it, from
+    // a stored tariff or from anywhere else. Same posture as §1517's floors cases: a guard tested against a
+    // value its own type system now forbids is defence in depth, not a hole. The schema layer is asserted
+    // separately below.
+    const bigTariff = {
       kind: "zone_tariff" as const,
       id: "zt-big",
       version: "2026.07-big",
@@ -343,7 +350,7 @@ describe("priceFreight — the monetary product is BigInt-exact (no float produc
       rate_groups: [
         { id: "grp-big", zones: ["ZB"], breaks: [{ min_lb: 0, cwt_cents: 999_999_999_990 }], min_charge_cents: 0 },
       ],
-    });
+    } as unknown as ZoneTariff;
     const r = priceFreight(okShip({ dest_zip: "80112", weight_lb: 18015 }), bigTariff);
     expect(r.status).toBe("PRICED");
     if (r.status !== "PRICED") return;
@@ -354,6 +361,20 @@ describe("priceFreight — the monetary product is BigInt-exact (no float produc
     // 180_149_999_998_198: exactly the confirmed off-by-1¢ this fix removes.
     expect(roundHalfUp(18015 * 999_999_999_990, 100)).toBe(180_149_999_998_198);
     expect(roundHalfUp(18015 * 999_999_999_990, 100)).not.toBe(r.freight_cents);
+  });
+
+  it("§1519 — and the SCHEMA now refuses that tariff outright (the layer above the engine)", () => {
+    const over = {
+      kind: "zone_tariff" as const,
+      id: "zt-over",
+      version: "1",
+      zip_to_zone: { "801": "ZB" },
+      rate_groups: [{ id: "g", zones: ["ZB"], breaks: [{ min_lb: 0, cwt_cents: MAX_CWT_CENTS + 1 }], min_charge_cents: 0 }],
+    };
+    expect(() => ZoneTariff.parse(over)).toThrow();
+    // …and the ceiling ITSELF parses: a bound that excludes its own value is an off-by-one, not a bound.
+    const at = { ...over, id: "zt-at", rate_groups: [{ id: "g", zones: ["ZB"], breaks: [{ min_lb: 0, cwt_cents: MAX_CWT_CENTS }], min_charge_cents: 0 }] };
+    expect(ZoneTariff.parse(at).rate_groups[0]!.breaks[0]!.cwt_cents).toBe(MAX_CWT_CENTS);
   });
 });
 
