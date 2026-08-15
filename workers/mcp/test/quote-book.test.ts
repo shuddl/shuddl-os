@@ -154,6 +154,29 @@ describe("§1514 — quote_freight bounds the weight BEFORE its first write (REQ
     expect(calls, "an unsatisfiable request must not create a party or a shipment first").toHaveLength(0);
   });
 
+  // §1528 — THE MECHANISM, CHECKED. §1514's whole argument for bounding the weight HERE (rather than leaving
+  // it to the api's 400) is that this tool WRITES BEFORE IT RATES: an over-cap weight the api refuses would
+  // leave a party and a shipment behind an impossible request. That was read off the source, never asserted —
+  // and §1527 measured a different read-off-the-source mechanism of mine and found it FALSE. So it is pinned
+  // behaviourally now: the recorded call ORDER is the claim.
+  it("writes BEFORE it rates — the order that makes a client-side bound worth having", async () => {
+    const { calls } = await runTool(TOKEN_A, "quote_freight", PRICEABLE, happyApi());
+    const paths = calls.map((c) => c.path);
+    const firstShipment = paths.indexOf("/v1/shipments");
+    const firstRate = paths.indexOf("/v1/rate");
+    expect(firstShipment, "the tool no longer creates a shipment — re-derive §1514's residue argument").toBeGreaterThanOrEqual(0);
+    expect(firstRate, "the tool no longer rates — this test is measuring something else").toBeGreaterThanOrEqual(0);
+    expect(
+      firstShipment < firstRate,
+      "the tool now RATES BEFORE IT WRITES, so an api-refused weight would leave no residue and §1514's " +
+        "reason for bounding the weight in this schema no longer holds. Re-read that section before removing " +
+        "the bound — the OTHER reason (three surfaces, one payload, no drift) still stands on its own.",
+    ).toBe(true);
+    // …and a party is created before the shipment, so the residue is two rows rather than one.
+    expect(paths.filter((p) => p === "/v1/parties").length, "no party was created before the shipment").toBeGreaterThan(0);
+    expect(paths.indexOf("/v1/parties")).toBeLessThan(firstShipment);
+  });
+
   it("the heaviest LEGAL shipment still prices through the tool (the ceiling refuses nothing real)", async () => {
     const { calls } = await runTool(TOKEN_A, "quote_freight", { ...PRICEABLE, weight_lb: 80_000 }, happyApi());
     expect(calls.some((c) => c.path === "/v1/rate"), "80,000 lb is a legal truckload and must still reach the rater").toBe(true);
