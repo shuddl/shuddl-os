@@ -99,12 +99,30 @@ describe("brokerageTemplate — market rate + margin → an immediately-rateable
     expect(floors.target_or_bps).toBeLessThanOrEqual(10_000);
   });
 
-  it("fails LOUDLY on nonsense params (a pure builder never emits a mispricing config)", () => {
-    expect(() => brokerageTemplate({ ...PARAMS, marketRateCentsPerCwt: -1 })).toThrow();
-    expect(() => brokerageTemplate({ ...PARAMS, marketRateCentsPerCwt: 3500.5 })).toThrow();
-    expect(() => brokerageTemplate({ ...PARAMS, marginBps: 20_000 })).toThrow(); // outside Bps 0..10000
-    expect(() => brokerageTemplate({ ...PARAMS, fscPctBps: -5 })).toThrow();
-    expect(() => brokerageTemplate({ ...PARAMS, idPrefix: "" })).toThrow();
+  // §1504 (REQ-151/118) — EACH PARAM GUARD NAMED, because a bare `.toThrow()` cannot say WHICH layer threw.
+  //
+  // MEASURED at §1504: neutering `assertNonNegInt` and `assertPosInt` — deleting their throws outright — left
+  // this suite 168/168 green, the bare-`toThrow()` case below included. Something else downstream rejected the
+  // same inputs, so the case passed for a reason unrelated to the guard it appears to cover: §1500's shape in
+  // a pure package, where two layers produce the same observable and the assertion cannot tell them apart.
+  //
+  // The message IS the discriminator — each helper names itself and its parameter — so these assertions now
+  // fail if the param guard stops firing, even when a later layer still throws. `minChargeCents` had no case
+  // at all, which is why `assertNonNegInt` had no watcher of any kind.
+  it("fails LOUDLY on nonsense params, each at ITS OWN guard (a pure builder never emits a mispricing config)", () => {
+    // assertPosInt — the market rate must be a positive integer (a zero or negative cwt rate is a mispricing).
+    expect(() => brokerageTemplate({ ...PARAMS, marketRateCentsPerCwt: -1 })).toThrow(/marketRateCentsPerCwt must be a positive integer/);
+    expect(() => brokerageTemplate({ ...PARAMS, marketRateCentsPerCwt: 3500.5 })).toThrow(/marketRateCentsPerCwt must be a positive integer/);
+    expect(() => brokerageTemplate({ ...PARAMS, marketRateCentsPerCwt: 0 })).toThrow(/marketRateCentsPerCwt must be a positive integer/);
+    // assertBps — margin and FSC are basis points, 0..10000 inclusive.
+    expect(() => brokerageTemplate({ ...PARAMS, marginBps: 20_000 })).toThrow(/marginBps must be an integer basis point/);
+    expect(() => brokerageTemplate({ ...PARAMS, fscPctBps: -5 })).toThrow(/fscPctBps must be an integer basis point/);
+    // assertNonNegInt — the minimum charge may be zero but never negative or fractional. NO case existed.
+    expect(() => brokerageTemplate({ ...PARAMS, minChargeCents: -1 })).toThrow(/minChargeCents must be a non-negative integer/);
+    expect(() => brokerageTemplate({ ...PARAMS, minChargeCents: 12.5 })).toThrow(/minChargeCents must be a non-negative integer/);
+    // …and zero IS allowed, so the guard is not merely "reject everything unusual".
+    expect(() => brokerageTemplate({ ...PARAMS, minChargeCents: 0 })).not.toThrow();
+    expect(() => brokerageTemplate({ ...PARAMS, idPrefix: "" })).toThrow(/idPrefix must be non-empty/);
   });
 });
 
