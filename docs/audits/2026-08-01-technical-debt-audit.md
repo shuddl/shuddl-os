@@ -754,6 +754,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 976 | §1529 | **§1530** | **CHECKING A CLAUSE FOUND A DEFECT THE CLAUSE WAS ONLY DESCRIBING.** Two confirmations and one defect. §1505's clause is UNDERSTATED — `formatCents` prints on **three** customer surfaces (invoice total, dunning amount in body AND subject, quote rate in body AND subject). §1501's clause sent me to `MessageReceivedPayload`, where `subject` (2,048) and `body` (32,768) are bounded *and say so* while **`from_ref` accepted 100,000 characters** — the worst-placed unbounded string in the block, because it is BOTH halves of the earlier findings: **stored verbatim in an append-only event** (unlike the zip, which §1527 measured as not stored) **and** read back as the reply RECIPIENT into a mail send (`mailSafe` refuses CR/LF in it; nothing refused length). Bounded to `MAX_EMAIL_LEN` — RFC 5321's 254 is the widest of the three handle forms, so one constant bounds their union. No fallout: the longest handle in the tree is 40 chars. |
 | 977 | §1530 | **§1531** | **THE REHYDRATION THAT WAS NOT ONE.** §1499's case persisted and then ran the SAME queue instance — pinning the phase/`deferred` combination but not the reload its section claims. Now written through one `OfflineQueue` and driven by a SECOND over the same store, with an assertion that the stored record really lost its bytes. **Two mutations separate the property from the mechanism:** deleting the guard reds **1** case (this one); making `pending()` stop reading the store reds **5** (every queue case). So the mechanism was already watched by the file's foundational cases — the draft was never certifying a broken queue, it simply was not testing the reload. **A weaker test beside a stronger neighbour is a gap in evidence, not a hole in coverage** — and saying so is the point. §1529's three clauses are now all discharged. |
 | 978 | §1531 | **§1532** | **THE SWEEP §1515 NEVER RAN — unbounded strings in the APPEND-ONLY payloads.** §1515 swept the REQUEST schemas in `workers/*/src` and never `packages/contracts`, where the EVENT payloads live — and a request field is transient while **a payload field is stored immutably**. 94 unbounded strings; the four that are externally-originated text: **`to_ref` ×2** (the address a send GOES to — and a party contact can still supply it, so §1530's `from_ref` bound did not close the path — **§1514's drift two fields away in one file**), the OSD `note` (a driver types it at a door), and the invoice-correction `reason` (money path, read back by an auditor). **Then the block's own lesson on guards I had just written: `note` and `reason` were SILENT — both dropped, 338/338 green.** Cases added, each mutation-proved. contracts 340/340, no fallout: real values are 163 and 73 chars against a 2,048 bound. |
+| 979 | §1532 | **§1533** | **THE SAME FALSE MECHANISM, A SECOND TIME — and the premise is now a test.** §1516 states `legs: 10_000` *writes all ten thousand into an append-only payload — permanent, unshrinkable storage*. **Measured: it does not.** A marker `executor` and `tenant_party` appear in NEITHER appended event. That is the second time I wrote this clause — §1527 corrected it for the zip, and the same sentence had been written about the legs one phase earlier without my noticing while correcting its twin. Three measurements now agree (zip, dims, executor): **`/v1/rate` appends nothing verbatim; the `basis` is DERIVED.** Pinned in `rate.test.ts` with four markers, mutation-proved by stamping the zip into `basis`; the failure message says the change is *not automatically wrong* and names the sections whose verdicts assumed otherwise. **§1516's open item shrinks from ledger-SIZE to COMPUTE — an open item whose stakes are overstated is what gets prioritised over something truer.** |
 | 856 | §1409 | **§1410** | **SWEEPING MY OWN SECTIONS FOR §1409's ERROR, AND A DETECTOR THAT COULD NOT HAVE FOUND IT.** §1404's precedent: a class like this gets ONE measurement, not a gate, since a correction necessarily quotes what it corrects. **The first sweep returned ZERO and was worthless** — it extracted superseded text as `~~struck~~` only, but the very case §1409 found is marked the other way, as *"a 16-step chain …"* **until audit §1029**. **My detector encoded one of the repo's TWO conventions, so it could never have found the known positive.** Twelfth instance of the session's constant, caught because a zero is the answer this session has learned never to accept. **A second false signal inside the control:** asking *"is it inside `~~…~~`?"* with `~~[^~]*16-step` returned True — because an unrelated `~~` sits earlier and `[^~]*` spanned the gap. **A regex answering "is X inside a delimiter" by searching for the delimiter anywhere before X will say yes to the whole file.** Re-run over both conventions: **109 superseded passages, zero quoted without a marker** — and that zero is worth something, because the corrected detector demonstrably flags a reconstruction of §1408's sentence. **§1409's error was singular, not a habit** |
 | **855** | §1408 | **§1409** | **I QUOTED STRUCK TEXT AS CURRENT, AND THE REPO HAD SOLVED IT 380 SECTIONS EARLIER.** §1408 cited CLAUDE.md's account of `verify:dev` as *"a 16-step chain … reaches 4 of 16"*. Measured: **18 steps**. **But the drift is my quotation's, not the law's** — CLAUDE.md's current text says that reading held *"until audit §1029"*, was *"invalidated hours later by `7b61624`"*, and that **the total is stated no longer, only the position that matters: step 4, and nothing after it**. I quoted the struck half of a correction as the claim. **Eleventh measurement error, and the first where the artifact had already anticipated the failure I was about to report.** **§1029's move is exactly §1402's, reached 373 sections apart and independently:** faced with a number that rots, REMOVE the number and keep the invariant. A convention arrived at twice from opposite ends of the record is the closest this audit has to a law about documentation. Substantively: `verify:dev` is still an unaggregated `&&` chain at 18 steps, and that is **not** a defect — CLAUDE.md documents it, names `verify:merge` as the real verdict, and `wp-exit-audit.test.ts:19` records that a naive matcher yields *"4 of 16"* and *"reads as a serious constitutional finding and is an artifact"*. **Tenth clean negative** |
 | 854 | §1407 | **§1408** | **VERIFYING MY OWN DELIVERABLE IS WIRED, BY THE STANDARD §1304 SET.** Five gates were built this session and each reported as working; §1304's standard is **verified WIRED before the board is read**, because a gate that runs when I invoke it and not when CI does is decoration with a green tick. **First measurement said ZERO** — searching the merge log for the five names returns 0 mentions each, which reads as "they never ran". It is the §1362 reporter difference: the tools suite runs under vitest v4 (summary only) while worker suites at v3.2.7 print per-file. The same run reports **125 files passed**, 120 + 5. **Tenth measurement error avoided by not believing a zero.** Measured properly three ways: `vitest list` shows **21 cases** across the five; `run-gate.ts:46` wires `unit-tests` to the `test` script; and `test` is `test:tools; t=$?; … ; exit $(( t \|\| p ))`. **Proved end-to-end:** breaking `law-enforcers` makes `pnpm test:tools` exit 1, which propagates. Also worth noting: that script AGGREGATES rather than `&&`-chains — the defect CLAUDE.md records for `verify:dev`, which reaches 4 of 16 steps |
@@ -87084,8 +87085,12 @@ resolve to UNKNOWN rather than to a Function on `Object.prototype`.** That is as
 prototype keys, each a 400.
 
 **What the array sweep found otherwise, recorded so it is not re-derived:** `legs: 10_000` on `/v1/rate`
-returns **HTTP 200 in 27ms** and writes all ten thousand into an append-only `quote.priced` payload — not a
-crash, but permanent, unshrinkable storage from one authed request. It is left OPEN rather than bounded here
+returns **HTTP 200 in 27ms** and ~~writes all ten thousand into an append-only `quote.priced` payload — not a
+crash, but permanent, unshrinkable storage from one authed request.~~ **The struck clause is FALSE, corrected
+at §1533: a marker `executor` appears in NEITHER appended event. The engine's `basis` is derived, not an echo —
+the same mistake §1527 corrected for the zip, made twice. The real cost of an unbounded `legs` is COMPUTE per
+request (the split math runs over all of them), not permanent storage, which makes the open item smaller than
+it was filed as.** It is left OPEN rather than bounded here
 because unlike a weight ceiling there is no physical number to point at: the honest bound is a product
 decision about how many carriers may execute one shipment, and picking one silently would be exactly the
 "closing a decision by picking it" §1510 refused. The measurement is the deliverable.
@@ -87475,7 +87480,9 @@ the same failure as a stale one pointing the wrong way.
    measured FALSE. Dims are not stored. The density condition is the whole trigger.)*
 3. ~~**§1515** — `import.ts:53@field` and `registry.ts:174@note` reach storage and were judged by READING, not
    probing.~~ **DISCHARGED at §1526 — both PROBED, both non-issues, and neither reaches storage.**
-4. **§1516** — the `legs` array is unbounded into an append-only payload; the bound is a product decision.
+4. **§1516** — the `legs` array is unbounded. *(Narrowed at §1533: it does NOT land in the append-only
+   payload — measured. The cost is COMPUTE per request, not permanent storage, so the bound is a smaller
+   decision than filed.)*
 5. **§1518(a)** — run the three `z.number()`/`z.string()`/`z.array()` sweeps whenever a request schema gains a
    field.
 6. **§1520/§1521** — the derivation's four inputs are now guarded by a test, so this is a *how to respond*
@@ -87755,3 +87762,37 @@ values are two orders of magnitude under the bounds. **Reopen trigger:** the oth
 strings are server-generated ids; that judgement is a READ, not a probe, and §1526 is what a read-based
 judgement is worth. The cheap discriminator if anyone doubts it: an id whose producer is `crypto.randomUUID()`
 or a `${prefix}-${hash}` template cannot exceed its template, and one read off a client body can.
+
+## §1533 — PHASE GATE: the same false mechanism, a second time — and the premise is now a test (REQ-003/051/118)
+
+§1532's reopen trigger said the other 90 unbounded contracts strings are server-generated ids and that *"the
+judgement is a READ, not a probe."* Probing it found the route bounds most of them (`intake.ts:51` caps
+`division` at `MAX_REF_LEN` even though the payload schema does not — the boundary catch, again). But the
+probe path led somewhere better.
+
+**§1516 states that `legs: 10_000` *"writes all ten thousand into an append-only `quote.priced` payload —
+permanent, unshrinkable storage."* MEASURED: it does not.** A marker `executor` and a marker `tenant_party`
+sent through `/v1/rate` appear in **neither** appended event. That is **the second time I wrote this exact
+false clause** — §1527 corrected it for the zip; the same sentence had been written about the legs one phase
+earlier, and I did not notice while correcting its twin.
+
+**Three measurements now say the same thing** — the zip (§1527), the dims (§1527), the leg executor and
+`tenant_party` (here). The property is general: **`/v1/rate` appends nothing verbatim from the request body;
+the engine's `basis` is DERIVED — miles, weight.**
+
+**So it is a test now, not a belief.** `rate.test.ts` posts a request carrying four distinctive markers and
+asserts no appended payload contains any of them. Mutation-proved by stamping `origin_zip` into `basis`. The
+failure message does the thing a bare assertion cannot: it says the change **is not automatically wrong**, and
+names §1515/§1516/§1527 as the sections whose verdicts assumed otherwise — because if this invariant ever
+flips, the bounds those sections waived become permanent-storage problems **in the same commit**.
+
+**And §1516's open item shrinks.** It was filed as a ledger-SIZE decision (*"before it becomes a ledger-size
+problem"*); the real cost of an unbounded `legs` is **COMPUTE per request** — the split math runs over all of
+them — not permanent storage. Both the section and live trigger #4 are corrected in place. **An open item
+whose stakes are overstated is not harmless: it is what gets prioritised over something truer.**
+
+**Phase gate.** **No product source changed** — one case added, one mutation planted and restored.
+`@shuddl/api` **853/853** (was 852). Tools 140 files / 1457. **Reopen trigger:** the invariant is pinned for
+`/v1/rate` only. `/pub/quote` appends nothing at all (that is its whole design), but the MCP tool's
+`/v1/shipments` write DOES persist client strings by design — `refs` — and that path has never been checked
+for what it stores verbatim.

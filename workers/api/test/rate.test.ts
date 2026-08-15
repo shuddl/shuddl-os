@@ -69,6 +69,49 @@ function pickKind(events: LedgerEvent[], kind: string): LedgerEvent {
 // dest "80012" → prefix "800" → Z5 → rg-far (a priceable lane in TEST_RATE_CONFIG).
 const PRICEABLE = { origin_zip: "97201", dest_zip: "80012", weight_lb: 1000, dims: DIMS };
 
+// §1533 (REQ-003/051/118) — THE APPENDED PAYLOAD CARRIES NOTHING VERBATIM FROM THE REQUEST BODY.
+//
+// This is a load-bearing fact that three separate dispositions in this block leaned on WITHOUT it being
+// measured or pinned, and two of them stated the OPPOSITE. §1515 justified bounding the zip by "that string
+// lands in an append-only quote.priced payload"; §1516 left the `legs` array OPEN as a ledger-SIZE decision
+// because "ten thousand legs land in an append-only payload". §1527 measured the zip (it does not) and this
+// section measures the rest: a marker zip, a 1e12 dim, a marker leg `executor` and a marker `tenant_party`
+// all return 200 and appear in NEITHER appended event. The engine's `basis` is DERIVED — miles, weight —
+// never an echo of the request.
+//
+// It is pinned here because it is the premise under several "this is safe" verdicts, and an unpinned premise
+// is what §1527 caught being wrong twice. If a future edit stamps the request onto the payload, the bounds
+// those verdicts waived become permanent-storage problems in the same commit.
+describe("§1533 — /v1/rate appends nothing verbatim from the request body", () => {
+  it("no appended payload contains the request's zip, dims, leg executor or tenant_party", async () => {
+    const shipmentId = `shp-verbatim-${crypto.randomUUID().slice(0, 8)}`;
+    const ZIP = "97201ZZVERBATIM";
+    const CARRIER = "CARRIER-ZZVERBATIM";
+    const DIM = 1_000_000_007; // a distinctive integer, well under MAX_WEIGHT-scale bounds
+    const res = await rate({
+      shipment_id: shipmentId,
+      origin_zip: ZIP,
+      dest_zip: "80012",
+      weight_lb: 1_000,
+      dims: { l_in: DIM, w_in: 40, h_in: 48, pieces: 2 },
+      legs: [{ kind: "interline", executor: CARRIER, split_bps: 10_000 }],
+      tenant_party: CARRIER,
+    });
+    expect(res.status, await res.clone().text()).toBe(200);
+    const events = await eventsFor(env.TENANT_A_DB, shipmentId);
+    expect(events.length, "nothing was appended — this case would then be vacuous").toBeGreaterThan(0);
+    const blob = JSON.stringify(events);
+    for (const [what, marker] of [["zip", ZIP], ["leg executor", CARRIER], ["dim", String(DIM)]] as const) {
+      expect(
+        blob.includes(marker),
+        `the appended payload now carries the request's ${what} VERBATIM. That is not automatically wrong — but ` +
+          "§1515/§1516/§1527 all turn on it being false, so re-read those before accepting it: a request string " +
+          "in an append-only event is permanent, and the bounds those sections waived assumed it was not.",
+      ).toBe(false);
+    }
+  });
+});
+
 describe("POST /v1/rate", () => {
   it("PRICED emits quote.priced + agent.acted and pins the rate_config versions (I5, REQ-005)", async () => {
     const shipment_id = "rate-priced-1";
