@@ -730,6 +730,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 952 | §1505 | **§1506** | **THE TREE LIST AND THE PATH — the last two scoping kinds, both live.** `dark-stub-roster` scanned packages+workers and not `apps`, while **the driver PWA composes its own transports**: a `new NotConfigured…()` root planted in `apps/driver/src/sync/useSync.ts` left it 4/4 green (the same probe reds in `packages`). `idb-durability` scanned `apps/driver/src/storage/*.ts` only — §1419's defect exactly — so the same commit-durability violation planted in `sync/useSync.ts`, a file that already touches `indexedDB`, was invisible; the rule protects signed airplane-mode evidence. Both widened (dark-stub on BOTH the shipped and the test scan; idb across the whole driver surface and both extensions), both green on the real tree, each now red on its own violation in the cell it missed. **A scope that is TRUE TODAY and a scope that is RIGHT are indistinguishable until something moves.** |
 | 953 | §1506 | **§1507** | **SIX INSTANCES IS A CLASS, SO THE CLASS GETS A GATE.** Counted first: **37 gates build a production-tree corpus — 6 import the shared roster (declared at §493 for this exact reason), 31 roll their own**, and every instance found in §1504–§1506 was a roller that chose its TREE deliberately and never chose its EXTENSION at all. The last three `.ts`-only corpora were widened even though their trees hold zero `.tsx` today (§1506's argument applied before the fact). Then `corpus-extension.test.ts`: one rule, the six measured instances in its header, an INPUT floor of 37 calls, an end-of-statement window rather than a fixed reach (§1378), and a positive control — **mutation-proved a SOLE watcher** (narrowing float-money back reds it and nothing else in 140 files). A gate converts an expensive manual procedure into something the seventh author cannot skip. |
 | 954 | §1507 | **§1508** | **STOPPING POINT — the block closed, board re-measured AFTER the gate edits.** `eeed28b`: **21 PASS · 0 FAIL · 5 BLOCKED**, identical to §1503's run — nine gate files changed between them and the board did not move, which is the claim each widening made. Block: **11 commits, 19 files, 1,109 insertions, ZERO product source**; every mutation restored byte-identical. Found: 2 serializer escapes defended by nothing; 19 `defensive` guards mutated → 12 silent in four dispositions; **7 gates whose corpus excluded their own subject** (an `export` keyword, an extension ×4, a tree list, a path); 1 gate added so the eighth instance fails when written. **Every finding was a claim about coverage nobody had made the cheap measurement on — none was found by reading code for bugs, all by planting the violation the artifact claimed to catch.** |
+| 955 | §1508 | **§1509** | **THE SWEEP'S OWN COUNT WAS PROSE.** The carried "~23 defensive sites remain" counted the CLAIM, not the subject: of 49 idiom hits in `workers/*/src`, **32 are prose with no guard attached** — **17 code guards exist in all of `workers/`**, 12 already mutated. Corrected in place at §1500/§1502/§1503/§1508. The last three: `mirror-sweep`'s draft guard and `partners`' counter stop are both redundant **with a defended premise** (§676's member-by-member no-drop proof; the `json_type='object'` CASE, whose removal reds 2). And the watchtower pair needed THREE measurements: JS half green, SQL half green, **BOTH green — and I nearly recorded that the pricing alarm was pinned by nothing.** The behaviour is asserted across the worker seam in `workers/api`, where BOTH-removed reds and either half alone stays green: each half is the other's PREMISE. §1501 wrote the rule (ownership follows the CONSUMER) that would have prevented my own error eight phases later. **CLASS CLOSED: 22 mutated, 15 silent (68%) — 6 unwatched, 1 wrong-layer, 7 redundant-with-defended-premise, 1 self-enforcing.** |
 | 856 | §1409 | **§1410** | **SWEEPING MY OWN SECTIONS FOR §1409's ERROR, AND A DETECTOR THAT COULD NOT HAVE FOUND IT.** §1404's precedent: a class like this gets ONE measurement, not a gate, since a correction necessarily quotes what it corrects. **The first sweep returned ZERO and was worthless** — it extracted superseded text as `~~struck~~` only, but the very case §1409 found is marked the other way, as *"a 16-step chain …"* **until audit §1029**. **My detector encoded one of the repo's TWO conventions, so it could never have found the known positive.** Twelfth instance of the session's constant, caught because a zero is the answer this session has learned never to accept. **A second false signal inside the control:** asking *"is it inside `~~…~~`?"* with `~~[^~]*16-step` returned True — because an unrelated `~~` sits earlier and `[^~]*` spanned the gap. **A regex answering "is X inside a delimiter" by searching for the delimiter anywhere before X will say yes to the whole file.** Re-run over both conventions: **109 superseded passages, zero quoted without a marker** — and that zero is worth something, because the corrected detector demonstrably flags a reconstruction of §1408's sentence. **§1409's error was singular, not a habit** |
 | **855** | §1408 | **§1409** | **I QUOTED STRUCK TEXT AS CURRENT, AND THE REPO HAD SOLVED IT 380 SECTIONS EARLIER.** §1408 cited CLAUDE.md's account of `verify:dev` as *"a 16-step chain … reaches 4 of 16"*. Measured: **18 steps**. **But the drift is my quotation's, not the law's** — CLAUDE.md's current text says that reading held *"until audit §1029"*, was *"invalidated hours later by `7b61624`"*, and that **the total is stated no longer, only the position that matters: step 4, and nothing after it**. I quoted the struck half of a correction as the claim. **Eleventh measurement error, and the first where the artifact had already anticipated the failure I was about to report.** **§1029's move is exactly §1402's, reached 373 sections apart and independently:** faced with a number that rots, REMOVE the number and keep the invariant. A convention arrived at twice from opposite ends of the record is the closest this audit has to a law about documentation. Substantively: `verify:dev` is still an unaggregated `&&` chain at 18 steps, and that is **not** a defect — CLAUDE.md documents it, names `verify:merge` as the real verdict, and `wp-exit-audit.test.ts:19` records that a naive matcher yields *"4 of 16"* and *"reads as a serious constitutional finding and is an artifact"*. **Tenth clean negative** |
 | 854 | §1407 | **§1408** | **VERIFYING MY OWN DELIVERABLE IS WIRED, BY THE STANDARD §1304 SET.** Five gates were built this session and each reported as working; §1304's standard is **verified WIRED before the board is read**, because a gate that runs when I invoke it and not when CI does is decoration with a green tick. **First measurement said ZERO** — searching the merge log for the five names returns 0 mentions each, which reads as "they never ran". It is the §1362 reporter difference: the tools suite runs under vitest v4 (summary only) while worker suites at v3.2.7 print per-file. The same run reports **125 files passed**, 120 + 5. **Tenth measurement error avoided by not believing a zero.** Measured properly three ways: `vitest list` shows **21 cases** across the five; `run-gate.ts:46` wires `unit-tests` to the `test` script; and `test` is `test:tools; t=$?; … ; exit $(( t \|\| p ))`. **Proved end-to-end:** breaking `law-enforcers` makes `pnpm test:tools` exit 1, which propagates. Also worth noting: that script AGGREGATES rather than `&&`-chains — the defect CLAUDE.md records for `verify:dev`, which reaches 4 of 16 steps |
@@ -86311,7 +86312,7 @@ shape this state machine exists to prevent, and the shape a prior loop already p
 **Phase gate.** **No product source changed** — six mutations planted and restored byte-identical, two test
 cases added. `@shuddl/driver-core` **53/53** (was 52), `@shuddl/ledger` **733/733** (was 732), both new cases
 mutation-proved (delete-the-guard reds each; a second mutation proves the sync case pins the DRAIN rather than
-the absence of a throw). Carry-forward unchanged. **Reopen trigger:** ~34 `defensive`/`Unreachable` sites
+the absence of a throw). Carry-forward unchanged. **Reopen trigger:** ~~~34~~ **17 code guards, of which 5 remained here** (count corrected 2026-08-15, §1509 — the ~34 counted COMMENT lines carrying the idiom; 32 of them are prose with no guard attached) `defensive`/`Unreachable` sites
 remain unmutated in `workers/*` — they need a pool-workers run, and the rate here was 3 silent in 6.
 
 ## §1500 — PHASE GATE: two layers, one of them measured (REQ-030/023/187/118)
@@ -86361,13 +86362,13 @@ injecting a bad `HOST_TENANTS`, which needs a refactor rather than a case. Left 
 **Phase gate.** **No product source changed** — five mutations planted and restored byte-identical (one via
 `git checkout` after the timeout, verified clean). `@shuddl/api` **843/843** (was 842): one case added, two
 strengthened. Both changes mutation-proved — `CONTROL_PLANE_KINDS` emptied now reds 2, `.strict()` dropped now
-reds 1. Carry-forward unchanged. **Reopen trigger:** ~29 `defensive` sites remain unmutated in
+reds 1. Carry-forward unchanged. **Reopen trigger:** ~~~29~~ **4** (corrected §1509 — see there; the estimate counted prose) `defensive` sites remain unmutated in
 `workers/agents|billing|mcp|translator`; and if `HOST_TENANTS` ever becomes config-driven, its assertion stops
 being self-enforcing and needs a real case.
 
 ## §1501 — PHASE GATE: the guard that turns a HOLD into a poison message (REQ-026/032/118)
 
-§1500 left ~29 `defensive` sites in the other four workers. This phase followed the highest-value one — an
+§1500 left ~~~29~~ **4** (corrected §1509) `defensive` sites in the other four workers. This phase followed the highest-value one — an
 OUTPUT guard on the comms path, the same family as §1498's serializer escaping — into `workers/agents`.
 
 `concierge.ts:233@mailSafe` refuses a reply recipient carrying CR/LF, and its comment states the mechanism
@@ -86397,7 +86398,7 @@ asserted across a worker seam, in `workers/api/test/concierge.test.ts`, exactly 
 
 **Phase gate.** **No product source changed** — two mutations planted and restored byte-identical.
 `@shuddl/api` **844/844** (was 843), one case added and mutation-proved (dropping the `\r\n` half reds exactly
-it). Carry-forward unchanged. **Reopen trigger:** ~28 `defensive` sites remain unmutated across
+it). Carry-forward unchanged. **Reopen trigger:** ~~~28~~ **3** (corrected §1509) `defensive` sites remain unmutated across
 `workers/agents|billing|mcp|translator`; the rate across the 11 mutated so far is **5 silent, 3 of which
 needed a test**.
 
@@ -86498,7 +86499,7 @@ front of it.
 
 **Phase gate.** Board **MEASURED** above, repo-owned failure set empty. No product source changed in six
 commits. Carry-forward unchanged from §1497 — the five owner-side items, plus the three still waiting on the
-concurrent workstream to commit. **Reopen triggers:** (a) ~23 `defensive` sites remain unmutated in
+concurrent workstream to commit. **Reopen triggers:** (a) ~~~23~~ **3** (corrected §1509) `defensive` sites remain unmutated in
 `workers/agents|billing` and the prose-only matches; at 63% silent the next batch is worth running; (b) when
 the concurrent workstream commits, re-run the board on a CLEAN tree — this verdict does not survive their
 files changing; (c) any NEW guard should be mutated when written, since every gap here was cheaper to find
@@ -86721,9 +86722,53 @@ inexpensive to check.**
 1457 tests. Carry-forward unchanged from §1497 — five owner-side items, three waiting on the concurrent
 workstream. **Reopen triggers:** (a) re-run the board on a CLEAN tree once the concurrent workstream commits
 — neither run here survives their files changing; (b) `corpus-extension` covers the EXTENSION axis only, so a
-second tree-scope instance is the trigger to mechanise that axis too; (c) the ~23 unmutated `defensive` sites
+second tree-scope instance is the trigger to mechanise that axis too; (c) the ~~~23~~ **3, now 0** (corrected §1509) unmutated `defensive` sites
 in `workers/agents|billing` remain, at a 63% silent rate.
 
 *(Checked and clean, recorded so it is not re-derived: all 15 gates carrying a declared exemption list were
 surveyed for a staleness assertion. Fourteen have one. The fifteenth — `strip-comments`'s `DECLARED` — is
 `[]`, an empty list whose staleness check would be vacuous by construction.)*
+
+## §1509 — PHASE GATE: the sweep's own count was prose, and the last guards close it (REQ-036/118)
+
+§1508's third reopen trigger said ~23 `defensive` sites remained. **That number was wrong, and it was wrong in
+the way this block keeps finding: it counted the CLAIM, not the SUBJECT.** A `git grep` for
+`defensive|belt-and-suspenders|should never|unreachable` over `workers/*/src` returns 49 hits — **32 of them
+are prose** (a comment explaining a design, a header describing a law) with no guard attached. Attaching each
+hit to the statement it governs gives **17 code guards in all of `workers/`**, of which this block had already
+mutated 12. Corrected in place at §1500, §1502, §1503 and §1508 rather than left standing, because a
+carried-forward number is read as a work-list.
+
+**The last three, mutated:**
+
+- **`mirror-sweep.ts:241@draft`** — `if (draft === undefined) continue`, on the claim that *"a non-echo,
+  non-quarantine record always carries an event"*. Silent in both suites. **Premise defended:** §676 proved
+  that law member by member in `packages/adapters`, asserting on the RECORD COUNT — a silent drop produces
+  zero of everything, so counting rows is the only assertion that can tell *held* from *gone*. Redundant, and
+  the thing that makes it redundant is itself watched.
+- **`partners.ts:152@PartnerControlError`** — the non-numeric control-counter hard stop. Silent. **Premise
+  defended:** deleting the `CASE WHEN json_type(config)='object'` that makes it unreachable reds 2 tests
+  (`a non-object config '[]' allocates CLEANLY`, and the `'null'` case). Redundant with a defended premise —
+  the fourth instance of that disposition.
+- **`watchtower.ts:230@anomaly`** — the pricing-alarm re-check, and it needed three measurements.
+
+**THE WATCHTOWER PAIR, and the mistake worth more than the finding.** The alarm query filters
+`json_extract(payload,'$.basis.anomaly') IS NOT NULL`; the loop then re-checks in JS. Deleting the JS half:
+green. Deleting the SQL half: green. **Deleting BOTH: green — and I nearly recorded that the pricing-anomaly
+alarm was pinned by nothing.** It was measured against `workers/agents`, and the sweep's behaviour is asserted
+across the worker seam in `workers/api/test/watchtower.test.ts`, which seeds a sane quote beside an anomalous
+one and asserts *only the anomalous quote alarmed*. Re-run there: **BOTH removed reds; either half alone stays
+green.** So the pair is a true belt-and-suspenders in which **each half is the other's premise**, the behaviour
+is pinned by the pair, and neither half is individually falsifiable — a disposition this block had not seen.
+
+**§1501 wrote the rule that would have prevented this**: *ownership follows the CONSUMER, not the directory.*
+Eight phases later I ran a mutation against the package that CONTAINS the file instead of the one that
+OBSERVES it. Recorded because the block's whole argument is that these mistakes are cheap to catch and
+expensive to assume — including mine, and including twice.
+
+**Phase gate.** **No product source changed** — six mutations planted and restored byte-identical. **The
+`defensive` class is now CLOSED: 22 guards mutated across §1499–§1509, 15 silent (68%)**, resolving into: 6
+unwatched and load-bearing (all fixed), 1 measuring the wrong layer (fixed), **7 redundant with a defended
+premise**, 1 self-enforcing. Suites unchanged — no new cases were needed, which is itself the result. Tools
+**140 files / 1457 tests**. Carry-forward unchanged. **Reopen trigger:** zero code guards remain unmutated in
+`workers/`; the next new one is the trigger, and the cheapest moment to mutate it is when it is written.
