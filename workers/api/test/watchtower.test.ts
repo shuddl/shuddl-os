@@ -303,6 +303,32 @@ describe("Watchtower — the floor-breach alarm (open below-floor approvals → 
 });
 
 describe("Watchtower — the agent-drift alarm (REQ-113 per-agent cost/latency budget)", () => {
+  // §1562 (REQ-113/118) — THE WARN SIDE OF THE DRIFT THRESHOLD, WHICH NOTHING HELD.
+  //
+  // The critical case below is pinned: raising `AGENT_DRIFT_CRITICAL_RATIO` to 9999 reds it. Lowering the ratio
+  // to **0** — so EVERY agent over budget by any margin is CRITICAL — left all 23 cases green. A threshold
+  // pinned on one side is not pinned: this one could only ever drift toward alarm fatigue, and the direction
+  // that destroys a critical signal's meaning is exactly the one nothing watched.
+  //
+  // §1561 found the mirror image on `unbilled` (an escalation that could never fire). Same rule, both signs:
+  // a boundary needs a case ON EACH SIDE or the boundary itself is untested.
+  it("§1562 an agent OVER budget but UNDER the critical ratio is a WARN, not a critical", async () => {
+    const scope = "wt-drift-warn-";
+    const agent = "rater";
+    // Over the 5s default budget, but well under 2x it — the band where the alarm must stay warn.
+    await seedAgentRun(scope, `${scope}s1`, 0, { agent, latencyMs: 6_000, costCents: 0 });
+    await seedAgentRun(scope, `${scope}s2`, 0, { agent, latencyMs: 6_000, costCents: 0 });
+
+    const r = await runWatchtowerSweep(env.TENANT_A_DB, TENANT, NOW, { scope });
+    expect(r.agent_drift.alarmed, "the fixture did not raise a drift alarm at all — this case cannot see the severity").toBe(1);
+    const a = await alarm(watchtowerAlarmId(TENANT, "agent_drift", { scope, object: agent }));
+    expect(
+      a!.severity,
+      "an agent 1.2x over budget was called CRITICAL — the critical ratio no longer separates a mild excursion " +
+        "from a material one, and every over-budget agent now pages",
+    ).toBe("warn");
+  });
+
   it("RAISES a critical 'agent_drift' alarm when an agent's avg LATENCY exceeds budget", async () => {
     const scope = "wt-drift-lat-";
     const agent = "rater";
