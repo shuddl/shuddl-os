@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { Bps } from "./money.js";
 import { SafeInt } from "./json.js";
-import { RateRequestPayload } from "./rating.js";
+import { RateRequestPayload, MAX_EMAIL_LEN } from "./rating.js";
 
 // WP-07 Concierge (REQ-026/093/099): typed payloads for the comms + quote-lifecycle kinds. These give the
 // EXISTING kinds message.received / message.sent / quote.requested / quote.sent / quote.accepted a proper
@@ -42,7 +42,18 @@ export type MessageIntent = z.infer<typeof MessageIntent>;
 export const MessageReceivedPayload = z
   .object({
     channel: MessageChannel,
-    from_ref: z.string().min(1),
+    // §1530 — BOUNDED, because its neighbours were and it is the one that leaves the building. `subject`
+    // (2,048) and `body` (32,768) carry the note *"bounded — see header"*; `from_ref` carried none and
+    // accepted **100,000 characters** (measured §1530). It is the sender handle — an email address, a phone,
+    // or a party ref — so it is (a) stored VERBATIM in an append-only event, permanently, and (b) read back
+    // by the Concierge as the reply RECIPIENT and interpolated into a mail send. `mailSafe` already refuses
+    // CR/LF in it (§1501); nothing refused LENGTH.
+    //
+    // `MAX_EMAIL_LEN` rather than a second number: RFC 5321 §4.5.3.1.3's 254-character forward-path is the
+    // WIDEST of the three handle forms, so it bounds their union, and §1514's lesson is one constant per
+    // meaning. A stored event with a longer handle fails this parse on read — the same deliberate posture
+    // §1517 took for the floors ladder, and no fixture or test in the tree carries one over 40 characters.
+    from_ref: z.string().min(1).max(MAX_EMAIL_LEN),
     subject: z.string().max(2_048).optional(), // interim inline parse source (de-MIME'd subject); bounded — see header
     body: z.string().max(32_768).optional(), // interim inline parse source (de-MIME'd body text); bounded — see header
     thread: z.string().min(1).optional(), // present ⇒ non-empty (an empty thread ref is a bug, not a value)

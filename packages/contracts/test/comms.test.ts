@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   MessageChannel,
   MessageReceivedPayload,
+  MAX_EMAIL_LEN,
   MessageSentPayload,
   RateRequestPayload,
   MAX_WEIGHT_LB,
@@ -48,6 +49,20 @@ describe("REQ-011: typing the comms/quote kinds adds NO kind (the 35-catalog hol
 });
 
 describe("REQ-093: MessageReceivedPayload (inbound message → channel + from_ref + body_ref)", () => {
+  // §1530 — THE HANDLE THAT LEAVES THE BUILDING. `subject` (2,048) and `body` (32,768) were bounded and
+  // said so; `from_ref` was `z.string().min(1)` and accepted **100,000 characters** (measured §1530). It is
+  // stored VERBATIM in an append-only event AND read back by the Concierge as the reply RECIPIENT, so an
+  // unbounded value is permanent storage and a mail header at once. `mailSafe` refuses CR/LF in it (§1501);
+  // nothing refused length. Bounded to `MAX_EMAIL_LEN` — RFC 5321's 254 is the widest of the three handle
+  // forms (address / phone / party ref), so one constant bounds their union.
+  it("§1530: rejects an over-length from_ref, and accepts a real address at the ceiling", () => {
+    const base = { channel: "email" as const, body_ref: "r2://msg/1" };
+    expect(() => MessageReceivedPayload.parse({ ...base, from_ref: "a".repeat(100_000) })).toThrow();
+    expect(() => MessageReceivedPayload.parse({ ...base, from_ref: "a".repeat(MAX_EMAIL_LEN + 1) })).toThrow();
+    expect(MessageReceivedPayload.parse({ ...base, from_ref: "a".repeat(MAX_EMAIL_LEN) }).from_ref).toHaveLength(MAX_EMAIL_LEN);
+    expect(MessageReceivedPayload.parse({ ...base, from_ref: "ops@acme.example" }).from_ref).toBe("ops@acme.example");
+  });
+
   const valid = { channel: "email", from_ref: "shipper@example.com", body_ref: "r2://msg/inbound-1" };
   it("accepts a minimal inbound message", () => {
     expect(MessageReceivedPayload.parse(valid).channel).toBe("email");
