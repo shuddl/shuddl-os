@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { execSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { repoRoot } from "./repo-root.js";
 
 // §1475 (REQ-118/119) — A FIXTURE WHOSE PATH NOTHING READS CANNOT UNBLOCK ANYTHING.
@@ -139,5 +139,71 @@ describe("§1475 REQ-119: every fixture the manifest declares is read by some co
       ).toBe(false);
       expect(d.why.length, `${d.id}'s reason is too short to be a reason`).toBeGreaterThan(140);
     }
+  });
+});
+
+// §1586 (REQ-112/118/119) — `check:fixtures` READS ONE MANIFEST; `fixtures/` HOLDS TWO.
+//
+// `tools/fixtures/verify.ts` reads exactly `fixtures/manifest.json`. But `fixtures/jurisdiction/` carries its
+// OWN manifest with a different schema (`note` / `border_policy` / `artifacts`), and the root manifest does not
+// name that directory at all. Nothing was wrong — the jurisdiction artifact is byte-bound by
+// `packages/ledger/test/jurisdiction.test.ts`, which reads the recorded `sha256` from its manifest and COMPUTES
+// the fixture's digest (one side read, the other derived — the only shape that pins anything).
+//
+// What was missing is the TOTALITY of the claim. A reader running `check:fixtures` reasonably believes it covers
+// `fixtures/`; it covers one manifest's paths. So a THIRD manifest, or a fixture directory with none at all,
+// could arrive and no gate would say a word. This makes the coverage exhaustive: every tracked file under
+// `fixtures/` is either inside a root-manifest path, or inside a directory declared below WITH the test that
+// enforces it, or an explicitly non-fixture file.
+
+/** A fixture directory that carries its own manifest, and the test that byte-binds it. */
+const SELF_MANIFESTED: readonly { readonly dir: string; readonly manifest: string; readonly enforcedBy: string; readonly why: string }[] = [
+  {
+    dir: "fixtures/jurisdiction/",
+    manifest: "fixtures/jurisdiction/manifest.json",
+    enforcedBy: "packages/ledger/test/jurisdiction.test.ts",
+    why:
+      "REQ-166: the synthetic 5-state polygon set. Its manifest carries a per-artifact `role` (active vs the " +
+      "BLOCKED licensed production dataset) and a `border_policy`, which the root manifest's schema has no place " +
+      "for. The enforcing test asserts the fixture's digest EQUALS the manifest's recorded sha256, that the " +
+      "embedded const deep-equals the file, and that the licensed artifact stays path-less and hash-less.",
+  },
+];
+
+/** Files under `fixtures/` that are not fixtures. */
+const NON_FIXTURE: readonly string[] = ["fixtures/README.md", "fixtures/manifest.json"];
+
+describe("§1586 REQ-112: every file under fixtures/ is covered by a manifest that something enforces", () => {
+  const root = repoRoot();
+  const tracked = execSync('git ls-files "fixtures"', { cwd: root, encoding: "utf8" }).split("\n").filter((f) => f.length > 0);
+  const rootPaths = (JSON.parse(readFileSync(`${root}/fixtures/manifest.json`, "utf8")) as { fixtures: { path: string }[] }).fixtures.map((f) => f.path);
+
+  it("derives a real population (non-vacuity)", () => {
+    expect(tracked.length, "no tracked files under fixtures/ — the scan broke, not the tree").toBeGreaterThanOrEqual(10);
+    expect(rootPaths.length, "the root manifest declares almost nothing — it did not parse").toBeGreaterThanOrEqual(15);
+  });
+
+  it("each self-manifested directory still has BOTH its manifest and its enforcing test (no row outlives its subject)", () => {
+    for (const s of SELF_MANIFESTED) {
+      expect(existsSync(`${root}/${s.manifest}`), `${s.dir}: declared manifest ${s.manifest} is gone`).toBe(true);
+      expect(existsSync(`${root}/${s.enforcedBy}`), `${s.dir}: enforcing test ${s.enforcedBy} is gone — the exemption now covers nothing`).toBe(true);
+      expect(s.why.length, `${s.dir}: an exemption without a stated reason is an unexplained hole`).toBeGreaterThan(80);
+    }
+  });
+
+  it("no fixture file sits outside every manifest", () => {
+    const orphans = tracked.filter(
+      (f) =>
+        !NON_FIXTURE.includes(f) &&
+        !rootPaths.some((p) => f === p || f.startsWith(p)) &&
+        !SELF_MANIFESTED.some((s) => f.startsWith(s.dir)),
+    );
+    expect(
+      orphans,
+      "these files live under `fixtures/` but no manifest declares them, so `check:fixtures` never hashes them " +
+        "and nothing detects an edit. Add the path to `fixtures/manifest.json`, or — if the directory needs its " +
+        "own schema — give it a manifest AND a test that binds the bytes to it, then declare both in " +
+        "SELF_MANIFESTED above:\n  " + orphans.join("\n  "),
+    ).toEqual([]);
   });
 });
