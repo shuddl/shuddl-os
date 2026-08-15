@@ -334,7 +334,7 @@ describe("drain order + park recovery — a signed capture can never be silently
   //
   // REACHABILITY, so the test is not read as guarding a live bug. `capture.ts:128@nextSeq` mints a
   // `device_seq` on every capture, and the event contract refines `device_id ⟹ device_seq`
-  // (`packages/contracts/src/events.ts:296@device_seq`), so an item can lack one only if it also lacks a
+  // (`packages/contracts/src/events.ts:300@device_seq`), so an item can lack one only if it also lacks a
   // device — which the driver, co-signing every capture with a per-device key, never produces. The branch is
   // DEFENSIVE, not dead: `QueueItem.event` is typed as a general event, so a second producer makes it live.
   //

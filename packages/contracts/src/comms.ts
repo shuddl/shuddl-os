@@ -69,7 +69,13 @@ export type MessageReceivedPayload = z.infer<typeof MessageReceivedPayload>;
 export const MessageSentPayload = z
   .object({
     channel: MessageChannel,
-    to_ref: z.string().min(1),
+    // §1532 — THE MIRROR OF `from_ref`, bounded for the same reason and with the same constant. §1530
+    // bounded the INBOUND handle and left the OUTBOUND ones two fields away — the drift §1514 warned
+    // about, in miniature and in one file. `to_ref` is the address a send actually goes to, stored
+    // verbatim in an append-only event, and a party contact (`parties.contacts`, unbounded JSON) can
+    // still supply it — so bounding `from_ref` alone did not close the path. BOTH occurrences are
+    // bounded (message.sent and quote.sent); one would have been the same drift one line down.
+    to_ref: z.string().min(1).max(MAX_EMAIL_LEN),
     thread: z.string().min(1).optional(), // present ⇒ non-empty
     body_ref: z.string().min(1),
     drafted_by_agent: z.string().min(1).optional(), // present ⇒ non-empty (a named agent, never "")
@@ -107,7 +113,13 @@ export type QuoteRequestedPayload = z.infer<typeof QuoteRequestedPayload>;
 export const QuoteSentPayload = z
   .object({
     quote_event_id: z.string().min(1),
-    to_ref: z.string().min(1),
+    // §1532 — THE MIRROR OF `from_ref`, bounded for the same reason and with the same constant. §1530
+    // bounded the INBOUND handle and left the OUTBOUND ones two fields away — the drift §1514 warned
+    // about, in miniature and in one file. `to_ref` is the address a send actually goes to, stored
+    // verbatim in an append-only event, and a party contact (`parties.contacts`, unbounded JSON) can
+    // still supply it — so bounding `from_ref` alone did not close the path. BOTH occurrences are
+    // bounded (message.sent and quote.sent); one would have been the same drift one line down.
+    to_ref: z.string().min(1).max(MAX_EMAIL_LEN),
     message_event_id: z.string().min(1),
   })
   .strict();

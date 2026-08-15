@@ -231,7 +231,11 @@ export const OsdCapturedPayload = z
   .object({
     photo_hash: Hash64,
     reason_code: z.enum(["shortage", "overage", "damage", "refused", "other"]),
-    note: z.string().optional(),
+    // §1532 — OPERATOR FREE TEXT, bounded. A driver types this at a door and it lands in an append-only
+    // event: unbounded, one paste puts arbitrary bytes in the ledger forever. 2,048 matches the bound
+    // `MessageReceivedPayload.subject` already carries for the same reason (a human-scale line of text);
+    // the longest note anywhere in the tree is 163 characters.
+    note: z.string().max(2_048).optional(),
   })
   .strict();
 export type OsdCapturedPayload = z.infer<typeof OsdCapturedPayload>;

@@ -43,7 +43,10 @@ export const InvoiceCorrectedPayload = z
   .object({
     invoice_id: z.string().min(1),
     corrects_event_id: z.string().min(1),
-    reason: z.string().min(1),
+    // §1532 — the CORRECTION's stated reason: operator free text on the money path, stored in an
+    // append-only event that an auditor reads back. Same 2,048 human-scale bound as the OSD note and
+    // `subject`; the longest in the tree is 73 characters.
+    reason: z.string().min(1).max(2_048),
     reissue_lines: z.array(InvoiceLine),
   })
   .strict();

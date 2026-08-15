@@ -55,6 +55,16 @@ describe("REQ-093: MessageReceivedPayload (inbound message → channel + from_re
   // unbounded value is permanent storage and a mail header at once. `mailSafe` refuses CR/LF in it (§1501);
   // nothing refused length. Bounded to `MAX_EMAIL_LEN` — RFC 5321's 254 is the widest of the three handle
   // forms (address / phone / party ref), so one constant bounds their union.
+  // §1532 — THE OUTBOUND HANDLES, bounded with the same constant. §1530 bounded the INBOUND one and left the
+  // two OUTBOUND ones (message.sent, quote.sent) unbounded two fields away — and `to_ref` is the address a
+  // send actually goes to, stored verbatim in an append-only event. A party contact can still supply it
+  // (`parties.contacts` is unbounded JSON), so bounding `from_ref` alone did not close the path.
+  it("§1532: both OUTBOUND to_ref fields carry the same ceiling as from_ref", () => {
+    const sent = { channel: "email" as const, to_ref: "a".repeat(MAX_EMAIL_LEN + 1), body_ref: "r2://m/1" };
+    expect(() => MessageSentPayload.parse(sent)).toThrow();
+    expect(MessageSentPayload.parse({ ...sent, to_ref: "ap@acme.example" }).to_ref).toBe("ap@acme.example");
+  });
+
   it("§1530: rejects an over-length from_ref, and accepts a real address at the ceiling", () => {
     const base = { channel: "email" as const, body_ref: "r2://msg/1" };
     expect(() => MessageReceivedPayload.parse({ ...base, from_ref: "a".repeat(100_000) })).toThrow();

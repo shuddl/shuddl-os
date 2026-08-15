@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { InvoiceLine, InvoiceIssuedPayload, SplitComputedPayload } from "../src/money.js";
+import { InvoiceLine, InvoiceIssuedPayload, InvoiceCorrectedPayload, SplitComputedPayload } from "../src/money.js";
 
 // WP-02 exit audit (REQ-119) — the swarm's I7 Major: `invoice.issued` with a NEGATIVE line (e.g.
 // +10000 / -3000) could be issued, but the projection + the sequencer's #moneyDeps reverse only
@@ -74,5 +74,23 @@ describe("REQ-019: an interline split allocates exactly 10000 bps — no more, n
   });
   it("REJECTS a single allocation that does not take the whole pie", () => {
     expect(() => SplitComputedPayload.parse({ ...base, allocations: alloc(9_999) })).toThrow(/sum to exactly 10000/);
+  });
+});
+
+// §1532 — THE CORRECTION'S STATED REASON is operator free text on the MONEY path, stored in an append-only
+// event an auditor reads back. It was `z.string().min(1)` with no ceiling — the same shape as the OSD note
+// and `from_ref`, and the same 2,048 human-scale bound `MessageReceivedPayload.subject` already carries.
+// MEASURED at §1532: dropping the bound left contracts green, so the ceiling was a comment until this case.
+describe("§1532 InvoiceCorrectedPayload — the reason is bounded (append-only operator text)", () => {
+  const base = {
+    invoice_id: "INV-1",
+    corrects_event_id: "evt-1",
+    reissue_lines: [{ line_no: 1, kind: "freight" as const, amount_cents: 1_000, gl_map: "4000-FREIGHT" }],
+  };
+  it("rejects an over-length reason, accepts one at the ceiling, and still rejects an empty one", () => {
+    expect(() => InvoiceCorrectedPayload.parse({ ...base, reason: "x".repeat(2_049) })).toThrow();
+    expect(InvoiceCorrectedPayload.parse({ ...base, reason: "x".repeat(2_048) }).reason).toHaveLength(2_048);
+    expect(() => InvoiceCorrectedPayload.parse({ ...base, reason: "" })).toThrow();
+    expect(InvoiceCorrectedPayload.parse({ ...base, reason: "duplicate accessorial" }).reason).toBe("duplicate accessorial");
   });
 });

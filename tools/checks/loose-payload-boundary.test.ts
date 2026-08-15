@@ -33,7 +33,7 @@ const SWEPT_LOOSE_KINDS = [
  * §1467 — EVERY SPELLING OF `JsonObject`, NOT JUST THE BARE NAME.
  *
  * This gate exists to notice a NINTH loose kind, and it matched the literal token `JsonObject`. A payload can
- * be exactly as loose under another name: `packages/contracts/src/money.ts:76@MoneyBasis` is
+ * be exactly as loose under another name: `packages/contracts/src/money.ts:79@MoneyBasis` is
  * `export const MoneyBasis = JsonObject;`, so `ev("invoice.issued", MoneyBasis)` is a `z.record(string,
  * JsonValue)` payload whose fields no schema types. MEASURED at §1467: making that exact substitution — a
  * ninth loose kind, valid TypeScript — left this gate **3/3 green**, which is the one outcome it is written

@@ -119,6 +119,15 @@ describe("osd.captured payload = photo_hash + reason_code (+ optional note)", ()
     expect(OsdCapturedPayload.parse({ photo_hash: HASH, reason_code: "damage" }).reason_code).toBe("damage");
     expect(OsdCapturedPayload.parse({ photo_hash: HASH, reason_code: "shortage", note: "2 short" }).note).toBe("2 short");
   });
+  // §1532 — THE NOTE IS OPERATOR FREE TEXT IN AN APPEND-ONLY EVENT. A driver types it at a door; unbounded,
+  // one paste puts arbitrary bytes in the ledger forever. 2,048 is the bound `MessageReceivedPayload.subject`
+  // already carries for the same reason (a human-scale line), and the longest note in the tree is 163 chars.
+  // MEASURED at §1532: dropping this bound left contracts 338/338 green — a ceiling nothing asserts is a
+  // comment, which is this block's own §1498 finding applied to a guard I had just written.
+  it("§1532: rejects an over-length note, accepts one at the ceiling", () => {
+    expect(() => OsdCapturedPayload.parse({ photo_hash: HASH, reason_code: "damage", note: "x".repeat(2_049) })).toThrow();
+    expect(OsdCapturedPayload.parse({ photo_hash: HASH, reason_code: "damage", note: "x".repeat(2_048) }).note).toHaveLength(2_048);
+  });
   it("rejects an unknown reason_code and a bad photo_hash", () => {
     expect(() => OsdCapturedPayload.parse({ photo_hash: HASH, reason_code: "misloaded" })).toThrow();
     expect(() => OsdCapturedPayload.parse({ photo_hash: "nope", reason_code: "damage" })).toThrow();
