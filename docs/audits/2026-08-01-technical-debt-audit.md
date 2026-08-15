@@ -89477,7 +89477,7 @@ re-derived by whoever next notices one.
 **4f1b51e** per §1569's rule — this phase edited nothing under `packages/`, `workers/`, `db/` or `tools/`, so
 nothing it did could move a gate.
 
-## §1575 — A TEST HELPER THAT COPIES THE CODE'S FALLBACK CANNOT SEE THE FALLBACK FIRE (REQ-035/192/118)
+## §1575 — PHASE GATE: a test helper that copies the code's fallback cannot see the fallback fire (REQ-035/192/118)
 
 Swept the fallback-VALUE class the `{}` policy defect belongs to: every `??` default in the 223 production
 source files, grouped by what it falls back TO. **No `?? true` exists anywhere** — the permissive-boolean shape
@@ -89511,4 +89511,12 @@ design** — nobody wrote `'PRICED'` to defend the envelope. **Incidental covera
 assertion it rode on is edited**, which is why the helper, not the three call sites, is where this is fixed.
 
 **Phase gate.** mcp **14 files / 207 tests** green with the source restored. One test file changed; no
-production source. Board re-measured at the commit below.
+production source.
+
+**And the merge gate caught this section.** The first board at `4b8e770` read **20 PASS · 1 FAIL · 5 BLOCKED**,
+and the FAIL was `phase-index.test.ts`: *"index row(s) naming a section that is not a PHASE GATE: 1575"*. This
+section's heading did not carry the `— PHASE GATE` marker the gate **derives** both of its lists from, so the
+index row pointed at a section the document did not consider a gate. The gate is exactly right and this is the
+second time it has paid for itself — after writing the section I ran `typecheck`, `check:citations` and
+`check:section-refs`, but **not `test:tools`, the suite that owns this file.** Doc gates are not the doc's
+gates. Heading marked, `test:tools` **144 files / 1470** green, board re-measured below.
