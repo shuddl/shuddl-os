@@ -737,6 +737,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 959 | §1512 | **§1513** | **ONE JSON FIELD, NO ACCOUNT, AN HTTP 500.** `POST /pub/quote` — the **unauthenticated** surface — took `weight_lb` as `int().positive()` with no ceiling. Measured on the live route: `1e12` → HTTP 200 with **`sell_cents: 55_800_000_000_000`** ($558bn), `1e15` → **HTTP 500 INTERNAL**. The chain is honest all the way down, which is why it is reachable: `money.ts@mulDivHalfUp` throws rather than lose precision, with nothing between a stranger and it. The route's header claims *every field is BOUNDED* — that pass bounded string LENGTHS and array SIZES, **not the numeric MAGNITUDE, the only field that can reach a throw**. Fixed with one shared `MAX_WEIGHT_LB = 1_000_000` (12.5× a truck's legal gross, 9 orders below the ceiling) imported by both surfaces so they cannot drift; over-cap is a 400 (a VALUE decision), absent stays UNKNOWN (a PHYSICS decision, REQ-004). Both directions pinned — 80,000 lb and the cap itself still price. First product-source change in 17 commits: two schema lines. |
 | 960 | §1513 | **§1514** | **THE THIRD PRICING SURFACE.** §1513 bounded `/v1/rate` and `/pub/quote` — and missed the MCP `quote_freight` tool, **because it enumerated ROUTES rather than SURFACES THAT PRICE**; found by sweeping every `z.number()` on a worker schema for a missing `.max()` (30 fields, 29 benign). The miss has its own consequence: the tool creates a party and a **SHIPMENT before it rates**, so an over-cap weight the api now refuses would leave ledger residue behind an impossible request. `MAX_WEIGHT_LB` moved to `@shuddl/contracts` with the `.max()` on `RateRequestPayload` itself, so a FOURTH surface inherits the ceiling instead of re-deciding it — the same file's `dims` note already records what three-way drift cost once. **And the contracts bound was SILENT when I added it: deleting the `.max()` left 331/331 green — my own finding, two commits after writing the section about it.** Both directions now pinned and mutation-proved. |
 | 961 | §1514 | **§1515** | **THE STRINGS BESIDE THE NUMBER — `z.string()` bounds a TYPE, never a VALUE.** Swept 39 unbounded `z.string()` fields on worker schemas; two were externally reachable. **`z.string().email()` accepts a 100,000-character local part** (measured through both zod instances) on the UNAUTHENTICATED `/pub/signup`, which writes `users.email` — every neighbouring field was bounded, and the email was not **because its refinement LOOKS like a constraint**. And `RateRequestPayload` accepted a 100,000-character zip, which lands in an append-only payload: **three surfaces, three answers for one field** (16 / 20 / none) — §1514's drift on the neighbouring field. `MAX_ZIP_LEN = 20` and `MAX_EMAIL_LEN = 254` (RFC 5321) now live in contracts beside `MAX_WEIGHT_LB`. **The email bound is proved only as a PAIR** — two schemas take it on one path and removing either still 400s — which the case now states instead of implying it proves a layer it cannot see. |
+| 962 | §1515 | **§1516** | **THE SECOND 500 ON THE SAME ANONYMOUS ENDPOINT, through a different field.** The array sweep (24 unbounded `z.array()`) found not a bound but a **DOMAIN**: `accessorials: ["not-a-real-code"]` → **HTTP 500 on `/v1/rate` AND on the unauthenticated `/pub/quote`**. The engine is RIGHT to refuse — a silent drop would UNDER-PRICE the load (the Migrator law) — but a correct refusal about a CLIENT's input arrived as a bare `Error` and the handler maps that to INTERNAL. **A client's typo reported as a server fault.** Fixed by asking the engine's OWN exported predicate at both boundaries, preserving `Object.hasOwn` so `constructor`/`toString`/`__proto__` are UNKNOWN rather than prototype members (asserted directly). Also measured and left OPEN: `legs: 10_000` returns 200 and writes ten thousand legs into an append-only payload — **no physical number to point at, so the bound is a product decision and picking one silently would be closing a decision by picking it**. |
 | 856 | §1409 | **§1410** | **SWEEPING MY OWN SECTIONS FOR §1409's ERROR, AND A DETECTOR THAT COULD NOT HAVE FOUND IT.** §1404's precedent: a class like this gets ONE measurement, not a gate, since a correction necessarily quotes what it corrects. **The first sweep returned ZERO and was worthless** — it extracted superseded text as `~~struck~~` only, but the very case §1409 found is marked the other way, as *"a 16-step chain …"* **until audit §1029**. **My detector encoded one of the repo's TWO conventions, so it could never have found the known positive.** Twelfth instance of the session's constant, caught because a zero is the answer this session has learned never to accept. **A second false signal inside the control:** asking *"is it inside `~~…~~`?"* with `~~[^~]*16-step` returned True — because an unrelated `~~` sits earlier and `[^~]*` spanned the gap. **A regex answering "is X inside a delimiter" by searching for the delimiter anywhere before X will say yes to the whole file.** Re-run over both conventions: **109 superseded passages, zero quoted without a marker** — and that zero is worth something, because the corrected detector demonstrably flags a reconstruction of §1408's sentence. **§1409's error was singular, not a habit** |
 | **855** | §1408 | **§1409** | **I QUOTED STRUCK TEXT AS CURRENT, AND THE REPO HAD SOLVED IT 380 SECTIONS EARLIER.** §1408 cited CLAUDE.md's account of `verify:dev` as *"a 16-step chain … reaches 4 of 16"*. Measured: **18 steps**. **But the drift is my quotation's, not the law's** — CLAUDE.md's current text says that reading held *"until audit §1029"*, was *"invalidated hours later by `7b61624`"*, and that **the total is stated no longer, only the position that matters: step 4, and nothing after it**. I quoted the struck half of a correction as the claim. **Eleventh measurement error, and the first where the artifact had already anticipated the failure I was about to report.** **§1029's move is exactly §1402's, reached 373 sections apart and independently:** faced with a number that rots, REMOVE the number and keep the invariant. A convention arrived at twice from opposite ends of the record is the closest this audit has to a law about documentation. Substantively: `verify:dev` is still an unaggregated `&&` chain at 18 steps, and that is **not** a defect — CLAUDE.md documents it, names `verify:merge` as the real verdict, and `wp-exit-audit.test.ts:19` records that a naive matcher yields *"4 of 16"* and *"reads as a serious constitutional finding and is an artifact"*. **Tenth clean negative** |
 | 854 | §1407 | **§1408** | **VERIFYING MY OWN DELIVERABLE IS WIRED, BY THE STANDARD §1304 SET.** Five gates were built this session and each reported as working; §1304's standard is **verified WIRED before the board is read**, because a gate that runs when I invoke it and not when CI does is decoration with a green tick. **First measurement said ZERO** — searching the merge log for the five names returns 0 mentions each, which reads as "they never ran". It is the §1362 reporter difference: the tools suite runs under vitest v4 (summary only) while worker suites at v3.2.7 print per-file. The same run reports **125 files passed**, 120 + 5. **Tenth measurement error avoided by not believing a zero.** Measured properly three ways: `vitest list` shows **21 cases** across the five; `run-gate.ts:46` wires `unit-tests` to the `test` script; and `test` is `test:tools; t=$?; … ; exit $(( t \|\| p ))`. **Proved end-to-end:** breaking `law-enforcers` makes `pnpm test:tools` exit 1, which propagates. Also worth noting: that script AGGREGATES rather than `&&`-chains — the defect CLAUDE.md records for `verify:dev`, which reaches 4 of 16 steps |
@@ -10384,7 +10385,7 @@ The metering plumbing is complete and honest end to end. `agent_runs` carries `c
 is **no** false-zero fail-open here).
 
 But **only one agent emits `agent.acted` at all**: the rater, from two byte-identical paths
-(`workers/api/src/routes/rate.ts:252@agent.acted` and `workers/translator/src/inbound.ts:581@agent.acted`),
+(`workers/api/src/routes/rate.ts:260@agent.acted` and `workers/translator/src/inbound.ts:581@agent.acted`),
 reporting `cost_cents: 0` because it is a deterministic engine with no LLM call. Since `agent.acted` **is**
 the metered AI action — billing counts it (`workers/billing/src/metering.ts:3@agent.acted`) and the
 Watchtower budgets it — the meter never observes the agents that would cost anything.
@@ -55753,7 +55754,7 @@ wrong?** Answering it took reading the subject in each case rather than a proxy.
 
 | row | claim | verified by | verdict |
 |---|---|---|---|
-| C1 | `/v1/rate` lens-branched for portal | `rate.ts:305@portalPricedResponse`; `portal-actions.test.ts:150-151` pins `floors`/`versions` undefined | **holds** |
+| C1 | `/v1/rate` lens-branched for portal | `rate.ts:313@portalPricedResponse`; `portal-actions.test.ts:150-151` pins `floors`/`versions` undefined | **holds** |
 | C2 | `--mode release` baked into `test:surfaces` | `package.json:43` | **holds — but nothing pins it (below)** |
 | C3 | agents worker unknown-tenant hardening | §937 | **was stale; corrected** |
 | D1–D2 | `PROJECT-STATE.md` safety posture + five-states | 20 supersede markers, struck text in place | **holds** |
@@ -87039,3 +87040,39 @@ bound is proved only as a PAIR, which the case now states. **Reopen trigger:** t
 strings and this phase bounded 2 — the other 37 were read and are internal, but `import.ts:53@field` (a column
 name off an uploaded sheet) and `registry.ts:174@note` (an MCP dispute note) both reach storage and were
 judged by reading rather than by probing. Probe them if either surface ever becomes anonymous.
+
+## §1516 — PHASE GATE: the second 500 on the same anonymous endpoint, through a different field (REQ-051/189/004/118)
+
+The array cell of the boundary class opened with a sweep — 24 unbounded `z.array()` fields — and the finding
+was not the bound. It was the **DOMAIN**.
+
+**MEASURED on both live routes: `accessorials: ["not-a-real-code"]` → HTTP 500 INTERNAL, on `/v1/rate` AND on
+the unauthenticated `/pub/quote`.** One mistyped string, no account. §1513 was an unbounded VALUE; this is an
+unbounded DOMAIN — the guest schema bounds the array (32 items) and each string (64 chars) and says nothing
+about which codes exist, so the first unknown code reaches the engine.
+
+**The engine is right and that is the whole point.** `compose` refuses a code the tenant schedule does not
+carry, because a silent drop would **UNDER-PRICE the load** — the Migrator law, stated at the throw itself.
+The defect is that a correct refusal about a CLIENT's input arrived at the routes as a bare `Error`, and the
+REQ-156 handler maps an unrecognised Error to `INTERNAL 500`. **A client's typo was being reported as a server
+fault, on the anonymous surface.**
+
+**The fix asks before the engine throws, with the engine's OWN predicate.** `unknownAccessorials(requested,
+schedule)` is exported from `packages/rater/src/compose.ts@unknownAccessorials` and called by both routes —
+one rule, two boundaries, no second copy to keep in step. It preserves the subtlety the composer's comment
+already records: `Object.hasOwn`, never a bare index read, **so `constructor` / `toString` / `__proto__`
+resolve to UNKNOWN rather than to a Function on `Object.prototype`.** That is asserted directly — three
+prototype keys, each a 400.
+
+**What the array sweep found otherwise, recorded so it is not re-derived:** `legs: 10_000` on `/v1/rate`
+returns **HTTP 200 in 27ms** and writes all ten thousand into an append-only `quote.priced` payload — not a
+crash, but permanent, unshrinkable storage from one authed request. It is left OPEN rather than bounded here
+because unlike a weight ceiling there is no physical number to point at: the honest bound is a product
+decision about how many carriers may execute one shipment, and picking one silently would be exactly the
+"closing a decision by picking it" §1510 refused. The measurement is the deliverable.
+
+**Phase gate.** Product source: one predicate exported from the rater, two route guards. `@shuddl/api`
+**851/851** (was 848 — three cases), rater 168/168, contracts 333/333. Mutation-proved: removing the guest
+guard reds both new cases with the 500 they were written for. **Reopen trigger:** an unbounded `legs` array
+lands in an append-only event; if a tenant's interline splits ever exceed a handful of carriers, measure the
+payload size before it becomes a ledger-size problem — the bound needs a product decision first.

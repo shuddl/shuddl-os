@@ -2,7 +2,7 @@ import { RATER_AGENT } from "@shuddl/ledger/queries/metrics";
 import type { Hono } from "hono";
 import { z } from "zod";
 import { MAX_WEIGHT_LB, MAX_ZIP_LEN } from "@shuddl/contracts";
-import { priceShipment, assessApproval, resolveTransitDays } from "@shuddl/rater";
+import { priceShipment, assessApproval, resolveTransitDays, unknownAccessorials } from "@shuddl/rater";
 import type { RateRequest, Leg, PricedQuote, ApprovalDecision, TransitResult } from "@shuddl/rater";
 import { ApiError } from "../middleware/error.js";
 import { requireRole } from "../middleware/auth.js";
@@ -173,6 +173,14 @@ export function mountRateRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>): 
       ...(body.accessorials !== undefined ? { accessorials: body.accessorials } : {}),
     };
 
+    // §1516 — ASK BEFORE THE ENGINE THROWS. `compose` refuses an accessorial the tenant schedule does not
+    // carry (correct — a silent drop would UNDER-PRICE the load), but that refusal is a CLIENT error and it
+    // was reaching the error handler as a bare Error: an HTTP 500 for a code the caller mistyped. The
+    // predicate is the rater's own, exported so this boundary cannot drift from the composer's rule.
+    const unknown = unknownAccessorials(request.accessorials ?? [], config.accessorials);
+    if (unknown.length > 0) {
+      throw new ApiError("VALIDATION_FAILED", 400, `UNKNOWN ACCESSORIAL CODE(S): ${unknown.join(", ")}`);
+    }
     const quote = priceShipment(request, config);
     // No price on air (REQ-004), end to end: an UNKNOWN emits NO quote.priced.
     if (quote.status === "UNKNOWN") return c.json({ status: "UNKNOWN", reason: quote.reason });

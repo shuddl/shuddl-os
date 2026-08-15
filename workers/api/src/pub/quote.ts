@@ -1,7 +1,7 @@
 import type { Context } from "hono";
 import { z } from "zod";
 import { MAX_WEIGHT_LB, MAX_ZIP_LEN } from "@shuddl/contracts";
-import { priceShipment, resolveTransitDays } from "@shuddl/rater";
+import { priceShipment, resolveTransitDays, unknownAccessorials } from "@shuddl/rater";
 import type { RateRequest, TransitResult } from "@shuddl/rater";
 import { ApiError, envelope } from "../middleware/error.js";
 import { tenantDb, TENANT_BINDINGS } from "../tenants.js";
@@ -155,6 +155,11 @@ export async function publicQuoteHandler(c: Ctx): Promise<Response> {
     ...(body.accessorials !== undefined ? { accessorials: body.accessorials } : {}),
   };
 
+  // §1516 — the SAME guard as the authed surface, with the SAME exported predicate. Measured at §1516: an
+  // unknown accessorial code returned **HTTP 500 on this anonymous endpoint** — one string, no account. A
+  // mistyped code is a client error, so it is a 400 here exactly as an over-cap weight is (§1513).
+  const unknownAcc = unknownAccessorials(request.accessorials ?? [], config.accessorials);
+  if (unknownAcc.length > 0) throw new ApiError("VALIDATION_FAILED", 400, "UNKNOWN ACCESSORIAL CODE");
   const quote = priceShipment(request, config);
   // No price on air (REQ-004): an UNKNOWN (missing physics / unserved lane) returns the honest reason and NO
   // price, NO transit — and STILL appends nothing.

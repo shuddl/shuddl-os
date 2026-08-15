@@ -189,6 +189,38 @@ describe("GQ-4: guest cannot book", () => {
 //
 // Both directions are pinned, because a ceiling that also refuses real freight is a worse defect than the
 // 500: 1,000,000 lb is 12.5x a fully-loaded US truck's legal gross, so the last legal shipment still prices.
+// §1516 (REQ-051/189/004) — THE SECOND 500 ON THE SAME ANONYMOUS ENDPOINT, through a different field.
+//
+// `compose` refuses an accessorial code the tenant schedule does not carry, and that refusal is RIGHT: a
+// silent drop would UNDER-PRICE the load (the Migrator law, stated at the throw itself). But it reached the
+// routes as a bare `Error`, which the api's handler maps to a 500. MEASURED at §1516:
+// `accessorials: ["not-a-real-code"]` → **HTTP 500 on `/pub/quote` AND on `/v1/rate`**. One mistyped string,
+// no account. §1513 was an unbounded VALUE; this is an unbounded DOMAIN — the guest schema bounds the array
+// (32) and each string (64) and says nothing about which codes exist.
+//
+// The fix asks the rater's own exported predicate before pricing, so the boundary cannot drift from the
+// composer's rule (`Object.hasOwn`, so `constructor`/`toString` are UNKNOWN, not Functions on the prototype).
+describe("§1516 — an unknown accessorial is a 400, not a 500 (REQ-051/189)", () => {
+  it("a mistyped code is refused at the boundary on the anonymous surface", async () => {
+    const r = await quote({ origin_zip: "97201", dest_zip: "80012", weight_lb: 1_000, dims: DIMS, accessorials: ["not-a-real-code"] });
+    expect(r.status, "a client's typo must never be reported as a server fault").toBe(400);
+    expect(r.json?.["code"]).toBe("VALIDATION_FAILED");
+  });
+
+  it("a prototype key is UNKNOWN, not a Function (the Object.hasOwn rule, shared with the composer)", async () => {
+    for (const code of ["constructor", "toString", "__proto__"]) {
+      const r = await quote({ origin_zip: "97201", dest_zip: "80012", weight_lb: 1_000, dims: DIMS, accessorials: [code] });
+      expect(r.status, `${code} must resolve to an unknown accessorial, never to a prototype member`).toBe(400);
+    }
+  });
+
+  it("a KNOWN code still prices — the guard refuses nothing real", async () => {
+    const r = await quote({ origin_zip: "97201", dest_zip: "80012", weight_lb: 1_000, dims: DIMS, accessorials: ["liftgate"] });
+    expect(r.status, r.text).toBe(200);
+    expect(r.json?.["status"]).toBe("PRICED");
+  });
+});
+
 describe("§1513 — the anonymous surface cannot be 500'd by an absurd weight (REQ-051/189)", () => {
   it("an over-cap weight is a 400, never a 500 — the precision throw is unreachable from outside", async () => {
     for (const w of [1_000_001, 1e12, 1e15, Number.MAX_SAFE_INTEGER]) {

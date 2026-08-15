@@ -42,6 +42,33 @@ export interface Composed {
 
 const BPS_DIVISOR = 10_000; // fsc pct is in basis points; amount = freight × pct_bps / 10000
 
+// §1516 (REQ-051/189/004) — THE SAME LOOKUP THE COMPOSER USES, EXPORTED so a boundary can ASK before the
+// engine THROWS.
+//
+// `compose` refuses an accessorial code the tenant schedule does not carry, and that refusal is correct: a
+// silent drop would UNDER-PRICE the load (the Migrator law, stated at the throw below). But a refusal is a
+// CLIENT error — the caller named a service that does not exist — and it was reaching the routes as a bare
+// `Error`, which the api's handler maps to **HTTP 500**. MEASURED at §1516: `accessorials: ["not-a-real-code"]`
+// returned a 500 on `/v1/rate` AND on the UNAUTHENTICATED `/pub/quote`. One string, no account, a 500 — the
+// same shape §1513 measured for an unbounded weight, on the same endpoint, through a different field.
+//
+// The routes cannot re-implement the rule without drifting from it (`Object.hasOwn`, not a bare index read,
+// so `constructor`/`toString` resolve to UNKNOWN rather than to a Function on Object.prototype). So the rule
+// is exported ONCE and the boundary calls it: same predicate, same answer, no second copy to keep in step.
+export function unknownAccessorials(
+  requested: readonly string[],
+  accessorials: AccessorialSchedule,
+): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const code of requested) {
+    if (seen.has(code)) continue;
+    seen.add(code);
+    if (!Object.hasOwn(accessorials.items, code)) out.push(code);
+  }
+  return out;
+}
+
 /**
  * compose freight + fsc + accessorials into ordered price lines + a sell.
  *
