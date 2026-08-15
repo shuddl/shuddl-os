@@ -135,7 +135,14 @@ describe("redactEvent: booking.created + dispatch.assigned internals (REQ-192)",
   });
 
   it("GENERAL fail-closed guard: NO known-internal key survives the party lens for ANY counterparty-default kind", () => {
-    const KNOWN_INTERNAL = ["gl_map", "division", "driver_user_id", "cost", "buy_rate"];
+    // §1578 (REQ-192/118): this list is the guard's whole boundary — `hasKeyDeep` matches a key EXACTLY, so a
+// name that is not a real field can never fire, and a real field that is not named here is invisible. Measured:
+// `gl_map`, `division` and `driver_user_id` exist today; `cost` and `buy_rate` match NOTHING in the repo and are
+// forward names kept deliberately (a future interline buy-side field would land on one of them). `cost_cents`
+// was the gap — it is the real field (`packages/contracts/src/events.ts:160@AgentActedPayload`), and `"cost"` does not match it.
+// Harmless today because `agent.acted` is one of the seven INTERNAL_FLOOR kinds and cannot be widened, but this
+// guard exists for the day a field MOVES to a counterparty kind, and it must know the name that exists.
+const KNOWN_INTERNAL = ["gl_map", "division", "driver_user_id", "cost", "cost_cents", "buy_rate"];
     // Loose-JsonObject counterparty kinds (payment.received / settlement.executed) build a minimal `{}` payload,
     // so the guard would pass TRIVIALLY on them. Seed a known-internal `division` (the org/margin dimension their
     // money projection reads, money.ts:234/258) so the guard genuinely EXERCISES the strip on these kinds too.
