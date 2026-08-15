@@ -118,13 +118,24 @@ describe("§995: an evidence-expiry trigger is evaluated, not merely written", (
     // resolvable paths means the EXEMPTION swallowed the corpus — a trigger phrased against the world is
     // legitimately unreachable here, so without this floor a reformatted `Evidence expires` column would
     // exempt every row at once and this gate would certify a clean ledger over nothing.
-    expect(rows.length, `no terminal (FIXED/RESOLVED/TRIPWIRED) rows parsed from ${CHECKLIST} — the scan is broken, not the ledger`).toBeGreaterThanOrEqual(10);
+    //
+    // FLOORS RAISED 2026-08-15 (audit §1572). §995 set 10/5 when the population was 17 terminal rows; it is now
+    // **38 terminal / 13 with paths** — measured with the gate's OWN extractor, after a regex over the file
+    // said 26/23 and was wrong in both directions (it matched a status word anywhere in the row, and any backticked
+    // path whether or not it resolves), so those floors sat well below the corpus — an extractor that silently lost
+    // three quarters of the ledger would still have cleared them. A floor aimed only at ZERO catches a broken
+    // parse and misses a COLLAPSING one, which is the failure my own record names: a glob missing 61% of the
+    // source once passed a `hits > 20` floor, in a guard written to prevent that very class.
+    //
+    // Set below the live count with room for legitimate retirement — a row genuinely closing out must not red
+    // this — but far enough above zero that a collapse cannot hide. Re-measure when the ledger grows.
+    expect(rows.length, `terminal (FIXED/RESOLVED/TRIPWIRED) rows parsed from ${CHECKLIST} collapsed (38 live at §1572) — the scan is broken, not the ledger`).toBeGreaterThanOrEqual(20);
     expect(
       withPaths.length,
-      `no terminal row's expiry trigger names a resolvable repo path. Either the triggers stopped citing files ` +
-        `in backticks (re-scope this gate deliberately) or the cell index moved — both must fail here rather ` +
-        `than pass over an empty set.`,
-    ).toBeGreaterThanOrEqual(5);
+      `too few terminal rows name a resolvable repo path (13 live at §1572). Either the triggers stopped citing ` +
+        `files in backticks (re-scope this gate deliberately) or the cell index moved — both must fail here ` +
+        `rather than pass over a corpus that has quietly shrunk.`,
+    ).toBeGreaterThanOrEqual(10);
   });
 
   // §1053 — EXPLICIT TIMEOUT, ADDED ON A TREND RATHER THAN A THRESHOLD. Measured 2218ms = 44% of the
