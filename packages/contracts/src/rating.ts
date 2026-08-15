@@ -231,11 +231,18 @@ export const MAX_WEIGHT_LB = 1_000_000;
 
 
 // §1515 — THE SAME LAW FOR THE STRINGS BESIDE IT. `z.string()` bounds a TYPE, never a VALUE: measured at
-// §1515, `RateRequestPayload` accepted a **100,000-character** `origin_zip`, and that string lands in an
-// append-only `quote.priced` payload — permanent, unshrinkable bloat from one request. Three surfaces priced
-// with three different answers (`/pub/quote` capped at 16, the MCP tool at 20, `/v1/rate` at nothing), which
-// is §1514's drift on the neighbouring field. 20 characters holds a US ZIP+4 (`97201-1234`) twice over and
-// every international postcode in use.
+// §1515, `RateRequestPayload` accepted a **100,000-character** `origin_zip`.
+//
+// §1527 CORRECTS THE REASON THIS GIVES, because the reason was not measured and is false. It read: *"that
+// string lands in an append-only `quote.priced` payload — permanent, unshrinkable bloat"*. **It does not.**
+// Driven through `/v1/rate` with a marker zip, the two events written carry it in NEITHER payload — the
+// engine's `basis` is DERIVED (miles, weight), not an echo of the request. The bound is still right, for the
+// reasons that survive measurement: an unbounded string on a request is memory and log volume on an
+// unauthenticated surface, and the three pricing surfaces disagreed about it (`/pub/quote` capped at 16, the
+// MCP tool at 20, `/v1/rate` at nothing) — §1514's drift on the neighbouring field. A bound whose stated
+// mechanism is wrong invites the next reader to remove it when they discover the mechanism is wrong.
+//
+// 20 characters holds a US ZIP+4 (`97201-1234`) twice over and every international postcode in use.
 export const MAX_ZIP_LEN = 20;
 
 // RFC 5321 §4.5.3.1.3 caps a forward-path at 254 characters. `z.string().email()` enforces SHAPE and no
