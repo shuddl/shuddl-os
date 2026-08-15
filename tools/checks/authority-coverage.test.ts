@@ -57,7 +57,12 @@ describe("analyzeAuthorityCoverage — flags a dropped or WRONG-MODULE consultat
 describe("the REAL wired authoritative files all consult their module's resolveAuthority (REQ-030/L8)", () => {
   it("has zero coverage violations across the registered rating/invoicing/settlement/comms/dispatch pairs", () => {
     const files = collectAuthoritativeFiles();
-    expect(files.length).toBeGreaterThan(0); // guard: prove we actually read the tree
+    // §1573 — floored at the CORPUS, not at zero. This read `> 0`, so a registry that collapsed to one
+    // entry would still certify "zero coverage violations" over a single file. LIVE at §1573: **9** files
+    // across the five modules, measured with this collector rather than by counting the literal (§1572).
+    // REQ-030/L8 is the law here — every authoritative emitter consults its module's resolveAuthority —
+    // and a gate that certifies one file is not enforcing it.
+    expect(files.length, "the authoritative-file registry collapsed (9 live at §1573) — the scan or the registry broke, not the code").toBeGreaterThanOrEqual(7);
     expect(analyzeAuthorityCoverage(files)).toEqual([]);
   });
 

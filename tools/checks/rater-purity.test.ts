@@ -158,7 +158,10 @@ describe("llm_in_rater: no LLM/agent SDK anywhere under packages/rater/src", () 
 describe("the REAL packages/rater/src is pure", () => {
   it("has zero purity violations (the engine never imports class or an LLM)", () => {
     const files = collectRaterSourceFiles();
-    expect(files.length).toBeGreaterThan(0); // guard: prove we actually scanned the tree
+    // §1573 — floored at the CORPUS, not at zero. LIVE: **13** files in `packages/rater/src`. REQ-024 is a
+    // CLAUDE.md law — LLM calls only inside `packages/agents/*`, statically linted — so a collector that
+    // silently returned one file would report the engine "pure" having read a twelfth of it.
+    expect(files.length, "the rater source scan collapsed (13 live at §1573) — the collector broke, not the engine").toBeGreaterThanOrEqual(10);
     expect(analyzeRaterPurity(files)).toEqual([]);
   });
 });
