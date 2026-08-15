@@ -90125,11 +90125,20 @@ asymmetry: it takes no side, it asserts today's behaviour, and its failure messa
 checklist row and delete the case. A defect nobody can fix silently is worth more than one that is merely
 written down.
 
+**The second check-then-act is the same shape and currently unreachable.** `KvDeliveryMarkers` reads
+`kv.get(key) !== null` and then `kv.put(key, "1")`, so two overlapping sweeps could both deliver one webhook —
+against a module whose header claims delivery **"EXACTLY ONCE"**. It is dormant: the wired source is
+`NotConfiguredEventSource`, which *"yields NOTHING, so the production cron is a safe no-op until the live
+ledger/queue feed is wired"*, already a documented go-live item. So the honest statement is not *"one KV defect"*
+but **"two instances of one shape; one is live and filed, one cannot fire until a filed go-live item lands"** —
+and whoever wires that feed inherits this paragraph.
+
 > **A guarantee proved sequentially is not a guarantee.** The existing test exchanges the code twice in
 > sequence and passes; the property it names — *spent on first use* — is false the moment two exchanges
 > overlap. Whenever a test establishes an at-most-once property, ask what it does when the two attempts do not
 > take turns.
 
 **Phase gate.** mcp **23 tests** (the pin included), stable across two runs; the sequential §596 property still
-holds. No production source changed — one checklist row, one test, one section. Board stands at `1b815b6`
-(**21 PASS · 0 FAIL · 5 BLOCKED**).
+holds. No production source changed — one checklist row, one test, one section. `workers/` changed, so the
+board was re-measured at `34b4baa`: **21 PASS · 0 FAIL · 5 BLOCKED** (aggregate BLOCKED, exit 2 — the five
+owner-side private-fixture holds).
