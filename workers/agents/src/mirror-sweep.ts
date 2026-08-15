@@ -281,8 +281,23 @@ export async function sweepTenantLegacyMirror(deps: MirrorSweepDeps): Promise<Mi
 
   // ── LAW 4: advance the watermark on integrations.config (the EXISTING row; no CHECK amend, no new column). ──
   if (maxCursor > cfg.watermark) {
-    const next = { ...cfg.raw, legacy_mirror: { ...(cfg.raw["legacy_mirror"] as Record<string, unknown>), watermark: { cursor: maxCursor } } };
-    await db.prepare("UPDATE integrations SET config = ? WHERE id = ?").bind(JSON.stringify(next), integrationId).run();
+    // §1588 (REQ-021): mutate the watermark PATH server-side, never rewrite the whole column. The old form read
+    // `config`, merged in memory and wrote the entire object back — so any write that landed between this
+    // sweep's read and its write was silently reverted. `integrations.config` has a SECOND writer:
+    // `allocatePartnerControls` (translator `partners.ts`), which does its own `json_set` on `$.outbound`. A
+    // partner certification landing mid-sweep therefore vanished, and the operator's action left no trace.
+    // `json_set` touches one path and leaves every sibling key exactly as the other writer left it.
+    //
+    // The WHERE also makes the advance MONOTONIC in the database rather than in this process: `maxCursor >
+    // cfg.watermark` above was decided against a value read at the top of the sweep, so two overlapping sweeps
+    // could both pass it and the LOWER cursor could land last, re-scanning rows the higher one had retired.
+    await db
+      .prepare(
+        "UPDATE integrations SET config = json_set(config, '$.legacy_mirror.watermark', json_object('cursor', ?1)) " +
+          "WHERE id = ?2 AND COALESCE(json_extract(config, '$.legacy_mirror.watermark.cursor'), -1) < ?1",
+      )
+      .bind(maxCursor, integrationId)
+      .run();
   }
 
   return { configured: true, scanned: fresh.length, appended, echoed, quarantined, gapColumns: gapRows.length, watermarkFrom: cfg.watermark, watermarkTo: maxCursor };

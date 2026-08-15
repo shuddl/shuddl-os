@@ -284,3 +284,55 @@ describe("fail-closed — no config / no feed is a clean no-op (production is in
     expect(r.appended).toBe(0);
   });
 });
+
+// §1588 (REQ-021/025/118) — THE WATERMARK ADVANCE IS A PATH WRITE, NOT A COLUMN REWRITE.
+//
+// `integrations.config` has TWO writers. The translator's `allocatePartnerControls` mutates `$.outbound` with
+// its own `json_set` — atomic, server-side, sibling-safe. This sweep used to read the whole column, merge the
+// new watermark in memory and write the ENTIRE object back, silently reverting anything that landed between its
+// read and its write. The sweep scans, maps and appends per row in that window, so the window is wide and the
+// loser is an operator action: a partner certification that simply vanishes.
+//
+// Same class as §1587's `device_keys` lost update, different remedy: there the whole array is the unit, so a
+// compare-and-set is right; here only one path changes, so `json_set` is better — it cannot lose a sibling key
+// under ANY schedule, where a retry only narrows the window.
+//
+// THE INTERLEAVING IS FORCED, NOT AWAITED. A first draft issued the sibling write concurrently with the sweep
+// and passed 3/3 against the BROKEN code — the write simply landed before the sweep read its config, so the
+// in-memory merge preserved it and nothing was proved. `FeedReader.read()` is called AFTER the config read and
+// BEFORE the watermark write, so a feed that performs the sibling write puts it exactly in the window. No race,
+// no flake: the schedule is the test's, not the scheduler's.
+class SiblingWritingFeed implements FeedReader {
+  constructor(
+    private readonly text: string,
+    private readonly db: D1Database,
+  ) {}
+  async read(): Promise<string | null> {
+    await this.db
+      .prepare("UPDATE integrations SET config = json_set(config, '$.outbound', json_object('isa', 7)) WHERE id = ?")
+      .bind(LEGACY_MIRROR_INTEGRATION_ID)
+      .run();
+    return this.text;
+  }
+}
+
+describe("§1588 REQ-021 — a concurrent writer's key on integrations.config survives the watermark advance", () => {
+  it("a sibling `$.outbound` write landing INSIDE the sweep's window is not reverted, and the watermark advances", async () => {
+    await seedConfig(B(), 0);
+    const seq = new RecordingSeq();
+    const r = await sweepTenantLegacyMirror({
+      db: B(), seq, feed: new SiblingWritingFeed(genericExport, B()), integrationId: LEGACY_MIRROR_INTEGRATION_ID, tenant: "tenant-b", now: 1_000,
+    });
+    expect(r.configured, "setup: the sweep must actually run for its write to be under test").toBe(true);
+
+    const row = await B().prepare("SELECT config FROM integrations WHERE id = ?").bind(LEGACY_MIRROR_INTEGRATION_ID).first<{ config: string }>();
+    const cfg = JSON.parse(row!.config) as { outbound?: { isa?: number }; legacy_mirror: { watermark: { cursor: number } } };
+
+    expect(
+      cfg.outbound?.isa,
+      "the concurrent partner-control write was REVERTED — the sweep wrote back a `config` it had read before " +
+        "that write landed. An operator's certification disappears with nothing logged.",
+    ).toBe(7);
+    expect(cfg.legacy_mirror.watermark.cursor, "the sweep must still advance its own watermark").toBeGreaterThan(0);
+  });
+});
