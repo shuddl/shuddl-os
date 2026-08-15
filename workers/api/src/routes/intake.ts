@@ -1,5 +1,6 @@
 import type { Hono } from "hono";
 import { z } from "zod";
+import { MAX_EMAIL_LEN } from "@shuddl/contracts";
 import { ApiError } from "../middleware/error.js";
 import { requireRole } from "../middleware/auth.js";
 import { resolveTenantDb } from "../tenants.js";
@@ -26,7 +27,11 @@ import type { Env, Vars } from "../index.js";
 //   · NO new table, NO new event kind: parties/shipments are MUTABLE domain tables; the ledger is untouched.
 
 const MAX_NAME_LEN = 200; // bounded — the legal name rides in the parties.names JSON
-const MAX_EMAIL_LEN = 320; // RFC 5321 practical maximum
+// MAX_EMAIL_LEN is IMPORTED, not declared (2026-08-15, audit §1553). This read `= 320` — the theoretical
+// 64+1+255 — while `contracts@MAX_EMAIL_LEN` is 254, the RFC 5321 address maximum, and 254 is the ceiling
+// `comms.ts` enforces on `to_ref`. So intake ACCEPTED and stored addresses the mail layer would later refuse:
+// the failure surfaced at send time, on the dunning/evidence path, for a party the operator had already saved.
+// §1515 fixed exactly this for zips ("three surfaces had three answers for one field") and stopped at zips.
 const MAX_PARTY_ID_LEN = 200; // a created id is `party_<16hex>`; bound a supplied FK before any query
 const MAX_REF_LEN = 200; // each refs key/value is bounded (rides inline in the shipments row)
 // §1534 — …AND SO IS THE KEY COUNT, which the length bound above implies but did not enforce. `z.record` has

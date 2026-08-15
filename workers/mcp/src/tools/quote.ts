@@ -14,14 +14,14 @@
 //   · NO PRICE ON AIR (REQ-004, end to end): a weightless/dimless quote returns the api's UNKNOWN verbatim —
 //     the tool NEVER fabricates a sell, and never even hops for a priced-event id (there is no priced fact).
 import { z } from "zod";
-import { MAX_WEIGHT_LB, MAX_ZIP_LEN } from "@shuddl/contracts";
+import { MAX_WEIGHT_LB, MAX_ZIP_LEN, MAX_EMAIL_LEN } from "@shuddl/contracts";
 import { defineTool, mutatingCallApi, ToolError, type ToolCtx } from "./registry.js";
 
 // Byte-identical to intake.ts / rate.ts (the api is the authority; these bound the tool input BEFORE the hop).
 const PARTY_KINDS = ["shipper", "consignee", "carrier", "broker", "cartage", "factor", "insurer"] as const;
 const SHIPMENT_MODES = ["LTL", "TL", "brokered", "cartage", "dray", "transload"] as const;
 const MAX_NAME_LEN = 200;
-const MAX_EMAIL_LEN = 320;
+// imported, not declared — see audit §1553 (this was 320 while the mail layer enforces 254)
 // §1515 — MAX_ZIP_LEN now comes from @shuddl/contracts, with MAX_WEIGHT_LB, so this tool cannot drift
 // from the two api surfaces on a field they all take.
 const MAX_ACCESSORIALS = 32;

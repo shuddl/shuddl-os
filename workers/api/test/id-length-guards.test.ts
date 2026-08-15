@@ -76,3 +76,33 @@ describe("§1552 REQ-030: every `… ID TOO LONG` guard refuses, and says so", (
     });
   }
 });
+
+// §1553 (REQ-196/202/118) — ONE EMAIL CEILING, NOT THREE.
+//
+// `intake.ts` declared `MAX_EMAIL_LEN = 320` (the theoretical 64+1+255) while `contracts@MAX_EMAIL_LEN` is
+// **254**, the RFC 5321 address maximum — and 254 is what `comms.ts` enforces on `to_ref`, the MAIL RECIPIENT.
+// So intake accepted and STORED addresses the mail layer would later refuse: the failure surfaced at send time,
+// on the dunning/evidence path, for a party an operator had already saved. `mcp/tools/quote.ts` had the same
+// 320, and `concierge/parse.ts` had it as a bare inline literal.
+//
+// §1515 fixed exactly this shape for zips — *"the shared ceiling, not a local 16: three surfaces had three
+// answers for one field"* — and stopped at zips. This is the same sentence about emails.
+describe("§1553 the email ceiling is the SHARED one, so what intake stores the mail layer can send", () => {
+  it("intake refuses an address one character over the shared ceiling, and admits one at it", async () => {
+    const post = async (email: string): Promise<number> => {
+      const res = await SELF.fetch("https://api.local/v1/parties", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "Idempotency-Key": crypto.randomUUID(),
+          Authorization: `Bearer ${await token(OPS)}`,
+        },
+        body: JSON.stringify({ name: "Acme", email, kind: "shipper" }),
+      });
+      return res.status;
+    };
+    const local = (n: number): string => `${"a".repeat(n - 12)}@example.com`;
+    expect(await post(local(255)), "intake accepted an address the mail layer (comms to_ref, 254) will refuse").toBe(400);
+    expect(await post(local(254)), "intake rejected an address AT the shared ceiling — the refusal above proves nothing").not.toBe(400);
+  });
+});
