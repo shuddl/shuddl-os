@@ -58,18 +58,25 @@ describe("REQ-154 — StripeBilling verifies the raw Stripe signature (constant-
 
   it("rejects a MISSING signature header (unsigned ⇒ fail-closed)", async () => {
     const billing = new StripeBilling(TEST_WEBHOOK_SECRET);
+    // §1558 — the MESSAGE, not just the class. All five refusal branches throw BillingSignatureError, so a
+    // class-only assertion cannot say WHICH guard refused (§1500). This one was pinned only by accident:
+    // `parseSignatureHeader(header: string)` takes a non-null string, so deleting the guard above made
+    // `null.split(",")` throw a TypeError — the case reded on a CRASH, not on the refusal moving.
+    await expect(billing.verify(SAMPLE_BODY, null)).rejects.toThrow(/missing Stripe-Signature header/i);
+    await expect(billing.verify(SAMPLE_BODY, "")).rejects.toThrow(/missing Stripe-Signature header/i);
     await expect(billing.verify(SAMPLE_BODY, null)).rejects.toBeInstanceOf(BillingSignatureError);
-    await expect(billing.verify(SAMPLE_BODY, "")).rejects.toBeInstanceOf(BillingSignatureError);
   });
 
   it("rejects a malformed signature header (no t/v1)", async () => {
     const billing = new StripeBilling(TEST_WEBHOOK_SECRET);
+    await expect(billing.verify(SAMPLE_BODY, "garbage")).rejects.toThrow(/malformed Stripe-Signature header/i); // §1558 — names ITS guard
     await expect(billing.verify(SAMPLE_BODY, "garbage")).rejects.toBeInstanceOf(BillingSignatureError);
   });
 
   it("rejects a signature made with the WRONG secret (MAC mismatch)", async () => {
     const billing = new StripeBilling(TEST_WEBHOOK_SECRET);
     const sig = await signStripe(SAMPLE_BODY, "whsec_the_wrong_secret");
+    await expect(billing.verify(SAMPLE_BODY, sig)).rejects.toThrow(/v1 mismatch/i); // §1558 — the MAC guard by name
     await expect(billing.verify(SAMPLE_BODY, sig)).rejects.toBeInstanceOf(BillingSignatureError);
   });
 
@@ -77,6 +84,7 @@ describe("REQ-154 — StripeBilling verifies the raw Stripe signature (constant-
     const billing = new StripeBilling(TEST_WEBHOOK_SECRET);
     const sig = await signStripe(SAMPLE_BODY); // signed over SAMPLE_BODY
     const tampered = SAMPLE_BODY.replace("50000", "999999999");
+    await expect(billing.verify(tampered, sig)).rejects.toThrow(/v1 mismatch/i); // §1558 — the MAC guard, not a sibling
     await expect(billing.verify(tampered, sig)).rejects.toBeInstanceOf(BillingSignatureError);
   });
 
@@ -85,6 +93,7 @@ describe("REQ-154 — StripeBilling verifies the raw Stripe signature (constant-
     const future = Date.now() + 3_600_000;
     const billing = new StripeBilling(TEST_WEBHOOK_SECRET, { now: () => future, toleranceSec: 300 });
     const sig = await signStripe(SAMPLE_BODY); // t ≈ real now
+    await expect(billing.verify(SAMPLE_BODY, sig)).rejects.toThrow(/outside the .*tolerance/i); // §1558 — the REPLAY guard by name
     await expect(billing.verify(SAMPLE_BODY, sig)).rejects.toBeInstanceOf(BillingSignatureError);
   });
 
