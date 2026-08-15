@@ -504,3 +504,40 @@ describe("Zod-invalid arguments are rejected before anything downstream runs", (
     expect(body.error?.code).toBe(-32601);
   });
 });
+
+// §1581 (REQ-035/192/118) — `isRecord` HAS TWO BEHAVIOURS IN ONE WORKER, AND THE PERMISSIVE ONE GUARDS THE WIRE.
+//
+// Three copies of `isRecord` live in `workers/mcp/src`. Two — `idempotency.ts` and `tools/document.ts` — read
+// `typeof v === "object" && v !== null && !Array.isArray(v)`. The third, in `tools/registry.ts`, OMITS the array
+// clause, so `isRecord([])` is **true** there and false in its siblings. That copy guards six call sites, four of
+// them on model-supplied JSON-RPC.
+//
+// Three of the four are saved by the NEXT line — an array reaching `asJsonRpcRequest` dies on
+// `message.jsonrpc !== "2.0"`, and `params.name` / `params.arguments` on an array are simply `undefined`. The
+// fourth is not: `toToolResult` puts any `isRecord` value into `structuredContent`, so a tool returning an ARRAY
+// produces `structuredContent: [...]` — not an object, which is what the field is specified to be, and what the
+// REST mirror then answers as the whole body (§1575).
+//
+// Unreachable today: all six real tools return object literals. This pins the boundary anyway, because the
+// distance between "no tool does that" and "a tool does that" is one handler.
+describe("§1581 REQ-035: a non-object tool return does not become structuredContent", () => {
+  it("a tool returning an ARRAY yields a text block only — arrays are not records", async () => {
+    const arrayTool = new ToolRegistry().register(
+      defineTool({
+        name: "arr",
+        description: "returns an array",
+        inputSchema: z.object({}),
+        mutating: false,
+        handler: async () => [{ a: 1 }, { a: 2 }],
+      }),
+    );
+    const res = await call(deps({ registry: arrayTool }), toolsCall(51, "arr"));
+    const body = await bodyOf(res);
+    expect(body.result?.content?.[0]?.text, "the array must still reach the caller as text").toBe('[{"a":1},{"a":2}]');
+    expect(
+      body.result?.structuredContent,
+      "an ARRAY became structuredContent — the field is specified to be an object, and the REST mirror returns it " +
+        "as the entire response body. `isRecord` in registry.ts is missing the `!Array.isArray(v)` its two siblings have.",
+    ).toBeUndefined();
+  });
+});

@@ -20,6 +20,8 @@
 // can hold two pairings, REQ-025) and the TOOL name (same args across two tools are two intents). SHA-256'd to a
 // fixed-length, header-safe token (an `Idempotency-Key` HTTP header value cannot carry a NUL or arbitrary bytes).
 
+import { isRecord } from "./is-record.js";
+
 const NUL = String.fromCharCode(0); // illegal in a header value; unambiguous field separator pre-hash
 const KEY_PREFIX = "mcp-idem-";
 
@@ -37,10 +39,6 @@ function sortKeys(value: unknown): unknown {
     return out;
   }
   return value;
-}
-
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null && !Array.isArray(v);
 }
 
 /**

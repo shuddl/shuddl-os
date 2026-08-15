@@ -15,6 +15,7 @@
 import { z } from "zod";
 import { callApi, type CallApiOptions, type Env } from "../index.js";
 import { mintPrincipalJwt } from "../principal.js";
+import { isRecord } from "../is-record.js";
 import { resolveTokenGrant, type TokenGrant } from "../oauth.js";
 import { beforeMutation as gateBeforeMutation, MutationBlocked } from "../gate.js";
 import { deriveIdempotencyKey } from "../idempotency.js";
@@ -198,9 +199,6 @@ interface JsonRpcRequest {
   id: JsonRpcId;
   method: string;
   params?: unknown;
-}
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null;
 }
 // Narrow an arbitrary parsed body to a JSON-RPC request, or null if it is not one. `id` defaults to null (a
 // notification / id-less call) so an error can still be addressed to the caller.

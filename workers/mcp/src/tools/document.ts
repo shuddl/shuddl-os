@@ -15,6 +15,7 @@
 // FAIL-CLOSED (REQ-192): a non-2xx surfaces an isError carrying ONLY the status, never the api's internal body.
 import { z } from "zod";
 import { defineTool, ToolError, type ToolCtx } from "./registry.js";
+import { isRecord } from "../is-record.js";
 
 const MAX_ID_LEN = 200; // shipment id — bound length before the path/hop
 const MAX_DOC_ID_LEN = 300; // evidenceDocId = `evidence:<shipment>:<64-hex>` — mirrors documents.ts
@@ -30,9 +31,6 @@ const GetDocumentInput = z
   .strict();
 type GetDocumentArgs = z.infer<typeof GetDocumentInput>;
 
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null && !Array.isArray(v);
-}
 async function readJson(res: Response): Promise<Record<string, unknown>> {
   return (await res.json().catch(() => ({}))) as Record<string, unknown>;
 }
