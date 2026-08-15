@@ -7,7 +7,14 @@ import {
   ClassAdapter,
   TransitMatrix,
   RateConfig,
+  MAX_WEIGHT_LB,
+  MAX_CWT_CENTS,
+  MAX_CONFIG_CENTS,
+  MAX_FSC_BPS,
+  MAX_REQUEST_ACCESSORIALS,
+  CWT_DIVISOR,
 } from "../src/rating.js";
+import { Bps } from "../src/money.js";
 
 // doc 10 §17: rate_config(kind, version, payload, effective). These schemas model the PAYLOAD
 // shape per kind — ZERO hardcoded tenant data, all money as INTEGER cents (Cents), all percentages
@@ -121,6 +128,34 @@ const floors = {
   full_cost_bps: 8500,
   contribution_bps: 500,
 };
+
+// §1521 — THE NO-OVERFLOW DERIVATION, RECOMPUTED HERE so raising a ceiling fails in CI rather than in
+// production. §1519/§1520 bounded every operand the money chain multiplies and wrote the algebra into a
+// comment; this is the half that makes the comment falsifiable.
+describe("§1521 the money chain cannot overflow — the derivation, recomputed from its own inputs", () => {
+  it("the widest intermediate stays inside Number.MAX_SAFE_INTEGER", () => {
+    // freight = max((weight / 100) × cwt, min_charge); fsc and floors each multiply it by ≤ MAX_FSC_BPS
+    // before dividing, so the INTERMEDIATE — not the result — is what must fit.
+    const freight = Math.max((MAX_WEIGHT_LB / CWT_DIVISOR) * MAX_CWT_CENTS, MAX_CONFIG_CENTS);
+    const fsc = freight; // mulDivHalfUp(freight, ≤MAX_FSC_BPS, MAX_FSC_BPS) ≤ freight
+    const sell = freight + fsc + MAX_REQUEST_ACCESSORIALS * MAX_CONFIG_CENTS;
+    const widest = Math.max(freight, sell) * MAX_FSC_BPS;
+    expect(
+      widest,
+      `the money chain's widest intermediate is ${widest}, past MAX_SAFE_INTEGER. One of the four inputs moved ` +
+        "— MAX_WEIGHT_LB, MAX_CWT_CENTS, MAX_CONFIG_CENTS or MAX_REQUEST_ACCESSORIALS. RECOMPUTE the ceilings " +
+        "from the algebra in rating.ts's header; do not raise this expectation.",
+    ).toBeLessThan(Number.MAX_SAFE_INTEGER);
+    // …and the margin is real rather than marginal: a ceiling one power of ten higher must NOT fit, or the
+    // assertion above would pass for any plausible edit and prove nothing.
+    expect(widest * 10, "the derivation has an order of magnitude of slack — it is not binding").toBeGreaterThan(Number.MAX_SAFE_INTEGER);
+  });
+
+  it("MAX_FSC_BPS equals the Bps ceiling it restates (the one input copied from another module)", () => {
+    expect(() => Bps.parse(MAX_FSC_BPS)).not.toThrow();
+    expect(() => Bps.parse(MAX_FSC_BPS + 1), "Bps admits a value above MAX_FSC_BPS — the derivation's input is stale").toThrow();
+  });
+});
 
 describe("FloorsConfig", () => {
   it("parses a valid floors config", () => {

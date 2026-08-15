@@ -1,6 +1,6 @@
 import type { Context } from "hono";
 import { z } from "zod";
-import { MAX_WEIGHT_LB, MAX_ZIP_LEN } from "@shuddl/contracts";
+import { MAX_WEIGHT_LB, MAX_ZIP_LEN, MAX_REQUEST_ACCESSORIALS } from "@shuddl/contracts";
 import { priceShipment, resolveTransitDays, unknownAccessorials } from "@shuddl/rater";
 import type { RateRequest, TransitResult } from "@shuddl/rater";
 import { ApiError, envelope } from "../middleware/error.js";
@@ -72,7 +72,9 @@ const GuestQuoteBody = z
     // surface from one JSON field (measured §1513). Over-cap is a 400 here, like every other bounded field.
     weight_lb: z.number().int().positive().max(MAX_WEIGHT_LB).optional(),
     dims: GuestDims.nullish(), // absent OR null ⇒ UNKNOWN missing_physics (the engine decides, not a 400)
-    accessorials: z.array(z.string().max(64)).max(32).optional(),
+    // §1521 — the cap is an INPUT to the no-overflow derivation (`sell ≤ 2×1e11 + 32M`), so it is imported
+    // rather than restated: raising it here alone would silently invalidate the algebra in rating.ts.
+    accessorials: z.array(z.string().max(64)).max(MAX_REQUEST_ACCESSORIALS).optional(),
   })
   .strict();
 

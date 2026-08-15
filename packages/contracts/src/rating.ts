@@ -49,6 +49,20 @@ export const MAX_CWT_CENTS = 10_000_000;
 // chain takes — which is the property §1519 could only claim for one of them.
 export const MAX_CONFIG_CENTS = 1_000_000_000;
 
+// §1521 — THE DERIVATION'S OWN PREMISES, exported so a test can RECOMPUTE it instead of trusting the comment.
+//
+// §1520's header ends "if any moves, BOTH ceilings must be recomputed, not kept" — and nothing detected a
+// move. A lockstep comment is a missing test (§1362), including one I wrote two commits ago. These are the
+// four inputs the algebra takes; `rating.test.ts` multiplies them back out and asserts the widest intermediate
+// stays inside `Number.MAX_SAFE_INTEGER`, so raising ANY ceiling fails there rather than in production.
+//
+// `MAX_REQUEST_ACCESSORIALS` is the one input that lives outside this file — `pub/quote.ts` caps the guest
+// array at 32 — so it is declared HERE and that route now imports it, the same "one constant, every surface"
+// move §1514 made for the weight.
+export const MAX_FSC_BPS = 10_000; // the Bps ceiling in money.ts — restated as an INPUT, asserted equal below
+export const MAX_REQUEST_ACCESSORIALS = 32;
+export const CWT_DIVISOR = 100; // pounds per hundredweight — the freight formula's divisor
+
 // doc 10 §17: rate_config(kind[zone_tariff|floors|fsc|accessorials|transit_matrix|class_adapter],
 // version, payload, effective). This module models the PAYLOAD shape per kind — a tenant's rating
 // configuration, the SHAPE ONLY, with ZERO hardcoded tenant data. All money is INTEGER cents (Cents);

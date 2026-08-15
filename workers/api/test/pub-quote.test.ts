@@ -1,5 +1,6 @@
 import { SELF, env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
+import { MAX_REQUEST_ACCESSORIALS } from "@shuddl/contracts";
 import {
   ensureSchema,
   seedRateConfig,
@@ -200,6 +201,26 @@ describe("GQ-4: guest cannot book", () => {
 //
 // The fix asks the rater's own exported predicate before pricing, so the boundary cannot drift from the
 // composer's rule (`Object.hasOwn`, so `constructor`/`toString` are UNKNOWN, not Functions on the prototype).
+// §1521 — THE ACCESSORIAL CAP IS AN INPUT TO THE OVERFLOW DERIVATION, so it is pinned behaviourally here as
+// well as algebraically in contracts. `sell ≤ 2×1e11 + 32M` is only true while this route caps the array at
+// `MAX_REQUEST_ACCESSORIALS`; the constant is imported rather than restated so the two cannot drift, and this
+// case is what notices if the cap stops being enforced at all.
+describe("§1521 — the guest accessorial cap is enforced (an input to the no-overflow derivation)", () => {
+  // THE CODES ARE ALL KNOWN ON PURPOSE. The first draft of this case used `acc-0…acc-32`, and it passed with
+  // the cap DELETED — because §1516's unknown-code guard returns the same 400. That is §1500's discriminator
+  // problem inside a case written to avoid it, and the fix is to leave the array as the ONLY thing that can
+  // fail: 33 × `liftgate` is over the cap and every code is priceable.
+  it("one over the cap is a 400 — with every code KNOWN, so only the ARRAY can fail", async () => {
+    const over = Array.from({ length: MAX_REQUEST_ACCESSORIALS + 1 }, () => "liftgate");
+    const r = await quote({ origin_zip: "97201", dest_zip: "80012", weight_lb: 1_000, dims: DIMS, accessorials: over });
+    expect(r.status, "an unbounded accessorial array invalidates the sell bound the ceilings are derived from").toBe(400);
+    // …and the cap itself prices: a bound that excludes its own value is an off-by-one, not a bound.
+    const at = Array.from({ length: MAX_REQUEST_ACCESSORIALS }, () => "liftgate");
+    const rAt = await quote({ origin_zip: "97201", dest_zip: "80012", weight_lb: 1_000, dims: DIMS, accessorials: at });
+    expect(rAt.status, rAt.text).toBe(200);
+  });
+});
+
 describe("§1516 — an unknown accessorial is a 400, not a 500 (REQ-051/189)", () => {
   it("a mistyped code is refused at the boundary on the anonymous surface", async () => {
     const r = await quote({ origin_zip: "97201", dest_zip: "80012", weight_lb: 1_000, dims: DIMS, accessorials: ["not-a-real-code"] });
