@@ -27,6 +27,28 @@ const NonNegCents = Cents.refine((c) => c >= 0, "rate_config cents must be non-n
 // PAIRED WITH `MAX_WEIGHT_LB`, it makes `mulDivHalfUp`'s precision throw unreachable from either operand.
 export const MAX_CWT_CENTS = 10_000_000;
 
+// §1520 — THE REST OF THE CHAIN, so the no-overflow property is provable rather than spot-checked.
+//
+// §1519 bounded ONE operand of ONE multiply. Measured at §1520, two more tenant-config money fields reach the
+// same 500 on the anonymous `/pub/quote`: an ACCESSORIAL item at `9e15` and a `min_charge_cents` at `9e15`,
+// each because the money chain multiplies whatever it is handed by a bps and refuses to lose precision.
+//
+// ONE CEILING FOR EVERY CONFIG CENTS FIELD, and the arithmetic that admits it. Writing `M` for this bound and
+// `C` for MAX_CWT_CENTS, with `pct_bps ≤ 10_000` and at most 32 accessorials on a request:
+//
+//     freight   = max((1e6 / 100) × C, min_charge)  ≤ max(1e11, M)
+//     fsc       = mulDivHalfUp(freight, pct_bps, 1e4)      → intermediate = freight × 1e4
+//     floors    = mulDivHalfUp(cost = freight, bps, 1e4)   → intermediate = freight × 1e4
+//     sell      = freight + fsc + Σ(≤32 accessorials)      ≤ 2×1e11 + 32M
+//     widest    = max(freight, sell) × 1e4
+//     safe ⇔ (2e11 + 32M) × 1e4 < 9.007e15  ⇔  M < 2.5e10
+//
+// `MAX_CONFIG_CENTS = 1e9` ($10,000,000 per line item) sits 25× under that and is four orders of magnitude
+// above any real accessorial ($25–$500) or minimum charge. It cannot refuse a real tariff, and with
+// `MAX_CWT_CENTS` and `MAX_WEIGHT_LB` it makes the precision throw unreachable from EVERY operand the money
+// chain takes — which is the property §1519 could only claim for one of them.
+export const MAX_CONFIG_CENTS = 1_000_000_000;
+
 // doc 10 §17: rate_config(kind[zone_tariff|floors|fsc|accessorials|transit_matrix|class_adapter],
 // version, payload, effective). This module models the PAYLOAD shape per kind — a tenant's rating
 // configuration, the SHAPE ONLY, with ZERO hardcoded tenant data. All money is INTEGER cents (Cents);
@@ -50,7 +72,7 @@ export const ZoneTariff = z
             id: z.string().min(1),
             zones: z.array(z.string()).min(1),
             breaks: z.array(z.object({ min_lb: SafeInt, cwt_cents: NonNegCents.refine((c) => c <= MAX_CWT_CENTS, `cwt_cents exceeds the ${MAX_CWT_CENTS}-cent ceiling (§1519 — beyond it the fsc multiply leaves MAX_SAFE_INTEGER)`) }).strict()).min(1),
-            min_charge_cents: NonNegCents,
+            min_charge_cents: NonNegCents.refine((c) => c <= MAX_CONFIG_CENTS, `min_charge_cents exceeds the ${MAX_CONFIG_CENTS}-cent ceiling (§1520)`),
           })
           .strict(),
       )
@@ -105,7 +127,7 @@ export const AccessorialSchedule = z
     kind: z.literal("accessorials"),
     id: z.string().min(1),
     version: z.string().min(1),
-    items: z.record(z.string(), NonNegCents),
+    items: z.record(z.string(), NonNegCents.refine((c) => c <= MAX_CONFIG_CENTS, `an accessorial exceeds the ${MAX_CONFIG_CENTS}-cent ceiling (§1520)`)),
   })
   .strict();
 export type AccessorialSchedule = z.infer<typeof AccessorialSchedule>;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ZoneTariff, MAX_CWT_CENTS } from "@shuddl/contracts";
+import { ZoneTariff, MAX_CWT_CENTS, MAX_CONFIG_CENTS, AccessorialSchedule } from "@shuddl/contracts";
 import { priceFreight } from "../src/engine.js";
 import { roundHalfUp, mulDivHalfUp } from "../src/money.js";
 import type { ShipmentPhysics } from "../src/types.js";
@@ -361,6 +361,23 @@ describe("priceFreight — the monetary product is BigInt-exact (no float produc
     // 180_149_999_998_198: exactly the confirmed off-by-1¢ this fix removes.
     expect(roundHalfUp(18015 * 999_999_999_990, 100)).toBe(180_149_999_998_198);
     expect(roundHalfUp(18015 * 999_999_999_990, 100)).not.toBe(r.freight_cents);
+  });
+
+  it("§1520 — every CONFIG cents field carries the same ceiling (min_charge + each accessorial)", () => {
+    // The chain multiplies whatever the tenant configured by a bps and refuses to lose precision, so ONE
+    // over-cap number anywhere in the tariff reaches the same throw. Measured at §1520: an accessorial at 9e15
+    // and a min_charge at 9e15 each returned HTTP 500 on the anonymous /pub/quote.
+    const zt = {
+      kind: "zone_tariff" as const, id: "zt-mc", version: "1", zip_to_zone: { "801": "ZB" },
+      rate_groups: [{ id: "g", zones: ["ZB"], breaks: [{ min_lb: 0, cwt_cents: 5_000 }], min_charge_cents: MAX_CONFIG_CENTS + 1 }],
+    };
+    expect(() => ZoneTariff.parse(zt)).toThrow();
+    expect(ZoneTariff.parse({ ...zt, rate_groups: [{ ...zt.rate_groups[0]!, min_charge_cents: MAX_CONFIG_CENTS }] })
+      .rate_groups[0]!.min_charge_cents).toBe(MAX_CONFIG_CENTS);
+
+    const acc = { kind: "accessorials" as const, id: "acc-1", version: "1", items: { liftgate: MAX_CONFIG_CENTS + 1 } };
+    expect(() => AccessorialSchedule.parse(acc)).toThrow();
+    expect(AccessorialSchedule.parse({ ...acc, items: { liftgate: MAX_CONFIG_CENTS } }).items.liftgate).toBe(MAX_CONFIG_CENTS);
   });
 
   it("§1519 — and the SCHEMA now refuses that tariff outright (the layer above the engine)", () => {
