@@ -729,6 +729,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 951 | §1504 | **§1505** | **FOUR GATES WHOSE CORPUS EXCLUDED THE FILE THEIR RULE WAS WRITTEN ABOUT.** `packages/`+`workers/` hold 14 `.tsx` — server-side render views, not app code — and four gates scan those trees with `/\.ts$/`. Each was proved blind by planting its own violation in a `.tsx` (green) with a `.ts` control (red): `constant-time-compare`, `float-money-division`, `unbounded-reads-roster`, `dark-stub-roster`. **The sharpest: float-money-division's filter drops `evidence-email-view.tsx`, whose `formatCents` prints the dollar amount on every customer invoice under a header stating this gate's exact rule.** And `constant-time-compare` widened its TREE to apps at §1448 for exactly this reason while the extension filter kept 52% of app source out. **Process correction: my first two probes fired NOWHERE — a `.ts` control caught it before I recorded blindness that was really an invalid probe.** All four widened, all four now red on a `.tsx` violation. |
 | 952 | §1505 | **§1506** | **THE TREE LIST AND THE PATH — the last two scoping kinds, both live.** `dark-stub-roster` scanned packages+workers and not `apps`, while **the driver PWA composes its own transports**: a `new NotConfigured…()` root planted in `apps/driver/src/sync/useSync.ts` left it 4/4 green (the same probe reds in `packages`). `idb-durability` scanned `apps/driver/src/storage/*.ts` only — §1419's defect exactly — so the same commit-durability violation planted in `sync/useSync.ts`, a file that already touches `indexedDB`, was invisible; the rule protects signed airplane-mode evidence. Both widened (dark-stub on BOTH the shipped and the test scan; idb across the whole driver surface and both extensions), both green on the real tree, each now red on its own violation in the cell it missed. **A scope that is TRUE TODAY and a scope that is RIGHT are indistinguishable until something moves.** |
 | 953 | §1506 | **§1507** | **SIX INSTANCES IS A CLASS, SO THE CLASS GETS A GATE.** Counted first: **37 gates build a production-tree corpus — 6 import the shared roster (declared at §493 for this exact reason), 31 roll their own**, and every instance found in §1504–§1506 was a roller that chose its TREE deliberately and never chose its EXTENSION at all. The last three `.ts`-only corpora were widened even though their trees hold zero `.tsx` today (§1506's argument applied before the fact). Then `corpus-extension.test.ts`: one rule, the six measured instances in its header, an INPUT floor of 37 calls, an end-of-statement window rather than a fixed reach (§1378), and a positive control — **mutation-proved a SOLE watcher** (narrowing float-money back reds it and nothing else in 140 files). A gate converts an expensive manual procedure into something the seventh author cannot skip. |
+| 954 | §1507 | **§1508** | **STOPPING POINT — the block closed, board re-measured AFTER the gate edits.** `eeed28b`: **21 PASS · 0 FAIL · 5 BLOCKED**, identical to §1503's run — nine gate files changed between them and the board did not move, which is the claim each widening made. Block: **11 commits, 19 files, 1,109 insertions, ZERO product source**; every mutation restored byte-identical. Found: 2 serializer escapes defended by nothing; 19 `defensive` guards mutated → 12 silent in four dispositions; **7 gates whose corpus excluded their own subject** (an `export` keyword, an extension ×4, a tree list, a path); 1 gate added so the eighth instance fails when written. **Every finding was a claim about coverage nobody had made the cheap measurement on — none was found by reading code for bugs, all by planting the violation the artifact claimed to catch.** |
 | 856 | §1409 | **§1410** | **SWEEPING MY OWN SECTIONS FOR §1409's ERROR, AND A DETECTOR THAT COULD NOT HAVE FOUND IT.** §1404's precedent: a class like this gets ONE measurement, not a gate, since a correction necessarily quotes what it corrects. **The first sweep returned ZERO and was worthless** — it extracted superseded text as `~~struck~~` only, but the very case §1409 found is marked the other way, as *"a 16-step chain …"* **until audit §1029**. **My detector encoded one of the repo's TWO conventions, so it could never have found the known positive.** Twelfth instance of the session's constant, caught because a zero is the answer this session has learned never to accept. **A second false signal inside the control:** asking *"is it inside `~~…~~`?"* with `~~[^~]*16-step` returned True — because an unrelated `~~` sits earlier and `[^~]*` spanned the gap. **A regex answering "is X inside a delimiter" by searching for the delimiter anywhere before X will say yes to the whole file.** Re-run over both conventions: **109 superseded passages, zero quoted without a marker** — and that zero is worth something, because the corrected detector demonstrably flags a reconstruction of §1408's sentence. **§1409's error was singular, not a habit** |
 | **855** | §1408 | **§1409** | **I QUOTED STRUCK TEXT AS CURRENT, AND THE REPO HAD SOLVED IT 380 SECTIONS EARLIER.** §1408 cited CLAUDE.md's account of `verify:dev` as *"a 16-step chain … reaches 4 of 16"*. Measured: **18 steps**. **But the drift is my quotation's, not the law's** — CLAUDE.md's current text says that reading held *"until audit §1029"*, was *"invalidated hours later by `7b61624`"*, and that **the total is stated no longer, only the position that matters: step 4, and nothing after it**. I quoted the struck half of a correction as the claim. **Eleventh measurement error, and the first where the artifact had already anticipated the failure I was about to report.** **§1029's move is exactly §1402's, reached 373 sections apart and independently:** faced with a number that rots, REMOVE the number and keep the invariant. A convention arrived at twice from opposite ends of the record is the closest this audit has to a law about documentation. Substantively: `verify:dev` is still an unaggregated `&&` chain at 18 steps, and that is **not** a defect — CLAUDE.md documents it, names `verify:merge` as the real verdict, and `wp-exit-audit.test.ts:19` records that a naive matcher yields *"4 of 16"* and *"reads as a serious constitutional finding and is an artifact"*. **Tenth clean negative** |
 | 854 | §1407 | **§1408** | **VERIFYING MY OWN DELIVERABLE IS WIRED, BY THE STANDARD §1304 SET.** Five gates were built this session and each reported as working; §1304's standard is **verified WIRED before the board is read**, because a gate that runs when I invoke it and not when CI does is decoration with a green tick. **First measurement said ZERO** — searching the merge log for the five names returns 0 mentions each, which reads as "they never ran". It is the §1362 reporter difference: the tools suite runs under vitest v4 (summary only) while worker suites at v3.2.7 print per-file. The same run reports **125 files passed**, 120 + 5. **Tenth measurement error avoided by not believing a zero.** Measured properly three ways: `vitest list` shows **21 cases** across the five; `run-gate.ts:46` wires `unit-tests` to the `test` script; and `test` is `test:tools; t=$?; … ; exit $(( t \|\| p ))`. **Proved end-to-end:** breaking `law-enforcers` makes `pnpm test:tools` exit 1, which propagates. Also worth noting: that script AGGREGATES rather than `&&`-chains — the defect CLAUDE.md records for `verify:dev`, which reaches 4 of 16 steps |
@@ -86678,3 +86679,51 @@ checks the EXTENSION only — it says nothing about which TREES a corpus should 
 instance there (`dark-stub-roster` missing `apps`). A tree-list rule needs a per-gate judgement about its
 subject, so it stays a reading task; if a second tree-scope instance appears, that judgement is the thing to
 mechanise next.
+
+## §1508 — PHASE GATE: STOPPING POINT — the block closed, board re-measured after the gate edits (REQ-118/119)
+
+§1503 was a stopping point for the guard sweep; five phases followed it, seven of the eleven commits touched
+gate files, and a board measured before those edits certifies nothing about them. So it was run again.
+
+**BOARD, RUN AT `eeed28b`: 21 PASS · 0 FAIL · 5 BLOCKED (of 26)**, aggregate `BLOCKED (exit 2)`, **NOT
+PROMOTABLE** — byte-for-byte the same verdict as §1503's run at `320653f`, with the same five owner-side
+blockers and an empty repo-owned failure set. Nine gate files changed between the two runs (four corpora
+widened, two scopes widened, one roster's population widened, one gate added, one gate's fixed window
+replaced) and the board did not move: **the widenings cost nothing on the real tree, which was the claim each
+one made.** The concurrent workstream's thirteen modified files were still in the tree for both runs — §1503's
+caveat stands unchanged, and a clean-tree run is still owed.
+
+**THE BLOCK: 11 commits, 19 files, 1,109 insertions, and ZERO touching product source.** Nine of the nineteen
+are `tools/checks`; the rest are test files and this record. Every mutation planted across the block — 19
+guard mutations, 7 corpus/scope mutations, ~10 probes — was restored from a copy saved before planting and
+verified byte-identical.
+
+**What it found, in one list:**
+
+- **2 serializer escapes defended by nothing** (§1498) — the CSV writer and the IIF grid guard, both writing
+  files someone else imports.
+- **19 `defensive` guards mutated, 12 silent** (§1499–§1502), resolving into four dispositions: 6 unwatched
+  and load-bearing, 1 watched by a test measuring the *other* layer, 4 redundant with a premise that is itself
+  defended, 1 self-enforcing.
+- **7 gates whose corpus excluded their own subject** (§1504–§1507) — by an `export` keyword, by a file
+  extension (×4), by a tree list, by a path — including the float-money rule whose dropped file states that
+  rule in its header.
+- **1 gate added** (`corpus-extension`) so the seventh instance of that class fails when it is written.
+
+**The through-line, and it is one sentence.** Every finding in this block was a **claim about coverage that
+nobody had made the cheap measurement on**: a guard's test, a gate's corpus, a roster's population. Not one
+was found by reading code for bugs; every one was found by planting the violation the artifact claimed to
+catch and watching what happened. **The failures were all in the evidence, and the evidence was all
+inexpensive to check.**
+
+**Phase gate.** Board **MEASURED** above, repo-owned failure set empty. Suites at close: adapters 49, ledger
+733, driver-core 53, rater 168, contracts 331, api 844, agents 145, mcp 190, translator 132, tools 140 files /
+1457 tests. Carry-forward unchanged from §1497 — five owner-side items, three waiting on the concurrent
+workstream. **Reopen triggers:** (a) re-run the board on a CLEAN tree once the concurrent workstream commits
+— neither run here survives their files changing; (b) `corpus-extension` covers the EXTENSION axis only, so a
+second tree-scope instance is the trigger to mechanise that axis too; (c) the ~23 unmutated `defensive` sites
+in `workers/agents|billing` remain, at a 63% silent rate.
+
+*(Checked and clean, recorded so it is not re-derived: all 15 gates carrying a declared exemption list were
+surveyed for a staleness assertion. Fourteen have one. The fifteenth — `strip-comments`'s `DECLARED` — is
+`[]`, an empty list whose staleness check would be vacuous by construction.)*
