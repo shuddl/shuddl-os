@@ -5,6 +5,8 @@ import {
   parseSheet,
   type LegacyMirrorConfig,
   type MirrorRecord,
+  projectOut,
+  serializeOutboundCsv,
 } from "../src/index.js";
 import genericExport from "../../../fixtures/legacy-mirror/generic-export.csv?raw";
 
@@ -42,6 +44,45 @@ const CONFIG: LegacyMirrorConfig = LegacyMirrorConfigSchema.parse({
 });
 
 const eventOf = (records: MirrorRecord[], kind: string) => records.find((r) => r.event?.kind === kind)?.event;
+
+// §1529 (REQ-022/118) — THE PROVENANCE CLAUSE, MEASURED. §1498 justified the CSV escaping by asserting that
+// the key column carries *"`naturalKey` — the INCUMBENT'S OWN reference, read verbatim out of their export"*.
+// That is the clause the whole "not redundant" argument rests on: if the key were a SHUDDL-shaped id, a comma
+// could never appear in it and `csvField` would be belt without braces. It was read off two source lines
+// (`const naturalKey = cell(row, config.keyColumn)` and the project-out echo) and never driven — and §1527
+// measured a different read-off-the-source clause of mine and found it FALSE.
+//
+// So the loop is closed end to end here: a legacy row whose KEY CELL contains a comma and a quote → mirror-IN
+// → project-OUT → re-parse, and the key survives byte-identical. Nothing in it is constructed by the test
+// except the incumbent's own CSV.
+describe("§1529 — the incumbent's own key reaches the wire and survives it (§1498's provenance clause)", () => {
+  const HOSTILE_KEY = 'PO 12, LOT "A"';
+
+  it("mapLegacyExport reads the key VERBATIM from the configured column", () => {
+    const csv = `rec_id,rec_type,feed_seq,shuddl_ref,ship_ref,amount_cents
+"${HOSTILE_KEY.replace(/"/g, '""')}",RATE,1,,SH-1,120000
+`;
+    const { records } = mapLegacyExport(parseSheet(csv), CONFIG);
+    expect(records).toHaveLength(1);
+    expect(
+      records[0]?.naturalKey,
+      "the key is NOT the incumbent's cell — §1498's argument that csvField is load-bearing rests on this",
+    ).toBe(HOSTILE_KEY);
+  });
+
+  it("…and it round-trips out through serializeOutboundCsv unchanged", () => {
+    const csv = `rec_id,rec_type,feed_seq,shuddl_ref,ship_ref,amount_cents
+"${HOSTILE_KEY.replace(/"/g, '""')}",RATE,1,,SH-1,120000
+`;
+    const { records } = mapLegacyExport(parseSheet(csv), CONFIG);
+    const ev = records[0]?.event;
+    expect(ev, "the row did not map to an event — the fixture drifted from the config").toBeDefined();
+    const out = serializeOutboundCsv(projectOut([{ ...ev!, id: "nat_1", source: "native" as const }], CONFIG), CONFIG);
+    const feed = parseSheet(out);
+    expect(feed.rows, "the hostile key split the record").toHaveLength(1);
+    expect(feed.rows[0]?.[feed.headers.indexOf("rec_id")]).toBe(HOSTILE_KEY);
+  });
+});
 
 describe("mapLegacyExport — a legacy export row becomes the RIGHT source:'legacy' canonical event", () => {
   it("a rated row → quote.priced (source:legacy); an invoice row → invoice.issued; settlement/dispatch/appt too", () => {
