@@ -724,6 +724,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 946 | §1499 | **§1500** | **A TEST NAMED AFTER THE LAYER IT WAS NOT MEASURING.** Mutated the five highest-value `defensive` guards in `workers/api` (842 tests, one mutation per run). 2 red (the doc cap's tenant prefix, the DO flip guard). **`authority-flip.test.ts` carries three C1 cases labelled ROUTE/ROUTE/DO — and emptying `CONTROL_PLANE_KINDS`, deleting the ROUTE layer entirely, left 842/842 green.** Both layers refuse 403 and leave `authority_map` untouched, so status + map-unchanged cannot tell them apart: the cases named ROUTE were measuring the DO, and the unwatched half is the one an attacker reaches first. Fixed with the REQ-156 envelope MESSAGE as the discriminator. Separately, the status cap's `.strict()` shape layer had NO case (every existing forgery has the right shape and a wrong secret/typ) — and Zod STRIPS rather than rejects, so a foreign MAC-valid token would read as a clean cap. Third green documented as SELF-ENFORCING (a module-load assertion reds every import when the data is wrong). 843/843, both changes mutation-proved. **Defense in depth is a claim about TWO layers; a test that cannot tell them apart proves one.** |
 | 947 | §1500 | **§1501** | **THE GUARD THAT TURNS A HOLD INTO A POISON MESSAGE.** `concierge.ts:233@mailSafe` refuses a CR/LF recipient and names its own second layer (*the send port's schema ALSO rejects CR/LF, but as a ZodError*). Dropping the `\r\n` half left `workers/agents` **145/145 green**, and the same mutation now reds exactly one `workers/api` test — the one added here — so it was green in BOTH. **Not redundant, and the reason is the finding: `handleMessageReceived` maps a SendError to a HOLD and RETHROWS everything else so the queue redelivers.** A ZodError is deterministic, so redelivery re-throws forever on bytes that can never succeed: the second layer converts a clean HOLD into a poison message. **Two guards that both reject the same input are not interchangeable when the CALLER distinguishes their error types.** The address is attacker-shaped (`from_ref` off the inbound email). Case asserts hold + sender never called + facts stand; 844/844, mutation-proved. Silent in the owning package because ownership follows the CONSUMER — the outcome is asserted across a worker seam. |
 | 948 | §1501 | **§1502** | **THE BELT WAS PINNED, THE PRIMARY GUARD WAS NOT.** MCP: clean negative twice (the write seam reds 4, the confirm id check reds 1). Translator: the R2 quarantine cap and the EDI plan-shape assertion are genuinely redundant **and their premises are defended** (verified by mutating the premise, not the guard). But REQ-202's storage-DoS cap is TWO guards — a declared Content-Length refused *without reading the stream*, and a post-read byteLength *belt* — and **deleting the DECLARED branch left 131/131 green while the belt reds**. The existing case sends a genuinely large body, so both fire and either alone satisfies it; the discriminator is a SMALL body with a LARGE declared length. Both branches now pinned independently. **SWEEP CLOSED: 17 guards mutated, 10 silent (59%) — 5 needed a test, 1 needed a fix to a test measuring the wrong layer, 4 are redundant with a defended premise. Green on a guard mutation says nothing until you mutate what makes it redundant.** |
+| 949 | §1502 | **§1503** | **STOPPING POINT — the guard sweep, and a board measured against a DIRTY tree.** Board at `320653f`: **21 PASS · 0 FAIL · 5 BLOCKED**, exit 2, NOT PROMOTABLE — all five owner-side, repo-owned failure set empty. **Stated because it changes what the verdict certifies: thirteen concurrent-workstream files were modified in the tree**, so this is my commits PLUS their uncommitted edits and is not reproducible from the commit alone; the 2 FAILs of 2026-08-09 are gone (their register row resolved), and §1494/§1496's carry-forwards are still waiting — a gate that passes over someone else's uncommitted work has been observed, not verified. Block: six commits, **zero touching product source**. Sweep total **19 guards mutated, 12 silent (63%)** → four dispositions: 6 unwatched and load-bearing, 1 watched by a test measuring the WRONG LAYER, 4 redundant with a defended premise (each needing a SECOND mutation of the premise), 1 self-enforcing. **Green on a guard mutation is a question, not an answer.** |
 | 856 | §1409 | **§1410** | **SWEEPING MY OWN SECTIONS FOR §1409's ERROR, AND A DETECTOR THAT COULD NOT HAVE FOUND IT.** §1404's precedent: a class like this gets ONE measurement, not a gate, since a correction necessarily quotes what it corrects. **The first sweep returned ZERO and was worthless** — it extracted superseded text as `~~struck~~` only, but the very case §1409 found is marked the other way, as *"a 16-step chain …"* **until audit §1029**. **My detector encoded one of the repo's TWO conventions, so it could never have found the known positive.** Twelfth instance of the session's constant, caught because a zero is the answer this session has learned never to accept. **A second false signal inside the control:** asking *"is it inside `~~…~~`?"* with `~~[^~]*16-step` returned True — because an unrelated `~~` sits earlier and `[^~]*` spanned the gap. **A regex answering "is X inside a delimiter" by searching for the delimiter anywhere before X will say yes to the whole file.** Re-run over both conventions: **109 superseded passages, zero quoted without a marker** — and that zero is worth something, because the corrected detector demonstrably flags a reconstruction of §1408's sentence. **§1409's error was singular, not a habit** |
 | **855** | §1408 | **§1409** | **I QUOTED STRUCK TEXT AS CURRENT, AND THE REPO HAD SOLVED IT 380 SECTIONS EARLIER.** §1408 cited CLAUDE.md's account of `verify:dev` as *"a 16-step chain … reaches 4 of 16"*. Measured: **18 steps**. **But the drift is my quotation's, not the law's** — CLAUDE.md's current text says that reading held *"until audit §1029"*, was *"invalidated hours later by `7b61624`"*, and that **the total is stated no longer, only the position that matters: step 4, and nothing after it**. I quoted the struck half of a correction as the claim. **Eleventh measurement error, and the first where the artifact had already anticipated the failure I was about to report.** **§1029's move is exactly §1402's, reached 373 sections apart and independently:** faced with a number that rots, REMOVE the number and keep the invariant. A convention arrived at twice from opposite ends of the record is the closest this audit has to a law about documentation. Substantively: `verify:dev` is still an unaggregated `&&` chain at 18 steps, and that is **not** a defect — CLAUDE.md documents it, names `verify:merge` as the real verdict, and `wp-exit-audit.test.ts:19` records that a naive matcher yields *"4 of 16"* and *"reads as a serious constitutional finding and is an artifact"*. **Tenth clean negative** |
 | 854 | §1407 | **§1408** | **VERIFYING MY OWN DELIVERABLE IS WIRED, BY THE STANDARD §1304 SET.** Five gates were built this session and each reported as working; §1304's standard is **verified WIRED before the board is read**, because a gate that runs when I invoke it and not when CI does is decoration with a green tick. **First measurement said ZERO** — searching the merge log for the five names returns 0 mentions each, which reads as "they never ran". It is the §1362 reporter difference: the tools suite runs under vitest v4 (summary only) while worker suites at v3.2.7 print per-file. The same run reports **125 files passed**, 120 + 5. **Tenth measurement error avoided by not believing a zero.** Measured properly three ways: `vitest list` shows **21 cases** across the five; `run-gate.ts:46` wires `unit-tests` to the `test` script; and `test` is `test:tools; t=$?; … ; exit $(( t \|\| p ))`. **Proved end-to-end:** breaking `law-enforcers` makes `pnpm test:tools` exit 1, which propagates. Also worth noting: that script AGGREGATES rather than `&&`-chains — the defect CLAUDE.md records for `verify:dev`, which reaches 4 of 16 steps |
@@ -86438,3 +86439,62 @@ translator's post-read 413 and its append-sequence assertion, `HOST_TENANTS`'s s
 directions. Carry-forward unchanged. **Reopen trigger:** the ~23 remaining `defensive` sites are in
 `workers/agents|billing` and the prose-only matches; at 59% silent the next batch is worth running, and any
 NEW guard should be mutated when written rather than swept for later.
+
+## §1503 — PHASE GATE: STOPPING POINT — the guard sweep, and a board measured against a dirty tree (REQ-118/119)
+
+**BOARD, RUN AT `320653f`: 21 PASS · 0 FAIL · 5 BLOCKED (of 26)**, aggregate `BLOCKED (exit 2)`, **NOT
+PROMOTABLE**. All five blockers are the same owner-side inputs §1497 named — `identity-leak` (no denylist),
+`fixtures` (nine pending vendor items) and the three parity gates that read them. **The repo-owned failure set
+is empty.**
+
+**Stated because it changes what the verdict certifies: the tree was DIRTY when this ran.** A concurrent
+workstream holds thirteen modified files — `apps/command`, `apps/driver`, `tools/traceability/*`,
+`tools/seed/load.ts`, `genesis/09`, `docs/wp/acceptance-demos.md`, `packages/ledger/test/seed-load.test.ts` —
+none of them mine, none staged by me. So this verdict is **my commits PLUS their uncommitted edits**, and it
+is not reproducible from `320653f` alone. Two things follow. First, the **2 FAILs** the board carried on
+2026-08-09 (§646/§648, both the uncommitted REQ-289 register row) are **gone** — `traceability` and `coverage`
+both PASS here, so that row has been resolved in their working copy. Second, §1494's and §1496's
+carry-forwards — `coverage`'s fail-ability and REQ-257's disposition, both waiting on a concurrent commit —
+are still waiting: a gate that passes over someone else's uncommitted work has not been verified, it has been
+observed.
+
+**THE BLOCK, measured.** Six commits since `7cc07d4`; **zero touching product source** (`workers|packages|apps`
+`/src`) — verified by an empty `git diff --stat` over those trees. Five are phases of one sweep:
+
+| | subject | mutated | silent | added |
+|---|---|---|---|---|
+| §1498 | serializer escaping (`csvField`, IIF `clean`) | 2 | **2** | 10 cases |
+| §1499 | `defensive` guards, pure packages | 6 | 3 | 2 cases |
+| §1500 | `defensive` guards, `workers/api` | 5 | 3 | 1 case + 2 fixed |
+| §1501 | the CR/LF recipient, `workers/agents` | 1 | 1 | 1 case |
+| §1502 | `defensive` guards, `mcp` + `translator` | 5 | 3 | 1 case |
+
+**19 guards mutated, 12 silent (63%).** Suites moved: adapters 43→49, ledger 728→733, driver-core 52→53, api
+842→844, translator 131→132; mcp 190 unchanged (a clean negative twice). Every mutation restored
+byte-identical and verified with `git diff --stat`.
+
+**What the sweep is actually for, now that it is counted.** Twelve silent guards produced **four different
+dispositions**, and the distinction is the whole value:
+
+1. **Unwatched and load-bearing** (6) — a test was missing: the CSV/IIF escapes, the credit-gap kind guard,
+   the driver rehydration drain, the cap's `.strict()` shape layer, the CR/LF recipient hold, the declared
+   Content-Length refusal.
+2. **Watched by a test measuring the wrong layer** (1) — `CONTROL_PLANE_KINDS`, where two guards produce the
+   same 403 and the case named ROUTE was proving the DO.
+3. **Genuinely redundant, premise defended** (4) — the rater's `breaks.min(1)`, the translator's post-read 413
+   and its append-sequence assertion, and `HOST_TENANTS`'s self-enforcing boot check. **Each took a SECOND
+   mutation to establish** — of the premise, not the guard.
+4. **Self-enforcing** (1) — a module-load assertion that reds every import when its data is wrong.
+
+**The one-line law: green on a guard mutation is a question, not an answer.** It means the guard is unwatched
+OR redundant, and only mutating what makes it redundant tells you which. Four of the twelve turned out fine;
+seven were real gaps; and the twelfth was worse than a gap, because a test with the right name was standing in
+front of it.
+
+**Phase gate.** Board **MEASURED** above, repo-owned failure set empty. No product source changed in six
+commits. Carry-forward unchanged from §1497 — the five owner-side items, plus the three still waiting on the
+concurrent workstream to commit. **Reopen triggers:** (a) ~23 `defensive` sites remain unmutated in
+`workers/agents|billing` and the prose-only matches; at 63% silent the next batch is worth running; (b) when
+the concurrent workstream commits, re-run the board on a CLEAN tree — this verdict does not survive their
+files changing; (c) any NEW guard should be mutated when written, since every gap here was cheaper to find
+than it would have been to explain after an incident.
