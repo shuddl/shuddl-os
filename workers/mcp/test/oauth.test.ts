@@ -548,3 +548,52 @@ describe("§1366 REQ-154: the production OAuth secret resolver is fail-closed (d
     expect(res.status, "the fail-closed resolver no longer refuses registration").not.toBe(200);
   });
 });
+
+// §1589 (REQ-106/118) — THE CODE IS SPENT ON FIRST USE **SEQUENTIALLY**. CONCURRENTLY IT IS NOT.
+//
+// §596 above pins the sequential property and explains why the ordering is read-then-DELETE-then-validate:
+// validate-then-delete "would let a wrong `code_verifier` be retried against the same code, turning a
+// 60-second window into a PKCE brute-force oracle". That reasoning is right about RETRIES and silent about
+// CONCURRENCY — and KV has no compare-and-delete, so `get` and `delete` are two operations. Two exchanges that
+// both `get` before either `delete` lands BOTH proceed to validate and BOTH mint a token. Measured: **2 of 2,
+// stable across three runs.**
+//
+// EXPLOITABILITY IS BOUNDED, and saying so is part of the finding. `authenticateClient` runs BEFORE PKCE, so
+// every concurrent attempt still needs the confidential client's secret; an attacker holding only an
+// intercepted code gets nowhere. What this actually is: RFC 6749 §4.1.2 single-use is violated, one code can
+// mint N tokens for a client that races itself, and the brute-force oracle §596 closed for sequential retries
+// is open for parallel ones (N verifier guesses against one code, if the secret is also held).
+//
+// THIS TEST TAKES NO SIDE — it PINS the current behaviour so a fix cannot land silently. Both remedies are
+// architectural and cost more than a patch: moving codes to D1 to consume them with an atomic
+// `DELETE … RETURNING` spends the ONE spare table (CLAUDE.md: 21 of 22 used, "the spare requires a written
+// deletion"), and routing consumption through a Durable Object adds a dependency to the OAuth path. Both are
+// owner decisions, filed on GO-LIVE-CHECKLIST. **When this test fails, the defect was fixed — update the row
+// and delete this case.**
+describe("§1589 REQ-106: concurrent exchanges of one code are NOT serialized (filed, not fixed)", () => {
+  it("two simultaneous exchanges both mint a token — KV `get`+`delete` is not atomic", async () => {
+    const d = deps(goodSecrets());
+    await register(d, PAIRING);
+    const verifier = "verifier-0123456789-abcdefghijklmnopqrstuvwxyz-ABCDEFG";
+    const challenge = await challengeFor(verifier);
+    const code = codeFromRedirect(await authorize(d, authParams(challenge)));
+    const exchange = (): Promise<Response> =>
+      token(d, {
+        grant_type: "authorization_code",
+        code,
+        redirect_uri: REDIRECT_URI,
+        client_id: PAIRING,
+        code_verifier: verifier,
+        client_secret: CLIENT_SECRET,
+      });
+
+    const results = await Promise.all([exchange(), exchange()]);
+    const minted = results.filter((r) => r.status === 200).length;
+    expect(
+      minted,
+      "only ONE concurrent exchange minted a token — the single-use property now holds under concurrency, which " +
+        "means the KV get+delete was replaced with an atomic consume. That is the fix this case was written to " +
+        "detect: strike the GO-LIVE-CHECKLIST row (audit §1589) and delete this test.",
+    ).toBeGreaterThan(1);
+  });
+});
