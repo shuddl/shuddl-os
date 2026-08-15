@@ -531,7 +531,7 @@ reboot converted *unmeasured* into *measured*. It provisioned nothing and vendor
   cannot be re-read from a checkout; only its outcomes can.
 - **Highs closed with a fix commit.** WP-16's one High — invoice-void AR divergence (REQ-209) — is **FIXED at
   `1d3cf83`** ("invoice void flips AR out of issued"). Its regression test exists and is readable
-  (`packages/ledger/test/money-projection.test.ts:120@VOID`) but is a `workerd` suite, so **it was not run here**;
+  (`packages/ledger/test/money-projection.test.ts:124@VOID`) but is a `workerd` suite, so **it was not run here**;
   the "reconciliation-tested" claim is the WP-16 audit's, at that SHA, not this close-out's. The four
   code-unremediated Highs the 2026-07-15 audit carried (identity-leak fail-open, idempotency-4xx memoization,
   design-CI blind spots, map bearing) were fixed and reconciled at WP-16 as REQ-167/206/207/208 — REQ-206/207/208

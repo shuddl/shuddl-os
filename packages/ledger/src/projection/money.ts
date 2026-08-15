@@ -51,7 +51,10 @@ export interface MoneyLineRow {
 // `settle` flips a matched OPEN invoice to 'paid' when a payment.received covers it (REQ-083, the AR-settlement
 // write an honest DSO needs). invoices is a MUTABLE read-model — all four are legal (events/money_lines are not).
 export type InvoiceUpsert =
-  | { mode: "insert"; id: string; party_id: string; division: string; total_cents: number; status: string; issued_event_id: string; terms: string | null; due_ts: number | null }
+  // `shipment_ids` is a JSON ARRAY STRING of the shipments this issue covers — `[]` only when the event carries
+  // no shipment at all. It was the literal `'[]'` for every invoice ever issued until §1542, which made the MCP
+  // `get_document` membership test (`shipment_ids` contains the id) answer NO for every pair.
+  | { mode: "insert"; id: string; party_id: string; division: string; shipment_ids: string; total_cents: number; status: string; issued_event_id: string; terms: string | null; due_ts: number | null }
   | { mode: "update"; id: string; total_cents: number; status: string; issued_event_id: string }
   | { mode: "void"; id: string; total_cents: number; status: string }
   | { mode: "settle"; id: string; status: string };
@@ -132,7 +135,9 @@ export function projectMoneyLines(e: LedgerEvent, deps: MoneyProjectionDeps): Mo
       return {
         lines,
         invoices: [
-          { mode: "insert", id: p.invoice_id, party_id: p.party_id, division: p.division, total_cents: total, status: "issued", issued_event_id: e.id, terms, due_ts: dueTs },
+          // The shipment this issue covers — the same `shipment` already stamped on every money line above, so
+          // the header and its lines agree by construction rather than by a second derivation (§1542).
+            { mode: "insert", id: p.invoice_id, party_id: p.party_id, division: p.division, shipment_ids: JSON.stringify(shipment !== null ? [shipment] : []), total_cents: total, status: "issued", issued_event_id: e.id, terms, due_ts: dueTs },
         ],
       };
     }
@@ -314,9 +319,15 @@ export function projectMoneyLines(e: LedgerEvent, deps: MoneyProjectionDeps): Mo
 const MONEY_LINE_SQL =
   "INSERT INTO money_lines (id, shipment_id, event_id, line_no, direction, kind, amount_cents, currency, party_id, division, gl_map, corrects_event_id, basis, created_ts) " +
   "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+// `shipment_ids` is BOUND (it was the literal '[]' until §1542) and the conflict path UNIONS rather than
+// replaces: the same invoice id issued against a second shipment is how a multi-shipment invoice is expressed
+// today, and the schema comment plus the dunning route both say an invoice may cover several. A plain
+// `= excluded.shipment_ids` would make the invoice deny covering a shipment it does. `json_group_array` over a
+// UNION of both sides is set semantics, so a re-issue on an already-recorded shipment is idempotent.
 const INVOICE_UPSERT_SQL =
-  "INSERT INTO invoices (id, party_id, division, shipment_ids, total_cents, status, issued_event_id, terms, due_ts) VALUES (?,?,?,'[]',?,?,?,?,?) " +
-  "ON CONFLICT(id) DO UPDATE SET party_id=excluded.party_id, division=excluded.division, total_cents=excluded.total_cents, status=excluded.status, issued_event_id=excluded.issued_event_id, terms=excluded.terms, due_ts=excluded.due_ts";
+  "INSERT INTO invoices (id, party_id, division, shipment_ids, total_cents, status, issued_event_id, terms, due_ts) VALUES (?,?,?,?,?,?,?,?,?) " +
+  "ON CONFLICT(id) DO UPDATE SET party_id=excluded.party_id, division=excluded.division, total_cents=excluded.total_cents, status=excluded.status, issued_event_id=excluded.issued_event_id, terms=excluded.terms, due_ts=excluded.due_ts, " +
+  "shipment_ids=(SELECT json_group_array(v) FROM (SELECT value AS v FROM json_each(invoices.shipment_ids) UNION SELECT value FROM json_each(excluded.shipment_ids)))";
 const INVOICE_UPDATE_SQL = "UPDATE invoices SET total_cents=?, status=?, issued_event_id=? WHERE id=?";
 // REQ-119 / REQ-209 — the VOID write: flip a fully-reversed invoice OUT of 'issued' to {status:'void', total_cents:0}.
 // Unconditional (like the reissue UPDATE) so the AR row always lands on the void truth; redelivery is already
@@ -348,7 +359,7 @@ export function applyMoneyProjection(
   }
   for (const inv of invoices) {
     if (inv.mode === "insert") {
-      stmts.push(db.prepare(INVOICE_UPSERT_SQL).bind(inv.id, inv.party_id, inv.division, inv.total_cents, inv.status, inv.issued_event_id, inv.terms, inv.due_ts));
+      stmts.push(db.prepare(INVOICE_UPSERT_SQL).bind(inv.id, inv.party_id, inv.division, inv.shipment_ids, inv.total_cents, inv.status, inv.issued_event_id, inv.terms, inv.due_ts));
     } else if (inv.mode === "update") {
       stmts.push(db.prepare(INVOICE_UPDATE_SQL).bind(inv.total_cents, inv.status, inv.issued_event_id, inv.id));
     } else if (inv.mode === "void") {

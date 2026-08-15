@@ -763,6 +763,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 985 | §1538 | **§1539** | **TWO WRITERS OF `anomalies` DISAGREED ABOUT RECURRENCE.** §1536 stopped one table short of the biggest; finishing the sweep across all 11 found the column diffs benign — **and the defect in the CONFLICT CLAUSE instead.** Watchtower upserts to `status='open'` (its comment *"a re-raise flips it back"* measured TRUE); the EDI quarantine used `INSERT OR IGNORE`, which **cannot flip anything**. Collapse-to-one-row is deliberate, but collapse is not ignore: a cleared row stayed `'resolved'` while the same interchange kept failing and the handler kept answering 200, **invisible to every ops read — all of which filter `status='open'`**. **LATENT** (nothing resolves an EDI id today; no API write path exists) — §1536's shape again, safety living in an absence. Fixed with watchtower's own shape; `detail` deliberately untouched because the R2 key is deterministic on the same pair, so redelivery **overwrites** rather than orphans. RED first, `DO NOTHING` mutation reds only this case. **Fourth collapsed run of the block** — the plant that worked changed ONE TOKEN. |
 | 986 | §1539 | **§1540** | **THE CONFLICT-CLAUSE SWEEP — THE CLASS HAD TWO INSTANCES AND I HAD FIXED ONE.** §1539's general form, run immediately: **3 of 7 multi-writer tables disagree**; two benignly (`shipments` = create-if-absent vs project-over, an INTENT difference; `usage_credits` = a plain INSERT whose THROW is the slug's exclusivity). `anomalies` had **four** writers, not two, and the discriminator is **the subject of the id**: keyed on a RECURRING CONDITION (`partner+ISA`, `tenant+naturalKey+raw`) it must reopen; keyed on a ONE-SHOT OCCURRENCE (a folded clock, a per-run `importId`) `OR IGNORE` is correct — which is why the gap-row and quarantine writers rightly differ **inside the same files**. Instance #2 fixed; its own comment drew the content-vs-clock distinction for the gap rows and never carried it to the clause, while the bad legacy row sits in the feed being re-read every sweep. RED at `expected +0 to be 2`, no-forking assertion passing first. **Lesson: run the sweep at instance #1, before writing the record — §1539 shipped as a one-file fix for a two-file class.** |
 | 987 | §1540 | **§1541** | **THE GATE FOUND THE THIRD INSTANCE ON ITS FIRST RUN — AND THE FORM WAS ALREADY RIGHT.** §1540 ended with a reopen trigger; **a trigger asks a future reader to remember, a gate does not**, so every production `INSERT INTO anomalies` must now reopen on conflict or declare itself one-shot **with a reason** (a marker, not a heuristic — both classes live 12 lines apart in one file, so nothing mechanical can read an id's SUBJECT). It failed immediately on `status-cache.ts`: `DO UPDATE SET severity, detail` — **no `status`**. Both earlier sweeps bucketed writers by `OR IGNORE` vs `DO UPDATE` and this IS a `DO UPDATE`; the **SET list** was wrong. It is also the only `critical` instance — its own comment calls it a defeated credit gate and a mis-bill risk. 7 sites now classified: 5 REOPEN, 2 ONE-SHOT. **Three instances of one class found by three different instruments, each blind to what the next caught — a sweep's BUCKETS are a hypothesis too.** |
+| 988 | §1541 | **§1542** | **A COLUMN READ BY THREE CONSUMERS AND WRITTEN AS A CONSTANT.** §1541 one level out: for every upsert, which inserted columns does `SET` never touch? **11 sites**; most omissions correct and now recorded (identity columns; the two `usage_credits` writers each owning one column). One was not an omission but a CONSTANT — **`invoices.shipment_ids` was the literal `'[]'` for every invoice ever issued**, while being the SOLE membership test in the MCP `get_document` tool. Its fail-open keeps an absent/unparseable column, but `'[]'` **parses fine** and `[].includes()` is a confident NO — **the one value production emitted was the one the guard trusts** — so `get_document(invoices:true)` returned empty for every shipment, on demo #4's surface. **The MCP suite was 193/193 throughout: its stub supplies `["shp01"]`. A STUB IS AN ASSERTION ABOUT THE PRODUCER.** Fixed by binding the shipment the projector already stamps on every money line; conflict path UNIONs so a multi-shipment invoice cannot deny a shipment it covers. No migration — a derived read-model over an append-only ledger is rebuilt by replay. |
 | 856 | §1409 | **§1410** | **SWEEPING MY OWN SECTIONS FOR §1409's ERROR, AND A DETECTOR THAT COULD NOT HAVE FOUND IT.** §1404's precedent: a class like this gets ONE measurement, not a gate, since a correction necessarily quotes what it corrects. **The first sweep returned ZERO and was worthless** — it extracted superseded text as `~~struck~~` only, but the very case §1409 found is marked the other way, as *"a 16-step chain …"* **until audit §1029**. **My detector encoded one of the repo's TWO conventions, so it could never have found the known positive.** Twelfth instance of the session's constant, caught because a zero is the answer this session has learned never to accept. **A second false signal inside the control:** asking *"is it inside `~~…~~`?"* with `~~[^~]*16-step` returned True — because an unrelated `~~` sits earlier and `[^~]*` spanned the gap. **A regex answering "is X inside a delimiter" by searching for the delimiter anywhere before X will say yes to the whole file.** Re-run over both conventions: **109 superseded passages, zero quoted without a marker** — and that zero is worth something, because the corrected detector demonstrably flags a reconstruction of §1408's sentence. **§1409's error was singular, not a habit** |
 | **855** | §1408 | **§1409** | **I QUOTED STRUCK TEXT AS CURRENT, AND THE REPO HAD SOLVED IT 380 SECTIONS EARLIER.** §1408 cited CLAUDE.md's account of `verify:dev` as *"a 16-step chain … reaches 4 of 16"*. Measured: **18 steps**. **But the drift is my quotation's, not the law's** — CLAUDE.md's current text says that reading held *"until audit §1029"*, was *"invalidated hours later by `7b61624`"*, and that **the total is stated no longer, only the position that matters: step 4, and nothing after it**. I quoted the struck half of a correction as the claim. **Eleventh measurement error, and the first where the artifact had already anticipated the failure I was about to report.** **§1029's move is exactly §1402's, reached 373 sections apart and independently:** faced with a number that rots, REMOVE the number and keep the invariant. A convention arrived at twice from opposite ends of the record is the closest this audit has to a law about documentation. Substantively: `verify:dev` is still an unaggregated `&&` chain at 18 steps, and that is **not** a defect — CLAUDE.md documents it, names `verify:merge` as the real verdict, and `wp-exit-audit.test.ts:19` records that a naive matcher yields *"4 of 16"* and *"reads as a serious constitutional finding and is an artifact"*. **Tenth clean negative** |
 | 854 | §1407 | **§1408** | **VERIFYING MY OWN DELIVERABLE IS WIRED, BY THE STANDARD §1304 SET.** Five gates were built this session and each reported as working; §1304's standard is **verified WIRED before the board is read**, because a gate that runs when I invoke it and not when CI does is decoration with a green tick. **First measurement said ZERO** — searching the merge log for the five names returns 0 mentions each, which reads as "they never ran". It is the §1362 reporter difference: the tools suite runs under vitest v4 (summary only) while worker suites at v3.2.7 print per-file. The same run reports **125 files passed**, 120 + 5. **Tenth measurement error avoided by not believing a zero.** Measured properly three ways: `vitest list` shows **21 cases** across the five; `run-gate.ts:46` wires `unit-tests` to the `test` script; and `test` is `test:tools; t=$?; … ; exit $(( t \|\| p ))`. **Proved end-to-end:** breaking `law-enforcers` makes `pnpm test:tools` exit 1, which propagates. Also worth noting: that script AGGREGATES rather than `&&`-chains — the defect CLAUDE.md records for `verify:dev`, which reaches 4 of 16 steps |
@@ -13497,7 +13498,7 @@ penny"* — but no test fed it a malformed quote, so nothing observed the guard.
 
 I checked whether anything downstream would catch a drifted line set, since a duplicate guard would make
 this the §145 class (only the diagnostic differs). It would not:
-`packages/ledger/src/projection/money.ts:125@reduce` computes the invoice's `total_cents` **from the
+`packages/ledger/src/projection/money.ts:128@reduce` computes the invoice's `total_cents` **from the
 lines** — so drifted lines do not disagree with anything. They produce an invoice whose total silently
 differs from the accepted quote's sell, with every projection self-consistent.
 
@@ -86310,7 +86311,7 @@ workerd) and mutated every one.
 | guard | mutation | verdict |
 |---|---|---|
 | `packages/contracts/src/money.ts:67@total_cents` — split gross ≥ 0 | drop the `.refine` | **1 red** |
-| `packages/ledger/src/projection/money.ts:404@allocateCents` — 4xx not 500 | `if (false)` | **2 red** |
+| `packages/ledger/src/projection/money.ts:413@allocateCents` — 4xx not 500 | `if (false)` | **2 red** |
 | `packages/ledger/src/contacts.ts:36@Array` — fail-closed | `return true` | **2 red** |
 | `packages/rater/src/engine.ts:104@Error` — no weight breaks throws | return a zero winner | **green** |
 | `packages/ledger/src/projection/status-cache.ts:64@credit` — the kind guard | delete the line | **green** |
@@ -87322,7 +87323,7 @@ contracts **336/336** (was 334 — two derivation cases), api **852/852** (was 8
 files / 1457. Four inputs each proved to red the derivation; the cap proved behaviourally after its
 discriminator was fixed. **Reopen trigger:** the derivation now covers the QUOTE chain. `allocateCents`
 (interline splits) multiplies `total_cents × share_bps` on a payload whose `total_cents` is an unbounded
-`Cents` — its throw is already mapped to a 4xx (`packages/ledger/src/projection/money.ts:404@allocateCents`), so it is not a 500, but it is
+`Cents` — its throw is already mapped to a 4xx (`packages/ledger/src/projection/money.ts:413@allocateCents`), so it is not a 500, but it is
 outside this algebra and no ceiling makes it unreachable.
 
 ## §1522 — PHASE GATE: STOPPING POINT — seven product defects, one anonymous endpoint, and a property that now has a proof (REQ-118/119)
@@ -87758,7 +87759,7 @@ empty string its `.min(1)` was already guarding), and each mutation-proved indiv
 
 **A CITATION AFTERMATH WORTH THE LINE.** Four comment lines in `events.ts` and three in `money.ts` shifted
 **26 citations** across four files — the audit, the checklist, and two source comments. Two more needed
-judgement rather than arithmetic: my shift script moved a BARE `money.ts:404@allocateCents` that targets the
+judgement rather than arithmetic: my shift script moved a BARE `packages/ledger/src/projection/money.ts:413@allocateCents` that targets the
 LEDGER's `money.ts`, not contracts' (fixed, and now written with its full path); and two rows QUOTE a broken
 citation as a specimen, inside the very rows documenting that defect — those are de-cited to name the SHAPE,
 the precedent `citation-blank-line`'s own header sets. **A quoted specimen that drifts becomes a second
@@ -88130,3 +88131,58 @@ class, found by three different instruments** — a hand read, a conflict-clause
 what the next one caught. **Reopen trigger:** none for this class; the gate is the trigger now. The transferable
 half is that **a sweep's BUCKETS are a hypothesis too**: bucketing by conflict form made `DO UPDATE` look like a
 synonym for safe, and one of the five things it can update is the only one that mattered.
+
+## §1542 — PHASE GATE: a column read by three consumers and written as a constant (REQ-057/083/118)
+
+§1541's lesson was that **a sweep's buckets are a hypothesis** — bucketing by conflict FORM made `DO UPDATE`
+look like a synonym for safe, when one of the five things it can update was the only one that mattered. Run one
+level out: for **every** upsert in the repo, which inserted columns does its `SET` list never touch? A column
+supplied on insert and absent from `SET` keeps its first-write value forever.
+
+**11 upsert sites.** Most omissions are correct and now recorded as such: `anomalies` never updates
+`rule`/`object_kind`/`object_id` (they are the row's identity); the two `usage_credits` writers each update
+their OWN column and leave the other's alone (`credits.ts` owns `stripe_refs`, `metering.ts` owns `metered`) —
+a deliberate ownership split that prevents one from clobbering the other; `shipments.created_ts` is a creation
+time. **One was not an omission at all but a constant.**
+
+**`invoices.shipment_ids` was the literal `'[]'` for every invoice ever issued.** It is declared in `0002`,
+selected by BOTH `/v1/invoices` column lists, named in the dunning route's reasoning, and it is the **sole
+membership test** in the MCP `get_document` tool: *an invoice belongs to the shipment iff `shipment_ids`
+contains the id*. Nothing else in production writes the column.
+
+**The tool's fail-open does not cover it, and that is the precise shape of the defect.** `invoiceOnShipment`
+keeps an invoice whose column is absent or unparseable — *"a read tool must not SILENTLY DROP a row it cannot
+confidently exclude"* — but `'[]'` **parses fine**, and `[].includes(id)` is a confident NO. **The single value
+production emitted was the one value the guard treats as authoritative.** So `get_document(invoices: true)`
+returned an empty list for every shipment, on the surface acceptance demo #4 runs on.
+
+**And the MCP suite was green the whole time — 193/193, before and after.** Its stub answers the api with
+`shipment_ids: ["shp01"]`. **A stub is an assertion about the producer.** That test proved the filter works
+given good data; nothing anywhere proved the data was good, and the producer three packages away wrote a
+constant. This is [[presence-tests-cannot-reach-value-constraints]] one level out: not a field that is never
+validated, but a field that is never *produced*.
+
+**Fixed** by binding what the projector already had. `projectMoneyLines` opens with
+`const shipment = e.shipment_id ?? null` and stamps it on **every money line**; the header now carries the same
+value, so an invoice and its lines agree by construction rather than by a second derivation. The conflict path
+**UNIONs** (`json_group_array` over `json_each(invoices…) UNION json_each(excluded…)`) rather than replacing:
+the same invoice id issued against a second shipment is how a multi-shipment invoice is expressed today, and a
+plain `= excluded` would make the invoice deny covering a shipment it does. Set semantics, so a re-issue on an
+already-recorded shipment is idempotent — asserted.
+
+**No migration is needed and none is proposed.** `invoices` is a derived read-model over an append-only ledger,
+so a replay rebuilds it from the events that were always the truth. That is the designed remedy for exactly
+this, and inventing a backfill would write data the ledger did not say.
+
+**Two measurement artifacts, both recorded.** The first sweep reported `money_lines` — a **guarded** table —
+carrying an upsert. It does not: the regex's forward reach crossed a statement boundary into the next `const`.
+The corrected pass then returned **zero sites**, which I did not trust either; a positive control asserting the
+known `invoices` upsert is found now runs before the results are read (§1387 — plant a control before believing
+a zero).
+
+**Phase gate.** `@shuddl/ledger` **738/738**, `@shuddl/api` 855/855, `@shuddl/mcp` 193/193, typecheck 0, lint 0,
+invariants 0. RED first (`expected [] to deeply equal [ 'shp-si-1' ]`). Two pre-existing pure-projection drafts
+gained the field — and my assumption that their events carried no `shipment_id` was **wrong**: the default
+fixture sets `shp-1`, so those assertions now demonstrate the fix directly instead of asserting `[]`.
+**Reopen trigger:** none. The general form is the finding — **ask of every read: who WRITES this, and with
+what?** A consumer, a schema column and a green suite can all agree while the producer emits a constant.

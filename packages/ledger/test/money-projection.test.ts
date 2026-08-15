@@ -48,7 +48,10 @@ describe("REQ-012 — projectMoneyLines is a pure projection of the event payloa
     // REQ-083: with NO resolvable terms (deps.termsDays undefined) the invoice is honest about it —
     // terms/due_ts are NULL ("no terms on file"), never a fabricated due date.
     expect(p.invoices).toEqual([
-      { id: "inv-1", party_id: "party-bill", division: "north", total_cents: 120_000, status: "issued", issued_event_id: e.id, mode: "insert", terms: null, due_ts: null },
+      // shipment_ids carries the event's own shipment — the same value stamped on every money line above.
+      // It was the literal "[]" for every invoice until §1542, which is what made the MCP membership test
+      // answer NO for every (invoice, shipment) pair. `[]` now means only "this event named no shipment".
+      { id: "inv-1", party_id: "party-bill", division: "north", shipment_ids: JSON.stringify([e.shipment_id]), total_cents: 120_000, status: "issued", issued_event_id: e.id, mode: "insert", terms: null, due_ts: null },
     ]);
   });
 
@@ -65,6 +68,7 @@ describe("REQ-012 — projectMoneyLines is a pure projection of the event payloa
         id: "inv-1",
         party_id: "party-bill",
         division: "north",
+        shipment_ids: JSON.stringify([e.shipment_id]), // the event's own shipment (§1542)
         total_cents: 120_000,
         status: "issued",
         issued_event_id: e.id,
@@ -307,6 +311,56 @@ describe("REQ-012 / I7 — applyMoneyProjection through real D1 (append batch + 
     expect(inv).toEqual({ division: "west", total_cents: 120_000, status: "issued" });
     const ml = await DB.prepare("SELECT COUNT(*) c FROM money_lines WHERE event_id = ?").bind(e.id).first<{ c: number }>();
     expect(ml?.c).toBe(3);
+  });
+
+  // §1542 (REQ-057/083/118) — `invoices.shipment_ids` IS READ, AND WAS WRITTEN AS A CONSTANT `'[]'`.
+  //
+  // The column is declared in 0002, selected by both `/v1/invoices` column lists, referenced by the dunning
+  // route, and is the SOLE membership test in the MCP `get_document` tool: an invoice belongs to a shipment iff
+  // `shipment_ids` contains the id. The projector bound the literal `'[]'` for every invoice ever issued, and
+  // nothing else in production writes the column — so that membership test answered NO for every pair, and
+  // `get_document(invoices: true)` returned an empty list for every shipment on the surface demo #4 runs on.
+  //
+  // The tool's fail-open does NOT cover it: it keeps an invoice whose column is absent or unparseable ("scope is
+  // the api's lens"), but `'[]'` parses fine, and `[].includes(id)` is a confident NO. The one value production
+  // emitted was the one value the guard treats as authoritative.
+  //
+  // The relation was already in hand — `projectMoneyLines` opens with `const shipment = e.shipment_id ?? null`
+  // and stamps it on every money line. This writes the same truth to the invoice header.
+  it("§1542 an issued invoice records the shipment it covers, and a second issue UNIONS rather than replaces", async () => {
+    const first = mkEvent("invoice.issued", {
+      stream_id: "s:shp-si-1", shipment_id: "shp-si-1",
+      payload: { invoice_id: "inv-si", party_id: "party-bill", division: "west", lines: ISSUE_LINES },
+    });
+    await appendWithMoney(DB, first);
+    const one = await DB.prepare("SELECT shipment_ids FROM invoices WHERE id = 'inv-si'").first<{ shipment_ids: string }>();
+    expect(
+      JSON.parse(one!.shipment_ids) as string[],
+      "the invoice does not know which shipment it covers — the MCP membership test answers NO for every pair",
+    ).toEqual(["shp-si-1"]);
+
+    // The SAME invoice id issued against a SECOND shipment — how a multi-shipment invoice is expressed today,
+    // and the case a plain `= excluded.shipment_ids` would silently lose. The schema comment and the dunning
+    // route both state that an invoice may cover several shipments, so the conflict path must UNION.
+    const second = mkEvent("invoice.issued", {
+      stream_id: "s:shp-si-2", shipment_id: "shp-si-2",
+      payload: { invoice_id: "inv-si", party_id: "party-bill", division: "west", lines: ISSUE_LINES },
+    });
+    await appendWithMoney(DB, second);
+    const both = await DB.prepare("SELECT shipment_ids FROM invoices WHERE id = 'inv-si'").first<{ shipment_ids: string }>();
+    expect(
+      (JSON.parse(both!.shipment_ids) as string[]).slice().sort(),
+      "the second issue REPLACED the first shipment instead of unioning — the invoice now denies covering a shipment it does",
+    ).toEqual(["shp-si-1", "shp-si-2"]);
+
+    // Idempotence: re-issuing on a shipment already recorded must not duplicate the entry.
+    await appendWithMoney(DB, mkEvent("invoice.issued", {
+      // seq 1: this stream already carries the seq-0 issue above, and two events cannot share a (stream, seq).
+      stream_id: "s:shp-si-2", shipment_id: "shp-si-2", seq: 1,
+      payload: { invoice_id: "inv-si", party_id: "party-bill", division: "west", lines: ISSUE_LINES },
+    }));
+    const again = await DB.prepare("SELECT shipment_ids FROM invoices WHERE id = 'inv-si'").first<{ shipment_ids: string }>();
+    expect((JSON.parse(again!.shipment_ids) as string[]).slice().sort(), "a repeat issue duplicated the shipment id").toEqual(["shp-si-1", "shp-si-2"]);
   });
 
   it("REQ-083 persists due_ts/terms on issue; a covering payment.received flips status='paid'; cod line intact", async () => {
