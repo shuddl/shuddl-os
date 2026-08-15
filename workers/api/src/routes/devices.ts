@@ -82,6 +82,46 @@ function parseEntries(raw: string): DeviceEntry[] {
   }
 }
 
+/**
+ * §1587 (REQ-013/016) — READ-MODIFY-WRITE `users.device_keys` UNDER A COMPARE-AND-SET.
+ *
+ * `device_keys` is a JSON array in one column, so every change is read → mutate → write the WHOLE array back.
+ * An unguarded `UPDATE … WHERE id = ?` is last-writer-wins: writers that read the same array each write their
+ * own copy and every device but the last silently disappears — measured, five concurrent enrollments left ONE
+ * key. The driver then holds a key the control plane never recorded, and every event it signs is refused
+ * `UNAUTHORIZED: device signature`. The worse interleaving is revoke-vs-enroll: an enroll that read the array
+ * BEFORE a revoke landed writes it back afterwards and **resurrects the revoked key**.
+ *
+ * The fix is a compare-and-set on the exact bytes read (`AND device_keys IS ?3` — `IS`, not `=`, so a NULL
+ * column compares rather than yielding NULL). `changes === 0` means someone else wrote between the read and the
+ * write, so the whole read-modify-write is retried against the new state; `mutate` therefore runs again and must
+ * be free of side effects outside `entries`. Bounded at three attempts — an unbounded retry turns contention
+ * into a hot loop inside a Worker's CPU budget.
+ */
+const CAS_ATTEMPTS = 3;
+
+async function updateDeviceKeys<T>(
+  control: D1Database,
+  tenant: string,
+  sub: string,
+  mutate: (entries: DeviceEntry[]) => T,
+): Promise<T> {
+  for (let attempt = 0; attempt < CAS_ATTEMPTS; attempt += 1) {
+    const user = await loadUser(control, tenant, sub);
+    if (user === null) throw new ApiError("NOT_FOUND", 404, "UNKNOWN PRINCIPAL");
+    const entries = parseEntries(user.device_keys);
+    const out = mutate(entries);
+    const res = await control
+      .prepare("UPDATE users SET device_keys = ?1 WHERE id = ?2 AND device_keys IS ?3")
+      .bind(JSON.stringify(entries), sub, user.device_keys)
+      .run();
+    if ((res.meta.changes ?? 0) === 1) return out;
+  }
+  // 409 matches this file's other conflict (DEVICE ALREADY ENROLLED TO ANOTHER DRIVER): the request is well
+  // formed and the caller may simply retry. Losing a key silently would be the alternative.
+  throw new ApiError("VALIDATION_FAILED", 409, "DEVICE KEY UPDATE CONTENDED — RETRY");
+}
+
 export function mountDeviceRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>): void {
   // POST /v1/devices — enroll the driver's P-256 public key. driver-only.
   app.post("/v1/devices", requireRole("driver"), async (c) => {
@@ -106,18 +146,17 @@ export function mountDeviceRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>)
       .first<{ uid: string }>();
     if (conflict !== null) throw new ApiError("VALIDATION_FAILED", 409, "DEVICE ALREADY ENROLLED TO ANOTHER DRIVER");
 
-    const entries = parseEntries(user.device_keys);
-    const now = Date.now();
-    const idx = entries.findIndex((e) => e.device_id === deviceId);
-    let status: 200 | 201 = 201;
-    if (idx >= 0) {
-      // Own key: idempotent when active, REACTIVATE when previously revoked (drop revoked_ts, restamp).
-      entries[idx] = { device_id: deviceId, public_jwk: parsed.data.public_jwk, enrolled_ts: now };
-      status = 200;
-    } else {
+    const status = await updateDeviceKeys(control, session.tenant, session.sub, (entries): 200 | 201 => {
+      const now = Date.now();
+      const idx = entries.findIndex((e) => e.device_id === deviceId);
+      if (idx >= 0) {
+        // Own key: idempotent when active, REACTIVATE when previously revoked (drop revoked_ts, restamp).
+        entries[idx] = { device_id: deviceId, public_jwk: parsed.data.public_jwk, enrolled_ts: now };
+        return 200;
+      }
       entries.push({ device_id: deviceId, public_jwk: parsed.data.public_jwk, enrolled_ts: now });
-    }
-    await control.prepare("UPDATE users SET device_keys = ? WHERE id = ?").bind(JSON.stringify(entries), session.sub).run();
+      return 201;
+    });
     return c.json({ device_id: deviceId, enrolled: true }, status);
   });
 
@@ -136,13 +175,11 @@ export function mountDeviceRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>)
   app.post("/v1/devices/:device_id/revoke", requireRole("driver"), async (c) => {
     const session = c.get("session");
     const deviceId = c.req.param("device_id");
-    const user = await loadUser(c.env.CONTROL_DB, session.tenant, session.sub);
-    if (user === null) throw new ApiError("NOT_FOUND", 404, "UNKNOWN PRINCIPAL");
-    const entries = parseEntries(user.device_keys);
-    const entry = entries.find((e) => e.device_id === deviceId && e.revoked_ts == null);
-    if (entry === undefined) throw new ApiError("NOT_FOUND", 404, "DEVICE NOT FOUND FOR THIS DRIVER");
-    entry.revoked_ts = Date.now();
-    await c.env.CONTROL_DB.prepare("UPDATE users SET device_keys = ? WHERE id = ?").bind(JSON.stringify(entries), session.sub).run();
+    await updateDeviceKeys(c.env.CONTROL_DB, session.tenant, session.sub, (entries) => {
+      const entry = entries.find((e) => e.device_id === deviceId && e.revoked_ts == null);
+      if (entry === undefined) throw new ApiError("NOT_FOUND", 404, "DEVICE NOT FOUND FOR THIS DRIVER");
+      entry.revoked_ts = Date.now();
+    });
     return c.json({ device_id: deviceId, revoked: true });
   });
 }

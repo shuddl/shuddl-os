@@ -265,3 +265,71 @@ describe("POST /v1/devices — authenticated device enrollment (REQ-013/016/025)
     expect(body.message).toBe("UNKNOWN PRINCIPAL");
   });
 });
+
+// §1587 (REQ-013/016/118) — `device_keys` IS ONE JSON COLUMN, SO EVERY WRITE IS A READ-MODIFY-WRITE.
+//
+// Both mutating routes read the whole array, change it in memory, and write it back. With an unguarded
+// `UPDATE … WHERE id = ?` that is last-writer-wins, and MEASURED it lost data: two concurrent enrollments left
+// **one** key. The driver then holds a key the control plane never recorded, and every event it signs is refused
+// `UNAUTHORIZED: device signature` — a driver whose captures fail for no visible reason.
+//
+// The second case is the one that matters more. An enroll that read the array BEFORE a revoke landed writes it
+// back afterwards and **resurrects the revoked key**: a phone reported lost stays able to sign. Both are now
+// held by a compare-and-set on the exact bytes read, with a bounded retry.
+//
+// These drive the REAL routes concurrently rather than simulating an interleaving, so they assert the property
+// (no update is lost) and not a particular schedule.
+describe("§1587 REQ-013/016: concurrent device-key writes do not lose each other", () => {
+  it("two enrollments racing each other BOTH survive (neither key is silently dropped)", async () => {
+    await env.CONTROL_DB.prepare("INSERT OR IGNORE INTO users (id, tenant_id, email, role, auth, device_keys) VALUES (?,?,?,?,?,?)")
+      .bind("u-race-1", "t-a", "race1@tenant-a.test", "driver", "{}", "[]")
+      .run();
+    const t = await token({ sub: "u-race-1", tenant: TENANT_SLUG, role: "driver" });
+    // FIVE at once, not two, deliberately. Whether any two requests actually interleave between their read and
+    // their write is the scheduler's business, so a 2-way race detects the defect only sometimes — measured, it
+    // and the revoke case below traded which one reded run to run. With five writers a schedule in which NONE
+    // overlaps is vanishingly unlikely, which is what makes this a regression test rather than a coin flip.
+    const jwks = await Promise.all(Array.from({ length: 5 }, () => genPublicJwk()));
+    const results = await Promise.all(jwks.map((jwk) => enroll(t, { public_jwk: jwk })));
+
+    // THE PROPERTY IS `accepted ⇒ persisted`, not `all five succeed`. Optimistic concurrency does not promise
+    // that every contender wins: a writer whose three attempts all lose the compare-and-set is REFUSED 409
+    // ("CONTENDED — RETRY"), which is a caller-visible, retryable outcome. Asserting all five 2xx would be
+    // asserting a promise the design does not make — the first draft of this case did exactly that and failed
+    // against a correct implementation. What must never happen is a 2xx whose key is not there afterwards.
+    const accepted = results.filter((r) => r.status === 200 || r.status === 201);
+    expect(accepted.length, "under contention at least one writer should still win").toBeGreaterThanOrEqual(1);
+
+    const listed = await listDevices(t);
+    expect(
+      listed.ids.length,
+      `${accepted.length} enrollments were ACCEPTED but ${listed.ids.length} keys survive — an accepted write ` +
+        "was overwritten. `device_keys` is a whole-array write, so without a compare-and-set a writer clobbers " +
+        "everyone who read before it. The lost device signs events the control plane cannot verify, and the " +
+        "driver sees captures refused for no visible reason.",
+    ).toBe(accepted.length);
+    expect(new Set(listed.ids).size, "the surviving devices must be distinct").toBe(listed.ids.length);
+  });
+
+  it("a revoke racing an enroll does NOT resurrect the revoked key", async () => {
+    await env.CONTROL_DB.prepare("INSERT OR IGNORE INTO users (id, tenant_id, email, role, auth, device_keys) VALUES (?,?,?,?,?,?)")
+      .bind("u-race-2", "t-a", "race2@tenant-a.test", "driver", "{}", "[]")
+      .run();
+    const t = await token({ sub: "u-race-2", tenant: TENANT_SLUG, role: "driver" });
+    const lost = await enroll(t, { public_jwk: await genPublicJwk() });
+    const lostId = lost.body?.device_id;
+    expect(lostId, "setup: the device to be revoked must enrol").toBeDefined();
+
+    // The lost phone is revoked at the same moment the driver enrols its replacement.
+    const [revokeStatus] = await Promise.all([revoke(t, lostId!), enroll(t, { public_jwk: await genPublicJwk() })]);
+    expect(revokeStatus).toBe(200);
+
+    const listed = await listDevices(t);
+    expect(
+      listed.ids,
+      "the REVOKED device is active again — the enrol wrote back an array it had read before the revoke landed. " +
+        "A phone reported lost can sign events until someone notices.",
+    ).not.toContain(lostId);
+    expect(listed.ids.length, "the replacement device must still be enrolled").toBe(1);
+  });
+});
