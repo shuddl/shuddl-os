@@ -311,13 +311,17 @@ describe("POST /v1/authority/:module/flip — the Gatekeeper flip guard (REQ-023
 // single chokepoint every append traverses — structurally rejects an authority.flipped off t:root.
 type SeqStub = DurableObjectStub & { append(req: { tenant: string; streamId: string; input: unknown }): Promise<{ id: string } & Record<string, unknown>> };
 
-async function postEvent(shipmentId: string, input: unknown, tok: string): Promise<{ status: number }> {
+async function postEvent(shipmentId: string, input: unknown, tok: string): Promise<{ status: number; message: string }> {
   const res = await SELF.fetch(`https://api.local/v1/shipments/${shipmentId}/events`, {
     method: "POST",
     headers: { Authorization: `Bearer ${tok}`, "Idempotency-Key": crypto.randomUUID(), "content-type": "application/json" },
     body: JSON.stringify(input),
   });
-  return { status: res.status };
+  // §1500 — the MESSAGE is returned as well as the status, because it is the only observable that
+  // distinguishes WHICH layer refused (see the route-layer cases below). Every error leaving this worker is
+  // the REQ-156 envelope `{ code, message, req_id }`, so this read is the contract, not a guess.
+  const body = (await res.json().catch(() => ({}))) as { message?: string };
+  return { status: res.status, message: body.message ?? "" };
 }
 
 const forgedFlip = (module: string, shipmentId: string): Record<string, unknown> => ({
@@ -333,12 +337,32 @@ const forgedFlip = (module: string, shipmentId: string): Record<string, unknown>
   payload: { module, from: "legacy", to: "native", reason: "promote" }, // a hand-crafted, ungated promote
 });
 
+// §1500 (REQ-030/023/118) — WHY THE ROUTE-LAYER CASES ASSERT A MESSAGE AND NOT ONLY A STATUS.
+//
+// These three cases are labelled ROUTE / ROUTE / DO because the refusal is deliberately DOUBLE: the events
+// route refuses the kind outright (CONTROL_PLANE_KINDS), and the sequencer DO structurally rejects an
+// authority.flipped off t:root. Both comments call the pairing defense in depth.
+//
+// MEASURED at §1500: emptying CONTROL_PLANE_KINDS — deleting the ROUTE layer entirely — left the whole
+// workers/api suite **842/842 green**, these two cases included. Both layers refuse with 403 and both leave
+// authority_map untouched, so `status` + `map unchanged` cannot tell them apart: the cases named ROUTE were
+// measuring the DO. Defense in depth was half-proved, and the half nobody was watching was the one the
+// attacker reaches first.
+//
+// The MESSAGE is the discriminator, and it is contract rather than incident: every error leaving this worker
+// is the REQ-156 envelope, the route's text names its own remedy (`/v1/authority/:module/flip`) and the DO's
+// names the stream rule (`may only append on t:root`). Asserting the route's text pins the route's layer.
+const ROUTE_LAYER_WHY =
+  "the refusal did not come from the ROUTE layer — this is the DO's message, which means CONTROL_PLANE_KINDS " +
+  "is no longer refusing the kind and the two-layer defence has silently become one layer (§1500)";
+
 describe("C1 — the flip guard cannot be bypassed via any other API path (REQ-030, CLAUDE.md rule 3)", () => {
   it("ROUTE layer: an admin's forged authority.flipped POSTed to the generic events route is REFUSED (403); authority_map is unchanged", async () => {
     const admin = await token({ sub: "c1-admin", tenant: TENANT_SLUG, role: "admin" });
     await setLegacy("comms", admin); // known baseline: the injection tries to flip comms→native
     const r = await postEvent("c1-forge-route", forgedFlip("comms", "c1-forge-route"), admin);
     expect(r.status).toBe(403); // refused at the general write route (its one home is /v1/authority/:module/flip)
+    expect(r.message, ROUTE_LAYER_WHY).toContain("/v1/authority/:module/flip");
     expect(await resolveAuthority(env.TENANT_A_DB, "comms")).toBe("legacy"); // no projection ran — map untouched
   });
 
@@ -348,6 +372,7 @@ describe("C1 — the flip guard cannot be bypassed via any other API path (REQ-0
     await setLegacy("dispatch", admin);
     const r = await postEvent("c1-forge-ops", forgedFlip("dispatch", "c1-forge-ops"), ops);
     expect(r.status).toBe(403); // the privilege-escalation vector (ops flipping authority) is closed
+    expect(r.message, ROUTE_LAYER_WHY).toContain("/v1/authority/:module/flip");
     expect(await resolveAuthority(env.TENANT_A_DB, "dispatch")).toBe("legacy");
   });
 

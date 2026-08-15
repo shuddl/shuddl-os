@@ -2,7 +2,7 @@ import { SELF, env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 import { sign } from "hono/jwt";
 import { ensureSchema, token, post, TENANT_SLUG } from "./helpers.js";
-import { deriveStatusSecret, mintStatusCap, verifyStatusCap } from "../src/pub/status-cap.js";
+import { CAP_TYP, deriveStatusSecret, mintStatusCap, verifyStatusCap } from "../src/pub/status-cap.js";
 
 // REQ-187 (WP-09 Task 2, D1 half A) — the signed status-capability token + its AUTHED, lens-scoped mint
 // route. A status link lets a party hand a bearer-only public URL to a shipment's status page (Task 3
@@ -53,6 +53,29 @@ describe("mintStatusCap / verifyStatusCap round-trip", () => {
     const noTyp = await sign({ t: "tenant-a", s: "shp-1", exp: nowS() + 3600 }, secret, "HS256");
     await expect(verifyStatusCap(wrongTyp, JWT_SECRET)).rejects.toThrow();
     await expect(verifyStatusCap(noTyp, JWT_SECRET)).rejects.toThrow();
+  });
+
+  // §1500 (REQ-187/118) — THE `.strict()` LAYER, which was defended by nothing.
+  //
+  // `StatusCapPayload` is `.strict()` and its header says why: *"a MAC-valid token carrying ANY extra claim
+  // is rejected — a real session JWT that somehow shared the MAC would still fail here (it carries
+  // sub/role/…)"*. MEASURED at §1500: dropping `.strict()` left the whole workers/api suite 842/842 green.
+  // Every case above forges a payload with the RIGHT shape and a wrong secret or a wrong typ, so the SHAPE
+  // rule itself — the second layer, behind domain separation — had no case at all.
+  //
+  // The failure without it is not loud: Zod STRIPS unknown keys rather than passing them through, so a
+  // foreign token that MAC-verified would come back as a clean {t, s} and read as a legitimate cap. That is
+  // the whole point of the layer, and `CAP_TYP` is exported *"for tests that must forge a payload with the
+  // REAL typ"* — the test this comment anticipated was never written.
+  it("a MAC-valid token carrying an EXTRA claim is rejected — the .strict() shape layer, behind the domain", async () => {
+    const secret = await deriveStatusSecret(JWT_SECRET);
+    // The REAL secret, the REAL typ, a valid exp — everything domain separation checks, plus one extra claim.
+    const extra = await sign({ typ: CAP_TYP, t: "tenant-a", s: "shp-strict-1", exp: nowS() + 3600, role: "admin" }, secret, "HS256");
+    await expect(verifyStatusCap(extra, JWT_SECRET)).rejects.toThrow();
+    // Control: the SAME payload without the extra claim verifies — so the rejection is the extra claim and
+    // not a broken forgery (a forgery that fails for the wrong reason proves nothing about `.strict()`).
+    const clean = await sign({ typ: CAP_TYP, t: "tenant-a", s: "shp-strict-1", exp: nowS() + 3600 }, secret, "HS256");
+    expect(await verifyStatusCap(clean, JWT_SECRET)).toEqual({ t: "tenant-a", s: "shp-strict-1" });
   });
 
   it("an expired cap fails verifyStatusCap", async () => {
