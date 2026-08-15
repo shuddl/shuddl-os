@@ -64,6 +64,52 @@ beforeAll(async () => {
 //
 // This case exists so that asymmetry is MEASURED rather than assumed. It is the shape of regression a
 // bound-adding phase creates: the cap is right where it is and wrong one function deeper.
+// §1550 (REQ-035/202/118) — THE IMPORT SHEET'S FOUR CEILINGS, ASSERTED.
+//
+// §1239 closed "the size-bound class" at 7 of 7. Re-run at §1550 across the whole tree the population is **63**
+// declared bound constants, of which 34 are named by no test — candidates, not defects, because a name filter
+// only ORDERS mutations (§1444: `assertPositionConsent` is named by zero tests and is among the best-covered
+// gates here). Three were probed by mutation. `MAX_RANGE_MS` and the fence's `MAX_LAT_E6`/`MAX_LON_E6` are both
+// asserted by tests that never name them — false candidates, exactly as that rule predicts. `MAX_ROWS` was not:
+// raising 5000 to 50 MILLION left all 855 api tests green.
+//
+// These four are one family — the `SheetSchema` ceilings on an AUTHENTICATED route that materializes parties and
+// shipments — so they are asserted together, each with its own case so a RED names which ceiling moved. The
+// refusal is Zod's, hence 400 rather than a domain error; what matters is that an oversized sheet is refused at
+// the boundary instead of being walked row by row.
+describe("§1550 the import sheet's declared ceilings actually refuse", () => {
+  const ops = async (): Promise<string> => `Bearer ${await token({ sub: "u1", tenant: "tenant-a", role: "ops" })}`;
+  async function post(sheet: unknown): Promise<number> {
+    const res = await SELF.fetch("https://api.local/v1/import", {
+      method: "POST",
+      headers: { "content-type": "application/json", "Idempotency-Key": crypto.randomUUID(), Authorization: await ops() },
+      body: JSON.stringify({ sheet }),
+    });
+    return res.status;
+  }
+
+  it("MAX_ROWS: 5001 rows is refused (5000 is the declared cap, and nothing proved it fired)", async () => {
+    const headers = ["shipper_name", "consignee_name", "bill_to_name"];
+    const rows = Array.from({ length: 5001 }, (_, i) => [`S${i}`, `C${i}`, `B${i}`]);
+    expect(await post({ headers, rows }), "5001 rows imported — the row ceiling does not refuse").toBe(400);
+  });
+
+  it("MAX_COLS: 201 headers is refused", async () => {
+    const headers = Array.from({ length: 201 }, (_, i) => `col_${i}`);
+    expect(await post({ headers, rows: [headers.map(() => "v")] }), "201 columns imported — the column ceiling does not refuse").toBe(400);
+  });
+
+  it("MAX_CELL: a 2001-character cell is refused", async () => {
+    const headers = ["shipper_name", "consignee_name", "bill_to_name"];
+    expect(await post({ headers, rows: [["x".repeat(2001), "C", "B"]] }), "an oversized cell imported — the cell ceiling does not refuse").toBe(400);
+  });
+
+  it("MAX_HEADER: a 201-character header is refused", async () => {
+    const headers = ["h".repeat(201), "consignee_name", "bill_to_name"];
+    expect(await post({ headers, rows: [["a", "b", "c"]] }), "an oversized header imported — the header ceiling does not refuse").toBe(400);
+  });
+});
+
 describe("§1535 — a legacy sheet's unmapped columns still ride refs (the §1534 cap does not reach this path)", () => {
   it("100 unmapped columns import cleanly, and their values are retained on the shipment", async () => {
     const cols = 100;
