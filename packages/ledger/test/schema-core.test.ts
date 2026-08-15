@@ -255,3 +255,32 @@ describe("§915: the events domain CHECKs refuse an out-of-domain value at the D
     await expect(insertEvent(eventRow({ seq: 903, id: "src-bad", source: "carrier-pigeon" }))).rejects.toThrow(/CHECK/i);
   });
 });
+
+// §1567 (REQ-016/118) — THE PER-STREAM HALF OF THE OFFLINE DEDUPE KEY.
+//
+// `driver-core/src/merge.ts` dedupes captures by `(shipment_id, device_id, device_seq)` and says it *"MIRRORS
+// EXACTLY the unique index the sequencer enforces server-side"*, calling out **"PER-STREAM (WP-05 exit audit):
+// the key includes `shipment_id`"**. The block above pins the duplicate refusal and the per-DEVICE half (same
+// seq, different device ⇒ admitted). The per-STREAM half had no case: nothing showed that the same device
+// replaying the same seq on ANOTHER shipment is admitted rather than swallowed.
+//
+// It matters in the direction that loses freight. If the server were per-DEVICE rather than per-STREAM, a
+// driver whose seq counter is monotonic ACROSS shipments would have captures on a second load silently refused
+// as duplicates — a signed POD that never lands, on the surface with no operator watching.
+//
+// WHAT THIS DOES NOT PIN, stated because measuring it corrected me: single-guard mutations SURVIVE here. The
+// invariant has two enforcers — `ux_events_device` UNIQUE (0001) and the BEFORE-INSERT trigger
+// `events_guard_ins_unique` (0008, which D1 needs because `recursive_triggers=0`) — so dropping either alone
+// leaves the other catching the duplicate. Removing BOTH reds the block above. That is defence in depth working,
+// and a surviving single mutation here means REDUNDANCY, not absence.
+describe("§1567 REQ-016: the offline dedupe key is per-STREAM, so a device may reuse a seq on another shipment", () => {
+  it("the same (device, seq) on a DIFFERENT stream is ACCEPTED", async () => {
+    await insertEvent(eventRow({ stream_id: "s:dedupe-2", shipment_id: "dedupe-2", seq: 0, device_id: "dev-B", device_seq: 3 }));
+    const r = await insertEvent(eventRow({ stream_id: "s:dedupe-3", shipment_id: "dedupe-3", seq: 0, device_id: "dev-B", device_seq: 3 }));
+    expect(
+      r.success,
+      "the same device+seq on another shipment was refused — the server is per-DEVICE, not per-STREAM, and a " +
+        "driver with a monotonic counter would lose captures on every load after the first",
+    ).toBe(true);
+  });
+});
