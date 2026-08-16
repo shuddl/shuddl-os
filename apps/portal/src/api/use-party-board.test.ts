@@ -81,6 +81,20 @@ describe("§864: usePartyBoard shows the server's truth or an honest gap — nev
     expect(result.current.asOf).toBeNull();
   });
 
+  // §1666 — a MALFORMED body, not a rejected fetch. Both failure cases above mock `get` to REJECT, which
+  // proves the catch handles a network error; neither exercises `BoardResponse.parse` throwing INTO that
+  // catch. The distinction matters because it is the difference between a caught rejection and a render
+  // throw: if the parse ever moved out of the async fetch and into a component, these tests would still pass
+  // while the surface white-screens — §1645's rule that a refusal proves the layer that PRODUCED it.
+  it("a MALFORMED response degrades like any other failure — the parse throws INTO the catch, not at render", async () => {
+    get.mockResolvedValue({ board: [{ shipment_id: 1, lat_e6: "north", status: {} }], as_of: "yesterday" });
+    const { result } = renderHook(() => usePartyBoard("P-1", vi.fn()));
+
+    await waitFor(() => expect(result.current.phase).toBe("unavailable"));
+    expect(result.current.items, "a malformed board must never be rendered as marks").toEqual([]);
+    expect(result.current.asOf).toBeNull();
+  });
+
   it("STALE: a WARM failure keeps the last-known marks and says so", async () => {
     // The distinction the whole hook exists for: the same error produces `unavailable` cold and `stale` warm,
     // because a party staring at a map deserves last-known-and-labelled over a blank screen.
