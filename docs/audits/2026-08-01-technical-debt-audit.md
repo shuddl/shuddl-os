@@ -90405,4 +90405,5 @@ says the system has nothing to report. That is the same law as *no price on air*
 and the comment makes it explicit rather than leaving `0` to look like data.
 
 **Phase gate.** adapters **3 files / 51 tests**; typecheck 0. One production guard widened, no behaviour change
-(the widened branch is unreachable today, which is the point). Board re-measured below.
+(the widened branch is unreachable today, which is the point). Board re-measured at `5ce3e7d`:
+**21 PASS · 0 FAIL · 5 BLOCKED** (aggregate BLOCKED, exit 2 — the five owner-side private-fixture holds).
