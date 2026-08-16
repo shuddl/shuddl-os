@@ -213,9 +213,21 @@ describe("monotonic price sweep — the representative 7-zone grid (504-invarian
     }
   });
 
-  // (2) DISTANCE-MONOTONIC. For each weight, order cells NEAR→FAR (DEST_ZIPS order) and assert sell is
-  // non-decreasing with distance (rate groups scale up by zone).
-  it("is distance-monotonic: for each weight, sell_cents is non-decreasing NEAR→FAR", () => {
+  // (2) DISTANCE-MONOTONIC. For each weight, order cells NEAR→FAR (DEST_ZIPS order) and assert sell RISES.
+  //
+  // §1638 — THIS ASSERTION WAS `>=` AND A ZONE-BLIND ENGINE PASSED IT. `equal` satisfies non-decreasing, so
+  // replacing the zone lookup with `tariff.rate_groups[0]` — every lane in the country priced identically —
+  // left this file **11/11 GREEN**, the whole rater package at 170/171 (the one RED was an UNKNOWN reason
+  // code, not a price), and the api worker at **882/882**. That matters more here than in an ordinary test:
+  // the audited 504-quote sweep is one of the five BLOCKED private fixtures, and CLAUDE.md names THIS file as
+  // the in-repo substitute proving *"the same weight- and distance-monotonicity"*. Half of that claim was
+  // being carried by an assertion a flat function satisfies.
+  //
+  // STRICT is the correct strength BECAUSE OF THIS TARIFF, not in general: zone k scales every cwt AND the min
+  // charge by (100 + 20k)/100, so each zone is 20% dearer than the last at every weight — the fixture is
+  // strictly increasing by construction (see BASE_BREAKS above), and an assertion weaker than the fixture is
+  // the gap. A tariff with two equally-priced zones would need `>=`; this one does not have any.
+  it("is distance-monotonic: for each weight, sell_cents STRICTLY rises NEAR→FAR (a flat engine must fail)", () => {
     const byDest = sellsByDest(cells);
     for (let j = 0; j < WEIGHTS.length; j++) {
       const acrossZones = DEST_ZIPS.map((dest) => {
@@ -225,7 +237,17 @@ describe("monotonic price sweep — the representative 7-zone grid (504-invarian
         if (v === undefined) throw new Error(`missing cell dest ${dest} weight index ${j}`);
         return v;
       });
-      assertNonDecreasing(acrossZones, `distance-monotone @ weight ${WEIGHTS[j]}`);
+      for (let i = 1; i < acrossZones.length; i++) {
+        const prev = acrossZones[i - 1];
+        const cur = acrossZones[i];
+        if (prev === undefined || cur === undefined) throw new Error(`distance sweep hole at zone index ${i}`);
+        expect(
+          cur,
+          `distance-monotone @ weight ${WEIGHTS[j]}: zone ${i} (${DEST_ZIPS[i]}) priced ${cur} vs zone ${i - 1} ` +
+            `(${DEST_ZIPS[i - 1]}) at ${prev}. This tariff makes every zone 20% dearer than the last, so EQUAL ` +
+            "means the engine did not read the zone at all — the failure `>=` could not see.",
+        ).toBeGreaterThan(prev);
+      }
     }
   });
 
