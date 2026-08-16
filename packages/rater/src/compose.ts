@@ -127,6 +127,12 @@ export function compose(
         `compose: requested accessorial "${code}" is not in the tenant accessorial schedule (${accessorials.id}) — no silent drop (Migrator law)`,
       );
     }
+    // §1678 — WHY SKIPPING IS SAFE, since three lines above an UNKNOWN code THROWS citing the no-silent-drop
+    // law and this quietly drops a known one. The only value this can skip is ZERO: the schedule's items are
+    // `NonNegCents` (contracts/rating.ts), so a negative is unconstructible at the boundary, and a $0 line is
+    // noise on an invoice rather than information. The safety is therefore NOT local — it lives in that Zod
+    // type. Relax it and this line silently swallows a tenant's configured discount, billing the customer MORE
+    // than the schedule says, with the rater suite staying green (measured: 171/171).
     if (amount > 0) {
       accessorialLines.push({ kind: "accessorial", code, amount_cents: amount });
     }

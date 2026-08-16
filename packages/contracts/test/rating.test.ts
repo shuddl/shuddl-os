@@ -223,7 +223,13 @@ describe("AccessorialSchedule", () => {
       AccessorialSchedule.parse({ ...accessorials, items: { liftgate: 25.5 } }),
     ).toThrow();
   });
-  it("rejects a NEGATIVE item value (an accessorial is a charge — a negative could silently reduce a valid price)", () => {
+  it("§1678 rejects a NEGATIVE item value — and the consumer would SKIP it, not subtract it", () => {
+    // The reason recorded here used to be "a negative could silently reduce a valid price". Measured (§1678):
+    // it would not. `compose.ts` emits an accessorial line only `if (amount > 0)`, so a negative in the
+    // schedule is silently DROPPED — the tenant's configured discount never reaches the invoice and the
+    // customer is billed MORE than the schedule says, which is the opposite direction and equally wrong.
+    // Stated correctly because this schema is the ONLY thing standing between the two behaviours: relax it and
+    // the silent skip becomes a live money defect with nothing else objecting (rater stays 171/171 green).
     expect(() =>
       AccessorialSchedule.parse({ ...accessorials, items: { liftgate: -2500 } }),
     ).toThrow();

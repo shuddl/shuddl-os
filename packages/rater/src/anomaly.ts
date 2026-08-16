@@ -53,9 +53,18 @@ export function detectAnomaly(
   const { sell_cents, weight_lb } = input;
   const cap = caps?.max_cents_per_lb ?? DEFAULT_MAX_CENTS_PER_LB;
 
-  // Validate the cap (the tenant-policy seam Task 10 feeds from config). A NaN cap would make `sell > NaN`
-  // always false — the permanent net would SILENTLY NO-OP; a zero/negative cap would false-flag every price.
-  // A malformed cap is a CALLER error — throw, matching this module's fail-loud stance for its other inputs.
+  // Validate the cap. A NaN cap would make `sell > NaN` always false — the permanent net would SILENTLY
+  // NO-OP; a zero/negative cap would false-flag every price. A malformed cap is a CALLER error — throw,
+  // matching this module's fail-loud stance for its other inputs.
+  //
+  // §1678 — this used to read "the tenant-policy seam Task 10 feeds from config", which is FALSE and was
+  // never true. **No production caller passes `caps` at all**: the sole call site (`price.ts`, the REQ-040
+  // net) omits it, so `DEFAULT_MAX_CENTS_PER_LB` is the operative cap for every tenant. `priceShipment` does
+  // receive a `TenantRatingConfig` — the config object is right there — but that type carries no cap field,
+  // so there is nothing to thread. This is NOT a gap to close on sight: **no register row scopes a
+  // tenant-configurable cap**, so wiring one needs an amendment (CLAUDE.md source-of-truth #1). What the
+  // parameter IS: an API affordance exercised by this module's own tests. Kept, because the validation below
+  // is what makes a future feeder safe — but a reader must not conclude that a tenant can tune this today.
   if (!Number.isInteger(cap) || cap <= 0) {
     throw new Error(
       `detectAnomaly: max_cents_per_lb must be a positive integer (got ${cap}) — a NaN cap silently disables the net, a non-positive cap flags every price`,
