@@ -316,6 +316,52 @@ class SiblingWritingFeed implements FeedReader {
   }
 }
 
+// §1651 — THE OTHER HALF OF §1588's WRITE: the advance must be MONOTONIC IN THE DATABASE, not just in this
+// process. `maxCursor` starts at the config's own watermark and only grows, and line ~283 refuses to write
+// unless it grew — so a single sweep can never regress its own cursor, and that JS guard is what the existing
+// cases exercise. The `WHERE … COALESCE(cursor, -1) < ?1` defends a case those cannot reach: TWO sweeps, where
+// a SLOW one computed a low cursor before a FAST one wrote a high one, and lands its UPDATE afterwards.
+//
+// MEASURED at §1651: deleting that WHERE clause left the whole worker suite 147/147 GREEN — a guard with no
+// test, which §1634 records as the shape that eventually gets deleted by someone doing everything right.
+// The consequence is bounded (the DO dedupes by deterministic id, so a re-scan re-appends nothing) but real:
+// the watermark moves backwards, so the next sweeps re-read rows the mirror already has, indefinitely.
+//
+// The same seam §1588 used makes the schedule the test's rather than the scheduler's: `read()` runs AFTER the
+// config read and BEFORE the watermark write, so a feed that advances the watermark there puts the fast sweep
+// exactly inside the slow one's window.
+class WatermarkAdvancingFeed implements FeedReader {
+  constructor(
+    private readonly text: string,
+    private readonly db: D1Database,
+  ) {}
+  async read(): Promise<string | null> {
+    await this.db
+      .prepare("UPDATE integrations SET config = json_set(config, '$.legacy_mirror.watermark', json_object('cursor', ?1)) WHERE id = ?2")
+      .bind(9_999, LEGACY_MIRROR_INTEGRATION_ID)
+      .run();
+    return this.text;
+  }
+}
+
+describe("§1651 REQ-021 — the watermark advance is monotonic in the DATABASE, not merely in this process", () => {
+  it("a sweep whose cursor was computed BEFORE a faster sweep's write cannot drag the watermark backwards", async () => {
+    await seedConfig(B(), 0); // this sweep reads 0 and will compute a small cursor from the export
+    const seq = new RecordingSeq();
+    const r = await sweepTenantLegacyMirror({
+      db: B(), seq, feed: new WatermarkAdvancingFeed(genericExport, B()), integrationId: LEGACY_MIRROR_INTEGRATION_ID, tenant: "tenant-b", now: 1_000,
+    });
+    expect(r.configured, "setup: the sweep must actually run for its write to be under test").toBe(true);
+
+    expect(
+      await readWatermark(B()),
+      "the watermark REGRESSED: a slow sweep's UPDATE overwrote a faster sweep's higher cursor, so every " +
+        "later tick re-reads rows the mirror already holds. The advance must be conditional in SQL — a JS " +
+        "`maxCursor > cfg.watermark` check cannot see a write that landed after this process read its config.",
+    ).toBe(9_999);
+  });
+});
+
 describe("§1588 REQ-021 — a concurrent writer's key on integrations.config survives the watermark advance", () => {
   it("a sibling `$.outbound` write landing INSIDE the sweep's window is not reverted, and the watermark advances", async () => {
     await seedConfig(B(), 0);

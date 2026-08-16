@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1097 | §1650 | **§1651** | **RE-VERIFIED FIVE FIXED DEFECTS — AND THE ONE PART OF A FIX THAT HAD NO TEST.** A fixed defect is a REPO-OWNED row, the only kind that can go stale, so each earlier fix's defect was re-planted: the driver's parked capture (park→grave) reds **3** cases incl. *a parked item RE-PROBES… an ordering race self-heals* (a Critical, properly defended); `device_keys` CAS reds **1**; the X12 delimiter refusal reds **6**; §1588's sibling-safe write is pinned by its `SiblingWritingFeed` seam. **The fifth is the finding: §1588's MONOTONIC `WHERE`, added in the same commit as *while there, push the monotonic check into the WHERE too*, has NO test — deleting it left the worker 147/147.** Rule: **a fix's incidental hardening is the part that gets no test** — the defect you just reproduced hands you a regression case for free; the guard you add because you noticed it has no reproduction to point at, so it ships unwatched, and §1634's *a silent guard eventually gets deleted* applies to it exactly. Not redundant: the JS check cannot see a write that landed after this process read its config (two sweeps, slow one lands last → the watermark moves BACKWARDS and every later tick re-reads rows). New case reuses §1588's seam; deleting the clause reds `expected 8 to be 9999`. |
 | 1096 | §1649 | **§1650** | **THE PIPELINE FROM 'A TEST FILE EXISTS' TO 'AN ASSERTION RUNS' IS GATED AT EVERY STAGE.** §1649 named the shape; the pipeline is finite, so it was enumerated and each stage checked: **(1)** the package runs tests at all — §709, REDS when `agents-worker`'s script is removed; **(2)** the file matches the config's `include` — §1649, built this session, REDS on a stranded file; **(3)** the file is collected — measured **277 on disk / 277 collected** across all 17 suites; **(4)** the assertions execute — §711, REDS on a planted `it.only`. **Stage 4's demonstration is the sharpest**: one `it.only` makes its file report `1 passed, 8 skipped` and **exit 0** — eight guarantees stopped being checked, run still green. **A floor observation examined and deliberately NOT filed**: §711 floors at 250 against **424** live files (~80% → ~59%), and 98 such floors exist; `section-refs` floors at 900 against 24,706. That is the DOCUMENTED convention — `board-citation-ratchet` distinguishes *a RATCHET, not a tripwire* from a floor *deliberately far below… never a count anyone maintains*. Rule: **a tripwire asks 'did the scan break?' and a ratchet asks 'did this number move?' — reading a low floor as weakness is a category error, but so is expecting a tripwire to catch a PARTIAL corpus loss.** |
 | 1095 | §1648 | **§1649** | **A TEST FILE OUTSIDE ITS INCLUDE RUNS NOTHING AND REPORTS GREEN — the one level §709 does not cover.** §1648 said to suspect the instrument; three checks came back clean (**17/17** packages declare a `test` script · **277/277** test files on disk are COLLECTED by vitest across all 17 suites · **0** files define `describe`+`it` outside the `*.test.*` convention). The fourth found the gap: **five packages NARROW vitest's include to a directory** (`apps/command` / `driver` / `portal` → `src/**`, `packages/design` → `test/**`, `packages/map` → `test/**`+`perf/**`), and nothing compared the files on disk to the pattern. **Demonstrated**: a tracked file in `apps/command/test/` whose only assertion is `expect(1).toBe(2)` leaves that package reporting **17 files / 99 tests ALL PASSING** — not a failure, not a skip, silence. Rule: **a file outside the selector is worse than a missing test, because it looks like a present one** — every stage between *files exist* and *assertions execute* can lose coverage without anything failing. New gate floors the five narrowing packages (pure predicate + positive control + corpus floor 50/59 + a staleness check so a row cannot go vacuous); the default-include packages are deliberately out of scope, and narrowing one later is what the scope note tells the next author to add. |
 | 1094 | §1647 | **§1648** | **STOPPING POINT — the suite roster is already floored, and the MUTATION vein has run out on this surface.** §1647's filter defect raised the question behind it: `pnpm test` runs `-r --if-present`, which **silently skips** a package with no `test` script, so merge coverage depends on a roster nobody restates. Measured: 17 packages declare one, 0 do not; removing `@shuddl/agents-worker`'s script (dropping 147 tests from every merge) reds a gate that ALREADY EXISTS — *§709: every package holding test files declares a `test` script*. Clean negative. **Three consecutive mutation-driven probes (§1646/§1647/§1648) found no defect in their SUBJECT**, two landing on gates the record had already built — the §1597 signal arriving for the EXECUTION method, not the reading one. Read narrowly and checkably: *the surfaces reachable by a single planted line, in the trees this session worked, are exhausted.* **And the one real finding in those three phases was in the INSTRUMENT** (the wrong package filter), which is where yield goes when the subject stops giving. Remaining, each with its reason: `resolveAuthority`'s case (dormant until WP-15 Task 4; §1632 now corrected), a gated kind on `t:root` (needs a REQ row), the five BLOCKED gates + four owner decisions. |
@@ -92748,3 +92749,56 @@ anyone choosing it**, which is why the habit of writing `/` does not prevent it;
 **Phase gate.** Documentation only. `transit.test.ts` mutated (one `it.only`) and restored byte-identical;
 rater **171/171**. tools **147 files / 1489**. Board carried forward from **`cb84e9e`** (§1649's commit,
 **0 commits since**, measured there as **21 PASS · 0 FAIL · 5 BLOCKED**).
+
+---
+
+## §1651 — PHASE GATE: re-verifying five fixed defects, and the one part of a fix that had no test — the hardening added as an aside (REQ-021/016/025/118)
+
+A fixed defect is a **repo-owned** row, which is the only kind that can go stale (an owner-held blocker cannot).
+So the bounded programme after §1650 is: **re-plant each earlier fix's defect and confirm something still
+catches it.** Five were probed.
+
+| fix | mutation | watchers |
+|---|---|---|
+| the driver's parked capture (a park, not a grave) | `nextAttemptAt` → never | **3**, all named for the re-probe |
+| `device_keys` compare-and-set (§1587) | the `AND device_keys IS ?3` predicate neutered | **1** |
+| X12 delimiter refusal (§1593) | `!X12_DELIMITERS.test(v)` → `true` | **6** |
+| `integrations.config` sibling-safe write (§1588) | — | pinned by `SiblingWritingFeed` |
+| **the same fix's MONOTONIC `WHERE`** | the clause deleted | **0 — the whole worker suite stayed 147/147** |
+
+**The driver one is worth its line:** with the park restored to a grave, three cases red, including *"a parked
+item RE-PROBES after its window and drains when the refusal clears (an ordering race self-heals)"*. That was a
+Critical — a transient 4xx stranding a signed capture forever — and its fix is properly defended.
+
+**The finding is the fifth row, and its shape is general.** §1588 fixed a real defect (a sweep clobbering a
+concurrent partner certification) and its commit added, in the same breath, *"while there, push the monotonic
+check into the `WHERE` too"*. The **primary** fix got a test — a `FeedReader` seam that forces the interleaving.
+The **aside** got none.
+
+> **A fix's incidental hardening is the part that gets no test.** The defect you just reproduced hands you a
+> regression case for free; the guard you add because you noticed it while you were in there has no
+> reproduction to point at, so it ships unwatched. §1634's rule then applies to it exactly — a guard whose
+> removal is silent will eventually be deleted by someone doing everything right.
+
+**Why the clause is not redundant, which is what makes it worth a test.** `maxCursor` is initialised to the
+config's own watermark and only grows, and the write is refused unless it grew — so a single sweep can never
+regress its own cursor, and the JS guard is what every existing case exercises. The SQL `WHERE` defends the case
+those cannot reach: **two sweeps, where a slow one computed a low cursor before a fast one wrote a high one, and
+lands its `UPDATE` afterwards.** The consequence is bounded — the DO dedupes by deterministic id, so a re-scan
+re-appends nothing — but the watermark moves backwards and every later tick re-reads rows the mirror already
+holds, indefinitely.
+
+**The new case reuses §1588's own technique**: `read()` runs after the config read and before the watermark
+write, so a feed that advances the watermark there puts the fast sweep exactly inside the slow one's window —
+the schedule is the test's, not the scheduler's. Deleting the clause now reds it with `expected 8 to be 9999`.
+
+**Two probe slips, both mine, both caught immediately.** The X12 mutation's first pattern did not match the
+source (the guard is a named `X12_DELIMITERS` constant, not an inline regex) and the probe **asserted its own
+match count**, so it failed loudly instead of reporting a false clean — the habit §1624 argues for. And a stray
+non-ASCII character reached a comment I generated; the suite caught it on the first run.
+
+**Phase gate.** `workers/agents/test/mirror-sweep.test.ts` only (+1 case; agents-worker **148/148**, was 147).
+No source changed — `sync.ts`, `devices.ts`, `mirror-sweep.ts` and `edi/types.ts` each mutated and restored
+byte-identical. driver-core **53/53** · edi **55/55** · api **886/886** · rater **171/171**. Board
+**RE-MEASURED at `7173252`** (§1650's commit) **plus this phase's uncommitted test — 0 commits since**:
+`pnpm verify:merge` → **21 PASS · 0 FAIL · 5 BLOCKED**, the same five non-repo-fixable holds.
