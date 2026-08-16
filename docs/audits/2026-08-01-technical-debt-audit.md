@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1117 | §1670 | **§1671** | **A RATCHET ON THE SCANNING-JSON BLAST RADIUS — AND A RESTORE THAT OVERWROTE THE WRONG FILE.** §1670 sized the hazard at 21 scanning sites; both real fixes are the owner's (a `CHECK (json_valid(col))` migration needs a REQ row; the per-reader guard trades the wedge for a silent skip). **In scope meanwhile: stop the surface widening.** The gate freezes the count at 21, names the three ways out in its failure message (pin the key, guard with `json_valid`, or raise the number in a commit that says why), and may fall never grow. **Deliberately NOT a correctness gate** — it cannot make a corrupt row safe; it makes a 22nd tenant-wide outage surface cost a conversation instead of a merge. RED-proved by planting one. **And a restore overwrote the wrong file**: an OR-fallback backup (`cp A $S/orig 2>/dev/null` falling through to `cp B $S/orig`) saved **A**, because A existed, so restoring B from it wrote A's contents into B — `exceptions.ts` came back as `board.ts`, **165 insertions / 118 deletions**, visible only because `git diff --stat` ran immediately after. **And the gate was caught by an older gate on its first run**: `corpus-extension` (§1507) reded on it — the corpus was `.ts`-only over `packages`+`workers`, the exact shape §1507 makes unrepeatable after six gates were measured blind to the 14 `.tsx` render views; widened to `/\.tsx?$/`, **count unchanged at 21**, and the re-plant redone IN a `.tsx` (`evidence-email-view.tsx`, one of §1507's own six). `check-table-shape` then reded twice on this very row for quoting a shell OR operator. Rule: **a restore must be verified like a mutation and the check is that the diff is EMPTY; an OR-fallback backup silently changes WHICH file the name refers to — name the backup after the file, never after the intent.** |
 | 1116 | §1669 | **§1670** | **§1669's COUNT WAS 8; IT IS 21 — and the widest reader is the VISIBILITY LENS.** §1669 filed the malformed-JSON wedge against `json_each`, which was the function I tripped rather than the class. **`json_extract` in a scanning WHERE raises identically** (measured: `WHERE json_extract(names,'$.legal') = ?1` → `D1_ERROR: malformed JSON`). Re-counted by the right predicate — *does the WHERE pin a key before the JSON call, or scan?* — **21 SCANNING sites vs 7 behind a key**. The widest are over `events.payload` and §1669 named NONE of them: credit reconciliation, the SLA sweep, the KPI computes, and **`lens.ts:60`, the visibility lens** scanning `party_refs` to decide what a counterparty may see. One malformed payload fails all four at once. **A mitigation that is not one**: the canonical hash covers the payload, so corruption is DETECTABLE — but the scan raises before anything verifies a hash. Rule: **a count is only as good as the predicate that produced it, and mine was a FUNCTION NAME rather than the shape of the hazard** — *where does a JSON operator evaluate over rows the caller did not ask for* is 2.6× larger. Row amended in place. |
 | 1115 | §1668 | **§1669** | **DEFECT (FILED) — ONE MALFORMED JSON BLOB RAISES FOR EVERY READER IN THE TENANT.** §1668 moved the question to *what shape do the tests never inject*: across all worker suites, a rejected promise **195×**, a malformed JSON column **0×**. A test for the Biller's `try/JSON.parse/catch` guard found something larger: seeding ONE party with truncated `contacts` left the Biller correct (held `recipient_unresolved`, invoice intact) **and reded 48 cases across 6 other files** — the api suites share one D1. Probe named it: **`D1_ERROR: malformed JSON: SQLITE_ERROR`**. `json_each(p.contacts)` raises regardless of WHICH party you seek, so one corrupt blob fails every email lookup in the tenant — consumer throws, queue retries, tenant wedged by an unrelated row. **8 readers share the idiom**, and the worst are `users.device_keys` (`gate-context`, `sequencer`, `devices`) where one bad row **refuses every driver in the tenant**. **The schema has ZERO `json_valid` CHECKs** — every column is `TEXT NOT NULL DEFAULT '[]'` with a `-- j` COMMENT as its only marker. Rule: **a column whose validity is documented by a comment and depended on by eight scanners is an invariant with no owner.** FILED not fixed — the durable fix is a CHECK constraint, i.e. a MIGRATION, which needs a REQ row. |
 | 1114 | §1667 | **§1668** | **THE ALL-NEGATIVE-ASSERTION CLASS SWEPT — THE ONLY INSTANCE WAS THE ONE I WROTE.** §1667's rule is mechanical, so every render test was swept. First pass: **22 candidates**; corrected detector: **1**; and that one is safe too. **Two detector faults, each would have produced a false finding**: `findByTestId` as a positive anchor (StatementView's PRIVACY case awaits `findByTestId("invoice-INV-A")` BEFORE asserting `SECRET-DIV` is absent — an empty DOM fails at the anchor), and **`.not.toBeNull()` inside a `waitFor`, which is a wait-until-PRESENT gate, not a negative** (App's empty-board case waits for `captured.fleet` to be non-null; a crashed App leaves it null and the waitFor times out). **Both are positives wearing negative syntax** — the shape a naive detector inverts. Zero true instances remain. **The class was empty until I introduced its only member at §1667** — the existing suite already anchors its absences, and the discipline three phases rediscovered was already in the code being audited. Sharpest form: **a privacy test with no positive anchor certifies a blank page.** |
@@ -93673,3 +93674,58 @@ readers, and the hash-does-not-help note.
 **Phase gate.** Documentation only — the checklist row widened; no source or test changed. tools **147 files /
 1489**. Board carried forward from **`bb7e630`** (§1669's commit, **0 commits since**, measured at `5999dfb`
 plus that phase's work as **21 PASS · 0 FAIL · 5 BLOCKED**).
+
+---
+
+## §1671 — PHASE GATE: a ratchet on the scanning-JSON blast radius, and a restore that overwrote the wrong file (REQ-118/119)
+
+§1670 sized the malformed-JSON hazard at **21 scanning sites**. Both real fixes belong to the owner — a
+`CHECK (json_valid(col))` migration needs a REQ row, and the per-reader `json_valid` guard trades the wedge for
+a silent skip. **What is in scope meanwhile is stopping the surface from widening while that decision is open.**
+
+**The gate freezes the scanning count at 21** and says why in its failure: a scanning read evaluates a JSON
+operator over rows the caller did not ask for, so one malformed cell raises for every caller. Its message names
+the three ways out — pin the key in the `WHERE`, guard with `json_valid(col)`, or raise the number in the same
+commit that explains it — and it may fall, never grow.
+
+**It is deliberately NOT a correctness gate**, and the header says so: it cannot make a corrupt row safe. It
+makes a 22nd tenant-wide outage surface cost a conversation instead of a merge. Mutation-proved by planting one:
+*"22 scanning json_each/json_extract reads, frozen at 21."*
+
+### A restore that overwrote the wrong file, caught by the diff
+
+Saving a backup with a fallback — `cp A $S/orig 2>/dev/null || cp B $S/orig` — saved **A**, because A existed.
+Restoring **B** from that backup then wrote A's contents into B: `exceptions.ts` came back as `board.ts`,
+**165 insertions and 118 deletions**. It was visible only because `git diff --stat` ran immediately after the
+restore and printed a number that could not possibly be right for a restore.
+
+> **A restore must be verified like a mutation, and the check is that the diff is EMPTY.** Every other restore
+> this session printed `git diff --stat` and showed nothing; this one printed 165/118 and I read it. A
+> `||`-fallback backup is the specific trap: it silently changes WHICH file the name refers to, so the restore
+> is confidently wrong. **Name the backup after the file, never after the intent.**
+
+The file carried none of my uncommitted work, so `git checkout --` was the correct recovery here — the
+distinction the session's standing rule turns on (`cp` from a saved copy when a file is dirty, `git checkout`
+only when it is not). Verified after: api **887/887**.
+
+### The new gate was caught by an older gate, on its first run
+
+`test:tools` reded twice on this phase, and neither failure was in the subject:
+
+1. **`corpus-extension` (§1507) failed on the gate I had just written.** Its corpus was
+   `f.endsWith(".ts")` over `packages` + `workers` — the exact shape §1507 exists to make unrepeatable, after
+   §1505/§1506 measured **six** gates blind to the 14 `.tsx` server-render views. Widened to `/\.tsx?$/`.
+   **The count did not move** (21 before, 21 after — no `.tsx` reads a JSON column today), so §1670's sizing
+   stands and the fix was scope, not a missed site. The re-plant was then done **in a `.tsx`** —
+   `evidence-email-view.tsx`, which is one of the six files §1507's own header names — and it reds at 22.
+2. **`check-table-shape` failed twice on the index row**, at 8 cells then 6 against a 4-cell header: the row
+   quoted a shell `||`, and then quoted `` `||` `` again while describing the very lesson. Backticks do not
+   protect a table cell (fourth instance this session).
+
+> **A gate written to enforce a rule is itself subject to every other gate**, and the meta-gate earned its
+> keep on the one corpus written after it. Both failures were caught by tooling and neither by reading —
+> including the one where I was writing *about* the character that broke it.
+
+**Phase gate.** One new gate file (3 cases, green; RED-proved twice — a `.ts` plant, then a `.tsx` plant after
+the corpus widened, each restored to an EMPTY diff). api **887/887** · tools **148 files / 1492**. Edits
+`tools/`, so the board is re-measured at commit.
