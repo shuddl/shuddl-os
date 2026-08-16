@@ -5,6 +5,8 @@ import {
   encodeLength,
   encodeTimeStampReq,
   parseTimeStampResp,
+  readChildren,
+  readTlv,
 } from "../src/tsa/der.js";
 import { FakeTsaClient, assertGrantedReceipt, UnavailableTsaClient } from "../src/tsa/client.js";
 import { bytesToHex, hexToBytes } from "../src/merkle.js";
@@ -118,5 +120,45 @@ describe("REQ-014 — TsaClient (Fake exercises the real parser + verifier)", ()
 
   it("UnavailableTsaClient always rejects", async () => {
     await expect(new UnavailableTsaClient().timestamp(hexToBytes(EMPTY_SHA256))).rejects.toThrow();
+  });
+});
+
+// §1606 (REQ-014/118) — A DER CHILD MUST STAY INSIDE ITS PARENT, NOT MERELY INSIDE THE BUFFER.
+//
+// `readTlv` validates a declared length against `buf.length` — correct for the outermost element, too weak for
+// every nested one. `readChildren` walks a parent's extent, so a child whose length reaches past the parent's
+// `contentEnd` while still landing inside the buffer used to parse clean and SWALLOW the following sibling.
+//
+// Measured before the fix, on the ten-byte fixture below: a SEQUENCE declaring FOUR content bytes returned one
+// child ending at offset 10 — four bytes beyond its parent — absorbing the OCTET STRING after it. In a
+// signature verifier fed attacker-supplied bytes, that is the structure the code believes it read diverging
+// from the structure the signer signed.
+//
+// No legitimate DER does this: a child overrunning its parent is malformed by definition, so refusing it breaks
+// no traffic. That is what separates this from the EDI envelope's integrity fields (§1605), where strict
+// enforcement is a decision because real senders emit wrong counts.
+describe("§1606 REQ-014: DER nesting bounds", () => {
+  // 30 04            SEQUENCE, content length 4  → contentEnd = 6
+  //   02 06 AA BB    INTEGER declaring SIX content bytes (corrupt: only 2 remain inside the parent)
+  //   04 02 CC DD    an OCTET STRING sibling that lives OUTSIDE the sequence
+  const OVERRUN = Uint8Array.from([0x30, 0x04, 0x02, 0x06, 0xaa, 0xbb, 0x04, 0x02, 0xcc, 0xdd]);
+
+  it("a child overrunning its parent is REFUSED, not silently extended over the next sibling", () => {
+    const outer = readTlv(OVERRUN, 0);
+    expect(outer.contentEnd, "fixture: the parent's content must end at 6 for this to be a parent overrun").toBe(6);
+    expect(
+      () => readChildren(OVERRUN, outer.contentStart, outer.contentEnd),
+      "the child was accepted — it ends past its parent and absorbs the sibling, so the parsed structure is not " +
+        "the signed structure",
+    ).toThrow(/overruns its parent/);
+  });
+
+  it("a well-formed nesting still parses (without this the refusal above proves nothing)", () => {
+    // Same shape, honest length: the INTEGER declares the two bytes it actually owns.
+    const ok = Uint8Array.from([0x30, 0x04, 0x02, 0x02, 0xaa, 0xbb, 0x04, 0x02, 0xcc, 0xdd]);
+    const outer = readTlv(ok, 0);
+    const kids = readChildren(ok, outer.contentStart, outer.contentEnd);
+    expect(kids).toHaveLength(1);
+    expect(kids[0]?.contentEnd, "the child must end exactly at its parent's boundary").toBe(6);
   });
 });

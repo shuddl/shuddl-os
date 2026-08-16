@@ -153,6 +153,19 @@ export function readChildren(buf: Uint8Array, start: number, end: number): Tlv[]
   let pos = start;
   while (pos < end) {
     const t = readTlv(buf, pos);
+    // §1606 (REQ-014) — A CHILD MUST STAY INSIDE ITS PARENT, NOT MERELY INSIDE THE BUFFER.
+    //
+    // `readTlv` bounds a declared length against `buf.length`, which is the right check for the OUTERMOST
+    // element and too weak for every nested one. Without this line a child whose length reaches past its
+    // parent's `contentEnd` — while still landing inside the buffer — parses clean and SWALLOWS the sibling
+    // that follows. Measured on a ten-byte fixture: a SEQUENCE declaring four content bytes returned one child
+    // ending at offset 10, four bytes beyond the parent, absorbing the element after it.
+    //
+    // That is a mis-parse of attacker-supplied bytes in a signature verifier: the structure the code believes
+    // it read is not the structure the signer signed. There is no legitimate DER that does this — a child
+    // overrunning its parent is malformed by definition — so unlike a wire-format leniency decision there is
+    // no traffic to break by refusing it.
+    if (t.end > end) throw new Error("DER: child overruns its parent");
     out.push(t);
     pos = t.end;
   }
