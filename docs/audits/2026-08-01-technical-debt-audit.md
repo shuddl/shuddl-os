@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1077 | §1630 | **§1631** | **THE PRIMARY REQ-025 GUARD IS GENUINELY COVERED — A CLEAN NEGATIVE, PLUS THE STOPPING POINT.** After three config loaders the isolation gate could not see, the question is whether the mechanism everything rests on is better defended: the DO re-derives `idFromName(tenant + streamId)` and refuses if it is not its own id. Removing that line reds **2 tests, both NAMED for exactly it** (`sequencer.test.ts` forged-tenant id-equality; `plg-isolation-matrix` G2 claimed-pool identity) — static roster AND claimed pool. Recorded as VERIFICATION, not a find. **One probe left inconclusive and stated as such**: removing the storage pin (whose comment declares itself redundant/unreachable) produced a suite that FAILED TO RUN rather than an assertion failure — unattributable, so not claimed either way. **Thread stops here**: all three route-reachable tenant-config loaders now carry value-direction cases; `resolveAuthority`/`loadFacility` are named-not-closed (queue consumers + the DO, which `isolation.test.ts` never exercises). **Zero production source changed across §1627–§1631** — every defect was in what a test CLAIMED, and all four mutations restored byte-identical. api 881/881; tools 145/1482. |
 | 1076 | §1629 | **§1630** | **CLOSED THE THIRD LOADER — AND THE TEST FIRST PASSED FOR A REASON UNRELATED TO WHAT IT ASSERTED.** The tariff pattern does not transfer: neither seed carries a `transit_matrix`, so both tenants resolve null and an equality assertion compares null to null (vacuous — the §1625/§1626 hazard). Seeding into tenant-b ALONE makes it observable. **Then the case passed WITH the mutation planted**: same `{status:'unavailable'}` as the correct world, so on its first green run it was decoration — a case named for transit isolation that could not fail. Cause: `origin_zip: '97201'` borrowed from the PRICING cases, where it works; transit resolves zones via `matchZone`, which does NOT prefix-match 97201 to the tariff's '970' key (measured on the pure function: 97201→UNKNOWN, 97012→KNOWN/4). Rule: **a fixture value proven in one subsystem is not validated for another — prove it on the NEW consumer.** With 97012 it reds `{status:'known',business_days:4}` vs `{status:'unavailable'}`: a tenant-a quote carrying a four-day promise from another tenant's matrix. **And the surface hides this** — no matrix, unresolvable lane and unresolvable zone all map to one `unavailable`, so a cross-tenant read is indistinguishable from having no data and only a mutation could settle it. 69/69; api 881/881. |
 | 1075 | §1628 | **§1629** | **THE CLASS BEHIND §1628, MEASURED 3-FOR-3 — AND A CONSENT GATE ANOTHER TENANT COULD UNLOCK.** Why rows 1–5 are safe and row 10 was not: **a cross-tenant handle is caught by 'returns empty' only when the tenant's data IS the answer.** Where it is a CONFIG that TRANSFORMS an answer (tariff, consent, geofence), a wrong handle returns a DIFFERENT answer, not an absent one — nothing is missing, so nothing looks wrong. Six loaders; one out immediately (`resolveProofToCashEntitlement` reads CONTROL_DB and the record already holds it TWICE as a deliberately-uncalled REQ-162 SKU gate — searched before filing). All three route-reachable members mutated to tenant-b: `isolation.test.ts` stays **68/68 GREEN** for every one, while the worker reds 39 / 7 / 2 on incidental pricing and behaviour tests. **The consent case is the finding**: all 7 catches are fail-CLOSED (tenant-b has no consent, so legitimate posts break) — the safe direction, and the only one anything could see. **A ConsentAck in ANOTHER tenant's D1 authorising GPS this tenant never authorised had no test**, and consent is the gate where failing open is a privacy breach, not an outage. Rule: **measuring that a mutation reds loudly says nothing about WHICH direction is covered — the loud one is usually the harmless one, because it breaks the happy path everybody tests.** New case asserts the REASON (§81 on this very file) + nothing inserted; reds `expected 201 to be 403`. 11/11; api 880/880. |
 | 1074 | §1627 | **§1628** | **THE REQ-025 GATE COULD NOT SEE A CROSS-TENANT RATE-CONFIG READ.** The skill's row 10 said *NO — add*, with its own header warning not to trust that column unmutated. Mutating the rate handle to tenant-b's D1 reds **39 tests across 10 files** — so it never shipped green — while `isolation.test.ts`, the gate that runs on every merge, stays **67/67**. The row was wrong in BOTH directions. Why is precise: §571 closed it with two ATTACK SHAPES (X-Tenant-Id, ?tenant=), which prove a CLIENT HINT is rejected; neither observes WHICH TARIFF PRICED THE QUOTE, so neither sees a wrong handle no client touched. **'The client cannot choose the tenant' and 'the server chose the right one' are independent failures, and only the second is about the data.** Fix uses a tool already in the file (DISTINCT per-tenant configs, so `sell_cents` reveals who priced it — used for the HOST-routed surface, never the JWT-keyed one); tenant-b's number is COMPUTED, not hardcoded; re-planting reds exactly one test. **Then the registry itself**: its header makes a missing case an open Critical, so it was asserting FOUR Criticals §174 had already measured false — the correction lived in the parent SKILL.md and never reached the sub-document. Rows now ⚠️ where the catch is incidental: **state the MECHANISM of a catch, not its polarity — a stale ❌ costs a redundant test, a stale ✅ costs the thing the gate exists for.** 68/68. |
@@ -91736,3 +91737,54 @@ byte-identical (`git diff` empty). The three route-reachable tenant-config loade
 case; `resolveAuthority` and `loadFacility` remain named and unmeasured (queue consumers and the sequencer DO, not
 routes). No `packages/`, `workers/src`, `db/` or `tools/` change — board verdict at `e520ecb` (**21 PASS · 0 FAIL ·
 5 BLOCKED**) stands.
+
+---
+
+## §1631 — PHASE GATE + STOPPING POINT: the DO's structural tenant guard is genuinely covered (clean negative), and where the §1627–§1630 thread stops (REQ-025/118/119)
+
+The §1628–§1630 thread found the isolation gate blind to three config reads. The obvious next question is whether
+the **primary** REQ-025 mechanism is any better defended, because everything above it depends on that one line:
+the sequencer DO re-derives `idFromName(\`${tenant}|${streamId}\`)` and refuses if it is not its own id, so a
+forged tenant lands on a different DO and can never bind another tenant's D1.
+
+**Mutated it away — and unlike the config loaders, it is properly defended:**
+
+| removed | result |
+|---|---|
+| `if (!expected.equals(this.ctx.id)) throw …` | **2 tests red, both named for exactly this** |
+
+Named, not incidental: `sequencer.test.ts` — *"a forged tenant in the RPC is rejected by id-equality
+(FORBIDDEN)"* — and `plg-isolation-matrix.test.ts` **G2** — *"a claimed tenant's DO cannot be driven under
+ANOTHER claimed tenant's identity (sequencer id pin)"*. Both the static roster and the claimed pool. **A clean
+negative, recorded as verification rather than a find** (§1590's rule: a sweep that converges on the record is
+verification; the only failure mode is claiming it as a discovery).
+
+**One probe left inconclusive, stated as such.** The storage pin directly below carries a comment declaring
+itself redundant and "effectively unreachable". Removing it produced a suite that **failed to run** (45 skipped)
+rather than an assertion failure — an unattributable signal, and this repo has a standing rule that an
+unattributed RED is not evidence. Not claimed either way; the claim in that comment remains unmeasured.
+
+### Where this stops
+
+**Closed in this thread.** Four cross-tenant refusals that asserted a status code while claiming "no append"
+(§1627); the rate row's value direction (§1628); the class behind it, measured 3-for-3, plus the consent gate's
+fail-open direction (§1629); the transit loader, including a case of mine that first passed for a reason
+unrelated to what it asserted (§1630). All three route-reachable tenant-config loaders now carry a
+value-direction case.
+
+**Open and named, not claimed closed:**
+- `resolveAuthority` and `loadFacility` — reachable from queue consumers and the sequencer DO rather than an API
+  route, so `isolation.test.ts` never exercises them. The same mutation method applies; the harness does not.
+- The sequencer pin's redundancy claim (above).
+- Everything owner-side is unchanged: the five private fixtures, and the filed decisions (geofence disclosure
+  asymmetry **High**, OAuth code single-use **Med**, EDI refuse-vs-sanitise, 204 envelope integrity).
+
+**What the thread cost and returned.** Zero production source changed — every fix was evidence, and every
+mutation was restored byte-identical (`git diff` empty on `dunning.ts`, `rate.ts`, `positions.ts`,
+`sequencer.ts`). The defects were in what the tests CLAIMED, which is the same shape as the three phases recorded
+at §804.
+
+**Phase gate.** api worker **881/881**; tools **145 files / 1482**; citations and section-refs OK. No `packages/`,
+`workers/src`, `db/` or `tools/` change across §1627–§1631, so the board verdict at `e520ecb` (**21 PASS · 0 FAIL
+· 5 BLOCKED**) stands unchanged and unre-measured by design — the five BLOCKED remain the private engagement
+fixtures, which no repo-side work can clear.
