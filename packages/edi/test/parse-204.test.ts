@@ -249,3 +249,51 @@ describe("parse204 — untrusted-partner boundary hardening", () => {
     expect(parse204(hostileDoc({ l11: [], at8: "42000" })).weightLb).toBe(42000);
   });
 });
+
+// §1604 (REQ-201/034/118) — A TRUNCATED 204 PARSES AS A COMPLETE TENDER WITH NO STOPS.
+//
+// X12 gives a receiver one integrity check for exactly this: SE01 states how many segments the transaction set
+// contains. `envelope.ts` validates ST/SE **balance** and the IEA trailer's presence — it does not compare
+// SE01's COUNT to the segments actually read. And `TenderDoc.stops` is `z.array(TenderStop)` with no `.min()`.
+//
+// So a transmission cut after the L11/AT8 block — every N1/N3/N4/G62 stop group gone, SE01 still claiming 18
+// where five segments remain — parses clean. Measured below: `stops: []`, refs and weight intact.
+//
+// DOWNSTREAM IS FAIL-CLOSED, which is why this is filed rather than fixed here: `map-204` finds no SH/CN stop,
+// `inbound` guards on `!== undefined`, and a tender with no origin or destination cannot be priced, so it rests
+// at `quote.requested` rather than becoming a bad booking. **The cost is diagnosability, not correctness** — a
+// partner's truncated message becomes a stuck tender with no explanation instead of a quarantine that names
+// the truncation.
+//
+// THE FIX IS A DECISION, not an edit. Validating SE01 is the standard's own answer and catches truncation and
+// injection generally — but strict SE01 enforcement is famously brittle against real senders that emit a wrong
+// count, so turning it on can reject traffic that works today. A `.min(1)` on stops is narrower but guesses at
+// semantics. Both are owner calls (GO-LIVE-CHECKLIST, audit §1604). This case PINS today's behaviour so
+// whichever is chosen lands deliberately: **when it fails, the decision was made — update the row and rewrite
+// this case as the refusal it becomes.**
+describe("§1604 REQ-201: a stop-truncated 204 parses as a complete tender (filed, not fixed)", () => {
+  const S = (...f: string[]): string => f.join("*") + "~";
+
+  it("every stop group removed + a WRONG SE01 count still yields a valid TenderDoc", () => {
+    const truncated =
+      isaHeader("000000042") +
+      S("GS", "SM", "MEGA", "SHUDDL", "20260719", "1200", "77", "X", "004010") +
+      S("ST", "204", "0001") +
+      S("B2", "", "MEGA", "", "SHIP123", "", "PP") +
+      S("B2A", "00") +
+      S("L11", "BOL987", "BM") +
+      S("AT8", "G", "L", "15000", "40") +
+      S("SE", "18", "0001") + // claims 18; five segments are present
+      S("GE", "1", "77") +
+      S("IEA", "1", "000000042");
+
+    const doc = parse204(truncated);
+    expect(
+      doc.stops.length,
+      "a stop-truncated 204 is now REFUSED — SE01 validation or a stops floor landed. That is the fix this case " +
+        "was written to detect: strike the GO-LIVE-CHECKLIST row (audit §1604) and rewrite this as the refusal.",
+    ).toBe(0);
+    expect(doc.weightLb, "the surviving fields still parse — truncation is invisible, not partial").toBe(15000);
+    expect(Object.keys(doc.refs).length, "the refs before the cut survive").toBeGreaterThan(0);
+  });
+});
