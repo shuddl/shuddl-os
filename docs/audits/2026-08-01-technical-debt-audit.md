@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1092 | §1645 | **§1646** | **STOPPING POINT — the assertion-strength arc (§1638–§1645), and a CLEAN NEGATIVE.** Final probe: bare `toThrow()` accepts any error from any layer — **417** exist, but most are contracts schema tests where `parse(bad)` has ONE layer and a bare throw is precise. Neutering `FloorsConfig`'s ladder refinement reds **two watchers, both named for it**, one titled *…the SCHEMA now refuses both outright (**the layer above the engine**)* — §1645's rule already applied by an earlier phase. Completes §1640's picture: the schema pins MISORDERED and permits EQUAL by design, so the collapse was a TEMPLATE defect, not a schema one. **Arc total: 5 defects, all in ASSERTIONS not behaviour, every one found by mutating; zero production source changed across nine phases** (6 tests added, 2 assertions strengthened, 1 floor converted presence→count). Rule: **an assertion is only as strong as the weakest thing that satisfies it, and you cannot read that off the page** — `>=` on a strict fixture, `toContain` where the defect is a call COUNT, a status where the claim is *nothing was written*, a bare `toThrow` across two layers. **Re-planting the violation after writing the fix is what separated the four that worked from the two that did not.** |
 | 1091 | §1644 | **§1645** | **CLOSED §1644's NAMED GAP — AND THE CASE FIRST PASSED FROM THE WRONG LAYER.** §1644 shipped a count floor for both resolvers and said plainly the dunning route still had no behavioural case. This adds it. **The first construction seeded a CRLF address from the start and returned `skipped`/`draft_not_found`** — the Collector never DRAFTS for a party it cannot address, so the refusal came one layer EARLIER than the resolver under test, and that version would have passed with the send guard deleted. Corrected: seed a GOOD address so the draft exists, corrupt the contact AFTER drafting, leaving the send-path resolver as the only thing that can refuse. Asserts `held`/`recipient_unresolved`, that the sender got nothing, AND that no `message.sent` was appended (no phantom send record); reds under the both-copies bypass. Rule: **a refusal proves the layer that PRODUCED it, not the layer you aimed at** — make the input valid far enough to REACH the subject, then break exactly the thing under test. Both outward-mail paths now have behavioural cases; three artifacts cover three failure modes (parity: one-sided drift · count: both-sided drift · behaviour: the answer being wrong). api 886/886. |
 | 1090 | §1643 | **§1644** | **THE FLOOR WRITTEN TO STOP TWO COPIES DRIFTING TOGETHER NAMED ONE OF THE TWO RULES — AND MY FIRST FIX WAS DECORATION.** 207 test cases compare two implementations; the discriminator makes probing them unnecessary — **a parity test is safe exactly when something else pins at least one side's behaviour.** The repo already knew this: `recipient-parity` carries a companion whose comment states §1643's rule almost verbatim (*parity alone certifies agreement, INCLUDING agreement on a wrong answer… the cheap floor that stops both copies drifting together*). It floored `"billing"` and §1643's mutation changed the OTHER rule, walking straight past it. **Then my fix failed silently**: `toContain("plausibleEmail(")` passed **3/3 under the very bypass it was written for**, because the FALLBACK loop still calls the validator — the substring survives while the billing branch stops using it. **Presence is not usage**; the floor is now a COUNT (3 calls) and reds `calls plausibleEmail 1× (expected 3)`. **Third time this session a fix of mine needed the mutation RE-RUN before it could be believed** (§1630's transit case, §1643's wrong property, this floor) — **the rule that keeps paying is not 'write the test', it is 'RE-PLANT the violation after writing it'.** Scope honest: the floor covers both copies, the behavioural case covers only the Biller, and dunning still has none. |
 | 1089 | §1642 | **§1643** | **A PARITY GATE PROVES TWO COPIES AGREE, NEVER THAT EITHER IS CORRECT — 1,873 TESTS GREEN WITH BOTH OUTWARD-MAIL VALIDATORS SKIPPED.** §1642's rule swept: 11 predicates are called at 2+ files; two probed at EVERY site. **`mutatingCallApi` (4 MCP tools) is clean** — flipping each tool to `mutating:false` reds 6/38/4/11, every site pinned. **`plausibleEmail` (Biller + dunning) is the finding**: removing its CRLF clause reds only the ledger's own unit test; bypassing the guard in the Biller ALONE reds only `recipient-parity` (*the two implementations are logically identical*); bypassing it IDENTICALLY IN BOTH leaves **agents 235/235, api 884/884, ledger 754/754 GREEN**. **Function tested + copies agree = nothing about whether the callers USE it.** Severity honest: the sender posts JSON, so a CRLF address bounces rather than injects — what is pinned is that a malformed address is never SELECTED (the same loud `recipient_unresolved` hold an absent contact gets). New case asserts the hold AND that the sender received nothing (§1627). **Own slip recorded**: my assertion named `sender.sent` where the recorder exposes `messages`, failing `Target cannot be null or undefined` — **a test that fails on correct code is a question about the TEST first**. |
@@ -92485,3 +92486,63 @@ count catches both-sided drift, and the two behavioural cases catch the answer b
 `biller.ts` and `dunning.ts` mutated together and restored byte-identical. agents **235/235**. Board carried
 forward from **`e2a649a`** (§1644's commit, **0 commits since**, measured at `5aa8347` as **21 PASS · 0 FAIL ·
 5 BLOCKED**, and no phase since has touched a file any gate reads except this record and two test files).
+
+---
+
+## §1646 — PHASE GATE / STOPPING POINT: the assertion-strength arc (§1638–§1645), and a clean negative that shows the discipline already applied (REQ-004/031/032/048/151/118)
+
+**The last probe of the arc, and it found nothing — correctly.** `toThrow()` with no argument accepts any error
+from any layer, which is §1645's hazard in mechanical form: **417** such assertions exist. Most are
+`packages/contracts` schema tests where `parse(bad)` has exactly one layer and a bare throw is precise. The
+hazard needs two layers that can both throw, so the probe went to the money-adjacent schema and neutered
+`FloorsConfig`'s ladder refinement.
+
+**Two watchers, both named for it:** `rejects a misordered ladder (each bps valid, the ORDER wrong) — §1517's
+anonymous 500` in contracts, and in the rater *"…and the SCHEMA now refuses both of them outright (**the layer
+above the engine**)"*. That second title states which layer it is proving — §1645's rule, applied by an earlier
+phase without needing it named. Recorded as verification, not a find.
+
+It also completes a consistent picture with §1640: the schema pins the ladder against being **misordered**, and
+permits `equal` by design (`≤`). §1640's collapse was therefore never a schema defect — it was a *template*
+emitting a degenerate-but-valid ladder, which is exactly why it needed a test at the template layer.
+
+### The arc, and what each phase cost
+
+| § | probe | result |
+|---|---|---|
+| 1638 | zone selection removed from the rater | **defect** — the substitute for a BLOCKED gate passed 11/11 |
+| 1639 | one planted violation per BLOCKED subject | 1 defect in 4; the strength-dial discriminator |
+| 1640 | the dial rule aimed at its own shape | **defect** — a collapsed floor ladder passed 1,288 tests |
+| 1641 | the remaining 8 dials | 0 defects; the byte-locked-vs-derived refinement |
+| 1642 | a shared guard's other call site | **defect** — deleting it left 882/882 green |
+| 1643 | shared guards at every site | **defect** — both mail resolvers could skip their validator |
+| 1644 | the parity floor's own coverage | **defect** — and my first fix was decoration |
+| 1645 | the gap §1644 named | closed; the case first passed from the wrong layer |
+| 1646 | bare `toThrow()` over two layers | **clean negative** |
+
+**Five defects, all in assertions rather than in behaviour, and every one found by mutating.** Zero production
+source changed across nine phases: 6 tests added, 2 assertions strengthened, 1 floor converted from presence to
+count. Every mutation restored byte-identical.
+
+> **The arc's one transferable rule: an assertion is only as strong as the weakest thing that satisfies it, and
+> you cannot read that off the page.** `>=` where the fixture is strict, `toContain` where the defect is a call
+> count, a status code where the claim is "nothing was written", a bare `toThrow` where two layers can throw —
+> each looks correct and each is satisfied by the defect it was written to exclude. **Re-planting the violation
+> after writing the fix is what separates the four that worked from the two that did not.**
+
+### Where this stops
+
+**Closed:** the assertion-strength program across the money path, both outward-mail resolvers, the cold-start
+template, and the BLOCKED-gate substitutes. Also the REQ-025 mechanism inventory (§1627–§1634) and the record's
+own deletion floor (§1635).
+
+**Open, each with its reason:** `resolveAuthority`'s value case (dormant until WP-15 Task 4 wires a mirror);
+a gated kind on `t:root` (a refusal is new behaviour needing a REQ row); `legacy-export-replay`'s subject (spans
+the adapters and the 171-column mapping — a phase of its own); the five BLOCKED gates and four filed owner
+decisions, all engagement-side.
+
+**Phase gate.** Documentation only. `rating.ts` mutated and restored byte-identical. contracts **340/340** ·
+rater **171/171** · api **886/886** · agents **235/235** · ledger **754/754** · mcp **209/209** · tools **146
+files / 1485**. Board carried forward from **`41ec211`** (§1645's commit, **0 commits since**; last measured at
+`5f61e9a` as **21 PASS · 0 FAIL · 5 BLOCKED**, and no phase since has changed a file any gate reads except this
+record and three test files).
