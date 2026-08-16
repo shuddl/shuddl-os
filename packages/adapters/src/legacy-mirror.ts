@@ -189,7 +189,11 @@ function classifyColumns(config: LegacyMirrorConfig, headers: readonly string[])
   headers.forEach((header, c) => {
     if (control.has(header)) return; // mapped (a control column)
     const refs = fieldRefs.get(header);
-    if (refs === undefined) {
+    // §1596: `length === 0` is not redundant with `undefined`. The seedless `reduce` below throws on an empty
+    // array, and today it cannot see one only because the loop that fills this map ALWAYS pushes before it
+    // sets, three lines up. That is an invariant held at a distance: a filter added to the push, or a `set`
+    // hoisted above it, turns a mapping pass over tenant config into a TypeError. Cheaper to say it here.
+    if (refs === undefined || refs.length === 0) {
       out.set(c, { gap: "unmapped", confidence: 0 });
       return;
     }
