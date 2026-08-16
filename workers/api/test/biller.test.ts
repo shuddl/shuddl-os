@@ -416,6 +416,43 @@ describe("Biller consumer — POD fires invoice.issued + evidence send (REQ-031/
     expect(sender.messages).toHaveLength(0);
   });
 
+  // §1643 (REQ-031/032/182) — THE CALLER MUST USE THE GUARD, not merely agree with its twin.
+  //
+  // `plausibleEmail` rejects an address with no `@` or containing CR/LF (a header-injection shape). Its own
+  // unit test proves the FUNCTION works; nothing proved the RESOLVERS call it. Measured at §1643: bypassing it
+  // in the Biller alone reds only `recipient-parity.test.ts` — a SOURCE-TEXT comparison of the two copies —
+  // and bypassing it IDENTICALLY in BOTH the Biller and the dunning route leaves **agents 235/235, api 884/884
+  // and ledger 754/754 green**. A parity gate proves the two agree; it cannot prove either is correct, and it
+  // is named for the resolvers, which is exactly what makes its green feel like coverage.
+  //
+  // Severity is honest: the sender posts JSON, so a CRLF address is far more likely to bounce than to inject.
+  // What this pins is that a malformed address is never SELECTED — the same "held, loudly" answer the
+  // no-contact case gets, rather than a send attempt at an address the tenant never wrote.
+  it("MALFORMED RECIPIENT: a billing contact whose email carries CRLF is not selected — held, never sent", async () => {
+    const shp = "biller-crlf-email";
+    const party = "party-crlf-biller";
+    await env.TENANT_A_DB.prepare("INSERT OR IGNORE INTO parties (id, kind, names, contacts) VALUES (?,?,?,?)")
+      .bind(party, "shipper", "{}", JSON.stringify([{ kind: "billing", email: "ap@example.test\r\nBcc: elsewhere@example.test" }]))
+      .run();
+    await env.TENANT_A_DB.prepare(
+      "INSERT OR IGNORE INTO shipments (id, shipper_party_id, consignee_party_id, bill_to_party_id, created_ts) VALUES (?,?,?,?,0)",
+    )
+      .bind(shp, party, "party-consignee", party)
+      .run();
+    await seedDeliveryLeg(shp);
+    await priceQuote(shp);
+    const podId = await driveToPod(shp);
+
+    const sender = new RecordingSender();
+    const outcome = await handlePodSigned(msgFor(shp, podId), depsWith(sender));
+    expect(outcome.status, "a CRLF-bearing address must resolve to NO recipient, exactly like an absent one").toBe("issued_send_pending");
+    if (outcome.status !== "issued_send_pending") throw new Error("unreachable");
+    expect(outcome.reason).toBe("recipient_unresolved");
+    // The unobserved side effect (§1627): nothing was handed to the sender at all.
+    expect(sender.messages, "the malformed address reached the mail sender").toHaveLength(0);
+    expect(await invoiceEvents(shp), "the invoice stands regardless — only the SEND is held").toHaveLength(1);
+  });
+
   it("RECIPIENT UNRESOLVED: a bill-to party with no contact email → invoice STANDS, send held as issued_send_pending", async () => {
     const shp = "biller-noemail";
     // bill-to = party-shipper, whose contacts are the '[]' default — no email anywhere in the tenant plane.

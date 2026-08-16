@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1089 | §1642 | **§1643** | **A PARITY GATE PROVES TWO COPIES AGREE, NEVER THAT EITHER IS CORRECT — 1,873 TESTS GREEN WITH BOTH OUTWARD-MAIL VALIDATORS SKIPPED.** §1642's rule swept: 11 predicates are called at 2+ files; two probed at EVERY site. **`mutatingCallApi` (4 MCP tools) is clean** — flipping each tool to `mutating:false` reds 6/38/4/11, every site pinned. **`plausibleEmail` (Biller + dunning) is the finding**: removing its CRLF clause reds only the ledger's own unit test; bypassing the guard in the Biller ALONE reds only `recipient-parity` (*the two implementations are logically identical*); bypassing it IDENTICALLY IN BOTH leaves **agents 235/235, api 884/884, ledger 754/754 GREEN**. **Function tested + copies agree = nothing about whether the callers USE it.** Severity honest: the sender posts JSON, so a CRLF address bounces rather than injects — what is pinned is that a malformed address is never SELECTED (the same loud `recipient_unresolved` hold an absent contact gets). New case asserts the hold AND that the sender received nothing (§1627). **Own slip recorded**: my assertion named `sender.sent` where the recorder exposes `messages`, failing `Target cannot be null or undefined` — **a test that fails on correct code is a question about the TEST first**. |
 | 1088 | §1641 | **§1642** | **A FIX APPLIED TO TWO SURFACES WAS PINNED ON ONE.** §1641's *ask what pins the DATA* generalises: **ask what pins each CONSUMER of a shared guard.** Sweeping money-path derivations for a missing known-answer pin returned exactly one — `unknownAccessorials`, which **no test mentions by name**. Not untested: **unevenly** tested. Neutering the shared predicate reds 2 cases, **both on the ANONYMOUS surface**; deleting the authenticated `/v1/rate` guard outright leaves the worker **882/882 GREEN**. §1516's own header records the defect on BOTH surfaces (*500 on /pub/quote AND on /v1/rate*) and both were fixed — only one was pinned, so **the exact regression §1516 closed is reintroducible on the surface CSRs use, with nothing failing.** Not a money defect (compose still refuses the code); the DIAGNOSIS regresses — the operator is told the server failed and not which code was wrong — and **a decision with no test is a preference.** Rule: **a shared guard has as many consumers as call sites, and a test proves the SITE it calls, not the guard** — mutate at each SITE, because the shared helper is the thing least likely to be wrong. +2 authed cases (they assert the code is NAMED, which the anonymous surface deliberately does not); re-deleting reds both `expected 500 to be 400`. api 884/884. |
 | 1087 | §1640 | **§1641** | **DIAL SWEEP COMPLETE — 2 defects in 45, and the refinement that says which dials are SAFE.** Remaining eight examined: six are legitimate THRESHOLDS (a floor is the assertion); `driver-core`'s backoff was already correct (growth is STRICT `toBeGreaterThan` + two concrete `toBe` pins; only the jitter LOWER bound is `>=`, right because jitter may be zero); and `tools/seed`'s floors are the same shape as §1640 but **clean for a reason the block does not show** — collapsing them leaves its test **10/10 GREEN** while `check:seed` FAILS on hash drift (`6c10c37ddad8… vs e59d0bfce60d…`). The comment named that defender and the mutation CONFIRMED it (§1634's method, third instance). **Refinement: a dial over a BYTE-LOCKED CONSTANT is harmless; a dial over a DERIVED value is the hazard** — literals under a hash pin fail a gate whatever the assertion says, but a derivation can change while every pinned byte stays identical, which is exactly how §1640's collapse passed 1,288 tests. **Ask what pins the DATA before judging the assertion over it.** Total: 45 → 10 dial-only (after correcting two `.toEqual<T>(` false positives of my own) → **2 real defects, both derivations, both fixed**; 8 legitimate. |
 | 1086 | §1639 | **§1640** | **THE RULE PAID OUT: A COLLAPSED FLOOR LADDER PASSED 1,288 TESTS.** §1639 said to mutate toward the boundary a dial ADMITS; doing so found a second instance one layer up. 45 ordering assertions carry a computed bound; most are safe because a CONCRETE companion sits beside them (§1626) — filtering to dial-only blocks gave 12, **two of them false positives from my own regex** (`.toEqual<Floors>(` — a generic type argument is invisible to `\.toEqual\(`). Corrected: 10. The instance is `brokerageTemplate`, the **REQ-151 cold-start seed a new tenant is onboarded with**: emitting `target_or_bps` for all three tiers — the tenant's contribution and full-cost floors DISCARDED — leaves rater **171/171**, api **882/882**, agents **235/235** green. **1,288 tests and none noticed two of three floors had vanished**, because `equal` satisfies `≤`. Costs REQ-048's middle tier (below-target-above-contribution → single ops approval becomes unreachable; every routine discount escalates to finance) — fails toward MORE approval, but the tenant's tiering is silently not applied on their first artifact. Fixed with a known-answer pin (8475/9238/10000) + STRICT `<`, justified from the derivation. Rule: **a defect's SHAPE is a better search key than its location** — §1638 was found by aiming at a BLOCKED subject, §1640 by aiming at the shape §1638 exposed, in another package, requirement and layer. |
@@ -92351,3 +92352,62 @@ with `expected 500 to be 400`.
 **171/171**. Edits no `packages/` or `workers/src` file, but the phase mutated two, so the board was
 **RE-MEASURED at `bbdf412`** (§1641's commit) **plus this phase's uncommitted test — 0 commits since**:
 `pnpm verify:merge` → **21 PASS · 0 FAIL · 5 BLOCKED**, the same five non-repo-fixable holds.
+
+---
+
+## §1643 — PHASE GATE: a parity gate proves two copies AGREE, never that either is CORRECT — both outward-mail resolvers could skip their validator with 1,873 tests green (REQ-031/032/182/118)
+
+§1642's rule — *a test proves the SITE it calls, not the guard* — is sweepable. Eleven predicates are called at
+two or more files. Two were probed at every site.
+
+**`mutatingCallApi` (4 MCP tool sites) — clean, and measured rather than assumed.** It structurally refuses a
+write whose ctx never passed the caps+confirm chokepoint. Flipping each tool's declaration to `mutating:false`
+in turn:
+
+| tool | tests red |
+|---|---|
+| `approve` · `book` · `dispute` · `quote` | **6 · 38 · 4 · 11** |
+
+Every site pinned. The opposite of §1642's asymmetry, and worth recording as such.
+
+**`plausibleEmail` (the Biller and the dunning route) — the finding.** It rejects an address with no `@` or
+containing CR/LF, on the two paths that put mail in front of a customer.
+
+| mutation | result |
+|---|---|
+| the CRLF clause removed from the shared function | **1 RED** — the ledger's own unit test. Neither consumer noticed |
+| the guard bypassed in the **Biller only** | **1 RED** — `recipient-parity.test.ts`, *"the two implementations are logically identical"* |
+| **bypassed IDENTICALLY in BOTH copies** | **agents 235/235 · api 884/884 · ledger 754/754 — all green** |
+
+**1,873 tests, and the validator could be skipped on both outward-mail paths.** The middle row is the trap and
+the reason this went unnoticed:
+
+> **A parity gate proves the two copies AGREE; it cannot prove either is CORRECT — and being named for the
+> resolvers is exactly what makes its green feel like coverage.** It is a real gate for drift (it caught the
+> one-sided mutation immediately, with a message about an invoice and its dunning notice reaching different
+> addresses). It is simply answering a different question, and the question it answers is satisfied by two
+> identically-wrong copies.
+
+Meanwhile `plausibleEmail`'s own unit test proves the FUNCTION works — which is the other half of the illusion.
+**Function tested + copies agree = nothing about whether the callers use it.**
+
+**Severity, stated honestly.** The sender posts JSON, so a CRLF address is far likelier to bounce than to
+inject; and `compose`/`EvidenceMessageSchema` sit downstream. This is not a live exploit. What it pins is that a
+malformed address is never *selected* — the same loud `recipient_unresolved` hold an absent contact gets, rather
+than a send attempt at an address no tenant ever wrote.
+
+**The case added** seeds a billing contact whose email carries CRLF, asserts the outcome is
+`issued_send_pending`/`recipient_unresolved`, **and that the sender received nothing at all** (§1627's
+unobserved side effect). Under the both-copies bypass it reds alone.
+
+**A slip worth recording: my own assertion named a property that does not exist** — `sender.sent` versus the
+recorder's `messages` — and the failure read `Target cannot be null or undefined` while the two behavioural
+assertions above it passed. **A test that fails on correct code is a question about the test first**, and the
+answer here was an API guess, not a defect. (§1624's shape: a probe reading a missing property reports absence,
+not safety.)
+
+**Phase gate.** `workers/api/test/biller.test.ts` only (+1 case; api **885/885**, was 884). No source changed —
+`contacts.ts`, `biller.ts`, `dunning.ts` and four MCP tools each mutated and restored byte-identical. agents
+**235/235** · ledger **754/754** · mcp **209/209** · rater **171/171**. Board **RE-MEASURED at `5f61e9a`**
+(§1642's commit) **plus this phase's uncommitted test — 0 commits since**: `pnpm verify:merge` → **21 PASS ·
+0 FAIL · 5 BLOCKED**, the same five non-repo-fixable holds.
