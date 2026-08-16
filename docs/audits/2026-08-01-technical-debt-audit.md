@@ -90809,4 +90809,6 @@ fix**; full ledger suite **37 files / 749 tests** green with it.
 > format nests, ask what each element is bounded *by*, and count the answers against the depth.
 
 **Phase gate.** ledger **37 files / 749 tests**; typecheck and lint 0. One production line changed, two tests
-added, one test relocated to the suite that owns it (`der.test.ts`, not `cms.test.ts`). Board re-measured below.
+added, one test relocated to the suite that owns it (`der.test.ts`, not `cms.test.ts`). Board re-measured at
+`cba9bc8`: **21 PASS · 0 FAIL · 5 BLOCKED** (aggregate BLOCKED, exit 2 — the five owner-side private-fixture
+holds).
