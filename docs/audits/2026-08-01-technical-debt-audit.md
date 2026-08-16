@@ -840,6 +840,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1062 | §1615 | **§1616** | **THE SIBLING SEEDS — AND §1614's CRITERION CONFIRMED A SECOND TIME.** §1613 made the second caller EXECUTE on every mutating route, so §1615's instruction was asked of every deterministic event-id seed in the api. `approval-decided:<requested_event_id>` (server row id) collides **on purpose** — *the FIRST decision wins*; `collector:dunning-sent:<invoice>:<bucket>` is fully server-derived — *one message.sent per draft, ever*; `quote-accepted:<quote_event_id>` collides on purpose — *twice in = once out*, keeping ONE booking. **Only `portal-claim` carried a client-chosen string**, and it was the one fixed. §1614's criterion, derived from storage KEYS, selects the same single member out of four derived IDS. **A collision is a design choice until client input enters the seed** — the question is never *can two requests derive the same id* but *can two DIFFERENT callers, whose requests mean different things, derive the same id*. |
 | 1063 | §1616 | **§1617** | **THE MOST CONSEQUENTIAL PROJECTION DEFECT IS GUARDED AT THE SCHEMA, NOT IN CODE.** Tested the founding claim — *money is a projection of physics* — by asking whether re-projecting one `invoice.issued` doubles the invoice. `invoices` upserts with a **set-union** on `shipment_ids` (an invoice may cover several; `= excluded` would make it deny one it covers); `money_lines` is a **bare INSERT** — and that is the right shape, because the guarantee is `UNIQUE (event_id, line_no)` in the TABLE DEFINITION plus two triggers. A re-projected line aborts rather than doubling. The tests name why the redundancy exists: one asserts the UNIQUE appears in the table SQL (*"the layer that survives if 0003's trigger is ever narrowed"*), the other states the consequence — *the total moves, AR moves with it, and money stops being a projection of physics while every hash stays valid… **the read model is where it goes bad**.* **The strongest place to enforce an invariant is the layer that cannot be refactored around.** No defect. |
 | 1064 | §1617 | **§1618** | **WHICH LAYER ENFORCES EACH INVARIANT — AND THE LINT THAT STANDS IN FOR A CONSTRAINT.** `schema-invariants` proves I1–I8 each have a named enforcer, but that field names **the test that proves it**, not **the layer that stops it**. Mapped: **Schema** (an FK, `UNIQUE (event_id, line_no)`, and 12 triggers) holds **I1** and **I3 for UPDATE/DELETE** — unbypassable without editing a migration. **The append chokepoint** (one `INSERT INTO events` in the sequencer DO) holds I2/I4/I5/I6/I7 and every transition gate, because they all run *on the way to* that writer. **Tests** prove, they do not enforce. The repo names the gap itself: *"the DB triggers fire on COLLISIONS, so a direct insert with a fresh id is accepted and skips every gate"* — no SQL constraint can express *this row passed the geofence gate*. **Where a constraint cannot express the invariant, a lint guaranteeing a SINGLE writer is the next strongest thing**: it turns *every gate runs* from a property of N call sites into a property of one. Nothing to fix; the map is the deliverable. |
+| 1065 | §1618 | **§1619** | **A MIGRATION COULD SEED THE LEDGER PAST EVERY GATE.** §1618 quoted the chokepoint gate's warning — *triggers fire on COLLISIONS, so a fresh id skips every gate* — which describes application code. **The migration corpus was a second writer nobody watched.** Three layers miss it for three reasons: `append-chokepoint` scans SOURCE globs and never reads `db/*.sql`; the BEFORE-INSERT triggers need a collision; and `checkMigrationSql`'s alternation names UPDATE/DELETE/DROP/REPLACE-family but **not plain `INSERT INTO`** — while its own message already said *migrations may only CREATE/INDEX*. A backfill migration could write events that passed no gate, no signature check and no visibility resolution **while every hash stays valid**. Fixed with the SHARED `insertIntoRe` (so the two corpora cannot drift, and `OR IGNORE`/quoted/schema-qualified forms are covered). Six cases incl. **a control** (an INSERT into an UNGUARDED table must still pass); reverting reds five. **A rule stated in an error message is not a rule until the matcher agrees with it.** |
 | 856 | §1409 | **§1410** | **SWEEPING MY OWN SECTIONS FOR §1409's ERROR, AND A DETECTOR THAT COULD NOT HAVE FOUND IT.** §1404's precedent: a class like this gets ONE measurement, not a gate, since a correction necessarily quotes what it corrects. **The first sweep returned ZERO and was worthless** — it extracted superseded text as `~~struck~~` only, but the very case §1409 found is marked the other way, as *"a 16-step chain …"* **until audit §1029**. **My detector encoded one of the repo's TWO conventions, so it could never have found the known positive.** Twelfth instance of the session's constant, caught because a zero is the answer this session has learned never to accept. **A second false signal inside the control:** asking *"is it inside `~~…~~`?"* with `~~[^~]*16-step` returned True — because an unrelated `~~` sits earlier and `[^~]*` spanned the gap. **A regex answering "is X inside a delimiter" by searching for the delimiter anywhere before X will say yes to the whole file.** Re-run over both conventions: **109 superseded passages, zero quoted without a marker** — and that zero is worth something, because the corrected detector demonstrably flags a reconstruction of §1408's sentence. **§1409's error was singular, not a habit** |
 | **855** | §1408 | **§1409** | **I QUOTED STRUCK TEXT AS CURRENT, AND THE REPO HAD SOLVED IT 380 SECTIONS EARLIER.** §1408 cited CLAUDE.md's account of `verify:dev` as *"a 16-step chain … reaches 4 of 16"*. Measured: **18 steps**. **But the drift is my quotation's, not the law's** — CLAUDE.md's current text says that reading held *"until audit §1029"*, was *"invalidated hours later by `7b61624`"*, and that **the total is stated no longer, only the position that matters: step 4, and nothing after it**. I quoted the struck half of a correction as the claim. **Eleventh measurement error, and the first where the artifact had already anticipated the failure I was about to report.** **§1029's move is exactly §1402's, reached 373 sections apart and independently:** faced with a number that rots, REMOVE the number and keep the invariant. A convention arrived at twice from opposite ends of the record is the closest this audit has to a law about documentation. Substantively: `verify:dev` is still an unaggregated `&&` chain at 18 steps, and that is **not** a defect — CLAUDE.md documents it, names `verify:merge` as the real verdict, and `wp-exit-audit.test.ts:19` records that a naive matcher yields *"4 of 16"* and *"reads as a serious constitutional finding and is an artifact"*. **Tenth clean negative** |
 | 854 | §1407 | **§1408** | **VERIFYING MY OWN DELIVERABLE IS WIRED, BY THE STANDARD §1304 SET.** Five gates were built this session and each reported as working; §1304's standard is **verified WIRED before the board is read**, because a gate that runs when I invoke it and not when CI does is decoration with a green tick. **First measurement said ZERO** — searching the merge log for the five names returns 0 mentions each, which reads as "they never ran". It is the §1362 reporter difference: the tools suite runs under vitest v4 (summary only) while worker suites at v3.2.7 print per-file. The same run reports **125 files passed**, 120 + 5. **Tenth measurement error avoided by not believing a zero.** Measured properly three ways: `vitest list` shows **21 cases** across the five; `run-gate.ts:46` wires `unit-tests` to the `test` script; and `test` is `test:tools; t=$?; … ; exit $(( t \|\| p ))`. **Proved end-to-end:** breaking `law-enforcers` makes `pnpm test:tools` exit 1, which propagates. Also worth noting: that script AGGREGATES rather than `&&`-chains — the defect CLAUDE.md records for `verify:dev`, which reaches 4 of 16 steps |
@@ -10236,7 +10237,7 @@ roughly half the flagged set is likely rot and the rest is window tightness, and
 Five rotted citations across three skills, each re-pointed **and given a content anchor**, which is the
 only rule that catches this failure — `invoice-gate.ts:16@GATE_BLOCKED_PREFIX`,
 `transition-gates.ts:74@VALIDATION_FAILED`, `isolation.test.ts:29@WPs`,
-`invariants.ts:500@FORBIDDEN_REPLACE` (×2), plus `invariants.ts:102@SCHEMA`. Anchored citations went
+`invariants.ts:520@FORBIDDEN_REPLACE` (×2), plus `invariants.ts:102@SCHEMA`. Anchored citations went
 **28 → 34**; 987 citations resolve; the ratchet holds at its frozen 130.
 
 The remaining ~48 candidates are **not** swept in this pass, and saying so is the point (§175 is not a
@@ -21132,7 +21133,7 @@ on all three.
 
 ### Carry-forward
 
-`tools/checks/invariants.ts:611@committedLock` returns `{}` when there is no committed lockfile. That is
+`tools/checks/invariants.ts:631@committedLock` returns `{}` when there is no committed lockfile. That is
 the exact shape of [[fail-closed-is-about-the-fallback-value]] — the fallback VALUE, not the catch — and a
 `{}` there would make any "every dependency matches the lock" comparison vacuously true. It may well be
 correct here; it has not been checked. **Next section's first item.**
@@ -21145,7 +21146,7 @@ correct here; it has not been checked. **Next section's first item.**
 
 ### The carry-forward: not a defect
 
-`tools/checks/invariants.ts:611@committedLock` returns `{}` when `git show HEAD:<lock>` fails. `checkLock`
+`tools/checks/invariants.ts:631@committedLock` returns `{}` when `git show HEAD:<lock>` fails. `checkLock`
 uses that value as the **forward-only anchor** — the thing a locally-deleted or hand-edited lock line
 cannot reset. An empty anchor therefore re-opens the exact bypass `checkLock` exists to close, and the
 tests for it pass `committed` in as a parameter, so they prove the *guard* and say nothing about its
@@ -36261,7 +36262,7 @@ demands it. Sixteen skills exist. This sweeps the rest.
 
 | Skill | Cited | Verdict at HEAD |
 |---|---|---|
-| `share-lint-matchers-with-parity-tests` | `invariants.ts:500@FORBIDDEN_REPLACE` — a hand-written matcher | **FIXED** (§638): calls `replaceFamilyRe`; all four evasions blocked on both scanners |
+| `share-lint-matchers-with-parity-tests` | `invariants.ts:520@FORBIDDEN_REPLACE` — a hand-written matcher | **FIXED** (§638): calls `replaceFamilyRe`; all four evasions blocked on both scanners |
 | `enforce-server-side-gate-parity` | `positions.ts:15-60` — a REQ-166 CRITICAL bypass, no consent/assignment/device check | **FIXED**: `positions.ts:7` imports `assignmentOf`, `deviceOwnedBy`, `assertPositionConsent` from a shared `gate-context.js`, all three enforced before the INSERT |
 | `reconcile-gate-sentinels-with-exit-codes` | `run-gate.ts:118@reconcileSentinel` — a **fix**, not a defect | resolves exactly; `reconcileSentinel` is at 118 |
 
@@ -73364,7 +73365,7 @@ export function authoritativeSource(authority: AuthorityLevel, legacyValueAvaila
 
 Ten sites sharing a literal is §1225's shape **prospectively**: when Tasks 4/6/8 supply a real
 `legacyValueAvailable`, the sites get changed one at a time and N−1 are stale mid-flight. That is exactly what
-`invariants.ts:740@AUTHORITY-SEAM` covers — a **dormancy tripwire** that reds the moment any call site stops
+`invariants.ts:760@AUTHORITY-SEAM` covers — a **dormancy tripwire** that reds the moment any call site stops
 passing `false`. And §454 had already caught the weaker version of this gate: a test *named* *"TODAY every
 caller passes legacyValueAvailable=false"* whose body only checked the **function**, never the call sites — the
 same name-vs-body defect this session met at §1210.
@@ -91225,3 +91226,43 @@ adding an events writer, or neither?*
 
 **Phase gate.** No code, no test — one layer map. Board stands at `8761ca0`
 (**21 PASS · 0 FAIL · 5 BLOCKED**); tools **145 files / 1476**.
+
+## §1619 — PHASE GATE: a migration could seed the ledger past every gate (REQ-030/119/118)
+
+§1618 mapped the enforcement layers and quoted the chokepoint gate's own warning: *"the DB triggers fire on
+COLLISIONS, so a direct insert with a fresh id is accepted and skips every gate."* That sentence describes
+application code. **The migration corpus is a second writer nobody was watching.**
+
+**Three layers agree to let it through, each for a different reason:**
+
+| layer | why it misses a migration's `INSERT INTO events` |
+|---|---|
+| `append-chokepoint` lint | scans `SOURCE_SCAN_GLOBS` — source trees. It never reads `db/*.sql` |
+| BEFORE-INSERT triggers | they fire on **collisions**; a row with a fresh id collides with nothing |
+| `checkMigrationSql` | its alternation names `UPDATE`, `DELETE FROM`, `DROP TABLE`, `INSERT OR REPLACE INTO`, `REPLACE INTO` — **plain `INSERT INTO` is absent** |
+
+**The scan's own error message already stated the rule the regex did not implement**: *"migrations may only
+CREATE/INDEX {table}"*. Message and mechanism disagreed, and the message was right.
+
+**What it would have cost.** A backfill migration — *exactly* the shape someone reaches for when importing
+history — could write ledger events that passed no transition gate, carried no device-signature check and got
+no visibility resolution, **while every hash in the chain stays valid**, because nothing about the event stream
+is malformed. The same failure signature as §1617's doubled money line: correct-looking data, wrong provenance.
+
+**Fixed with the shared builder, not a new regex.** `insertIntoRe` is what the chokepoint lint already uses, so
+the two corpora can no longer drift on what counts as an insert — and it covers `INSERT OR IGNORE`, the
+abutting-quote form `INSERT INTO"events"` and the schema-qualified `main.events`, all of which a hand-written
+pattern would have missed. REPLACE forms are skipped because the existing scan reports them with their own
+message.
+
+Six cases: five refusals (plain, `OR IGNORE`, quoted, schema-qualified, and `positions`) and **a control** —
+`CREATE`/`INDEX` plus an `INSERT` into an **unguarded** table must still pass, or the ban would be reaching too
+far. Reverting the scan reds five of them. **Zero false positives today**: no migration inserts into a guarded
+table, measured before the ban was written.
+
+> **A rule stated in an error message is not a rule until the matcher agrees with it.** This one had been true
+> in prose since the scan was written, and the gap only mattered the day someone wrote a data migration —
+> which is to say, it would have been found by the accident it was there to prevent.
+
+**Phase gate.** tools **145 files / 1482** (six cases added); typecheck 0. One gate widened. Board re-measured
+below.

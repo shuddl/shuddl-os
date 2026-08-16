@@ -326,6 +326,26 @@ export function checkMigrationSql(sqlFiles: string[]): InvariantResult {
     violations.push(`I3 VIOLATION: migrations may only CREATE/INDEX ${m[2]} (plus a NULLABLE ADD COLUMN — see the ALTER rule ` +
         `below) — found "${m[1]}". Corrections are new events.`);
   }
+  // §1619 — A PLAIN `INSERT INTO` INTO A GUARDED TABLE IS ALSO FORBIDDEN HERE, and it was not caught.
+  //
+  // The message above already states the rule ("migrations may only CREATE/INDEX"), and the alternation
+  // implemented less of it: it names UPDATE / DELETE / DROP / the REPLACE family, so `INSERT INTO events` and
+  // `INSERT OR IGNORE INTO events` passed. Three layers then agree to let it through — `append-chokepoint`
+  // scans SOURCE globs and never reads `db/*.sql`; and the BEFORE-INSERT triggers fire on COLLISIONS, so a row
+  // with a FRESH id is accepted. The result would be a ledger event that passed no gate, carried no signature
+  // check and got no visibility resolution, while every hash in the chain stays valid — a backfill migration
+  // is exactly the shape someone reaches for.
+  //
+  // `insertIntoRe` is the SHARED builder the chokepoint lint already uses, so this cannot drift from it; the
+  // REPLACE forms are skipped because `mutate` above already reports them with their own message.
+  for (const m of clean.matchAll(insertIntoRe(GUARDED_ALT))) {
+    if (/REPLACE/i.test(m[0])) continue;
+    violations.push(
+      `I3 VIOLATION: a migration may not INSERT INTO ${m[1]} — found "${m[0].trim()}". The append chokepoint is the ` +
+        `ONLY writer (REQ-030); a row inserted here passes no gate, and the BEFORE-INSERT trigger cannot see it ` +
+        `because a fresh id collides with nothing. Seed through the sequencer, or correct with a new event.`,
+    );
+  }
   // ALTER TABLE on a guarded table: the ONE sanctioned form is a NULLABLE `ADD COLUMN`
   // (owner-approved, WP-05). RATIONALE: append-only (CLAUDE.md Law 2) bans UPDATE/DELETE of
   // existing event DATA; a nullable `ADD COLUMN` is SQLite metadata-only — it never rewrites or

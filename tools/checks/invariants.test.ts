@@ -93,6 +93,36 @@ describe("I8: table budget", () => {
     expect(r.ok).toBe(true);
     expect(r.warnings.join(" ")).toContain("spare");
   });
+  // §1619 (REQ-030/I3) — A MIGRATION MAY NOT INSERT INTO A GUARDED TABLE, AND THE OLD SCAN LET IT.
+  //
+  // The scan's own message says "migrations may only CREATE/INDEX", while its alternation named UPDATE,
+  // DELETE, DROP and the REPLACE family — so a plain `INSERT INTO events` passed. Three layers agreed to let
+  // it through: `append-chokepoint` scans SOURCE globs and never reads `db/*.sql`, and the BEFORE-INSERT
+  // triggers fire on COLLISIONS, so a row with a fresh id collides with nothing. The result is a ledger event
+  // that passed no gate and got no visibility resolution, while every hash in the chain stays valid.
+  //
+  // A backfill migration is exactly the shape someone reaches for, which is why this is banned before anyone
+  // writes one — measured at §1619, no migration inserts into a guarded table today, so the ban has zero
+  // false positives.
+  for (const [what, sql] of [
+    ["a plain INSERT", "INSERT INTO events (id) VALUES ('e1');"],
+    ["an INSERT OR IGNORE", "INSERT OR IGNORE INTO events (id) VALUES ('e1');"],
+    ["a quoted-table INSERT", `INSERT INTO "events" (id) VALUES ('e1');`],
+    ["a schema-qualified INSERT", "INSERT INTO main.money_lines (id) VALUES ('m1');"],
+    ["an INSERT into positions", "INSERT INTO positions (id) VALUES ('p1');"],
+  ] as Array<[string, string]>) {
+    it(`refuses ${what} into a guarded table from a migration`, () => {
+      const r = checkMigrationSql([sql]);
+      expect(r.ok, `${what} was accepted — a migration can seed the ledger past every gate`).toBe(false);
+      expect(r.violations.join(" ")).toContain("I3 VIOLATION");
+    });
+  }
+
+  it("still allows CREATE/INDEX and an INSERT into an UNGUARDED table (the control)", () => {
+    const ok = "CREATE TABLE shipments (id TEXT);\nCREATE INDEX ix ON shipments(id);\nINSERT INTO shipments (id) VALUES ('s1');";
+    expect(checkMigrationSql([ok]).ok, "the ban must not reach beyond the guarded tables").toBe(true);
+  });
+
   it("does not double-count IF NOT EXISTS re-runs of the same table", () => {
     const sql = "CREATE TABLE IF NOT EXISTS events (id TEXT);\nCREATE TABLE IF NOT EXISTS events (id TEXT);";
     expect(checkMigrationSql([sql]).tableCount).toBe(1);
