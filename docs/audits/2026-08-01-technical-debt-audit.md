@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1128 | §1681 | **§1682** | **§1681's HEADLINE WAS FALSE — THE REPO-OWNED OPEN DEBT IS 29 ROWS, NOT 4.** The classifier tested for a cell holding the bare word `Repo` and nothing else; the register writes QUALIFIED cells (`Repo (the sweep)`, `Repo (tooling scope)`, `Repo — but the FIX is an owner decision`) because the KIND of repo work is the useful part, so **every qualified cell was silently dropped** and the 4 survivors were just the tersely-written ones. **An exact-match classifier over prose reports the rows written tersely and calls it an inventory** — under-counting by 86% in a phase whose entire purpose was completeness. Fourth measurement error in this family (§1676 `head -3`, §1677/§1678 fabricated SHAs, §1680 unverified package layout), all sharing one property: **a plausible number from an instrument never checked against a known answer.** Re-run per-table (12 tables, each with its own column order) and reconciled: **43 open = 29 Repo + 6 External + 8 in tables with no Ownership column**; of the 29, **16 carry *needs a REQ row / register decision*** (correctly parked — CLAUDE.md forbids building without an amendment) and **13 do not**, enumerated here for the first time. **Row 416 is the register working**: §1680 discovered the vitest major mismatch by opening the package, and the row had already filed it — §1681's classifier hid it. Struck in place; board unmoved at `02872fc` (21 PASS · 0 FAIL · 5 BLOCKED); zero source changed |
 | 1127 | §1680 | **§1681** | **SEGMENT STOPPING POINT — THE FILED REGISTER AUDITED AGAINST ITSELF; THE OLDEST OPEN ROW HAD NO EXPIRY CONDITION.** The direct answer to *identify all technical debt* is the filed register asked whether it is still true: **57 OPEN rows, 8 Repo-owned, 4 struck ⇒ exactly FOUR live repo-owned rows** (417 cron double-fire — transport still `NotConfiguredTransport`, verified in source; 418 duplicate-vs-strand — a DECISION, not a code state; 451 pool-binding — re-measured §1680; 454 custody parties — deferred REQ-069, fails CLOSED, R3). **454's trigger was TESTED not assumed** (no commit since §1085 touched its files; the empty result controlled by re-running without the date filter → 2 commits). **THE FINDING: row 451's *Evidence expires* cell held FIX PROSE, not a condition** — how to fix it, never when to distrust it — and **451 is precisely the row that survived four restatements without re-measurement**. A row with no expiry condition is a row nothing ever asks again. Given three greppable conditions. **A detector for the class was written and THROWN AWAY**: it flagged 13 of 68 and twelve were valid triggers phrased differently — the real instance came from READING the four open rows. §1673's rule again: where the boundary is English, read the short list. **SEGMENT §1676–§1681**: 3 gates added, 1 declined on measured evidence, **2 of the segment's own gates caught the author within one phase of being built**; board **21 PASS · 0 FAIL · 5 BLOCKED** at `bd7ad3c`, no repo-owned gate failing |
 | 1126 | §1679 | **§1680** | **THE OLDEST OPEN REPO-OWNED BLOCKER, RE-MEASURED AGAINST THE ARTIFACT.** Row 451 (pool-binding exclusivity enforced on ENUMERATION, not RESOLUTION) has been restated four times; §1056 left a checkable sentence — the wall is ONE version-pinned upstream assert and *the constraint may already be fixed upstream and nobody has looked*. **Looked, at the published tarball.** **(1) CONFIRMED GONE**: `endsWith(".sqlite")` sits at the two recorded lines of the installed 0.9.14 pool entry point (§1056 reproduced exactly) and **zero times anywhere in 0.21.3** — with **three positive controls first**, because an empty grep over an unverified layout is the shape that invites no follow-up (the file does mention `sqlite` 20×). **(2) BUT IT IS AN API MIGRATION, NOT A BUMP**: 0.9.14 exports `.` + **`./config`**, which is where `defineWorkersConfig` lives and what EVERY `vitest.config.ts` here imports; **0.21.3 ships no `/config` entry** and its surface is a pair of upstream pool/test factories under different names — 6 pinning packages plus the workspace `chai` override. **(3) NEW FACT**: the repo is **already on vitest 4.1.10 while the pool pulls `@vitest/runner` 3.2.7**, so the upgrade RESOLVES a standing major mismatch rather than introducing one (0.21.3 ships a v3→v4 codemod because it targets v4). **§1056's diagnosis was right and its sizing was optimistic** — *take a dependency upgrade and re-test* measures as *migrate the pool config API in six packages while crossing a runner major*. Both describe one discovery; only one can be planned against. Not attempted (owner runway); zero source changed |
 | 1125 | §1678 | **§1679** | **THE PARAMETER FORM OF PARSED-BUT-UNCONSUMED — 39 DECLARED, 5 UNFED, 1 DEAD SEAM IN THE MAP.** Four phases in a row found prose asserting a mechanism the code lacks; §1678's instance has a MECHANICAL core, so it was counted instead of fixed again. §796 swept the SCHEMA-field form (203 Zod fields → 1); the PARAMETER form is a different declaration site and had never been swept. **39 exported functions declare an optional param, 5 are never supplied** — 3 have DEFAULTS (legitimately unfed: the default IS the value), leaving **2 bare `?:`**. **The find: `setEntityState(…, risk?)` has NO producer and NO consumer** — the sole caller passes 3 args so feature-state always carries `risk: null`, **no paint expression anywhere reads `["feature-state", "risk"]`** (the `at-risk` STATUS is fully painted; the reason CODE is not), and no register row scopes it. Threaded through THREE declarations, arriving nowhere — **and its test made it look alive**, passing `"DWELL"` while asserting only the status; now asserts the whole state object both ways incl. the production `risk: null`. Not deleted, not wired (§796's precedent: record it, keep the shape honest). Gate frozen at 2, RED-proved by planting a third. **Its own positive control failed first, on MY splitter**: `>` was counted as a closing generic, so `=> void` decremented depth past zero and merged a callback param with its neighbour. **A gate whose subject is a COUNT mis-classifies exactly what it judges when it miscounts — and a miscount looks identical to a finding** |
@@ -94438,10 +94439,21 @@ Board carried from `cd0b7fa` (§1679's commit, **0 commits since**) as **21 PASS
 
 ## §1681 — PHASE GATE (SEGMENT STOPPING POINT): the filed debt register audited against itself — four rows open, one with no expiry condition (REQ-118/119)
 
+> ## ⚠ CORRECTED BY §1682 — THE HEADLINE COUNT BELOW IS FALSE
+>
+> This section reported *"the live repo-owned debt is exactly four rows."* **It is 29.** The classifier
+> matched the literal cell `| Repo |` and silently dropped every QUALIFIED ownership cell — `Repo (the
+> sweep)`, `Repo (tooling scope)`, `Repo — but the FIX is an owner decision` — which is how 25 rows
+> disappeared from an inventory whose entire purpose was completeness. Measured properly at §1682:
+> **29 Repo-owned · 6 External · 8 in tables with no Ownership column**, of which **16 carry a "needs a REQ
+> row / register decision" qualifier** and **13 do not**. The four rows below are real and their analysis
+> stands — they are simply the subset whose ownership cell happens to be unqualified.
+
 The most direct answer to *"identify all technical debt"* is not another sweep of the code — it is the filed
-register, asked whether it is still true. `GO-LIVE-CHECKLIST.md` carries **57 rows containing OPEN**, of which
-**8 are Repo-owned**; four of those eight are struck (`~~OPEN~~ **FIXED**`), so the live repo-owned debt is
-**exactly four rows**:
+register, asked whether it is still true. `GO-LIVE-CHECKLIST.md` carries **57 rows containing OPEN** (**43** once struck ones are
+excluded), of which ~~**8 are Repo-owned** … so the live repo-owned debt is **exactly four rows**~~
+**[STRUCK — 29 are Repo-owned; see the correction above]**. The four rows whose ownership cell is the bare
+word `Repo`:
 
 | row | item | why it is still open |
 |---|---|---|
@@ -94493,10 +94505,73 @@ of being built** — the SHA check on §1678, and `unfed-optional-params`' contr
 
 **The state of the build.** `pnpm verify:merge`: **21 PASS · 0 FAIL · 5 BLOCKED** — the five are the standing
 owner-held holds (identity denylist + four private-fixture gates), unchanged all segment. **No repo-owned gate
-is failing.** Live repo-owned debt is the four rows above: two await an owner decision, one awaits deferred
-scope, one awaits a runway. **Every one of them now carries a condition under which someone will look again.**
+is failing.** ~~Live repo-owned debt is the four rows above~~ **[STRUCK by §1682: 29 rows are Repo-owned —
+16 blocked behind a register amendment, 13 not.]** Those four each now carry a condition under which someone
+will look again; §1682 inventories the rest.
 
 **Phase gate.** Register audited end to end, 1 missing expiry condition written, 1 trigger verified unfired
 with a control, 1 detector written and discarded on its own false-positive rate, segment closed. **Zero source
 changed this phase.** Board carried from `bd7ad3c` (§1680's commit, **0 commits since**) as **21 PASS · 0
 FAIL · 5 BLOCKED**.
+
+---
+
+## §1682 — PHASE GATE: §1681's headline was FALSE — the repo-owned open debt is 29 rows, not 4 (REQ-118/119)
+
+§1681 closed a segment with the sentence *"the live repo-owned debt is exactly four rows."* **It is 29.** The
+correction is struck into §1681 in place; this section is the measurement that replaces it.
+
+### The mechanism, because the number is less interesting than how it went missing
+
+The classifier tested each row for the literal cell `| Repo |`. The register does not write ownership that way.
+It writes **qualified** cells — `Repo (the sweep)`, `Repo (tooling scope)`, `Repo (the governing doc)`,
+`Repo (register data)`, `Repo — but the FIX is an owner decision`, `Repo, but the durable fix is a MIGRATION` —
+because the *kind* of repo work is the useful part. **Every qualified cell was silently dropped**, and the 4 that
+survived were exactly the rows whose author happened to write the bare word.
+
+> **An exact-match classifier over prose reports the rows that were written tersely**, and calls it an
+> inventory. The failure is total and silent in the same direction the §1681 phase existed to prevent: a
+> completeness claim that under-counts by 86%.
+
+It is also the fourth measurement error this record has logged in the same family — `head -3` on a checker's
+output (§1676), a fabricated SHA (§1677, §1678), an unverified package layout (§1680) — and all four share one
+property: **a plausible number produced by an instrument nobody checked against a known answer.** §1681 had no
+fixed point. Re-run with the Ownership column read per-table (12 tables, each with its own column order), the
+count is stable and reconciles: **43 genuinely-open rows = 29 Repo + 6 External + 8 in tables that carry no
+Ownership column at all.**
+
+### The real inventory
+
+Of the **29** Repo-owned open rows, **16** carry an explicit *"needs a REQ row first"* / *"register decision"* /
+*"owner decision"* qualifier — they are repo work that CLAUDE.md forbids building without an amendment, so they
+are correctly parked. That leaves **13** without that qualifier:
+
+| line | row | note |
+|---|---|---|
+| 404 | fixture gates: routes ±10% | the governing doc |
+| 415 | an abnormally-terminated workerd run orphans its sandbox | tooling |
+| 416 | the workspace runs TWO vitest majors | **the standing mismatch §1680 surfaced independently** |
+| 417 | cron sweeps double-fire under overlapping ticks | awaits a transport |
+| 418 | the duplicate-vs-strand decision is unmade | awaits a decision |
+| 419 | "a fifth primitive" has an undefined subject | the governing doc |
+| 423 | no line/branch coverage is measured | tooling; trigger re-measured §1101 |
+| 424 | REQ-167 unverified in every local run | the gate + the denylist secret (a BLOCKED board row) |
+| 431 | drift rows that cannot be resolved from repo data | register data |
+| 434 | **the citation gate is blind to a PATH-ONLY citation** | the gate |
+| 450 | /pub/signup's distinct 409 for a taken admin email | response shape + an edge rule |
+| 451 | pool-binding exclusivity | re-measured §1680, trigger added §1681 |
+| 454 | a pickup custody handoff cannot record real parties | deferred REQ-069, fails closed |
+
+**Row 416 is worth naming twice**: §1680 discovered the vitest-major mismatch by opening the installed package,
+and the register had already filed it. That is the register working — and §1681's classifier hid it.
+
+### What this does NOT change
+
+The board is unmoved (**21 PASS · 0 FAIL · 5 BLOCKED**) and no repo-owned gate is failing; every one of these
+29 rows is *filed*, which is the state the register exists to produce. What was false was the claim about how
+many there are — and an audit whose inventory under-counts by a factor of seven is worse than one that does not
+attempt the count, because the number reads as a clearance.
+
+**Phase gate.** 1 false headline struck in place with its mechanism, 1 inventory re-measured per-table and
+reconciled (43 = 29 + 6 + 8), 13 unblocked repo rows enumerated for the first time. **Zero source changed.**
+Board carried from `02872fc` (§1681's commit, **0 commits since**) as **21 PASS · 0 FAIL · 5 BLOCKED**.
