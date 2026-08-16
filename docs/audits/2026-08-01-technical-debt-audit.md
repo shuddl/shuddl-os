@@ -91058,4 +91058,5 @@ reds exactly one of the nine cases; full api **71 files / 877 tests** green with
 > what else shares that key's space** — and the answer is every dimension the route's `requireRole` admits.
 
 **Phase gate.** api **71 files / 877 tests**; typecheck and lint 0. One production line changed, one test added.
-Board re-measured below.
+Board re-measured at `0554a85`: **21 PASS · 0 FAIL · 5 BLOCKED** (aggregate BLOCKED, exit 2 — the five
+owner-side private-fixture holds).
