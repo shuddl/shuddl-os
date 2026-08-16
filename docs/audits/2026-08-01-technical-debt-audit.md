@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1119 | §1672 | **§1673** | **44 OF 467 CONTENT ANCHORS ARE HELD UP BY A COMMENT — AND THE GATE IS DECLINED.** §1672's false-green (a citation 13 lines off its subject, saved by a comment mentioning the symbol) asked how much anchoring is like that. Measured with the checker's OWN extractor: **467 anchored** (matches its report exactly), **44 (9.4%) comment-only** — 11 prose-only annotation citations, 33 where the symbol also exists in code. **The class is dominated by CORRECT uses**: all four widest-distance cases cite the comment deliberately (a TODO recording an UNWIRED exemption at 254 lines; a server-derived-gate-context rule at 272; a measured `produced by NOTHING` note; a hostname-routing statement). **Distance does not discriminate — the two largest gaps are both correct**, and neither does shape, because the anchors ARE code identifiers being discussed in prose. **NO GATE**: the boundary is English, and §1561 already measured that shape at 76%→95% FP after every filter; a rule firing on 33 to catch 1 gets switched off. Recorded instead with a reopen trigger — **a SECOND false-green makes it a class** — plus what the anchor DOES buy (it caught real rot twice this session; it works when the symbol lives only in code, and the blind spot is exactly a stale line whose window contains prose naming the symbol). **Method: the harness said 449/43 against the checker's 467** — I took the first resolution candidate where the checker accepts ANY; corrected, the denominator matched and mention-only rose to 44. **A harness bug that UNDER-reports is the dangerous direction**, caught only because a known fixed point sat on the same line |
 | 1118 | §1671 | **§1672** | **DEFECT (live): THE EVIDENCE UPLOAD RETURNS 200 FOR BYTES THE RETENTION SWEEP ALREADY DELETED.** Two files state one invariant and disagree. `evidence.ts` calls ROW-IFF-BYTES *airtight in BOTH directions* and its duplicate path returns 200 on the row alone; `retention.ts` deletes bytes FIRST and tombstones SECOND, naming the state *the only transient torn state: active row, bytes already gone*. Measured: **`status=200 bytes_restored=false`** — a driver retrying a capture is told the evidence landed, records success, never re-sends, and the ledger event points at a hash whose bytes are gone. **The sweep's doc got two things wrong about its own window**: (1) it is NOT crash-only — the two awaits give an ORDINARY tick the same window, once per deleted doc, nothing crashing; (2) it **enumerated one consumer and stopped** (*exactly the graceful miss the /pub proxy 404s on*) while the upload's fast path reads the same `active` predicate — and there it is not a read that fails politely but a **write that reports success**. Rule: **a comment enumerating the consumers of a known-torn state is making a completeness claim, and it is the one sentence nothing checks.** Fixed with a HEAD on the duplicate path, falling through to the existing re-instate repair. **RESIDUAL STATED, not hidden**: a mid-flight tombstone can land after the re-instate → orphan BYTES, the direction retention.ts itself names safe (*a DELETE's safe miss is keep longer*), strictly better than 200-with-no-bytes; closing it needs one transaction across D1+R2, and the ordering must NOT reverse. The sibling test does BOTH halves of the sweep (a COMPLETED one), which is why the interrupted state had no coverage. Restore verified **against the saved copy** — `git diff` is the wrong instrument once a file carries uncommitted work (§1671's rule, refined). api 888/888 · ledger 755/755 |
 | 1117 | §1670 | **§1671** | **A RATCHET ON THE SCANNING-JSON BLAST RADIUS — AND A RESTORE THAT OVERWROTE THE WRONG FILE.** §1670 sized the hazard at 21 scanning sites; both real fixes are the owner's (a `CHECK (json_valid(col))` migration needs a REQ row; the per-reader guard trades the wedge for a silent skip). **In scope meanwhile: stop the surface widening.** The gate freezes the count at 21, names the three ways out in its failure message (pin the key, guard with `json_valid`, or raise the number in a commit that says why), and may fall never grow. **Deliberately NOT a correctness gate** — it cannot make a corrupt row safe; it makes a 22nd tenant-wide outage surface cost a conversation instead of a merge. RED-proved by planting one. **And a restore overwrote the wrong file**: an OR-fallback backup (`cp A $S/orig 2>/dev/null` falling through to `cp B $S/orig`) saved **A**, because A existed, so restoring B from it wrote A's contents into B — `exceptions.ts` came back as `board.ts`, **165 insertions / 118 deletions**, visible only because `git diff --stat` ran immediately after. **And the gate was caught by an older gate on its first run**: `corpus-extension` (§1507) reded on it — the corpus was `.ts`-only over `packages`+`workers`, the exact shape §1507 makes unrepeatable after six gates were measured blind to the 14 `.tsx` render views; widened to `/\.tsx?$/`, **count unchanged at 21**, and the re-plant redone IN a `.tsx` (`evidence-email-view.tsx`, one of §1507's own six). `check-table-shape` then reded twice on this very row for quoting a shell OR operator. Rule: **a restore must be verified like a mutation and the check is that the diff is EMPTY; an OR-fallback backup silently changes WHICH file the name refers to — name the backup after the file, never after the intent.** |
 | 1116 | §1669 | **§1670** | **§1669's COUNT WAS 8; IT IS 21 — and the widest reader is the VISIBILITY LENS.** §1669 filed the malformed-JSON wedge against `json_each`, which was the function I tripped rather than the class. **`json_extract` in a scanning WHERE raises identically** (measured: `WHERE json_extract(names,'$.legal') = ?1` → `D1_ERROR: malformed JSON`). Re-counted by the right predicate — *does the WHERE pin a key before the JSON call, or scan?* — **21 SCANNING sites vs 7 behind a key**. The widest are over `events.payload` and §1669 named NONE of them: credit reconciliation, the SLA sweep, the KPI computes, and **`lens.ts:60`, the visibility lens** scanning `party_refs` to decide what a counterparty may see. One malformed payload fails all four at once. **A mitigation that is not one**: the canonical hash covers the payload, so corruption is DETECTABLE — but the scan raises before anything verifies a hash. Rule: **a count is only as good as the predicate that produced it, and mine was a FUNCTION NAME rather than the shape of the hazard** — *where does a JSON operator evaluate over rows the caller did not ask for* is 2.6× larger. Row amended in place. |
@@ -93789,3 +93790,68 @@ the intended assertion, restore verified byte-identical **against the saved copy
 instrument once a file carries uncommitted work, the refinement §1671's rule needed). api **887→888/888** ·
 ledger **755/755** · lint clean · 1 rotted citation repointed (`CANDIDATES_SQL` :105→:112, moved by my own
 header insert). Edits `packages/` and `workers/`, so the board is re-measured at commit.
+
+---
+
+## §1673 — PHASE GATE: 44 of 467 content anchors are held up by a COMMENT, and a gate is DECLINED (REQ-118)
+
+§1672 turned up a citation that was green while pointing 13 lines away from its subject:
+`pen-test-basics.md → sequencer.ts:388-393@UNRESOLVED_VISIBILITY`, where the `if` had moved to **:404** and a
+**comment at :391** mentioning the symbol sat inside the checker's ±2 window. The anchor resolved off the
+mention. So: how much of the anchoring is like that?
+
+The rule is `text.includes(symbol)` over the window — comments, imports and string literals all count.
+Measured with the checker's **own** `collectCitations` / `buildRepoIndex` / `resolveCandidates` /
+`commentTextOf` (re-authoring the extractor is how two copies diverge):
+
+| | count |
+|---|---|
+| content-anchored citations | **467** — matches `check:citations`' own report exactly |
+| anchored ONLY by a comment mention | **44 (9.4%)** |
+| ├─ prose-only (the symbol is nowhere in code — a `@REQ-191`-style annotation citation) | 11 |
+| └─ the symbol EXISTS in code elsewhere (a stale code anchor is *possible*) | 33 |
+
+### The verdict is that the class is dominated by CORRECT uses
+
+Four of the widest-distance cases, read in full — every one cites the comment **deliberately**:
+
+- `sequencer.ts:354@invoice_without_pod_classes` (code 254 lines away) — the subject is the **TODO** recording
+  that the exemption is UNWIRED and inert.
+- `sequencer.ts:447@operating_state` (272 away) — the subject is the sentence stating gate context is
+  server-derived, *never* from the client event.
+- `events.ts:194@NOTHING` (82 away) — the subject is a **measured note** (`'email' is produced by NOTHING,
+  §1178`).
+- `quote.ts:129@routing-authoritative` (106 away) — the subject is the design statement about hostname
+  routing.
+
+**Distance does not discriminate**: the two largest gaps in the whole set are both correct. Neither does
+shape — `invoice_without_pod_classes` and `operating_state` look exactly like code anchors, because they *are*
+code identifiers being discussed in prose.
+
+> **NO GATE — declined on the measurement, not on effort.** A detector here separates "cites the comment" from
+> "the code moved and a comment saved it", and that boundary is English. This record already measured the cost
+> of that shape (§1561: 76% → 95% false positives *after* all three filters, with a permanent floor from prose
+> quoting the very values it describes). A rule firing on 33 sites to catch the 1 real instance would be
+> switched off within a week, and a gate people switch off is worse than none.
+
+**What the anchor DOES buy, so the mechanism is not mistaken for useless**: it caught real rot twice this
+session — `CANDIDATES_SQL` :105→:112 (§1672, moved by my own header insert) and the `UNRESOLVED_VISIBILITY`
+repoint. It works exactly when the symbol lives only in code. **The blind spot is precisely the intersection:
+a stale line whose window happens to contain prose naming the symbol.**
+
+**REOPEN TRIGGER (with its expiry condition):** a **second** false-green traced to a comment-satisfied anchor.
+One instance is a curiosity; two is a class, and at two the false-positive cost becomes worth paying — likely
+as a report-only list of the 33, never a merge blocker. This trigger dies if the anchor rule is ever changed to
+prefer a code hit, which would break all 11 annotation citations and must not be done casually.
+
+### Method note: the harness disagreed with the checker, and the fix moved the number UP
+
+The first run reported **449** anchored / 43 mention-only against the checker's **467**. The gap was mine: the
+checker accepts an anchor holding in **any** resolution candidate, and I had taken the first. Corrected, the
+denominator matched 467 exactly — and mention-only rose to **44**. **A harness bug that UNDER-reports is the
+dangerous direction**, because the number still looks plausible; the only reason it was caught is that 449 ≠
+467 was visible on the same line. Keeping a known fixed point beside a new probe is what made it checkable.
+
+**Phase gate.** Measurement only — one throwaway script, run and deleted; **no production file and no gate
+changed**, deliberately. Docs-only, so `verify:docs` is the applicable bundle: citations OK (2094 checked, 467
+anchored), section-refs OK, tables OK. Board unchanged from §1672 (21 PASS · 0 FAIL · 5 BLOCKED).
