@@ -325,7 +325,9 @@ export async function verifyTsaSignature(respBytes: Uint8Array, opts: VerifyTsaO
   try {
     anchors = trustAnchors.map(parseCertificate);
   } catch (err) {
-    throw new TsaVerifyError("MALFORMED", `trust anchor parse failed: ${(err as Error).message}`);
+    // §1659 — the repo's idiom (71 sites) is `instanceof Error ? .message : String(err)`; a bare cast throws
+    // INSIDE the handler when a non-Error is thrown, replacing the real failure with a TypeError.
+    throw new TsaVerifyError("MALFORMED", `trust anchor parse failed: ${err instanceof Error ? err.message : String(err)}`);
   }
 
   // TimeStampResp ::= SEQUENCE { PKIStatusInfo, timeStampToken TimeStampToken OPTIONAL }

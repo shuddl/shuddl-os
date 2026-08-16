@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1105 | §1658 | **§1659** | **THE ERROR-FORMATTING PATH — A 71:3 DIVERGENCE FROM THE REPO'S OWN IDIOM.** Both production defects this session sat on ERROR paths (§1654, §1657), which is a hypothesis: **the code that explains a failure is the least-exercised code in a well-tested repo**, because suites assert refusal CODES and rarely the formatting beside them. 159 catch blocks; **78 build a diagnostic string**. The mechanical form of §1654 inside a handler is a cast the runtime forgets — measured: **42 `String(err)` + 29 `instanceof Error ? … : String(err)` vs 3 `(err as Error).message`.** `throw null` is legal JS, so on a non-Error the handler throws a NEW TypeError and destroys the failure it existed to describe. **One has a behavioural consequence on SIGNUP**: `provision.ts` regex-matches that message to re-classify a UNIQUE-violation TOCTOU race as **409 SLUG_TAKEN** instead of a 500 — if the cast throws, the re-classification never runs. Fixed at all three. **Not test-pinned, and why is recorded**: making D1 reject with a non-Error needs an injection seam this path lacks, so it is §1653's third category with the sibling in ANOTHER CODEBASE — each site carries the consequence in a comment instead. Rule: **three instances this session of one shape — a discipline applied everywhere but one line (§1651 aside, §1657 3-of-4, this 71-of-74) — and the RATIO is the finding.** |
 | 1104 | §1657 | **§1658** | **COMPLEXITY AXIS CLOSED — 49 CAPS CHECKED FOR THE §1657 SHAPE, AND A '0 USES' SIGNAL THAT WAS A DELIBERATE RESTATEMENT.** §1657's defect was *a cap three sibling sites applied and a fourth did not*, which is enumerable. **`MAX_FSC_BPS = 10_000` has ZERO uses in production source** — reading as an unenforced ceiling on the fuel surcharge, in the file whose sibling ceilings exist BECAUSE *beyond it the fsc multiply leaves MAX_SAFE_INTEGER*. Read rather than filed: enforcement is `pct_bps: Bps` where `Bps = SafeInt.min(0).max(10_000)`, and `MAX_FSC_BPS` restates it as an INPUT to the overflow derivation, with a test pinning them equal **in both directions** (`parse(MAX)` passes, `parse(MAX+1)` throws, under *the derivation's input is stale*). Rule: **a constant with no production callers is a QUESTION, not a finding — 'restated deliberately, pinned by a lockstep test' is one of the answers, and it gives the SAME `uses: 0` signal a dead ceiling gives.** Also checked: unbounded body reads — the translator bounds three ways at 1 MiB; the Stripe webhook must hash the whole body to verify its signature and the agents probe reads its body AFTER a 401 check. Axis closed both ways: **4,052 regexes** (1 real hit, fixed) and **49 caps** (none). |
 | 1103 | §1656 | **§1657** | **DEFECT — A QUADRATIC ADDRESS-SCRUB: 100 KB OF TEXT BURNED 15,947 ms.** §1656 closed parser CORRECTNESS; this is the same surfaces under COMPLEXITY, where the Worker CPU budget is a hard ceiling. The Concierge email parser is clean (10 pathological bodies, **worst 4 ms** — its regexes are bounded by construction). A sweep of all **4,052** literal regexes for the ReDoS signature returned **exactly one**, and it is real: `scrubAddresses` takes **15,947 ms** on `"a.".repeat(50000)` (100 KB, no `@`) and 639 ms at 20 KB. **The blowup is NOT the flagged group** — `(?:\.[A-Za-z0-9-]+)+` is anchored by a literal dot and is linear; the cost is the FIRST class `[A-Za-z0-9._%+-]+`, which CONTAINS `.`, so with no `@` the engine consumes a long run from every start position and backtracks out of each. **A pattern that looks fine, whose flagged sub-expression IS fine — only measurement found it.** Exposure: the mail provider's error body. Three of four detail paths already sliced to 500 chars first; **the JSON `message` branch — the one input the provider fully controls — did not**, so one oversized response burns the whole CPU budget ON THE ERROR PATH. Rule: **'bounded' must mean bounded BEFORE the expensive step.** Fixed with one `boundedDetail` helper across all four sites; the regression case reds at **16,002 ms** against the shipped code. |
 | 1102 | §1655 | **§1656** | **THE OTHER SPEC-DEFINED PARSER, FUZZED — X12 REFUSES BY NAME AT EVERY LAYER.** §1655's rule (*a spec is a promise about well-formed input, which is exactly what a hostile sender does not send*) points at the one remaining spec parser fed by an outside party: the inbound **204** from a partner's VAN. Fuzzed at both layers **with a reachability control FIRST** (§1654's lesson applied before the fact): 13 malformed interchanges → 13 NAMED errors, 0 TypeErrors; 10 mutations INSIDE a valid body (SE/ST/GE dropped, B2 emptied, non-numeric AT8, duplicated ST, content after IEA) → **0 non-Error failures**, envelope faults naming themselves. **The one interesting result**: emptying B2 throws a RAW ZodError (a JSON issues array — §1605's shape), and it is **caught by design** — the handler wraps parse+map in `catch (err)`, a catch-ALL rather than an `instanceof` filter, routing anything to `quarantine(…, 'edi_malformed')` for a 200. **A catch-all is usually a smell; here it IS the guarantee**, because the promise is about the RESPONSE CODE, not about a known error set. Trailing content after IEA is ignored — consistent with the already-filed decision that the reader uses NONE of the envelope's integrity fields; re-derived, not new. |
@@ -93127,3 +93128,58 @@ fixed at §1657) and all 49 declared caps checked for an inconsistent sibling (n
 **Phase gate.** No source or test changed. agents **236/236** · tools **147 files / 1489**. Board carried
 forward from **`2e66e78`** (§1657's commit, **0 commits since**, measured there as **21 PASS · 0 FAIL ·
 5 BLOCKED**).
+
+---
+
+## §1659 — PHASE GATE: the error-formatting path, and a 71:3 divergence from the repo's own idiom (REQ-118/151)
+
+**Both production defects this session sat on error paths** — §1654's TypeError from a malformed TSA token,
+§1657's quadratic scrub of a provider error body. That is a hypothesis, not a coincidence to admire: **the code
+that explains a failure is the least-exercised code in a well-tested repo**, because suites assert refusal
+CODES and rarely the formatting beside them. **159 catch blocks exist; 78 build a diagnostic string.**
+
+**The mechanical form of §1654 inside a handler is a cast the runtime forgets**, and one measurement settles
+whether it is a real divergence or the house style:
+
+| idiom | sites |
+|---|---|
+| `String(err)` alone | 42 |
+| `err instanceof Error ? err.message : String(err)` | 29 |
+| **`(err as Error).message`** | **3** |
+
+**Seventy-one safe, three not** — the §1657 shape at a ratio that removes any doubt about which is intended.
+`throw null` is legal JavaScript, and a cast is erased: when the thrown value is not an `Error`, the handler
+throws a **new** TypeError and the original failure is destroyed by the code whose only job was to describe it.
+
+**One of the three has a behavioural consequence, and it is on the signup path.** `provision.ts` reads
+`const msg = (e as Error).message` and then regex-matches it to re-classify a UNIQUE-violation TOCTOU race as
+**409 SLUG_TAKEN / EMAIL_TAKEN** instead of a 500. If the cast throws, that re-classification never runs and a
+lost signup race surfaces as an opaque server error — the outcome acceptance demo #2 exists to prevent. All
+three now use the established idiom.
+
+**Not pinned by a test, and the reason is recorded rather than glossed.** Making D1 reject with a non-`Error`
+needs an injection seam this call path does not have, so the divergence is not constructible (§1633's question).
+That places it in §1653's **third** category — redundant because a sibling always throws an `Error` — except the
+sibling here lives in **another codebase entirely** (the D1 client), which is the weakest form of that
+guarantee. So each site carries the consequence in a comment: *"would skip the TOCTOU re-classification below
+and surface a signup race as a 500 instead of a 409."*
+
+> **Three instances this session of one shape: a discipline applied everywhere but one line.** §1651's
+> monotonic `WHERE` (the fix's aside), §1657's `MAX_ERROR_DETAIL_CHARS` (three sites of four), and now this
+> (71 of 74). **The ratio is the finding** — a lone divergence from a convention applied 71 times is not a
+> style choice, and no reviewer reading that one line in isolation would see it.
+
+**The same gate anchor rotted a SECOND time, and that is now data rather than an accident.**
+`constant-time-compare`'s roster keys a legitimate `===` site by bare `path:line` into `cms.ts` — a file this
+session has edited three times — and it moved `431 → 436 → 438`. Each rot was caught loudly by the roster's own
+calibration case, which is the design working: **a stale allowlist entry can never become a silent blind spot
+here.** The cost is one repoint per edit, and the alternative (keying by a code snippet, as
+[[line-numbers-are-not-a-key]] argues and as the citation system already does with `path:line@symbol`) is a
+change to a working gate's mechanism. Recorded, deliberately not rebuilt — but a THIRD rot is the point at
+which the repoint has cost more than the rewrite.
+
+**Phase gate.** `packages/ledger/src/tsa/cms.ts` + `workers/api/src/provision.ts` — comment + idiom only, no
+control flow changed; plus the repointed roster entry. ledger **755/755** · api **886/886** · lint and
+typecheck clean. Board **RE-MEASURED at `55b3675`** (§1658's commit) **plus this phase's uncommitted fix —
+0 commits since**: `pnpm verify:merge` → **21 PASS · 0 FAIL · 5 BLOCKED**, the same five non-repo-fixable
+holds.
