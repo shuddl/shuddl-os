@@ -240,6 +240,45 @@ describe("REQ-025 growth: the ledger routes reject the same cross-tenant attacks
     expect(res.status).not.toBe(500);
   });
 
+  // §1628 — THE OTHER HALF OF ROW 10. The two cases above are ATTACK SHAPES: they prove a client hint is
+  // rejected at auth. Neither observes WHICH TARIFF PRICED THE QUOTE, so neither can see the regression that
+  // matters — a handle resolved to the wrong tenant's D1, with no client hint involved at all. Measured:
+  // replacing `db` with tenant-b's binding in `loadTenantRatingConfig` reds 39 tests across 10 files and leaves
+  // THIS suite — the REQ-025 gate that runs on every merge — at 67/67 green. Those 39 are pricing and biller
+  // tests noticing wrong numbers: an incidental net that a fixture change silently removes.
+  //
+  // The seed comment above (`DISTINCT configs … so a quote's sell_cents reveals WHICH tenant priced it`) is the
+  // tool for this, and ISO-pub-2 already uses it for the HOST-routed public surface. The JWT-keyed surface never
+  // did. tenant-b's number is COMPUTED here from tenant-b's own config rather than hardcoded, so the two sides
+  // cannot drift into agreement.
+  it("POST /v1/rate prices on the SESSION tenant's tariff, never another tenant's (REQ-025 row 10, value direction)", async () => {
+    const PHYSICS = { origin_zip: "97201", dest_zip: "80012", weight_lb: 1000, dims: { l_in: 48, w_in: 40, h_in: 48, pieces: 2 } };
+    const pubSell = async (url: string): Promise<unknown> => {
+      const res = await SELF.fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(PHYSICS) });
+      const json = (await res.json()) as Record<string, unknown>;
+      expect(json.status, `${url} must price this body for the comparison to mean anything`).toBe("PRICED");
+      return json.sell_cents;
+    };
+    const t = await token({ sub: "u-iso-rate", tenant: TENANT_SLUG, role: "ops" });
+    const res = await SELF.fetch("https://api.local/v1/rate", {
+      method: "POST",
+      headers: { ...bearer(t), "Idempotency-Key": crypto.randomUUID(), "content-type": "application/json" },
+      body: JSON.stringify({ shipment_id: "iso-rate-row10", ...PHYSICS }),
+    });
+    expect(res.status).toBe(200);
+    const authed = (await res.json()) as Record<string, unknown>;
+    expect(authed.status).toBe("PRICED");
+
+    // tenant-b's price for the IDENTICAL physics, priced by tenant-b's OWN config via the host-routed surface.
+    const bSell = await pubSell("https://tenant-b.example/pub/quote");
+    expect(
+      authed.sell_cents,
+      "a tenant-a session was quoted tenant-b's number — the rate config came from the wrong tenant's D1 (REQ-025)",
+    ).not.toBe(bSell);
+    // …and not merely different: it must be tenant-a's own number. `not.toBe` alone would accept a third answer.
+    expect(authed.sell_cents, "the authenticated surface did not price on tenant-a's tariff").toBe(await pubSell("https://api.local/pub/quote"));
+  });
+
   it("X-Tenant-Id header on POST /v1/positions is rejected at auth", async () => {
     const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "driver" });
     const res = await SELF.fetch("https://api.local/v1/positions", {

@@ -15,11 +15,21 @@ at WP exit (REQ-119); CLAUDE.md rule #8 makes REQ-025 a per-merge gate.
 | 3 | `POST /v1/shipments/:id/events` | D1/DO | `tenantDb` | JWT claim | ✅ isolation.test.ts:87 | n/a |
 | 4 | `GET /v1/events` (firehose) | D1 | `tenantDb` | JWT claim | ✅ isolation.test.ts:104 | n/a |
 | 5 | `POST /v1/positions` | D1 | `tenantDb` | JWT claim | ✅ isolation.test.ts | n/a |
-| 6 | `GET /v1/anchors/:day` | R2 | `anchorManifestKey` → `anchors/${tenant}/${day}/manifest.json` (packages/ledger/src/anchor.ts:61) | JWT claim (anchors.ts:38 `session.tenant`) | ❌ ADD | ❌ ADD |
-| 7 | `GET /v1/anchors/:day/proof` | R2+D1 | `anchorReceiptKey` (anchor.ts:58), `tenantDb` (anchors.ts:53) | JWT claim | ❌ ADD | ❌ ADD |
-| 8 | `POST /v1/anchors/run` | R2+D1 | `runDailyAnchor({ tenant: session.tenant })` (anchors.ts:72) | JWT claim | ❌ ADD | n/a |
-| 9 | evidence upload/serve | R2+D1 | `evidenceKey` → `evidence/${tenant}/${shipmentId}/${hash}` (evidence.ts:60); `session.tenant` at the `.put` call | JWT claim | ❌ ADD | ❌ ADD |
-| 10 | `POST /v1/rate` | D1 | `loadTenantRatingConfig(tenantDb(c.env, session.tenant), now)` (rate.ts:127) | JWT claim | ✅ isolation.test.ts (X-Tenant-Id + ?tenant=, audit §571) | n/a (D1 handle) |
+| 6 | `GET /v1/anchors/:day` | R2 | `anchorManifestKey` → `anchors/${tenant}/${day}/manifest.json` (packages/ledger/src/anchor.ts:61) | JWT claim (anchors.ts:38 `session.tenant`) | ⚠️ no dedicated route case — but a dropped `${tenant}` REDS (§174: 2 api cases + the ledger DoD test) | ✅ `packages/ledger/test/anchor.test.ts:676` |
+| 7 | `GET /v1/anchors/:day/proof` | R2+D1 | `anchorReceiptKey` (anchor.ts:58), `tenantDb` (anchors.ts:53) | JWT claim | ⚠️ as row 6 | ✅ as row 6 |
+| 8 | `POST /v1/anchors/run` | R2+D1 | `runDailyAnchor({ tenant: session.tenant })` (anchors.ts:72) | JWT claim | ⚠️ as row 6 | n/a |
+| 9 | evidence upload/serve | R2+D1 | `evidenceKey` → `evidence/${tenant}/${shipmentId}/${hash}` (evidence.ts:60); `session.tenant` at the `.put` call | JWT claim | ✅ `evidence-upload.test.ts:312` — tenant B's token vs tenant A's shipment → 404 **and the R2 object asserted null** | ✅ incidental, 6 cases (§174) |
+| 10 | `POST /v1/rate` | D1 | `loadTenantRatingConfig(tenantDb(c.env, session.tenant), now)` (rate.ts:127) | JWT claim | ✅ attack shapes (§571) **+ the VALUE direction (§1628)**: the authenticated quote must be tenant-a's number and not tenant-b's | n/a (D1 handle) |
+
+> **Rows 6–10 re-measured; the `❌ ADD`s they used to carry were WRONG.** Read the header above literally — *a row
+> with a missing case is an open Critical at WP exit* — and this table was asserting four open Criticals that
+> **§174 (2026-08-04) had already measured as false**, plus a fifth (row 10) that was half true. Re-verified at
+> HEAD on 2026-08-15 (audit §1628): both cited tests still exist and still assert what is claimed.
+>
+> **The distinction the ⚠️ rows preserve is the one that matters.** An anchors regression fails loudly today, but
+> on *incidental* nets — test-side literals and a duplicated key helper. That is a real difference from row 9,
+> where the route case asserts the R2 object is null by name. **A stale `❌` costs a redundant test; a stale `✅`
+> costs the thing the gate exists for — so state the MECHANISM of the catch, not just its polarity.**
 
 Update this table in the SAME PR that adds a read path. New WP agents (Scheduler,
 Dispatcher, …) each add rows — WP-08 booking routes go here before they merge.

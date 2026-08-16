@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1074 | §1627 | **§1628** | **THE REQ-025 GATE COULD NOT SEE A CROSS-TENANT RATE-CONFIG READ.** The skill's row 10 said *NO — add*, with its own header warning not to trust that column unmutated. Mutating the rate handle to tenant-b's D1 reds **39 tests across 10 files** — so it never shipped green — while `isolation.test.ts`, the gate that runs on every merge, stays **67/67**. The row was wrong in BOTH directions. Why is precise: §571 closed it with two ATTACK SHAPES (X-Tenant-Id, ?tenant=), which prove a CLIENT HINT is rejected; neither observes WHICH TARIFF PRICED THE QUOTE, so neither sees a wrong handle no client touched. **'The client cannot choose the tenant' and 'the server chose the right one' are independent failures, and only the second is about the data.** Fix uses a tool already in the file (DISTINCT per-tenant configs, so `sell_cents` reveals who priced it — used for the HOST-routed surface, never the JWT-keyed one); tenant-b's number is COMPUTED, not hardcoded; re-planting reds exactly one test. **Then the registry itself**: its header makes a missing case an open Critical, so it was asserting FOUR Criticals §174 had already measured false — the correction lived in the parent SKILL.md and never reached the sub-document. Rows now ⚠️ where the catch is incidental: **state the MECHANISM of a catch, not its polarity — a stale ❌ costs a redundant test, a stale ✅ costs the thing the gate exists for.** 68/68. |
 | 1073 | §1626 | **§1627** | **§1626'S TOP-RANKED EVIDENCE, APPLIED WHERE IT WAS MISSING — 4 CROSS-TENANT REFUSALS CLAIMED 'NO APPEND' AND MEASURED A STATUS CODE.** 28 refusal cases on mutating calls: 5 assert the side effect, 23 response-only. Most of the 23 are auth middleware (handler never runs) — **but splitting by STATUS was wrong**: two cases titled *fail-closed 403 (reads tenant-a's D1)* are handlers that RAN, because gates here are server-side and in-handler (REQ-030). **Classify by whether the handler ran, never by the status returned.** Four REQ-025 tests each stated in prose what they did not measure — one says *NOTHING is appended* in capitals — while asserting only 403/404. Source is correct (the draft lookup is step 1 and returns early; both read to confirm), so this is an EVIDENCE defect: the one property the law exists to prevent, an append in the WRONG tenant's D1, was carried by a comment, and a comment cannot fail. Fix counts BOTH databases per refused call + tenant-b's approval still `open` + no `message.sent` for its invoice. **Mutation chosen so the RED is attributable**: an append in the `draft_not_found` branch keeps the 404, so only the new assertion fires (`{a:1,b:0}` vs `{a:0,b:0}`). Rule: **a refusal test on a mutating path is two claims — *it answered no* and *it did nothing* — and the status code backs only the first.** 67/67. |
 | 1072 | §1625 | **§1626** | **VERIFIED THE SAMPLE §1625 GENERALISED FROM — THE RULE GAINS ITS SECOND HALF.** §1625 checked 2 of 13 absence assertions and generalised; all thirteen now checked. **The conclusion survives, the reason does not**: only 2 of 10 carry a whole-shape assertion, and the other eight are safe for a different reason — a **positive assertion of the refusal**. Four kinds exist, not one: a whole-shape `toEqual`, a **status code** (403/404), an **error code** (`-32001` + `confirm_required`), and — strongest — an **unobserved side effect** (`calls.some(POST) === false` proves the refusal happened UPSTREAM of the write, which no response-body assertion can). **And the premise needed checking**: 'loosely typed' was inferred from a VARIABLE NAME, then confirmed by reading — had any been the typed `RpcBody`, the compiler already defended it. **A hazard list built from a naming pattern is a list of candidates, not instances.** 13 candidates, 0 load-bearing, 0 defects — verified rather than inferred. |
 | 856 | §1409 | **§1410** | **SWEEPING MY OWN SECTIONS FOR §1409's ERROR, AND A DETECTOR THAT COULD NOT HAVE FOUND IT.** §1404's precedent: a class like this gets ONE measurement, not a gate, since a correction necessarily quotes what it corrects. **The first sweep returned ZERO and was worthless** — it extracted superseded text as `~~struck~~` only, but the very case §1409 found is marked the other way, as *"a 16-step chain …"* **until audit §1029**. **My detector encoded one of the repo's TWO conventions, so it could never have found the known positive.** Twelfth instance of the session's constant, caught because a zero is the answer this session has learned never to accept. **A second false signal inside the control:** asking *"is it inside `~~…~~`?"* with `~~[^~]*16-step` returned True — because an unrelated `~~` sits earlier and `[^~]*` spanned the gap. **A regex answering "is X inside a delimiter" by searching for the delimiter anywhere before X will say yes to the whole file.** Re-run over both conventions: **109 superseded passages, zero quoted without a marker** — and that zero is worth something, because the corrected detector demonstrably flags a reconstruction of §1408's sentence. **§1409's error was singular, not a habit** |
@@ -91577,3 +91578,59 @@ fails the export's Zod validation downstream. Attributed, not credited: it is no
 **Phase gate.** `workers/api/test/isolation.test.ts` only; no source changed (the mutation was restored
 byte-identical and `git diff` on `dunning.ts` is empty). Isolation suite **67/67**. No `packages/`, `workers/src`,
 `db/` or `tools/` change, so the board verdict at `e520ecb` (**21 PASS · 0 FAIL · 5 BLOCKED**) still stands.
+
+---
+
+## §1628 — PHASE GATE: the REQ-025 gate could not see a cross-tenant rate-config read, and a registry claimed four Criticals that did not exist (REQ-025/004/119)
+
+`prove-tenant-isolation-read-paths` carries row 10 — `POST /v1/rate` — marked **"NO — add"**, with the skill's
+own header warning: *"Before using this skill's 'NO — add' column as a work list, mutate the builder and run the
+suite — a stale NO costs a redundant test, but the belief that a gap exists where none does is how a registry
+rots."* This section does what that sentence asks, and the answer was neither yes nor no.
+
+**Mutation: `loadTenantRatingConfig(db, now)` → tenant-b's binding.** That is the exact regression REQ-025
+forbids, with no client hint involved at all — a handle resolved to the wrong tenant's D1.
+
+| suite | result |
+|---|---|
+| whole api worker | **39 failed / 839 passed across 10 files** |
+| `isolation.test.ts` — the REQ-025 gate that runs on every merge | **67 / 67 GREEN** |
+
+**So the row was wrong in both directions at once.** It never would have shipped green, so "NO — add" overstated
+the exposure; but the suite whose entire charter is REQ-025 was blind to it, so "add nothing" would have been
+wrong too. The 39 are pricing and biller tests noticing that the numbers changed — **an incidental net, and one
+a fixture change silently removes.**
+
+**Why the gate was blind is precise, not accidental.** §571 closed row 10 with two cases: `X-Tenant-Id` and
+`?tenant=`. Both are ATTACK SHAPES — they prove a *client hint* is rejected at auth. Neither observes **which
+tariff priced the quote**, so neither can see a wrong handle that no client ever touched.
+
+> **An attack-shape case and a value case test different failures.** "The client cannot choose the tenant" and
+> "the server chose the right one" are independent; a route can satisfy the first perfectly while reading the
+> wrong database, because the thing that went wrong was never in the request. Every registry row keyed off
+> `session.tenant` needs both, and only the second one is about the data.
+
+**The fix uses a tool the file already had.** The seed comment reads *"DISTINCT configs (different numbers) so a
+quote's `sell_cents` reveals WHICH tenant priced it"* — and ISO-pub-2 already uses it for the HOST-routed public
+surface. The JWT-keyed surface never did. The new case prices identical physics through both and asserts the
+authenticated answer **is tenant-a's and is not tenant-b's**, with tenant-b's number COMPUTED from tenant-b's own
+config rather than hardcoded, so the two sides cannot drift into agreement. `not.toBe` alone would accept a third
+answer, so both halves are asserted. Re-planting the mutation now reds **exactly one test — this one** —
+`expected 156000 not to be 156000`.
+
+**Then the registry itself, which is the larger finding.** Its header says *a row with a missing case is an open
+Critical at WP exit (REQ-119)*. Read literally, it was asserting **four open Criticals that §174 had already
+measured as false** (anchors ×3, evidence) — the corrected verdicts lived in the parent `SKILL.md` and never
+reached the sub-document. Both cited tests were re-verified at HEAD before restating anything:
+`packages/ledger/test/anchor.test.ts:676` and `evidence-upload.test.ts:312` (*"404, NOTHING written anywhere"* —
+which asserts the R2 object is null **by name**, and is the model §1627's four fixes now follow).
+
+The rows are now ⚠️ rather than ✅ where the catch is incidental, because that distinction is the whole point:
+
+> **State the MECHANISM of a catch, not its polarity.** A stale `❌` costs a redundant test. A stale `✅` costs
+> the thing the gate exists for. "Fails loudly on test-side literals" and "asserts the object is null by name"
+> are both green and are not the same guarantee.
+
+**Phase gate.** `isolation.test.ts` (+1 case, 68/68) and the skill's two record files; `rate.ts` mutated and
+restored byte-identical (`git diff` empty). No `packages/`, `workers/src`, `db/` or `tools/` change, so the board
+verdict at `e520ecb` (**21 PASS · 0 FAIL · 5 BLOCKED**) still stands.

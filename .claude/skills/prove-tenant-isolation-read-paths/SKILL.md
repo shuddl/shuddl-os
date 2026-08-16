@@ -68,7 +68,7 @@ See `reference/read-path-registry.md` for the full registry + attack-shape matri
 | `/v1/positions` | `tenantDb` | yes |
 | `/v1/anchors/:day`, `/proof`, `/run` | `anchorManifestKey`, `anchorReceiptKey`, `tenantDb` | key partitioning yes, explicitly (packages/ledger/test/anchor.test.ts, "REQ-025 — anchor R2 keys are tenant-partitioned"); no route-level cross-tenant case, and see the note below on why one adds little here |
 | evidence upload/serve | `evidenceKey(session.tenant,…)` | yes — route-level cross-tenant (evidence-upload.test.ts:311: tenant B's token against tenant A's shipment → 404, NOTHING written); key shape held incidentally by 6 cases |
-| `/v1/rate` | `loadTenantRatingConfig(tenantDb…)` | **NO — add** (unverified: this row has not been re-measured) |
+| `/v1/rate` | `loadTenantRatingConfig(tenantDb…)` | **re-measured 2026-08-15 (audit §1628) — now YES, both directions.** §571 had already added the two ATTACK SHAPES (X-Tenant-Id, ?tenant=); what was missing was the VALUE direction. Mutating the handle to tenant-b's D1 reds **39 tests across 10 files** — so it never shipped green — but left the isolation suite itself at **67/67**, because those 39 are pricing/biller tests noticing wrong numbers. A case now prices the same physics through both surfaces and asserts the authenticated answer is tenant-a's and NOT tenant-b's (computed, not hardcoded); it reds alone under that mutation |
 
 > **Rows re-measured 2026-08-04 (audit §174).** The first two said **"NO — add"** and were wrong — one of them for
 > the strongest possible reason: the evidence path already had a full route-level cross-tenant case. The RED above
