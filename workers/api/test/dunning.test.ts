@@ -242,6 +242,32 @@ describe("the approve-and-send route (POST /v1/dunning/:id/send) — append-then
     expect(await messageSentCount(sentId)).toBe(1); // the append happened FIRST — the send is on the timeline, held
   });
 
+  // §1644 (REQ-032/182) — THE DUNNING HALF OF §1643's FIX. The Biller got a behavioural case for a MALFORMED
+  // recipient; this route had only the source-text floor in `recipient-parity.test.ts` standing in for one.
+  // Measured at §1643: bypassing `plausibleEmail` identically in BOTH resolvers left agents 235/235, api
+  // 884/884 and ledger 754/754 green — the parity assertion is satisfied by two identically-wrong copies, so
+  // each side needs its own behavioural proof. This is that proof for the collections path.
+  it("MALFORMED RECIPIENT: a billing email carrying CRLF holds exactly like an absent one — nothing sent", async () => {
+    // The draft must EXIST for this to exercise the SEND path's resolver at all. Seeded with a good address —
+    // the first construction used a CRLF address from the start and returned `draft_not_found`, because the
+    // Collector never drafts for a party it cannot address. That version would have passed with the send-path
+    // guard deleted: a pass from the wrong layer. The contact is corrupted AFTER drafting, so the only thing
+    // that can refuse here is the resolver under test.
+    const draftId = await seedDraft("dun-inv-crlf", "dun-p-crlf", "billing@dun-crlf.example.com");
+    const sentId = await dunningSentEventId("dun-inv-crlf", "reminder");
+    await env.TENANT_A_DB.prepare("UPDATE parties SET contacts = ?1 WHERE id = ?2")
+      .bind(JSON.stringify([{ kind: "billing", email: "billing@dun-crlf.example.com\r\nBcc: elsewhere@example.test" }]), "dun-p-crlf")
+      .run();
+
+    const sender = new RecordingSender();
+    const outcome = await sendDunningDraft(depsWith(sender), draftId);
+    expect(outcome.status, "a CRLF-bearing address must resolve to NO recipient, exactly like an absent one").toBe("held");
+    if (outcome.status === "held") expect(outcome.reason).toBe("recipient_unresolved");
+    // The unobserved side effect (§1627), on both surfaces this route touches: no send, and no send RECORD.
+    expect(sender.messages, "the malformed address reached the mail sender").toHaveLength(0);
+    expect(await messageSentCount(sentId), "a held dunning must not leave a message.sent behind").toBe(0);
+  });
+
   it("HOLD (no recipient): a bill-to with NO billing email holds with NOTHING appended (no false send record)", async () => {
     const draftId = await seedDraft("dun-inv-noemail", "dun-p-noemail", "seed@dun-noemail.example.com");
     // strip the billing email AFTER drafting → the send can't address it
