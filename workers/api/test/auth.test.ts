@@ -28,14 +28,21 @@ describe("REQ-132/133: authn", () => {
   // Measured before this landed: all three below already 401, and a genuine token reached PAST auth. The point
   // is not that the code was wrong; it is that the property was load-bearing and unasserted.
   //
-  // HONESTY NOTE — THESE THREE ARE NOT MUTATION-PROVEN, and the reason is worth more than a claim that they are.
-  // Dropping the pin (`verify(bearer, secret)`) reds FIVE cases — the valid-token case, the three role-matrix
-  // cases and the future-exp case — and NONE of them is one of these. Genuine verification breaks too, so the
-  // forged tokens keep 401ing for the wrong reason: everything 401s. That mutation proves the argument matters;
-  // it cannot prove these cases would catch a verifier that still admits genuine tokens while honouring the
-  // token's own `alg`. Isolating that needs a stub verifier this suite does not have. Kept anyway — they cover
-  // a real attack at no cost — but labelled, because a test whose RED cannot be attributed to it is coverage,
-  // not proof (§1534's control rule, from the other side).
+  // WHY THESE CANNOT BE MUTATION-PROVEN, MEASURED RATHER THAN GUESSED (§1609 → §1610). Dropping the pin reds
+  // FIVE cases and none is one of these — genuine verification breaks too, so forged tokens keep 401ing for the
+  // wrong reason. Calling `hono/jwt`'s `verify` directly isolates why:
+  //
+  //   alg:none  + "HS256" → refused (JwtHeaderInvalid)      genuine + "HS256" → ACCEPTED
+  //   alg:none  + no arg  → refused (JwtAlgorithmRequired)  genuine + no arg  → refused
+  //
+  // The algorithm argument is REQUIRED by the library, and with it the header is validated against it. So there
+  // is no configuration of this call in which a genuine token passes and `alg:none` also passes — the bypass
+  // these cases describe is foreclosed by hono, not by our code, and no mutation here can make them fail while
+  // the rest of the suite stays green.
+  //
+  // Kept deliberately, with the reason now precise: they document an attack the current library forecloses, and
+  // they are the cases that would catch a future swap to a JWT implementation that does not. A redundant guard
+  // is worth keeping when its comment says WHY it is redundant — otherwise the next reader deletes it as noise.
   const b64u = (o: unknown): string => btoa(JSON.stringify(o)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
   const forge = (alg: string, sig: string): string => {
     const claims = { sub: "u-forge", tenant: "tenant-a", role: "ops", exp: Math.floor(Date.now() / 1000) + 3600 };
