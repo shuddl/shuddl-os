@@ -90768,4 +90768,5 @@ readers were checked while the question was fresh: JSON has none to decline, and
 already verifies its own digest rather than trusting a stated one.
 
 **Phase gate.** edi **6 files / 55 tests** (six pins added); typecheck and lint 0. No production source
-changed — one test, one broadened row. Board re-measured below.
+changed — one test, one broadened row. Board re-measured at `c1d6a79`: **21 PASS · 0 FAIL · 5 BLOCKED**
+(aggregate BLOCKED, exit 2 — the five owner-side private-fixture holds).
