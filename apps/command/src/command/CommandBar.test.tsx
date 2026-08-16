@@ -28,6 +28,18 @@ describe("CommandBar (REQ-081) — the ⌘K palette", () => {
     cleanup();
   });
 
+  it("§1687 a query matching NOTHING shows the empty state, not an empty list", () => {
+    // The palette is the command surface's only entry point (REQ-081), so a typo lands here constantly.
+    // Every existing case types a query that MATCHES, leaving `filtered.length === 0` unexercised —
+    // replacing that condition with `false` left command 101/101 green.
+    render(<CommandBar deps={mkDeps()} />);
+    openPalette();
+    fireEvent.change(screen.getByPlaceholderText(/type a command/i), {
+      target: { value: "zzzz-no-such-command" },
+    });
+    expect(screen.getByText("NO MATCHING COMMAND"), "an unmatched query must say so rather than render nothing").toBeTruthy();
+  });
+
   it("is closed until ⌘K opens it (the input appears)", () => {
     render(<CommandBar deps={mkDeps()} />);
     expect(screen.queryByPlaceholderText(/type a command/i)).toBeNull();

@@ -66,6 +66,20 @@ describe("DunningQueue (REQ-032)", () => {
     expect(headers["idempotency-key"]).toBeTruthy();
   });
 
+  it("§1687 a tenant with NO drafts sees the empty state, not a blank panel", async () => {
+    // The screen a NEW tenant meets first: the Collector has drafted nothing. Every existing case stubs
+    // `{ drafts: [DRAFT] }`, so the `drafts.length === 0` arm was unreachable in the suite — making it
+    // unreachable in the COMPONENT (replacing the condition with `false`) left command 100/100 green.
+    // This view's own header records a prior white-screen in exactly this area, which is why the empty
+    // path is worth a case rather than a reading.
+    const mock = vi.fn().mockImplementation(() => Promise.resolve(jsonResponse({ drafts: [] })));
+    vi.stubGlobal("fetch", mock);
+    render(<DunningQueue onAuthError={vi.fn()} />);
+
+    await screen.findByText("NO DUNNING DRAFTS");
+    expect(screen.queryByLabelText(/^send dunning for/), "no row actions when there are no rows").toBeNull();
+  });
+
   it("a HELD send shows the REAL held state — never a false SENT (honest hold)", async () => {
     stubFetch({ status: "held", reason: "send_failed_permanent", detail: "permanently failed" });
     render(<DunningQueue onAuthError={vi.fn()} />);
