@@ -847,11 +847,12 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1098 | §1651 | **§1652** | **SWEPT §1651's RULE — 6 ASIDE-GUARDS PROBED, AND THE RULE IS NARROWER THAN IT LOOKED.** Guards added as an aside announce themselves (*while there* · *belt-and-suspenders* · *defensive* · *redundant*), so the class is enumerable: **36** in production source, 6 probed by deletion. **Four are properly pinned** — the QuickBooks IIF cleaner (3 RED), the Concierge's REQ-093 confidence re-gate (2), the delivery gate's placed-photo BINDING (2), the status-cache kind check (1). **Stating *asides go untested* would have generalised from one instance (§1625's error)** — the honest form is **an aside-guard is where to LOOK, not what to expect.** The two silent ones differ in kind, which is the useful part: §1651's watermark clause was **load-bearing and untested** (a JS check cannot see a write that landed after this process read its config) and got a test; the Watchtower anomaly re-check is **redundant by construction** — its SELECT filters `json_extract('$.basis.anomaly') IS NOT NULL` and SQLite returns NULL for BOTH a missing path and a JSON null, the only two ways the JS yields null — so it got §1634's artifact: the mutation result at the line plus a **reopen trigger** (if that WHERE broadens, this line is all that stands between a sane quote and a FALSE CRITICAL alarm). Rule: **'silent' has three answers — untested-and-load-bearing needs a TEST, redundant-by-construction needs a COMMENT, redundant-because-a-sibling-covers-it needs a TRIGGER — and only reading the SELECTOR tells them apart.** |
 | 1097 | §1650 | **§1651** | **RE-VERIFIED FIVE FIXED DEFECTS — AND THE ONE PART OF A FIX THAT HAD NO TEST.** A fixed defect is a REPO-OWNED row, the only kind that can go stale, so each earlier fix's defect was re-planted: the driver's parked capture (park→grave) reds **3** cases incl. *a parked item RE-PROBES… an ordering race self-heals* (a Critical, properly defended); `device_keys` CAS reds **1**; the X12 delimiter refusal reds **6**; §1588's sibling-safe write is pinned by its `SiblingWritingFeed` seam. **The fifth is the finding: §1588's MONOTONIC `WHERE`, added in the same commit as *while there, push the monotonic check into the WHERE too*, has NO test — deleting it left the worker 147/147.** Rule: **a fix's incidental hardening is the part that gets no test** — the defect you just reproduced hands you a regression case for free; the guard you add because you noticed it has no reproduction to point at, so it ships unwatched, and §1634's *a silent guard eventually gets deleted* applies to it exactly. Not redundant: the JS check cannot see a write that landed after this process read its config (two sweeps, slow one lands last → the watermark moves BACKWARDS and every later tick re-reads rows). New case reuses §1588's seam; deleting the clause reds `expected 8 to be 9999`. |
 | 1096 | §1649 | **§1650** | **THE PIPELINE FROM 'A TEST FILE EXISTS' TO 'AN ASSERTION RUNS' IS GATED AT EVERY STAGE.** §1649 named the shape; the pipeline is finite, so it was enumerated and each stage checked: **(1)** the package runs tests at all — §709, REDS when `agents-worker`'s script is removed; **(2)** the file matches the config's `include` — §1649, built this session, REDS on a stranded file; **(3)** the file is collected — measured **277 on disk / 277 collected** across all 17 suites; **(4)** the assertions execute — §711, REDS on a planted `it.only`. **Stage 4's demonstration is the sharpest**: one `it.only` makes its file report `1 passed, 8 skipped` and **exit 0** — eight guarantees stopped being checked, run still green. **A floor observation examined and deliberately NOT filed**: §711 floors at 250 against **424** live files (~80% → ~59%), and 98 such floors exist; `section-refs` floors at 900 against 24,706. That is the DOCUMENTED convention — `board-citation-ratchet` distinguishes *a RATCHET, not a tripwire* from a floor *deliberately far below… never a count anyone maintains*. Rule: **a tripwire asks 'did the scan break?' and a ratchet asks 'did this number move?' — reading a low floor as weakness is a category error, but so is expecting a tripwire to catch a PARTIAL corpus loss.** |
 | 1095 | §1648 | **§1649** | **A TEST FILE OUTSIDE ITS INCLUDE RUNS NOTHING AND REPORTS GREEN — the one level §709 does not cover.** §1648 said to suspect the instrument; three checks came back clean (**17/17** packages declare a `test` script · **277/277** test files on disk are COLLECTED by vitest across all 17 suites · **0** files define `describe`+`it` outside the `*.test.*` convention). The fourth found the gap: **five packages NARROW vitest's include to a directory** (`apps/command` / `driver` / `portal` → `src/**`, `packages/design` → `test/**`, `packages/map` → `test/**`+`perf/**`), and nothing compared the files on disk to the pattern. **Demonstrated**: a tracked file in `apps/command/test/` whose only assertion is `expect(1).toBe(2)` leaves that package reporting **17 files / 99 tests ALL PASSING** — not a failure, not a skip, silence. Rule: **a file outside the selector is worse than a missing test, because it looks like a present one** — every stage between *files exist* and *assertions execute* can lose coverage without anything failing. New gate floors the five narrowing packages (pure predicate + positive control + corpus floor 50/59 + a staleness check so a row cannot go vacuous); the default-include packages are deliberately out of scope, and narrowing one later is what the scope note tells the next author to add. |
 | 1094 | §1647 | **§1648** | **STOPPING POINT — the suite roster is already floored, and the MUTATION vein has run out on this surface.** §1647's filter defect raised the question behind it: `pnpm test` runs `-r --if-present`, which **silently skips** a package with no `test` script, so merge coverage depends on a roster nobody restates. Measured: 17 packages declare one, 0 do not; removing `@shuddl/agents-worker`'s script (dropping 147 tests from every merge) reds a gate that ALREADY EXISTS — *§709: every package holding test files declares a `test` script*. Clean negative. **Three consecutive mutation-driven probes (§1646/§1647/§1648) found no defect in their SUBJECT**, two landing on gates the record had already built — the §1597 signal arriving for the EXECUTION method, not the reading one. Read narrowly and checkably: *the surfaces reachable by a single planted line, in the trees this session worked, are exhausted.* **And the one real finding in those three phases was in the INSTRUMENT** (the wrong package filter), which is where yield goes when the subject stops giving. Remaining, each with its reason: `resolveAuthority`'s case (dormant until WP-15 Task 4; §1632 now corrected), a gated kind on `t:root` (needs a REQ row), the five BLOCKED gates + four owner decisions. |
-| 1093 | §1646 | **§1647** | **RULE 10 HOLDS ON BOTH MIGRATION PATHS — AND A PROBE THAT MEASURED THE WRONG PACKAGE FOR SIX PHASES.** Making an unmapped column vanish: the ONE-SHOT import has **12 watchers**, the CONTINUOUS 171-col overlay **2** (including the sweep's own gap-anomaly test — the law's CONSUMER, not just its producer). Clean negative. **The method defect is the content**: the continuous path first measured as 1 watcher with the consumer's suite at 235/235 GREEN, which looked like a finding. A **positive control** killed it — an UNCONDITIONAL `throw` at the mutated line left that suite green, which no correct code can do. Cause: **`--filter @shuddl/agents` is `packages/agents`; the worker is `@shuddl/agents-worker`** — two packages, similar names, and `workers/agents/src/` owns biller/interline-split/mirror-sweep, all mutated this session. **13 citations across six phases** cite the wrong tree. Both affected conclusions RE-MEASURED: **§1643 survives and is stronger** (worker 147/147 also green ⇒ 2,020 not 1,873); **§1632 is CORRECTED in place** — forcing `resolveAuthority` to legacy REDS `watchtower-cron`, because `watchtower.ts:486@resolveAuthority` reads the value DIRECTLY while the other three sites pass it through `authoritativeSource(x,false)`; *dormant by construction* is true of 3 sites, false of the 4th. Rule: **a package filter is a silent scope selector that fails toward 'nothing happened'** — it reports a real, passing suite while the tree under test is untouched. |
+| 1093 | §1646 | **§1647** | **RULE 10 HOLDS ON BOTH MIGRATION PATHS — AND A PROBE THAT MEASURED THE WRONG PACKAGE FOR SIX PHASES.** Making an unmapped column vanish: the ONE-SHOT import has **12 watchers**, the CONTINUOUS 171-col overlay **2** (including the sweep's own gap-anomaly test — the law's CONSUMER, not just its producer). Clean negative. **The method defect is the content**: the continuous path first measured as 1 watcher with the consumer's suite at 235/235 GREEN, which looked like a finding. A **positive control** killed it — an UNCONDITIONAL `throw` at the mutated line left that suite green, which no correct code can do. Cause: **`--filter @shuddl/agents` is `packages/agents`; the worker is `@shuddl/agents-worker`** — two packages, similar names, and `workers/agents/src/` owns biller/interline-split/mirror-sweep, all mutated this session. **13 citations across six phases** cite the wrong tree. Both affected conclusions RE-MEASURED: **§1643 survives and is stronger** (worker 147/147 also green ⇒ 2,020 not 1,873); **§1632 is CORRECTED in place** — forcing `resolveAuthority` to legacy REDS `watchtower-cron`, because `watchtower.ts:496@resolveAuthority` reads the value DIRECTLY while the other three sites pass it through `authoritativeSource(x,false)`; *dormant by construction* is true of 3 sites, false of the 4th. Rule: **a package filter is a silent scope selector that fails toward 'nothing happened'** — it reports a real, passing suite while the tree under test is untouched. |
 | 1092 | §1645 | **§1646** | **STOPPING POINT — the assertion-strength arc (§1638–§1645), and a CLEAN NEGATIVE.** Final probe: bare `toThrow()` accepts any error from any layer — **417** exist, but most are contracts schema tests where `parse(bad)` has ONE layer and a bare throw is precise. Neutering `FloorsConfig`'s ladder refinement reds **two watchers, both named for it**, one titled *…the SCHEMA now refuses both outright (**the layer above the engine**)* — §1645's rule already applied by an earlier phase. Completes §1640's picture: the schema pins MISORDERED and permits EQUAL by design, so the collapse was a TEMPLATE defect, not a schema one. **Arc total: 5 defects, all in ASSERTIONS not behaviour, every one found by mutating; zero production source changed across nine phases** (6 tests added, 2 assertions strengthened, 1 floor converted presence→count). Rule: **an assertion is only as strong as the weakest thing that satisfies it, and you cannot read that off the page** — `>=` on a strict fixture, `toContain` where the defect is a call COUNT, a status where the claim is *nothing was written*, a bare `toThrow` across two layers. **Re-planting the violation after writing the fix is what separated the four that worked from the two that did not.** |
 | 1091 | §1644 | **§1645** | **CLOSED §1644's NAMED GAP — AND THE CASE FIRST PASSED FROM THE WRONG LAYER.** §1644 shipped a count floor for both resolvers and said plainly the dunning route still had no behavioural case. This adds it. **The first construction seeded a CRLF address from the start and returned `skipped`/`draft_not_found`** — the Collector never DRAFTS for a party it cannot address, so the refusal came one layer EARLIER than the resolver under test, and that version would have passed with the send guard deleted. Corrected: seed a GOOD address so the draft exists, corrupt the contact AFTER drafting, leaving the send-path resolver as the only thing that can refuse. Asserts `held`/`recipient_unresolved`, that the sender got nothing, AND that no `message.sent` was appended (no phantom send record); reds under the both-copies bypass. Rule: **a refusal proves the layer that PRODUCED it, not the layer you aimed at** — make the input valid far enough to REACH the subject, then break exactly the thing under test. Both outward-mail paths now have behavioural cases; three artifacts cover three failure modes (parity: one-sided drift · count: both-sided drift · behaviour: the answer being wrong). api 886/886. |
 | 1090 | §1643 | **§1644** | **THE FLOOR WRITTEN TO STOP TWO COPIES DRIFTING TOGETHER NAMED ONE OF THE TWO RULES — AND MY FIRST FIX WAS DECORATION.** 207 test cases compare two implementations; the discriminator makes probing them unnecessary — **a parity test is safe exactly when something else pins at least one side's behaviour.** The repo already knew this: `recipient-parity` carries a companion whose comment states §1643's rule almost verbatim (*parity alone certifies agreement, INCLUDING agreement on a wrong answer… the cheap floor that stops both copies drifting together*). It floored `"billing"` and §1643's mutation changed the OTHER rule, walking straight past it. **Then my fix failed silently**: `toContain("plausibleEmail(")` passed **3/3 under the very bypass it was written for**, because the FALLBACK loop still calls the validator — the substring survives while the billing branch stops using it. **Presence is not usage**; the floor is now a COUNT (3 calls) and reds `calls plausibleEmail 1× (expected 3)`. **Third time this session a fix of mine needed the mutation RE-RUN before it could be believed** (§1630's transit case, §1643's wrong property, this floor) — **the rule that keeps paying is not 'write the test', it is 'RE-PLANT the violation after writing it'.** Scope honest: the floor covers both copies, the behavioural case covers only the Biller, and dunning still has none. |
@@ -10516,7 +10517,7 @@ on the strength of the shape alone.
 The metering plumbing is complete and honest end to end. `agent_runs` carries `confidence`, `cost`,
 `latency_ms`, `outcome`; the projection records cost **exactly as reported** — `{cents:0}` an honest zero,
 `{}` an explicit *unknown*, never fabricated; the Watchtower averages **only reported metrics**
-(`watchtower.ts:343@avgCostCents` — `acc.costN > 0 ? … : null`, and the budget check skips null, so there
+(`watchtower.ts:353@avgCostCents` — `acc.costN > 0 ? … : null`, and the budget check skips null, so there
 is **no** false-zero fail-open here).
 
 But **only one agent emits `agent.acted` at all**: the rater, from two byte-identical paths
@@ -11296,7 +11297,7 @@ have left the impression that its holds are unreliable.
 today because a plain INSERT aborts — matches what the SQL does. Live hold, correctly stated.
 
 **L283 is the pattern worth copying.** The hold says a native module whose legacy mirror goes UNKNOWN is
-unmonitored — and `workers/agents/src/watchtower.ts:436@UNKNOWN` says the same thing *in its own source*:
+unmonitored — and `workers/agents/src/watchtower.ts:446@UNKNOWN` says the same thing *in its own source*:
 *"a native module whose mirror went UNKNOWN is unmonitored" gap — deliberately NOT an auto-fallback.*
 The record and the code state one fact in two places, so neither can rot alone. That is the shape §182's
 `clear()` note and §178's demo constraint were reaching for.
@@ -11322,7 +11323,7 @@ day of rebuilding something that already ships, and nothing else in the system w
 
 ## §191 — putting the holds where the reader is, and the anchors catching me doing it
 
-§190 named L283 as the pattern worth copying: the hold and `watchtower.ts:436@UNKNOWN` state one fact in
+§190 named L283 as the pattern worth copying: the hold and `watchtower.ts:446@UNKNOWN` state one fact in
 two places, so **neither can rot alone**. Measured against that, my own recorded findings were half-done.
 §182's `clear()` note and §178's demo constraint sit at their code; **§183 (unbounded reads) and §185
 (full-SCAN reads) lived only in the checklist** — a developer reading `invoices.ts` had no way to know
@@ -12483,7 +12484,7 @@ than a 39% sample. Every newly visible handler is deliberate and says why in pla
 ```
 workers/agents/src/biller.ts:586@unparseable   /* refs -> fall back to the shipment id */
 workers/agents/src/tenants.ts:140@routable      // a malformed policy row is not a routable tenant
-workers/agents/src/watchtower.ts:326@fabricate  /* unparseable cost -> unknown, skip */
+workers/agents/src/watchtower.ts:336@fabricate  /* unparseable cost -> unknown, skip */
 workers/agents/src/spark-meter.ts:83@lock       this.lock = run.catch(() => undefined)  // DO mutex chain
 ```
 
@@ -86894,7 +86895,7 @@ carried-forward number is read as a work-list.
   defended:** deleting the `CASE WHEN json_type(config)='object'` that makes it unreachable reds 2 tests
   (`a non-object config '[]' allocates CLEANLY`, and the `'null'` case). Redundant with a defended premise —
   the fourth instance of that disposition.
-- **`watchtower.ts:230@anomaly`** — the pricing-alarm re-check, and it needed three measurements.
+- **`watchtower.ts:240@anomaly`** — the pricing-alarm re-check, and it needed three measurements.
 
 **THE WATCHTOWER PAIR, and the mistake worth more than the finding.** The alarm query filters
 `json_extract(payload,'$.basis.anomaly') IS NOT NULL`; the loop then re-checks in JS. Deleting the JS half:
@@ -91847,7 +91848,7 @@ Forcing it to return `"legacy"` for every module:
 > package is **`@shuddl/agents-worker`** and which this phase never ran. Re-measured there, forcing
 > `resolveAuthority` to `"legacy"` **REDS one test** — `watchtower-cron.test.ts`'s *"runWatchtower THREADS
 > sequencerFor(env) into the sweep"*. The reason is in this section's own exploration and was not carried into
-> its conclusion: `watchtower.ts:486@resolveAuthority` consumes the value **directly** (`=== "native"`), not through
+> its conclusion: `watchtower.ts:496@resolveAuthority` consumes the value **directly** (`=== "native"`), not through
 > `authoritativeSource(x, false)`. **So "dormant by construction" holds for the three `authoritativeSource`
 > call sites and NOT for the fourth**, which is behaviourally live today and pinned by a worker test. The
 > reopen trigger below stands unchanged; the coverage was better than this section claimed, not worse.
@@ -92596,7 +92597,7 @@ suite green, which no correct code can do.
   **147/147** green as well — so the claim *"1,873 tests and the validator could be skipped"* was if anything an
   undercount (2,020).
 - **§1632 IS CORRECTED, in place.** Forcing `resolveAuthority` to `"legacy"` **reds** `watchtower-cron.test.ts`
-  there. The cause sits in §1632's own exploration and never reached its conclusion: `watchtower.ts:486@resolveAuthority` reads
+  there. The cause sits in §1632's own exploration and never reached its conclusion: `watchtower.ts:496@resolveAuthority` reads
   the value **directly** (`=== "native"`), while the other three call sites pass it through
   `authoritativeSource(x, false)`. *Dormant by construction* is true of three call sites and false of the
   fourth. The correction makes the coverage better than claimed.
@@ -92651,7 +92652,7 @@ plainly rather than presenting three clean negatives as a finished audit.
 
 **What remains, unchanged and each with its reason:**
 - `resolveAuthority`'s value-direction case — dormant until WP-15 Task 4 wires a mirror (**and §1632's claim is
-  now corrected**: three call sites discard the value, `watchtower.ts:486@resolveAuthority` does not).
+  now corrected**: three call sites discard the value, `watchtower.ts:496@resolveAuthority` does not).
 - A gated kind on `t:root` — a refusal is new behaviour and needs a REQ row.
 - The five BLOCKED gates and four filed owner decisions — engagement-side; no repo change can clear them.
 
@@ -92802,3 +92803,49 @@ No source changed — `sync.ts`, `devices.ts`, `mirror-sweep.ts` and `edi/types.
 byte-identical. driver-core **53/53** · edi **55/55** · api **886/886** · rater **171/171**. Board
 **RE-MEASURED at `7173252`** (§1650's commit) **plus this phase's uncommitted test — 0 commits since**:
 `pnpm verify:merge` → **21 PASS · 0 FAIL · 5 BLOCKED**, the same five non-repo-fixable holds.
+
+---
+
+## §1652 — PHASE GATE: sweeping §1651's rule — 6 aside-guards probed, and the rule turns out to be narrower than it looked (REQ-040/057/093/030/118)
+
+§1651 ended on a rule worth testing: **a fix's incidental hardening is the part that gets no test.** Guards
+added as an aside announce themselves in comments — *"while there"*, *"belt-and-suspenders"*, *"defensive"*,
+*"redundant"* — so the class is enumerable: **36 such guards** exist in production source. Six were probed by
+deleting the guard and running every suite that could see it.
+
+| aside-guard | mutation | result |
+|---|---|---|
+| the QuickBooks IIF field cleaner (*"Defensive: a tab/newline would corrupt the grid"*) | stripper → identity | **3 RED** (ledger) |
+| the Concierge's REQ-093 confidence re-gate (*"redundant with Task-4's gate… belt-and-suspenders"*) | re-gate deleted | **2 RED** (agents) |
+| the delivery gate's placed-photo **binding** (*"read the incoming hash defensively"*) | binding → `true` | **2 RED** (ledger) |
+| the status-cache kind check (*"defensive: only this projection…"*) | check deleted | **1 RED** (ledger) |
+| the Watchtower anomaly re-check (*"json_extract said present"*) | check deleted | **0 — silent** |
+| §1651's monotonic watermark `WHERE` (*"while there, push the monotonic check into the WHERE too"*) | clause deleted | **0 — silent** (fixed at §1651) |
+
+**Four of six are properly pinned, which narrows the rule rather than confirming it.** §1651's finding was real
+but is not a systemic pattern here: this record has spent hundreds of sections mutation-testing guards, and it
+shows. Stating it as *"asides go untested"* would have been a generalisation from one instance — the §1625
+error — so the honest form is: **an aside-guard is where to LOOK, not what to expect.**
+
+**And the two silent ones are not the same kind of silent**, which is the distinction that matters:
+
+- §1651's watermark clause was **load-bearing and untested** — the JS check cannot see a write that landed
+  after this process read its config. It got a test.
+- The Watchtower re-check is **redundant by construction**. Its `SELECT` filters on
+  `json_extract('$.basis.anomaly') IS NOT NULL`, and SQLite returns SQL NULL for **both** a missing path and a
+  JSON null — the only two ways the JS expression yields `null`. A test could not be made to fail (§1633's
+  question), so it got the §1634 artifact instead: the mutation result written at the line, plus a **reopen
+  trigger** — *if that `WHERE` stops filtering on the anomaly path, this line becomes the only thing between a
+  sane quote and a FALSE CRITICAL alarm carrying `{anomaly: null}`.*
+
+> **"Silent" is a question with at least three answers, and the third is the expensive one to get wrong.**
+> Untested-and-load-bearing needs a test. Redundant-by-construction needs a comment. **Redundant-because-a
+> sibling-happens-to-cover-it needs a trigger**, because the sibling can move — and only reading the
+> *selector* (the SQL here) tells them apart.
+
+**Phase gate.** `workers/agents/src/watchtower.ts` — comment only, no behaviour; agents-worker **148/148**,
+typecheck clean. Five sources mutated and restored byte-identical (`iif.ts`, `concierge/compose.ts`,
+`transition-gates.ts`, `status-cache.ts`, `watchtower.ts`). The 10-line comment shifted **9 citations** into
+that file, all repointed by +10 — the content anchors located every one. Board **RE-MEASURED at `a4ae310`**
+(§1651's commit) **plus this phase's uncommitted comment — 0 commits since**: `pnpm verify:merge` → **21 PASS ·
+0 FAIL · 5 BLOCKED**, the same five non-repo-fixable holds.

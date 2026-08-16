@@ -227,6 +227,16 @@ async function sweepPricingAnomaly(db: D1Database, tenant: string, opts: Watchto
     } catch {
       continue; // unparseable payload — never fabricate an alarm detail
     }
+    // §1652 (REQ-040) — REDUNDANT BY CONSTRUCTION, measured rather than assumed, because a guard whose
+    // removal is silent eventually gets deleted by someone doing everything right (§1634).
+    //   · deleting this line leaves agents-worker **148/148** and api **886/886** green — nothing watches it;
+    //   · it cannot fire, because the SELECT above filters on `json_extract('$.basis.anomaly') IS NOT NULL`
+    //     and SQLite returns SQL NULL for BOTH a missing path and a JSON null — the two ways this expression
+    //     yields `null`. A `false`/`0` anomaly survives `?? null` and is not null either.
+    // So a test for it could not be made to fail (§1633's question), and the honest artifact is this comment.
+    // REOPEN TRIGGER: if that WHERE stops filtering on the anomaly path — a broadened sweep, a scope change,
+    // a move to `kind = 'quote.priced'` alone — this line becomes the only thing between a sane quote and a
+    // FALSE CRITICAL alarm carrying `{anomaly: null}`, and it needs a real case at that moment.
     if (anomaly === null) continue; // json_extract said present; a defensive re-check keeps the detail honest
     const id = watchtowerAlarmId(tenant, "pricing_anomaly", { object: r.id });
     // The anomaly is a permanent record of a price that shouldn't exist (REQ-040), always critical. Keyed by the
