@@ -279,6 +279,50 @@ describe("REQ-025 growth: the ledger routes reject the same cross-tenant attacks
     expect(authed.sell_cents, "the authenticated surface did not price on tenant-a's tariff").toBe(await pubSell("https://api.local/pub/quote"));
   });
 
+  // §1629 — the THIRD route-reachable config loader on this route, and it needed a different shape of case.
+  // `loadTransitMatrix` cannot be closed the way the tariff was: NEITHER seed carries a `transit_matrix`, so
+  // both tenants resolve `null` and an equality assertion would compare null to null — vacuous, which is the
+  // exact hazard §1625/§1626 spent two sections on. Seeding one into tenant-b ALONE makes the difference
+  // observable without touching the shared helpers (other suites assert on transit's absence).
+  it("POST /v1/rate never picks up another tenant's transit matrix (REQ-025 row 10, transit direction)", async () => {
+    await env.TENANT_B_DB.prepare("INSERT OR REPLACE INTO rate_config (id, version, kind, payload, effective_ts, approved_by) VALUES (?,?,?,?,?,?)")
+      .bind(
+        "tm-tenant-b-only",
+        1,
+        "transit_matrix",
+        JSON.stringify({ kind: "transit_matrix", id: "tm-tenant-b-only", version: "v1", days: { Z1: { Z5: 4 } }, default_days: 9 }),
+        0,
+        "seed",
+      )
+      .run();
+    const t = await token({ sub: "u-iso-transit", tenant: TENANT_SLUG, role: "ops" });
+    const res = await SELF.fetch("https://api.local/v1/rate", {
+      method: "POST",
+      headers: { ...bearer(t), "Idempotency-Key": crypto.randomUUID(), "content-type": "application/json" },
+      // dims are REQUIRED for a price — without them the rater answers UNKNOWN (REQ-004, no price on air), and
+      // an UNKNOWN carries no transit either, so the assertion below would pass for the wrong reason.
+      body: JSON.stringify({
+        shipment_id: "iso-rate-transit",
+        origin_zip: "97012",
+        dest_zip: "80012",
+        weight_lb: 1000,
+        dims: { l_in: 48, w_in: 40, h_in: 48, pieces: 2 },
+      }),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as Record<string, unknown>;
+    expect(body.status).toBe("PRICED");
+    // tenant-a has NO transit matrix, and the route says so EXPLICITLY rather than omitting the key — so this
+    // is a whole-shape assertion (§1626's strongest response-side form), not an absence claim. Quoting a real
+    // window here means the handle reached tenant-b's D1, and a transit promise is what a customer plans
+    // around: a borrowed one is a commitment nobody made.
+    // tenant-a has NO transit matrix, and the route says so EXPLICITLY rather than omitting the key — so this
+    // is a whole-shape assertion (§1626's strongest response-side form), not an absence claim. A real window
+    // here means the handle reached tenant-b's D1, and a transit promise is what a customer plans around: a
+    // borrowed one is a commitment nobody made.
+    expect(body.transit, "a tenant-a quote carried tenant-b's transit window (REQ-025)").toEqual({ status: "unavailable" });
+  });
+
   it("X-Tenant-Id header on POST /v1/positions is rejected at auth", async () => {
     const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "driver" });
     const res = await SELF.fetch("https://api.local/v1/positions", {
