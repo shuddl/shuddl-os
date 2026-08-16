@@ -92,11 +92,32 @@ describe("brokerageTemplate — market rate + margin → an immediately-rateable
     expect(hiQ.sell_cents).toBeGreaterThan(loQ.sell_cents);
   });
 
-  it("the derived floors are a valid, monotonic ladder (contribution ≤ full ≤ target)", () => {
+  // §1640 (REQ-151/048) — THE LADDER WAS ASSERTED WITH `<=` AND A COLLAPSED LADDER PASSED.
+  //
+  // Measured: emitting `target_or_bps` for all three tiers — the tenant's contribution and full-cost floors
+  // discarded — left this package **171/171**, the api worker **882/882** and agents **235/235** green,
+  // because `equal` satisfies `<=`. This template is the REQ-151 COLD-START seed (`workers/api/src/tariff-seed.ts`),
+  // so the collapsed ladder is what a brand-new tenant would be onboarded with, and REQ-048's three approval
+  // tiers would silently become one: the middle tier (below target, above contribution → single ops approval)
+  // is unreachable when the two floors coincide, so every routine below-target discount escalates to finance.
+  //
+  // The fix is the §1639 rule — assert as strongly as the CONSTRUCTION guarantees:
+  //   contribution = 10000² / (10000 + margin)   → strictly < 10000 for any positive margin (guarded)
+  //   full         = roundHalfUp(contribution + 10000, 2)  → strictly between the two
+  // so the ladder is STRICT by derivation, not merely ordered, and the three values are a known answer.
+  it("the derived floors are a STRICT ladder with known values (a collapsed ladder must fail)", () => {
     const floors = FloorsConfig.parse(brokerageTemplate(PARAMS).floors);
-    expect(floors.contribution_bps).toBeLessThanOrEqual(floors.full_cost_bps);
-    expect(floors.full_cost_bps).toBeLessThanOrEqual(floors.target_or_bps);
-    expect(floors.target_or_bps).toBeLessThanOrEqual(10_000);
+    // Known answer for marginBps 1800: 10000×10000/11800 = 8474.57… → 8475; (8475+10000)/2 = 9237.5 → 9238.
+    expect({
+      contribution_bps: floors.contribution_bps,
+      full_cost_bps: floors.full_cost_bps,
+      target_or_bps: floors.target_or_bps,
+    }).toEqual({ contribution_bps: 8_475, full_cost_bps: 9_238, target_or_bps: 10_000 });
+    // …and the ordering asserted at the strength the derivation guarantees, so a future margin change that
+    // keeps the values valid still cannot collapse two tiers onto one.
+    expect(floors.contribution_bps, "contribution collapsed onto full — REQ-048's lower tier is gone").toBeLessThan(floors.full_cost_bps);
+    expect(floors.full_cost_bps, "full collapsed onto target — REQ-048's middle tier is unreachable").toBeLessThan(floors.target_or_bps);
+    expect(floors.target_or_bps).toBeLessThanOrEqual(10_000); // target MAY sit at 100% of cost — not a dial
   });
 
   // §1504 (REQ-151/118) — EACH PARAM GUARD NAMED, because a bare `.toThrow()` cannot say WHICH layer threw.

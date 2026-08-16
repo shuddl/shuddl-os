@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1086 | §1639 | **§1640** | **THE RULE PAID OUT: A COLLAPSED FLOOR LADDER PASSED 1,288 TESTS.** §1639 said to mutate toward the boundary a dial ADMITS; doing so found a second instance one layer up. 45 ordering assertions carry a computed bound; most are safe because a CONCRETE companion sits beside them (§1626) — filtering to dial-only blocks gave 12, **two of them false positives from my own regex** (`.toEqual<Floors>(` — a generic type argument is invisible to `\.toEqual\(`). Corrected: 10. The instance is `brokerageTemplate`, the **REQ-151 cold-start seed a new tenant is onboarded with**: emitting `target_or_bps` for all three tiers — the tenant's contribution and full-cost floors DISCARDED — leaves rater **171/171**, api **882/882**, agents **235/235** green. **1,288 tests and none noticed two of three floors had vanished**, because `equal` satisfies `≤`. Costs REQ-048's middle tier (below-target-above-contribution → single ops approval becomes unreachable; every routine discount escalates to finance) — fails toward MORE approval, but the tenant's tiering is silently not applied on their first artifact. Fixed with a known-answer pin (8475/9238/10000) + STRICT `<`, justified from the derivation. Rule: **a defect's SHAPE is a better search key than its location** — §1638 was found by aiming at a BLOCKED subject, §1640 by aiming at the shape §1638 exposed, in another package, requirement and layer. |
 | 1085 | §1638 | **§1639** | **THE BLOCKED-SUBJECT PROGRAM — 4 probed, 1 defect, and the discriminator.** A BLOCKED gate is a permanent hold, so its subject is defended only by whatever in-repo test substitutes. Planted a violation per subject: **rater** (zone selection removed → one price from anywhere to anywhere) was the DEFECT (§1638); **invoice** (line amounts ROTATED — total preserved, every line and GL account wrong) reds a penny-parity test BY NAME + acceptance demo #1; **concierge** (same-ZIP guard removed) reds the case whose fixture email is *'a quote to ship from 80216 to 97203'*; **rule 10** (`splitSql` trailing-SQL throw removed) reds a test named for the law. **Discriminator: a property-based assertion has a STRENGTH DIAL that a concrete-value assertion does not.** The two clean substitutes assert VALUES (no dial — it matches or it doesn't); the rater's asserts a PROPERTY over generated data, and `>=` vs `>` was set BELOW what the fixture guaranteed. **A loose dial is invisible — it passes on correct code forever.** Points at: any `toBeGreaterThanOrEqual`/`toContain`/`toBeTruthy` over data the test CONSTRUCTS — the construction is the spec — and says to **mutate toward the boundary the assertion ADMITS**, not toward an obviously-wrong value. 2 of 5 unprobed and named: `identity-leak` has no repo-side subject; `legacy-export-replay` spans the adapters + the 171-column mapping. |
 | 1084 | §1637 | **§1638** | **A ZONE-BLIND RATER PRICED EVERY LANE IDENTICALLY AND THE API WORKER STAYED 882/882.** §1637 said to plant a violation at a subject whose real defence is ABSENT — the five BLOCKED gates are exactly that, and CLAUDE.md names `sweep.test.ts` as the in-repo substitute for the audited 504-quote sweep, *proving the same weight- AND distance-monotonicity*. **Half was true.** Removing deficit-weight rating reds it properly (10/171). Removing ZONE SELECTION (`rate_groups[0]` — one price from anywhere to anywhere) leaves **sweep 11/11 GREEN**, the rater package 170/171 (the lone RED is an UNKNOWN reason code, not a price) and **api 882/882**. Cause is one operator: the assertion was `>=` while the fixture scales every cwt AND min charge by (100+20k)/100 — each zone 20% dearer at every weight — so the tariff is STRICTLY increasing by construction and **equal satisfies non-decreasing**. Rule: **an assertion weaker than the fixture it runs on is the gap** — where a property test builds its own inputs, assert as strongly as the construction guarantees. Fixed to STRICT (justified from THIS tariff, not in general); re-planting reds with *'the engine did not read the zone at all'*. **Matters more than an ordinary gap: the audited fixture is BLOCKED, so this substitute is the entire in-repo defence of REQ-004's pricing law.** |
 | 1083 | §1636 | **§1637** | **STOPPING POINT — the method statistic.** Ten phases: **nine used EXECUTION (mutation or a relation between artifacts) and found something; the one READ-based phase found nothing**, converging three times on work the record already held. §1602's rule re-confirmed with a tenth data point: **a sweep that greps converges; a probe that mutates finds** — start the next session by planting a violation, not by listing candidates. Second rule, earned three ways this session: **a silent mutation is never an answer** — §1632's was silent because the probe never ran (`env` out of scope), §1634's because the guard is genuinely redundant, §1633's because the divergence is not constructible. Prove the probe COULD have failed before crediting its silence. **Zero production behaviour changed across the arc** — 4 tests, 1 gate, 3 comments recording measurements at the line; all 12 mutations restored byte-identical. REQ-025 inventory complete (4 value cases · 1 dormant+trigger · 1 out of class · 1 untestable · 1 verified · 1 redundant) plus the record's own deletion floor. Board carried from `d843de6`, 1 commit since: **21 PASS · 0 FAIL · 5 BLOCKED**. |
@@ -92220,3 +92221,54 @@ is a phase of its own rather than a single planted line.
 all restored byte-identical. rater **171/171**, agents **235/235**, ledger **754/754**, api **882/882**. Board
 carried forward from **`e0a3fd0`** (§1638's commit, **0 commits since**, measured there as **21 PASS · 0 FAIL ·
 5 BLOCKED**).
+
+---
+
+## §1640 — PHASE GATE: §1639's rule applied — a collapsed floor ladder in the cold-start template passed 1,288 tests across three packages (REQ-151/048/118)
+
+§1639 said where to look next: **any dial over data the test CONSTRUCTS, mutated toward the boundary the
+assertion admits.** Applying it produced a second instance of the same shape, one layer up from pricing.
+
+**The filter, and a correction to it.** 45 ordering assertions carry a computed bound. Most are harmless because
+a **concrete companion** sits beside them (§1626's rule: `floors.test.ts` asserts
+`toEqual({contribution: 85_000, full: 92_000, target: 98_000})` first, so its two `<=` lines are belt-and-braces).
+Filtering to blocks whose ONLY ordering evidence is a dial gave 12 — **but two were false positives from my own
+regex**: `.toEqual<Floors>(…)` carries a generic type argument that `\.toEqual\(` does not match. Corrected: 10.
+*A hazard list is only as good as the pattern that built it, and a type argument is invisible to a naive matcher.*
+
+**The instance.** `brokerageTemplate` is the REQ-151 **cold-start seed** — the tariff a brand-new tenant is
+onboarded with (`workers/api/src/tariff-seed.ts`). Its floors test asserted `contribution ≤ full ≤ target`.
+Emitting `target_or_bps` for all three tiers — the tenant's contribution and full-cost floors **discarded**:
+
+| suite | result with the ladder collapsed |
+|---|---|
+| `@shuddl/rater` | **171/171 GREEN** |
+| api worker | **882/882 GREEN** |
+| `@shuddl/agents` | **235/235 GREEN** |
+
+**1,288 tests, and none of them noticed that two of three floors had vanished.** Because `equal` satisfies `≤`,
+exactly as in §1638 — the same operator, a different subject, found by the rule rather than by luck.
+
+**What a collapsed ladder costs is REQ-048's tiering.** With `full === target === contribution`, the middle
+tier — *below target but at or above contribution → a single ops approval* — becomes unreachable, so every
+routine below-target discount escalates to a dual finance approval. It fails toward more approval rather than
+less, which is why nothing burned; it is still a tenant's configured tiering silently not applied, on the very
+first artifact their account receives.
+
+**Fixed at the strength the derivation guarantees**, per §1639: a **known-answer** pin
+(`contribution 8475 / full 9238 / target 10000` — `10000²/11800 = 8474.57… → 8475`, then
+`(8475 + 10000)/2 = 9237.5 → 9238`) plus **strict** `<` between the tiers, justified because
+`contribution = 10000²/(10000 + margin)` is strictly below `10000` for any positive margin (guarded) and `full`
+is strictly between them. Re-planting the collapse now reds this case alone.
+
+> **Two instances, one operator, two different subjects — the rule generalises and the search order is the
+> lesson.** §1638 was found by aiming at a BLOCKED gate's subject; §1640 was found by aiming at the *shape*
+> §1638 exposed. **A defect's shape is a better search key than its location** — the second instance was in a
+> different package, a different requirement, and a different layer, and the same three-character mutation
+> found it.
+
+**Phase gate.** `packages/rater/test/tariff-templates.test.ts` only — assertion strengthened, no source changed;
+`tariff-templates.ts` mutated and restored byte-identical (`git diff` empty). rater **171/171**, api
+**882/882**. Edits `packages/`, so the board was **RE-MEASURED at `d73a6d0`** (§1639's commit) **plus this
+phase's uncommitted test — 0 commits since**: `pnpm verify:merge` → **21 PASS · 0 FAIL · 5 BLOCKED**, the same
+five non-repo-fixable holds.
