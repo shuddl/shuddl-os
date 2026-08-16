@@ -91123,4 +91123,5 @@ the timeline. Reverting the seed reds exactly one of twenty-three cases; full ap
 green with it.
 
 **Phase gate.** api **878 tests**; typecheck and lint 0. One production line changed, one test and one helper
-added. Board re-measured below.
+added. Board re-measured at `8761ca0`: **21 PASS · 0 FAIL · 5 BLOCKED** (aggregate BLOCKED, exit 2 — the five
+owner-side private-fixture holds).
