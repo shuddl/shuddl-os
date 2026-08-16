@@ -122,7 +122,12 @@ export interface Tlv {
   end: number;
 }
 
-export function readTlv(buf: Uint8Array, offset: number): Tlv {
+/**
+ * Read one TLV at `offset`. `limit` is the end of the ENCLOSING element — pass it whenever this read is nested
+ * inside another, so a declared length cannot reach past its parent into a sibling (§1606/§1607). It defaults
+ * to the buffer end, which is the correct bound only for the OUTERMOST element.
+ */
+export function readTlv(buf: Uint8Array, offset: number, limit: number = buf.length): Tlv {
   if (offset >= buf.length) throw new Error("DER: read past end");
   const tag = buf[offset]!;
   let pos = offset + 1;
@@ -145,6 +150,7 @@ export function readTlv(buf: Uint8Array, offset: number): Tlv {
   const contentStart = pos;
   const contentEnd = pos + len;
   if (contentEnd > buf.length) throw new Error("DER: content overruns buffer");
+  if (contentEnd > limit) throw new Error("DER: content overruns its enclosing element");
   return { tag, start: offset, contentStart, contentEnd, end: contentEnd };
 }
 

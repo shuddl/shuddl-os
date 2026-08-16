@@ -219,7 +219,7 @@ function parseCertificate(der: Uint8Array): X509 {
       if (!extnId || !oidEquals(der, extnId, OID.extKeyUsage)) continue;
       const extnValue = ek[ek.length - 1]!; // OCTET STRING (after optional critical BOOLEAN)
       if (extnValue.tag !== TAG.OCTET_STRING) continue;
-      const seq = readTlv(der, extnValue.contentStart);
+      const seq = readTlv(der, extnValue.contentStart, extnValue.contentEnd);
       for (const purpose of readChildren(der, seq.contentStart, seq.contentEnd)) {
         if (purpose.tag === TAG.OID) ekuOids.push(new Uint8Array(content(der, purpose)));
       }
@@ -338,7 +338,7 @@ export async function verifyTsaSignature(respBytes: Uint8Array, opts: VerifyTsaO
   const ciKids = readChildren(buf, token.contentStart, token.contentEnd);
   if (!oidEquals(buf, ciKids[0]!, OID.signedData)) throw new TsaVerifyError("MALFORMED", "ContentInfo: not id-signedData");
   const ciContent = expect(ciKids[1], 0xa0, "MALFORMED", "ContentInfo [0] content");
-  const signedData = readTlv(buf, ciContent.contentStart);
+  const signedData = readTlv(buf, ciContent.contentStart, ciContent.contentEnd);
   expect(signedData, TAG.SEQUENCE, "MALFORMED", "SignedData");
 
   // SignedData ::= SEQUENCE { version, digestAlgorithms SET, encapContentInfo,
@@ -359,7 +359,7 @@ export async function verifyTsaSignature(respBytes: Uint8Array, opts: VerifyTsaO
   const encapKids = readChildren(buf, encap.contentStart, encap.contentEnd);
   if (!oidEquals(buf, encapKids[0]!, OID.ctTstInfo)) throw new TsaVerifyError("MALFORMED", "eContentType is not id-ct-TSTInfo");
   const eContentWrap = expect(encapKids[1], 0xa0, "MALFORMED", "eContent [0]");
-  const eContentOctet = readTlv(buf, eContentWrap.contentStart);
+  const eContentOctet = readTlv(buf, eContentWrap.contentStart, eContentWrap.contentEnd);
   expect(eContentOctet, TAG.OCTET_STRING, "MALFORMED", "eContent OCTET STRING");
   const eContent = new Uint8Array(content(buf, eContentOctet)); // the TSTInfo DER
 

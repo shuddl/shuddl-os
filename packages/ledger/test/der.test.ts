@@ -162,3 +162,35 @@ describe("§1606 REQ-014: DER nesting bounds", () => {
     expect(kids[0]?.contentEnd, "the child must end exactly at its parent's boundary").toBe(6);
   });
 });
+
+// §1607 (REQ-014/118) — THE SAME BOUND, AT THE THREE NESTED READS `readChildren` DOES NOT COVER.
+//
+// §1606 fixed the walk. It did not fix a DIRECT `readTlv` at a child offset, which is the same weakness with a
+// different call shape: twelve call sites exist, eight pass offset 0 on a standalone buffer (where the buffer
+// IS the parent and the old bound was right), one already carried its own guard (`der.ts` TSTInfo probe), and
+// three read a nested element bounded only by `buf.length` — an extension's value, ContentInfo's content, and
+// the eContent wrapper whose OCTET STRING becomes the TSTInfo digested against the SIGNED messageDigest.
+//
+// `readTlv` now takes an optional `limit` (the enclosing element's end), defaulting to the buffer so every
+// outermost read is unchanged. The three nested sites pass their parent's `contentEnd`.
+describe("§1607 REQ-014: readTlv's limit bounds a nested read by its parent", () => {
+  // 04 06 …  an OCTET STRING declaring six content bytes, inside a buffer that has them.
+  const BUF = Uint8Array.from([0x04, 0x06, 1, 2, 3, 4, 5, 6]);
+
+  it("without a limit the read succeeds — the buffer holds the declared content (the control)", () => {
+    const t = readTlv(BUF, 0);
+    expect(t.contentEnd).toBe(8);
+  });
+
+  it("with a limit BELOW the declared end it is REFUSED, naming the enclosing element", () => {
+    expect(
+      () => readTlv(BUF, 0, 5),
+      "a nested element reaching past its parent was accepted — the parsed structure can then differ from the " +
+        "signed one",
+    ).toThrow(/overruns its enclosing element/);
+  });
+
+  it("a limit exactly AT the declared end still parses (the boundary is inclusive, not off by one)", () => {
+    expect(readTlv(BUF, 0, 8).contentEnd).toBe(8);
+  });
+});
