@@ -68,8 +68,8 @@ describe("build214", () => {
 // stalled tick, and refusing beats substituting: the reference is what the partner MATCHES on, so a silent
 // replacement trades a rejected message for an unmatchable one (the sanitise-instead decision is filed).
 describe("§1593 REQ-200: an X12 delimiter inside a value is refused at the boundary", () => {
-  const base = { partnerScac: "ABCD", isaControl: "000000001", gsControl: "1" } as const;
-  const stop = { statusCode: "X6", ts: "2026-01-01T00:00:00Z", city: "PORTLAND", state: "OR" } as const;
+  const base = { partnerScac: "ABCD", isaControl: "000000001", gsControl: "1" };
+  const stop = { statusCode: "X6", ts: "2026-01-01T00:00:00Z", city: "PORTLAND", state: "OR" };
 
   it("a clean view still builds (the refusals below prove nothing without this)", () => {
     const out = build214({ ...base, shipmentRef: "SHPAAA", stops: [stop] });
@@ -77,17 +77,19 @@ describe("§1593 REQ-200: an X12 delimiter inside a value is refused at the boun
     expect(b10?.split("*").length, "B10 carries a tag + three elements").toBe(4);
   });
 
-  for (const [what, view] of [
+  const CASES: Array<[string, Parameters<typeof build214>[0]]> = [
     ["an element separator in shipmentRef", { ...base, shipmentRef: "SHP*AAA", stops: [stop] }],
     ["a segment terminator in shipmentRef", { ...base, shipmentRef: "SHP~AAA", stops: [stop] }],
     ["a component separator in shipmentRef", { ...base, shipmentRef: "SHP>AAA", stops: [stop] }],
     ["a segment terminator in a city", { ...base, shipmentRef: "SHPAAA", stops: [{ ...stop, city: "PORT~LAND" }] }],
     ["an element separator in a city", { ...base, shipmentRef: "SHPAAA", stops: [{ ...stop, city: "PORT*LAND" }] }],
     ["an element separator in a reason code", { ...base, shipmentRef: "SHPAAA", stops: [{ ...stop, reasonCode: "A*1" }] }],
-  ] as const) {
+  ];
+
+  for (const [what, view] of CASES) {
     it(`${what} is REFUSED, never serialised`, () => {
       expect(
-        () => build214(view as Parameters<typeof build214>[0]),
+        () => build214(view),
         `${what} was serialised. X12 has no escaping, so this does not render oddly — it restructures the ` +
           `interchange and the partner parses different data in every position after it.`,
       ).toThrow();

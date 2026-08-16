@@ -90290,5 +90290,12 @@ still worth fixing while the fix is cheap and the reasoning is fresh.
 > the writer somewhere to hide a delimiter; X12 does not. Wherever the format cannot express "this character is
 > data", the type is the only guard — and `z.string()` is the absence of one.
 
-**Phase gate.** edi **6 files / 49 tests**; translator **13 files / 133**; typecheck and lint 0. One production
+**And the merge gate caught a typecheck break in this section's own test.** The board at `03a7a0a` read
+**20 PASS · 1 FAIL · 5 BLOCKED**, the FAIL being `typecheck`: an `as const` on the case table made the tuple
+readonly, which cannot convert to `build214`'s parameter type. **vitest strips types, so 49/49 passed over a
+type error** — the same trap as §1537, and the same cause: I ran `typecheck` *before* adding the test file and
+only `lint` after. The order that holds is the one already written down — **typecheck runs after the last edit,
+not after the last edit I expected to matter.** Fixed at `<fix>`; typecheck 0, edi 49/49.
+
+**Phase gate.** edi **6 files / 49 tests**; translator **13 files / 133**; lint 0. One production
 schema changed — board re-measured below.
