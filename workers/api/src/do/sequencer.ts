@@ -982,7 +982,14 @@ export class ShipmentSequencer extends DurableObject<Env> {
     const hasDocs =
       shipmentId !== undefined &&
       (await db
-        .prepare("SELECT 1 AS present FROM documents WHERE shipment_id = ?1 AND kind = ?2 LIMIT 1")
+        // §1674 — `retention_status = 'active'` is part of the question, not a refinement of it. `ratecon` is a
+        // 'default'-class doc (1yr), so the retention sweep DELETES its bytes and tombstones the row to
+        // 'expired'. Without this clause the gate reads a tombstone as "the paperwork exists" and lets a driver
+        // roll on evidence that was deliberately destroyed — the exact opposite of the sentence above it. The
+        // column is NOT NULL DEFAULT 'active' (0007), so this narrows nothing that exists today. Fail-closed on
+        // an expired doc is the documented intent: a dispatch may still pass, but only via an accountable
+        // REQ-049 override.
+        .prepare("SELECT 1 AS present FROM documents WHERE shipment_id = ?1 AND kind = ?2 AND retention_status = 'active' LIMIT 1")
         .bind(shipmentId, DISPATCH_REQUIRED_DOC_KIND)
         .first<{ present: number }>()) !== null;
 

@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1120 | §1673 | **§1674** | **DEFECT (latent): THE DISPATCH GATE ACCEPTS A RETENTION-DELETED RATE-CON.** Swept the documents readers by BEHAVIOUR (*does it act as though bytes exist without asking R2*), not by API call: **10 readers**, 8 fine — the Biller POD lookup and the anchor-receipt EXISTS **safe by the KIND exemption, not by checking anything**, which stops being true the moment a kind leaves POD_RETAINED_KINDS. The exception is `#enforceDispatch`: REQ-043's *the required carrier paperwork exists* asked `SELECT 1 FROM documents WHERE shipment_id AND kind` with **no retention_status**, and `ratecon` is a 1-year 'default' doc whose row the sweep KEEPS as the audit record — so a tombstone recording that the evidence was destroyed satisfied a gate whose own comment says *the evidence must exist before a driver rolls*. Latent (nothing writes a ratecon until REQ-184), fixed fail-closed; reverting the clause flips the case **403 → 201**. 0007's column comment — the invariant's THIRD statement — I tried to correct and **`check:invariants` refused it** (*migrations are forward-only*); reverted byte-for-byte. **I had checked for a content pin and concluded wrong**: a grep for the two hash-pin spellings came back empty and I read that as absence — the pin is a LOCK FILE, sharing no substring with anything I searched. The gate caught in one run what my reading had already got wrong. **And §1673's reopen trigger fired ONE PHASE LATER**: the +7 shift rotted 4 anchors the checker reported and **a 5th it did not** (`@geo`, subject moved 1008→1015, green because prose nearby says geo). **But the two false-greens differ**: `@geo` occurs **22×** in its target (anchors nothing — arithmetic), `@UNRESOLVED_VISIBILITY` **3×** (a good anchor beaten by one comment — English). Measured all **472**: 50 anchors occur once, **18 occur 21+** (`@b` 119×, `@port` 76×, `@append` 66×). Built `anchor-specificity` (ratchet at 17 after `@geo`→`@deliveryFence`), **whose header states it catches ONE of the two** and that §1673's refusal stands. Rule: **a metric that would not have caught the defect you found is decoration** — check the real instances against the proposed rule BEFORE building it |
 | 1119 | §1672 | **§1673** | **44 OF 467 CONTENT ANCHORS ARE HELD UP BY A COMMENT — AND THE GATE IS DECLINED.** §1672's false-green (a citation 13 lines off its subject, saved by a comment mentioning the symbol) asked how much anchoring is like that. Measured with the checker's OWN extractor: **467 anchored** (matches its report exactly), **44 (9.4%) comment-only** — 11 prose-only annotation citations, 33 where the symbol also exists in code. **The class is dominated by CORRECT uses**: all four widest-distance cases cite the comment deliberately (a TODO recording an UNWIRED exemption at 254 lines; a server-derived-gate-context rule at 272; a measured `produced by NOTHING` note; a hostname-routing statement). **Distance does not discriminate — the two largest gaps are both correct**, and neither does shape, because the anchors ARE code identifiers being discussed in prose. **NO GATE**: the boundary is English, and §1561 already measured that shape at 76%→95% FP after every filter; a rule firing on 33 to catch 1 gets switched off. Recorded instead with a reopen trigger — **a SECOND false-green makes it a class** — plus what the anchor DOES buy (it caught real rot twice this session; it works when the symbol lives only in code, and the blind spot is exactly a stale line whose window contains prose naming the symbol). **Method: the harness said 449/43 against the checker's 467** — I took the first resolution candidate where the checker accepts ANY; corrected, the denominator matched and mention-only rose to 44. **A harness bug that UNDER-reports is the dangerous direction**, caught only because a known fixed point sat on the same line |
 | 1118 | §1671 | **§1672** | **DEFECT (live): THE EVIDENCE UPLOAD RETURNS 200 FOR BYTES THE RETENTION SWEEP ALREADY DELETED.** Two files state one invariant and disagree. `evidence.ts` calls ROW-IFF-BYTES *airtight in BOTH directions* and its duplicate path returns 200 on the row alone; `retention.ts` deletes bytes FIRST and tombstones SECOND, naming the state *the only transient torn state: active row, bytes already gone*. Measured: **`status=200 bytes_restored=false`** — a driver retrying a capture is told the evidence landed, records success, never re-sends, and the ledger event points at a hash whose bytes are gone. **The sweep's doc got two things wrong about its own window**: (1) it is NOT crash-only — the two awaits give an ORDINARY tick the same window, once per deleted doc, nothing crashing; (2) it **enumerated one consumer and stopped** (*exactly the graceful miss the /pub proxy 404s on*) while the upload's fast path reads the same `active` predicate — and there it is not a read that fails politely but a **write that reports success**. Rule: **a comment enumerating the consumers of a known-torn state is making a completeness claim, and it is the one sentence nothing checks.** Fixed with a HEAD on the duplicate path, falling through to the existing re-instate repair. **RESIDUAL STATED, not hidden**: a mid-flight tombstone can land after the re-instate → orphan BYTES, the direction retention.ts itself names safe (*a DELETE's safe miss is keep longer*), strictly better than 200-with-no-bytes; closing it needs one transaction across D1+R2, and the ordering must NOT reverse. The sibling test does BOTH halves of the sweep (a COMPLETED one), which is why the interrupted state had no coverage. Restore verified **against the saved copy** — `git diff` is the wrong instrument once a file carries uncommitted work (§1671's rule, refined). api 888/888 · ledger 755/755 |
 | 1117 | §1670 | **§1671** | **A RATCHET ON THE SCANNING-JSON BLAST RADIUS — AND A RESTORE THAT OVERWROTE THE WRONG FILE.** §1670 sized the hazard at 21 scanning sites; both real fixes are the owner's (a `CHECK (json_valid(col))` migration needs a REQ row; the per-reader guard trades the wedge for a silent skip). **In scope meanwhile: stop the surface widening.** The gate freezes the count at 21, names the three ways out in its failure message (pin the key, guard with `json_valid`, or raise the number in a commit that says why), and may fall never grow. **Deliberately NOT a correctness gate** — it cannot make a corrupt row safe; it makes a 22nd tenant-wide outage surface cost a conversation instead of a merge. RED-proved by planting one. **And a restore overwrote the wrong file**: an OR-fallback backup (`cp A $S/orig 2>/dev/null` falling through to `cp B $S/orig`) saved **A**, because A existed, so restoring B from it wrote A's contents into B — `exceptions.ts` came back as `board.ts`, **165 insertions / 118 deletions**, visible only because `git diff --stat` ran immediately after. **And the gate was caught by an older gate on its first run**: `corpus-extension` (§1507) reded on it — the corpus was `.ts`-only over `packages`+`workers`, the exact shape §1507 makes unrepeatable after six gates were measured blind to the 14 `.tsx` render views; widened to `/\.tsx?$/`, **count unchanged at 21**, and the re-plant redone IN a `.tsx` (`evidence-email-view.tsx`, one of §1507's own six). `check-table-shape` then reded twice on this very row for quoting a shell OR operator. Rule: **a restore must be verified like a mutation and the check is that the diff is EMPTY; an OR-fallback backup silently changes WHICH file the name refers to — name the backup after the file, never after the intent.** |
@@ -11511,7 +11512,7 @@ Quick Reference table — the part a reader consults *while implementing a gate*
 |---|---|---|
 | gates `stop.arrived` | a generic gate-block comment | `sequencer.ts:711@stop.arrived` |
 | 403s an unassigned driver | `if (events.length < effective) return null` — a **pagination check** | `routes/events.ts:267@assignmentOf` |
-| requires the device co-sign | `if (e instanceof Error …) throw new Error(e.message)` — an **error re-wrap** | `sequencer.ts:1243@deviceOwnedBy` |
+| requires the device co-sign | `if (e instanceof Error …) throw new Error(e.message)` — an **error re-wrap** | `sequencer.ts:1250@deviceOwnedBy` |
 | server-emitted money kind refused | `const kinds: EventKind[] = []` — an empty declaration | `routes/events.ts:217@SERVER-EMITTED` |
 
 A reader following the device-co-sign row to check how ownership is enforced would have landed on an
@@ -86296,7 +86297,7 @@ concurrent commit (§1494), and **six status-drift rows still needing a per-row 
 | **REQ-249** | `coverage-manifest.json:51` — *"vNEXT — V2-E server-enforced forward-stop redaction…"* | **deferral marker**, already recorded; the note is in HEAD, not the concurrent author's working copy (checked) |
 | **REQ-267** | `coverage-manifest.json:69` — *"vNEXT — V2.5 event-backed tenant-safe referral attribution…"* | **deferral marker**, likewise committed |
 | REQ-278, REQ-284, REQ-285 | — | **implementation** (§1495; REQ-285 additionally proven load-bearing) |
-| **REQ-254** | `sequencer.ts:1240@REQ-254` *"a REVOKED device's key must not verify a signature"* · `gate-context.ts:43` *"a REVOKED device is not owned"* · pinned by `positions-gate.test.ts` | **implementation** — enforcement at two seams with a test naming the row |
+| **REQ-254** | `sequencer.ts:1247@REQ-254` *"a REVOKED device's key must not verify a signature"* · `gate-context.ts:43` *"a REVOKED device is not owned"* · pinned by `positions-gate.test.ts` | **implementation** — enforcement at two seams with a test naming the row |
 | **REQ-288** | `tools/checks/identity-leak.ts` — the mode-aware `GateResult` path, SOURCE not a test | **implementation** |
 | **REQ-170** | `biller.ts:65@REQ-170` *"the Biller REQUIRES the POD's [bytes]"* — **but** `transition-gates.ts:188` *"RESIDUAL (REQ-170, WP-06 follow-up)"* | **MIXED** — implemented in part, with the gap already filed as an OPEN checklist row (*"REQ-170 residual: PLACED-PHOTO hash not byte-verified"*) |
 | REQ-257 | `apps/command/src/App.tsx` (uncommitted in the concurrent tree) | **waits** |
@@ -93854,4 +93855,101 @@ dangerous direction**, because the number still looks plausible; the only reason
 
 **Phase gate.** Measurement only — one throwaway script, run and deleted; **no production file and no gate
 changed**, deliberately. Docs-only, so `verify:docs` is the applicable bundle: citations OK (2094 checked, 467
-anchored), section-refs OK, tables OK. Board unchanged from §1672 (21 PASS · 0 FAIL · 5 BLOCKED).
+anchored), section-refs OK, tables OK. Board carried forward from **`5cce595`** (§1672's commit, **0 commits since** — this phase changed no code), measured there as **21 PASS · 0 FAIL · 5 BLOCKED**.
+
+---
+
+## §1674 — PHASE GATE: DEFECT (latent) — the dispatch gate accepts a retention-DELETED rate-con; plus the anchor class §1673 left open (REQ-043/030/118)
+
+§1672 fixed **one** consumer of "the row proves the bytes". The sweep's doc named **one other**. So enumerate by
+BEHAVIOUR — every reader of `documents`, asked *does it act as though bytes exist without asking R2* — rather
+than by API call, which finds only the calls that look alike.
+
+**Ten readers.** Eight are fine, and two of those for a reason worth writing down: the Biller's POD lookup
+(`biller.ts`) and the anchor-receipt `EXISTS` subquery (`anchor.ts`) both read rows whose bytes the sweep can
+never delete, because `POD_RETAINED_KINDS = ["POD","tsa_receipt"]` excludes them for 7 years. **They are safe by
+the kind exemption, not by checking anything** — which is fine, and fragile in exactly one way: it stops being
+true the moment a kind leaves that list.
+
+### The one that is not safe
+
+`#enforceDispatch` (`workers/api/src/do/sequencer.ts`) answers REQ-043's *"the required carrier paperwork
+exists"* with:
+
+```sql
+SELECT 1 AS present FROM documents WHERE shipment_id = ?1 AND kind = ?2 LIMIT 1
+```
+
+No `retention_status`. And `ratecon` is a **`default`-class doc — a 1-year hold**, so the sweep deletes its
+bytes and tombstones the row, *deliberately keeping the row as the audit record*. That kept row then satisfies
+this gate. The comment eight lines above it reads *"the evidence must exist before a driver rolls"*; the query
+was answering "a row about the evidence exists, possibly recording that we destroyed it."
+
+**Latent, not live** — nothing writes a ratecon yet (REQ-184 deferred), which is why the gate is currently
+fail-closed for every dispatch. It becomes reachable the moment rate-con generation lands. **Fixed now**, with
+`AND retention_status = 'active'`: the column is `NOT NULL DEFAULT 'active'` (0007), so this narrows nothing
+that exists today, and fail-closed on a tombstone is the documented intent — a dispatch may still proceed, via
+an accountable REQ-049 override. Mutation-proved: reverting the clause turns the new case from **403 to 201**,
+a driver rolling on evidence that was intentionally destroyed.
+
+### The invariant's third statement is in a file I am not allowed to edit — and the gate, not my reading, said so
+
+0007's own column comment asserts it too: *"'active' = the R2 bytes exist (the row-iff-bytes invariant) … the
+row is never orphaned"*. Three files asserted it, §1672 falsified it, and leaving the last copy true-looking is
+how the next reader re-derives the wrong conclusion — so I corrected it.
+
+**`check:invariants` refused the commit**: *"migration … was EDITED after it was committed to the lock —
+migrations are forward-only; add a new file (deleting its lock line does not reset this)."* Reverted, byte for
+byte. The rule is right: an applied migration's text is a historical artifact, and a comment edit is
+indistinguishable from a content edit to anything downstream that hashes it.
+
+**I had checked for exactly this and concluded wrong.** Grepping for `sha256|migrationHash` over `tools/` and
+`packages/ledger/src` returned nothing, and I read that emptiness as "migrations are not content-pinned" —
+[[a-grep-proves-presence-never-absence]], on the very same day the rule is written down. The pin is a LOCK
+FILE, which shares no substring with any word I searched. **The gate caught in one run what my reading had
+already got wrong**; the correction now lives in the two TypeScript files, which is where a reader who needs it
+is standing anyway.
+
+### §1673's reopen trigger fired ONE PHASE LATER
+
+Inserting the comment above shifted the sequencer by +7. `check:citations` reported **4** rotted anchors. A
+by-offset enumeration of every citation past the insert found a **5th it did not report**:
+the go-live checklist's pointer at `sequencer.ts` **line 1008**, anchored on the bare word `geo`, whose real
+subject (`SELECT geo FROM legs …`) had moved to **line 1015**, staying green because `geo` appears in the surrounding prose. That is the **second** false-green
+from a comment-satisfied anchor — the exact condition §1673 wrote as *"a SECOND false-green makes it a class."*
+
+**But the mechanism is not the one §1673 declined.** The two false-greens differ:
+
+| anchor | occurrences in target | would a specificity rule catch it? |
+|---|---|---|
+| `@geo` | **22** | **yes** — it admits 22 distinct ±2 windows, so it anchors nothing |
+| `@UNRESOLVED_VISIBILITY` | 3 | **no** — a good anchor, defeated by one comment 13 lines from the code |
+| `@CANDIDATES_SQL` (the gate CAUGHT this one) | 2 | n/a |
+
+So the class splits into a **structural** half (arithmetic, no English) and an **irreducible** half. Measured
+across all **472** anchored citations:
+
+| occurrences of the anchor in its target file | citations |
+|---|---|
+| 1 (a perfect anchor) | 50 |
+| 2 | 127 |
+| 3 | 66 |
+| 4–5 | 84 |
+| 6–10 | 66 |
+| 11–20 | 43 |
+| **21+ (anchors nothing)** | **18** |
+
+The weakest are single words: `@b` **119×**, `@port` 76×, `@append` 66×, `@kind` 37×, `@no` 33×.
+
+**Built `anchor-specificity` as a ratchet** (frozen at **17**, after strengthening `@geo` → `@deliveryFence`,
+22× → 3×). Its header states what it cannot reach, in the same words as the table above: it catches **one of
+the two** real false-greens, and §1673's refusal to gate the English half **stands**. A gate that names its own
+blind spot is the only kind worth trusting later.
+
+> **A metric that would not have caught the defect you found is decoration.** The check that made this
+> honest was measuring the two real instances *against the proposed rule* before building it — 22 and 3 — rather
+> than after.
+
+**Phase gate.** 1 production fix (mutation-proved 403↔201), 1 migration comment ATTEMPTED and reverted, 5 citations
+repointed (4 reported + **1 the gate could not see**), 1 anchor strengthened, 1 new gate (3 cases; RED-proved by
+re-weakening the anchor, restored byte-identical against the saved copy). api **888→889/889**. Edits `workers/`, so the board is re-measured at commit (the `db/` edit was reverted).

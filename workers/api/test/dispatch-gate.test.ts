@@ -153,6 +153,31 @@ describe("dispatch gate passes once both appointment + docs are present (REQ-043
     expect(requiredEvidence(r)).toEqual(["docs"]);
     expect(await countEvents(shp)).toBe(0);
   });
+
+  it("§1674 a RETENTION-TOMBSTONED rate-con does NOT satisfy the docs pillar — deleted evidence is not evidence", async () => {
+    // `ratecon` is a 'default'-class doc (1yr), so the retention sweep deletes its R2 bytes and marks the row
+    // 'expired'. The row SURVIVES on purpose (an audit record that the doc existed) — which is exactly why a
+    // gate that asks "does a row exist" gets the wrong answer. REQ-043's requirement is that the paperwork
+    // EXISTS before a driver rolls; a tombstone says it deliberately does not.
+    const shp = "t7-expired-doc";
+    await seedBooked(shp);
+    await claimAppointment(shp);
+    await seedRatecon(shp);
+    await env.TENANT_A_DB.prepare("UPDATE documents SET retention_status = 'expired' WHERE shipment_id = ? AND kind = ?")
+      .bind(shp, DISPATCH_REQUIRED_DOC_KIND)
+      .run();
+
+    const r = await post(shp, dispatchInput(shp), await opsTok());
+    expect(r.status, "a tombstoned rate-con must leave the docs pillar unsatisfied").toBe(403);
+    expect(requiredEvidence(r)).toEqual(["docs"]);
+    expect(await countEvents(shp), "and the refusal appends nothing").toBe(0);
+
+    // The row is still there — the gate refused on its STATUS, not on its absence (or this proves nothing).
+    const still = await env.TENANT_A_DB.prepare("SELECT retention_status FROM documents WHERE shipment_id = ? AND kind = ?")
+      .bind(shp, DISPATCH_REQUIRED_DOC_KIND)
+      .first<{ retention_status: string }>();
+    expect(still?.retention_status, "control: the tombstoned row exists and is what the gate read").toBe("expired");
+  });
 });
 
 // ─── (e) a NAMED override releases a missing-prereq dispatch AND is permanently stamped on the event ──
