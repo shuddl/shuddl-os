@@ -396,3 +396,48 @@ describe("§930: a zero-charge tariff — what the route answers, and that NO qu
     }
   });
 });
+
+// §1642 (REQ-051/189/004) — THE AUTHENTICATED HALF OF §1516's FIX, which had no case at all.
+//
+// §1516's own header records the defect on BOTH surfaces: `accessorials: ["not-a-real-code"]` →
+// **HTTP 500 on `/pub/quote` AND on `/v1/rate`**. Both were fixed with the same exported predicate; only the
+// anonymous surface was pinned. MEASURED at §1642: deleting `/v1/rate`'s boundary guard outright leaves the
+// api worker **882/882 GREEN**, so the exact regression §1516 closed is reintroducible on the surface CSRs
+// use, with nothing failing. (Neutering the shared predicate reds two cases — both of them the anonymous
+// ones, which is what made the asymmetry visible.)
+//
+// This is NOT a money defect: `compose` still refuses the unknown code, so nothing mis-prices. It is the
+// DIAGNOSIS that regresses — an ops user who mistypes a code is told the server failed, and the code they got
+// wrong is not named. That is precisely the trade §1516 decided, and a decision with no test is a preference.
+describe("§1642 — an unknown accessorial is a 400 on the AUTHENTICATED surface too, and names the code", () => {
+  it("a mistyped code is refused at the boundary, never reported as a server fault", async () => {
+    const res = await rate({
+      shipment_id: "rate-unknown-acc",
+      origin_zip: "97201",
+      dest_zip: "80012",
+      weight_lb: 1_000,
+      dims: DIMS,
+      accessorials: ["not-a-real-code"],
+    });
+    expect(res.status, "a client's typo must never surface as a 500 on the authenticated surface either").toBe(400);
+    const body = (await res.json()) as { code?: string; message?: string };
+    expect(body.code).toBe("VALIDATION_FAILED");
+    // The authed surface NAMES the offending codes (the anonymous one deliberately does not — no account,
+    // no enumeration oracle). That difference is the reason this case cannot simply mirror the public one.
+    expect(JSON.stringify(body), "the operator must be told WHICH code was rejected").toContain("not-a-real-code");
+  });
+
+  it("a prototype key is an unknown code, not a Function on the prototype (the Object.hasOwn rule)", async () => {
+    for (const code of ["constructor", "toString", "__proto__"]) {
+      const res = await rate({
+        shipment_id: `rate-proto-acc-${code.replace(/[^a-z]/g, "")}`,
+        origin_zip: "97201",
+        dest_zip: "80012",
+        weight_lb: 1_000,
+        dims: DIMS,
+        accessorials: [code],
+      });
+      expect(res.status, `${code} must resolve to an unknown accessorial, never to a prototype member`).toBe(400);
+    }
+  });
+});
