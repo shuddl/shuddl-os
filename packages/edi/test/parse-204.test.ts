@@ -296,4 +296,37 @@ describe("§1604 REQ-201: a stop-truncated 204 parses as a complete tender (file
     expect(doc.weightLb, "the surviving fields still parse — truncation is invisible, not partial").toBe(15000);
     expect(Object.keys(doc.refs).length, "the refs before the cut survive").toBeGreaterThan(0);
   });
+
+  // §1605 — SE01 is not the only integrity field declined. X12 pairs the interchange and group control numbers
+  // (ISA13↔IEA02, GS06↔GE02) precisely so a SPLICED transmission — segments from two interchanges concatenated —
+  // is detectable, and both trailers carry counts. Measured: all four mismatches parse clean, alongside SE01's.
+  // Same class, same owner decision as the row above, so they are pinned together rather than filed twice.
+  const envelope = (gsCtl: string, geCtl: string, ieaCtl: string, isaCtl: string): string =>
+    isaHeader(isaCtl) +
+    S("GS", "SM", "MEGA", "SHUDDL", "20260719", "1200", gsCtl, "X", "004010") +
+    S("ST", "204", "0001") +
+    S("B2", "", "MEGA", "", "SHIP123", "", "PP") +
+    S("B2A", "00") +
+    S("N1", "SH", "ACME") + S("N3", "1 DOCK") + S("N4", "NEWARK", "NJ", "07101") + S("G62", "10", "20260720", "I", "0800") +
+    S("N1", "CN", "BETA") + S("N3", "2 PORT") + S("N4", "BOSTON", "MA", "02101") + S("G62", "02", "20260721", "I", "1600") +
+    S("SE", "13", "0001") + S("GE", "1", geCtl) + S("IEA", "1", ieaCtl);
+
+  it("the baseline envelope parses — without this the mismatches below prove nothing", () => {
+    expect(parse204(envelope("77", "77", "000000042", "000000042")).stops.length).toBe(2);
+  });
+
+  for (const [what, doc] of [
+    ["IEA02 does not match ISA13 (spliced interchange)", envelope("77", "77", "000000999", "000000042")],
+    ["GE02 does not match GS06 (spliced group)", envelope("77", "88", "000000042", "000000042")],
+    ["GE01 states a group count of 9, not 1", envelope("77", "77", "000000042", "000000042").replace("GE*1*", "GE*9*")],
+    ["IEA01 states an interchange count of 9, not 1", envelope("77", "77", "000000042", "000000042").replace("IEA*1*", "IEA*9*")],
+  ] as Array<[string, string]>) {
+    it(`${what} — still ACCEPTED (pinned; see audit §1605)`, () => {
+      expect(
+        () => parse204(doc),
+        `${what} is now refused — envelope integrity validation landed. Strike the GO-LIVE-CHECKLIST row ` +
+          `(audit §1604/§1605) and rewrite these as the refusals they became.`,
+      ).not.toThrow();
+    });
+  }
 });
