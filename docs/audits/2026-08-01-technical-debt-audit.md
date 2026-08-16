@@ -90727,4 +90727,5 @@ pins today's behaviour so whichever lands does so deliberately.
 > the FORMAT provide that this code declines?"**
 
 **Phase gate.** edi **6 files / 50 tests** with the pin included; typecheck 0. No production source changed —
-one test, one checklist row. Board stands at `5ce3e7d` (**21 PASS · 0 FAIL · 5 BLOCKED**).
+one test, one checklist row. `packages/` changed, so the board was re-measured at `29ccc5d`:
+**21 PASS · 0 FAIL · 5 BLOCKED** (aggregate BLOCKED, exit 2 — the five owner-side private-fixture holds).
