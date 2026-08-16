@@ -93,13 +93,38 @@ export type TenderDoc = z.infer<typeof TenderDoc>;
 
 // One status event to serialize into a 214 (LX + AT7 + MS1). statusCode is ALREADY the AT7 wire code — the
 // caller maps SHUDDL status → AT7 before calling build214; this package only serializes.
+// §1593 (REQ-200/034) — A VALUE MAY NOT CONTAIN A DELIMITER.
+//
+// `segment()` is `fields.join(EL)` — no escaping, because X12 has none. A value carrying one of the three
+// delimiters does not "look odd" downstream, it RESTRUCTURES the interchange, and the two failures differ:
+//
+//   · `*` inside `shipmentRef` → B10 serialises with SIX elements instead of four (measured), so every
+//     position after it shifts and the partner reads the SCAC as a reference.
+//   · `~` inside a city → an EXTRA segment (12 where the trailer says 11, measured). SE01 is computed as
+//     `data.length + 2` from the segment ARRAY, so the stated count no longer matches the bytes — a hard X12
+//     structural error, rejected by the receiver's translator.
+//
+// These strings are freight data: a shipment reference or a city arriving from an incumbent import or an
+// inbound 204. Nothing upstream forbids an asterisk. So the boundary refuses, loudly, rather than emitting
+// bytes that misparse — `Zod at every boundary`, and the sweep's per-item isolation turns a refusal into one
+// logged shipment rather than a stalled tick.
+//
+// REFUSE vs SANITISE is a real choice and this takes the safe half. Replacing the character would send a VALID
+// message carrying an ALTERED reference — and the reference is exactly what the partner matches the shipment
+// on, so a silent substitution trades a rejected message for an unmatchable one. If an owner prefers sending
+// over refusing, that decision is filed on GO-LIVE-CHECKLIST (audit §1593), not made here.
+const X12_DELIMITERS = /[*~>]/;
+export const X12Value = z
+  .string()
+  .refine((v) => !X12_DELIMITERS.test(v), "value contains an X12 delimiter (* ~ >) — it would restructure the interchange");
+
 export const StatusStop = z
   .object({
-    statusCode: z.string(),
-    reasonCode: z.string().optional(),
+    statusCode: X12Value,
+    reasonCode: X12Value.optional(),
     ts: z.string(),
-    city: z.string().optional(),
-    state: z.string().optional(),
+    city: X12Value.optional(),
+    state: X12Value.optional(),
   })
   .strict();
 export type StatusStop = z.infer<typeof StatusStop>;
@@ -108,10 +133,10 @@ export type StatusStop = z.infer<typeof StatusStop>;
 // serializer is byte-stable: identical input → identical bytes (no Date.now, no counters).
 export const StatusView = z
   .object({
-    shipmentRef: z.string(),
+    shipmentRef: X12Value,
     partnerScac: PartnerScac,
-    isaControl: z.string(),
-    gsControl: z.string(),
+    isaControl: X12Value,
+    gsControl: X12Value,
     stops: z.array(StatusStop),
     sentAt: z.number().int().positive().optional(), // real send instant (epoch ms) — stamped by the sweep at send
   })
@@ -122,10 +147,10 @@ export type StatusView = z.infer<typeof StatusView>;
 // B1 reservation action code: "A" accept / "D" decline. Control numbers are passed in for byte-stability.
 export const TenderResponse = z
   .object({
-    shipmentRef: z.string(),
+    shipmentRef: X12Value,
     partnerScac: PartnerScac,
-    isaControl: z.string(),
-    gsControl: z.string(),
+    isaControl: X12Value,
+    gsControl: X12Value,
     action: z.enum(["A", "D"]),
     sentAt: z.number().int().positive().optional(), // real send instant (epoch ms) — stamped at send
   })

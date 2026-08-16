@@ -50,3 +50,47 @@ describe("build214", () => {
     expect(out.endsWith("IEA*1*000000042~")).toBe(true);
   });
 });
+
+// §1593 (REQ-200/034/118) — A DELIMITER IN A VALUE RESTRUCTURES THE INTERCHANGE.
+//
+// `segment()` is `fields.join(EL)` and X12 has no escape mechanism, so a value carrying `*`, `~` or `>` does
+// not render oddly — it changes the SHAPE of the message. Measured before the fix, on the two fields that
+// carry freight data rather than controlled codes:
+//
+//   · `shipmentRef: "SHP*AAA"` → B10 serialised with SIX elements instead of four, so every position after it
+//     shifts and the partner reads the SCAC where a reference belongs.
+//   · `city: "PORT~LAND"` → TWELVE segments where the SE01 trailer states eleven. SE01 is computed as
+//     `data.length + 2` from the array, so the count no longer describes the bytes: a hard structural error
+//     that a receiver's translator rejects outright.
+//
+// Both strings arrive from freight data — an incumbent import, an inbound 204 — and nothing upstream forbids
+// an asterisk. The boundary now refuses. The sweep's per-item isolation makes that one logged shipment, not a
+// stalled tick, and refusing beats substituting: the reference is what the partner MATCHES on, so a silent
+// replacement trades a rejected message for an unmatchable one (the sanitise-instead decision is filed).
+describe("§1593 REQ-200: an X12 delimiter inside a value is refused at the boundary", () => {
+  const base = { partnerScac: "ABCD", isaControl: "000000001", gsControl: "1" } as const;
+  const stop = { statusCode: "X6", ts: "2026-01-01T00:00:00Z", city: "PORTLAND", state: "OR" } as const;
+
+  it("a clean view still builds (the refusals below prove nothing without this)", () => {
+    const out = build214({ ...base, shipmentRef: "SHPAAA", stops: [stop] });
+    const b10 = out.split("~").find((s) => s.startsWith("B10"));
+    expect(b10?.split("*").length, "B10 carries a tag + three elements").toBe(4);
+  });
+
+  for (const [what, view] of [
+    ["an element separator in shipmentRef", { ...base, shipmentRef: "SHP*AAA", stops: [stop] }],
+    ["a segment terminator in shipmentRef", { ...base, shipmentRef: "SHP~AAA", stops: [stop] }],
+    ["a component separator in shipmentRef", { ...base, shipmentRef: "SHP>AAA", stops: [stop] }],
+    ["a segment terminator in a city", { ...base, shipmentRef: "SHPAAA", stops: [{ ...stop, city: "PORT~LAND" }] }],
+    ["an element separator in a city", { ...base, shipmentRef: "SHPAAA", stops: [{ ...stop, city: "PORT*LAND" }] }],
+    ["an element separator in a reason code", { ...base, shipmentRef: "SHPAAA", stops: [{ ...stop, reasonCode: "A*1" }] }],
+  ] as const) {
+    it(`${what} is REFUSED, never serialised`, () => {
+      expect(
+        () => build214(view as Parameters<typeof build214>[0]),
+        `${what} was serialised. X12 has no escaping, so this does not render oddly — it restructures the ` +
+          `interchange and the partner parses different data in every position after it.`,
+      ).toThrow();
+    });
+  }
+});
