@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1103 | §1656 | **§1657** | **DEFECT — A QUADRATIC ADDRESS-SCRUB: 100 KB OF TEXT BURNED 15,947 ms.** §1656 closed parser CORRECTNESS; this is the same surfaces under COMPLEXITY, where the Worker CPU budget is a hard ceiling. The Concierge email parser is clean (10 pathological bodies, **worst 4 ms** — its regexes are bounded by construction). A sweep of all **4,052** literal regexes for the ReDoS signature returned **exactly one**, and it is real: `scrubAddresses` takes **15,947 ms** on `"a.".repeat(50000)` (100 KB, no `@`) and 639 ms at 20 KB. **The blowup is NOT the flagged group** — `(?:\.[A-Za-z0-9-]+)+` is anchored by a literal dot and is linear; the cost is the FIRST class `[A-Za-z0-9._%+-]+`, which CONTAINS `.`, so with no `@` the engine consumes a long run from every start position and backtracks out of each. **A pattern that looks fine, whose flagged sub-expression IS fine — only measurement found it.** Exposure: the mail provider's error body. Three of four detail paths already sliced to 500 chars first; **the JSON `message` branch — the one input the provider fully controls — did not**, so one oversized response burns the whole CPU budget ON THE ERROR PATH. Rule: **'bounded' must mean bounded BEFORE the expensive step.** Fixed with one `boundedDetail` helper across all four sites; the regression case reds at **16,002 ms** against the shipped code. |
 | 1102 | §1655 | **§1656** | **THE OTHER SPEC-DEFINED PARSER, FUZZED — X12 REFUSES BY NAME AT EVERY LAYER.** §1655's rule (*a spec is a promise about well-formed input, which is exactly what a hostile sender does not send*) points at the one remaining spec parser fed by an outside party: the inbound **204** from a partner's VAN. Fuzzed at both layers **with a reachability control FIRST** (§1654's lesson applied before the fact): 13 malformed interchanges → 13 NAMED errors, 0 TypeErrors; 10 mutations INSIDE a valid body (SE/ST/GE dropped, B2 emptied, non-numeric AT8, duplicated ST, content after IEA) → **0 non-Error failures**, envelope faults naming themselves. **The one interesting result**: emptying B2 throws a RAW ZodError (a JSON issues array — §1605's shape), and it is **caught by design** — the handler wraps parse+map in `catch (err)`, a catch-ALL rather than an `instanceof` filter, routing anything to `quarantine(…, 'edi_malformed')` for a 200. **A catch-all is usually a smell; here it IS the guarantee**, because the promise is about the RESPONSE CODE, not about a known error set. Trailing content after IEA is ignored — consistent with the already-filed decision that the reader uses NONE of the envelope's integrity fields; re-derived, not new. |
 | 1101 | §1654 | **§1655** | **NON-NULL-ASSERTION SWEEP COMPLETE — ONE DEFECTIVE CLUSTER IN FOUR.** 66 assertions exist; the ones that matter parse input this system does not control, because `!` is erased at runtime. All four untrusted-input parsers fuzzed: TSA `der.ts` (14 assertions, 10 malformed inputs) **clean**; TSA `cms.ts` (22) **the defect, fixed at §1654**; `migrator.ts` (8, a customer's uploaded sheet — 12 inputs incl. BOM-only, ragged rows, 20 KB cell) **clean, no throw at all and a gap row per unmapped column**; `legacy-mirror.ts` (4, an incumbent's export, 10 inputs) **clean**. The other 18 are internal (merkle hashes values we computed). Rule: **the defective cluster was the one parsing a CRYPTOGRAPHIC structure** — the business parsers are forgiving by design, so their authors thought about malformed input on every line; DER/CMS is where *the grammar guarantees a child here* reads as true, **because the SPEC does guarantee it — and a spec is a promise about well-formed input, which is exactly what a hostile sender does not send.** Method: **four probe-construction failures in this axis**, each caught by reading the RESULT not the exit code, the last being §1645's own rule failing against me one phase later. |
 | 1100 | §1653 | **§1654** | **DEFECT — A MALFORMED TSA RESPONSE CRASHED THE VERIFIER WITH A TypeError INSTEAD OF REFUSING BY NAME.** §1653's rule mechanised: a non-null assertion IS a claim that a sibling guarantees presence, and it is ERASED at runtime. 66 in production source, **36 in the TSA signature path** — a parser of bytes an external authority or attacker supplies. **DER layer clean** (10 malformed inputs → 10 NAMED errors, 0 TypeErrors). **CMS layer took three attempts to reach**: the first returned `chain-not-configured` for everything (short-circuit before parsing), the second died on the garbage anchor I supplied, the third used the suite's real CA — *each looked like a result; only reading the RETURNED VALUE showed it had not reached the subject*. With a valid anchor, an **EMPTY ContentInfo → `TypeError: Cannot read properties of undefined`** (`ciKids[0]!`). The 11 existing CMS cases are all SEMANTIC failures on well-formed DER, so nothing exercised structural malformation past the anchor check. **Five instances of one idiom, counted before fixing**; exactly one `[0]!` in the file was already length-guarded. Fixed with the file's own `expect()` helper. Rule: **a non-null assertion is a comment the compiler believes and the runtime forgets — where the value comes from parsing untrusted input, `!` is not a shortcut for a check, it is the absence of one.** Impact: not a bypass (fails closed either way) but the DIAGNOSIS — a TypeError from inside a DER parser instead of `MALFORMED: missing ContentInfo contentType`. ledger 755/755. |
@@ -93033,3 +93034,61 @@ not a new finding; the row already names it.
 **Phase gate.** No source or test changed — fuzzing only, harnesses run outside the tree and deleted. edi
 **55/55** · translator **133/133** · tools **147 files / 1489**. Board carried forward from **`4fd2b64`**
 (§1655's commit, **0 commits since**, measured at `03e6f9a` as **21 PASS · 0 FAIL · 5 BLOCKED**).
+
+---
+
+## §1657 — PHASE GATE / DEFECT: a quadratic address-scrub on the mail provider's error body — 100 KB of text burned 15,947 ms (REQ-003/031/118)
+
+§1656 closed the *correctness* of every external parser. This is the same surfaces under a different failure
+mode: **complexity**. A parser that never crashes can still stop a Worker dead, and the CPU budget is a hard
+ceiling rather than a slow degradation.
+
+**The Concierge's email parser is clean, measured first.** Ten pathological bodies — 50 K repetitions of a
+keyword, 200 KB single words, near-miss ZIP baits, alternating keyword runs — the **worst was 4 ms**. Its
+regexes are bounded by construction (`{0,20}?`, `\d{1,7}`, `\d{1,4}`), which is what bounded backtracking looks
+like.
+
+**A mechanical sweep of all 4,052 literal regexes for the ReDoS signature — a quantified group whose body is
+itself quantified or alternation-overlapping — returned exactly one**, and it is real:
+
+```
+scrubAddresses: /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+/g
+```
+
+| input | time |
+|---|---|
+| `"a.".repeat(50000)` — 100 KB, **no `@`** | **15,947 ms** |
+| the same shape at 20 KB | 639 ms |
+| 50 KB local part, deep subdomains, classic bait | 0 ms |
+
+**The blowup is not the flagged group.** `(?:\.[A-Za-z0-9-]+)+` is anchored by a literal `\.` on every
+iteration, so it is linear — the reasoning that would have dismissed this regex is correct about the part the
+detector flagged. The cost is in the FIRST class: `[A-Za-z0-9._%+-]+` **contains `.`**, so on text with no `@`
+the engine consumes a long run from every start position and backtracks out of each. **Quadratic, from a
+pattern that looks fine and whose flagged sub-expression is fine.** Only the measurement found it.
+
+**Exposure: the mail provider's error body**, scrubbed before being logged. Three of the four detail paths
+already sliced to `MAX_ERROR_DETAIL_CHARS = 500` first; **the JSON `message` branch did not** — the one input a
+provider fully controls. So one oversized error response burns the Worker's entire CPU budget **on the error
+path**, where the send has already failed and the only job left is to say why.
+
+> **"Bounded" has to mean bounded before the expensive step, not after.** The three truncating sites and the
+> one that did not are the same author, the same function, four lines apart — this is
+> [[check-what-a-discipline-stops-one-line-short-of]] with the discipline applied 3 times out of 4. Extracting
+> `boundedDetail` is what stops a fifth site from diverging again.
+
+**Fixed and proved both ways.** The regression case feeds a 100 KB no-`@` message and asserts the detail is
+truncated. Against the shipped code it reds at **16,059 ms**.
+
+**And the assertion had to change shape, which a gate decided.** My first cut measured `Date.now()` around the
+call and compared the delta — **the REQ-024 determinism lint rejected it outright** (*"this layer is
+deterministic — the caller supplies the instant"*), turning the board to **20 PASS · 1 FAIL** until I looked.
+The lint was right twice over: a test that reads a clock is a test that can flake on a loaded machine.
+**vitest's per-test timeout pins the same property with no clock at all** — 2 s against a measured 16 s, so it
+fails on the complexity class and never on the hardware. A law about production determinism improved a test it
+was not written for.
+
+**Phase gate.** `packages/agents/src/biller/sender.ts` (one helper, four call sites) + `sender.test.ts`
+(+1 case). agents **236/236** (was 235), typecheck and lint clean. Board **RE-MEASURED at `fdc0527`**
+(§1656's commit) **plus this phase's uncommitted fix — 0 commits since**: `pnpm verify:merge` → **21 PASS ·
+0 FAIL · 5 BLOCKED** once the lint violation was removed.

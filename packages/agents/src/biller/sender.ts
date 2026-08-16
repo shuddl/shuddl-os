@@ -243,6 +243,24 @@ export function scrubAddresses(text: string): string {
   return text.replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+/g, "[address redacted]");
 }
 
+/**
+ * TRUNCATE **then** scrub — §1657, and the order is the point.
+ *
+ * `scrubAddresses`'s pattern opens with `[A-Za-z0-9._%+-]+`, whose class contains `.` — so on text with NO
+ * `@` the engine consumes a long run from every start position and backtracks out of each: quadratic.
+ * MEASURED at §1657 on `"a.".repeat(50000)` (100 KB, no `@`): **15,947 ms**, and 639 ms at 20 KB. This runs on
+ * the mail provider's error body, so one oversized response burned the Worker's entire CPU budget — on the
+ * error path, where the send has already failed and the only job left is to say why.
+ *
+ * Three of the four detail paths already sliced to `MAX_ERROR_DETAIL_CHARS` first; the JSON `message` branch
+ * did not. The single helper is what stops a fifth site diverging again.
+ */
+function boundedDetail(text: string): string {
+  return text.length > MAX_ERROR_DETAIL_CHARS
+    ? `${scrubAddresses(text.slice(0, MAX_ERROR_DETAIL_CHARS))} … [truncated]`
+    : scrubAddresses(text);
+}
+
 async function resendError(res: Response): Promise<{ name: string | undefined; detail: string }> {
   const raw = await res.text();
   try {
@@ -251,13 +269,13 @@ async function resendError(res: Response): Promise<{ name: string | undefined; d
       const body = parsed as Record<string, unknown>;
       const name = typeof body["name"] === "string" && body["name"].length > 0 ? body["name"] : undefined;
       const message = body["message"];
-      if (typeof message === "string" && message.length > 0) return { name, detail: scrubAddresses(message) };
-      return { name, detail: raw.length > MAX_ERROR_DETAIL_CHARS ? `${scrubAddresses(raw.slice(0, MAX_ERROR_DETAIL_CHARS))} … [truncated]` : scrubAddresses(raw) };
+      if (typeof message === "string" && message.length > 0) return { name, detail: boundedDetail(message) };
+      return { name, detail: boundedDetail(raw) };
     }
   } catch {
     // not JSON — the truncated raw text below is the best detail available
   }
-  return { name: undefined, detail: raw.length > MAX_ERROR_DETAIL_CHARS ? `${scrubAddresses(raw.slice(0, MAX_ERROR_DETAIL_CHARS))} … [truncated]` : scrubAddresses(raw) };
+  return { name: undefined, detail: boundedDetail(raw) };
 }
 
 /**

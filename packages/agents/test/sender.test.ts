@@ -390,6 +390,32 @@ describe("ResendSender — the live adapter, exercised only against a stub", () 
     expect(err.message).toMatch(/truncated/i);
   });
 
+  // §1657 (REQ-003/031) — the JSON `message` branch was the ONE of four detail paths that did not truncate
+  // before scrubbing, and `scrubAddresses` is quadratic on text with no `@`: its pattern opens with
+  // `[A-Za-z0-9._%+-]+`, which matches `.`, so the engine consumes a long run from every start position and
+  // backtracks out of each. MEASURED at §1657: `"a.".repeat(50000)` (100 KB) took **15,947 ms**, 20 KB took
+  // 639 ms. A single oversized provider error would have burned the Worker's whole CPU budget — on the error
+  // path, where the send has already failed and the only job left is to say why.
+  //
+  // The timing bound is deliberately loose (a second against a measured 16 s) so it pins the COMPLEXITY class
+  // and never the machine.
+  // THE TIMEOUT IS THE ASSERTION. A first cut measured `Date.now()` around the call and compared the delta —
+  // which the REQ-024 determinism lint rejected outright ("this layer is deterministic — the caller supplies
+  // the instant"), and it was right to: a test that reads a clock is a test that can flake on a loaded
+  // machine. vitest's per-test timeout pins the same property with no clock at all — 2 s against a measured
+  // 16 s, so it fails on the COMPLEXITY CLASS and never on the hardware.
+  it("a huge backtracking-bait JSON message is truncated, and cannot take quadratic time", async () => {
+    const bait = "a.".repeat(50_000); // 100 KB, no "@" anywhere — the shape that blew up
+    const marker = "TAIL-MARKER-MUST-NOT-APPEAR";
+    const { sender } = mkResend(422, { statusCode: 422, name: "validation_error", message: `${bait}${marker}` });
+    const err = await captureRejection(sender.send(EMAIL));
+
+    expect(err).toBeInstanceOf(SendError);
+    if (!(err instanceof SendError)) throw new Error("expected SendError");
+    expect(err.message).not.toContain(marker); // the tail past 500 chars is gone
+    expect(err.message).toMatch(/truncated/i);
+  }, 2_000);
+
   it("403 → NON-retriable, carries Resend's message and the verified-domain hint", async () => {
     const { sender } = mkResend(403, { statusCode: 403, name: "validation_error", message: "Domain is not verified" });
     const err = await captureRejection(sender.send(EMAIL));
