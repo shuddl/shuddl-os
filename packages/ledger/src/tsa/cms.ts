@@ -247,9 +247,11 @@ function parseCertificate(der: Uint8Array): X509 {
 // from a caller-supplied hint — RSASSA-PKCS1-v1_5+SHA-256 or ECDSA-P256+SHA-256, both over SHA-256.
 async function verifyWithSpki(spki: Uint8Array, signature: Uint8Array, data: Uint8Array): Promise<{ ok: boolean; alg: string }> {
   const spkiSeq = readTlv(spki, 0);
-  const [algId] = readChildren(spki, spkiSeq.contentStart, spkiSeq.contentEnd);
-  const algKids = readChildren(spki, algId!.contentStart, algId!.contentEnd);
-  const algOid = algKids[0]!;
+  // §1654 — a malformed SPKI must refuse by NAME, not crash: `readChildren` can return fewer elements than
+  // the grammar promises, and `!` is erased at runtime. `expect` throws MALFORMED on undefined.
+  const algIdT = expect(readChildren(spki, spkiSeq.contentStart, spkiSeq.contentEnd)[0], TAG.SEQUENCE, "MALFORMED", "SPKI algorithm identifier");
+  const algKids = readChildren(spki, algIdT.contentStart, algIdT.contentEnd);
+  const algOid = expect(algKids[0], TAG.OID, "MALFORMED", "SPKI algorithm OID");
 
   if (oidEquals(spki, algOid, OID.rsaEncryption)) {
     const key = await crypto.subtle.importKey("spki", spki as BufferSource, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["verify"]);
@@ -336,7 +338,8 @@ export async function verifyTsaSignature(respBytes: Uint8Array, opts: VerifyTsaO
   // ContentInfo ::= SEQUENCE { contentType OID = id-signedData, [0] EXPLICIT content SignedData }
   expect(token, TAG.SEQUENCE, "MALFORMED", "timeStampToken ContentInfo");
   const ciKids = readChildren(buf, token.contentStart, token.contentEnd);
-  if (!oidEquals(buf, ciKids[0]!, OID.signedData)) throw new TsaVerifyError("MALFORMED", "ContentInfo: not id-signedData");
+  const ciOid = expect(ciKids[0], TAG.OID, "MALFORMED", "ContentInfo contentType"); // §1654 — empty ContentInfo TypeError'd here
+  if (!oidEquals(buf, ciOid, OID.signedData)) throw new TsaVerifyError("MALFORMED", "ContentInfo: not id-signedData");
   const ciContent = expect(ciKids[1], 0xa0, "MALFORMED", "ContentInfo [0] content");
   const signedData = readTlv(buf, ciContent.contentStart, ciContent.contentEnd);
   expect(signedData, TAG.SEQUENCE, "MALFORMED", "SignedData");
@@ -357,7 +360,8 @@ export async function verifyTsaSignature(respBytes: Uint8Array, opts: VerifyTsaO
 
   // EncapsulatedContentInfo ::= SEQUENCE { eContentType OID = id-ct-TSTInfo, [0] EXPLICIT OCTET STRING }
   const encapKids = readChildren(buf, encap.contentStart, encap.contentEnd);
-  if (!oidEquals(buf, encapKids[0]!, OID.ctTstInfo)) throw new TsaVerifyError("MALFORMED", "eContentType is not id-ct-TSTInfo");
+  const encapOid = expect(encapKids[0], TAG.OID, "MALFORMED", "eContentType"); // §1654
+  if (!oidEquals(buf, encapOid, OID.ctTstInfo)) throw new TsaVerifyError("MALFORMED", "eContentType is not id-ct-TSTInfo");
   const eContentWrap = expect(encapKids[1], 0xa0, "MALFORMED", "eContent [0]");
   const eContentOctet = readTlv(buf, eContentWrap.contentStart, eContentWrap.contentEnd);
   expect(eContentOctet, TAG.OCTET_STRING, "MALFORMED", "eContent OCTET STRING");
@@ -380,7 +384,7 @@ export async function verifyTsaSignature(respBytes: Uint8Array, opts: VerifyTsaO
   const signature = expect(siKids[5], TAG.OCTET_STRING, "MALFORMED", "SignerInfo.signature");
 
   // digestAlgorithm must be SHA-256 (the only supported digest).
-  const digestAlgOid = readChildren(buf, digestAlg.contentStart, digestAlg.contentEnd)[0]!;
+  const digestAlgOid = expect(readChildren(buf, digestAlg.contentStart, digestAlg.contentEnd)[0], TAG.OID, "MALFORMED", "digestAlgorithm OID"); // §1654
   if (!oidEquals(buf, digestAlgOid, OID.sha256)) throw new TsaVerifyError("UNSUPPORTED_ALG", "digestAlgorithm is not SHA-256");
 
   // Walk signedAttrs: require contentType = id-ct-TSTInfo and messageDigest = SHA-256(eContent).
@@ -407,8 +411,9 @@ export async function verifyTsaSignature(respBytes: Uint8Array, opts: VerifyTsaO
 
   // Find the signer cert by matching SignerInfo.sid (issuer + serialNumber).
   const sidKids = readChildren(buf, sid.contentStart, sid.contentEnd);
-  const sidIssuer = new Uint8Array(raw(buf, sidKids[0]!));
-  const sidSerial = new Uint8Array(content(buf, sidKids[1]!));
+  // §1654 — a truncated sid must name itself rather than crash on an undefined element.
+  const sidIssuer = new Uint8Array(raw(buf, expect(sidKids[0], TAG.SEQUENCE, "MALFORMED", "SignerInfo sid issuer")));
+  const sidSerial = new Uint8Array(content(buf, expect(sidKids[1], TAG.INTEGER, "MALFORMED", "SignerInfo sid serialNumber")));
   const signer = certs.find((c) => bytesEqual(c.issuerRaw, sidIssuer) && bytesEqual(c.serial, sidSerial));
   if (!signer) throw new TsaVerifyError("SIGNER_CERT_NOT_FOUND", "no certificate matches SignerInfo.sid");
 

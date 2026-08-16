@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { verifyTsaSignature } from "../src/tsa/cms.js";
 import { assertGrantedReceipt, FakeTsaClient } from "../src/tsa/client.js";
-import { buildGrantedTimeStampResp, parseTimeStampResp } from "../src/tsa/der.js";
+import { buildGrantedTimeStampResp, parseTimeStampResp, concat, tlv, encodeDerInteger } from "../src/tsa/der.js";
 import { bytesToHex } from "../src/merkle.js";
 import {
   buildSignerCert,
@@ -166,6 +166,47 @@ describe("REQ-014 — verifyTsaSignature: ECDSA-P256 signer + CA", () => {
 });
 
 describe("REQ-014 — verifyTsaSignature: opt-in seam (no configured trust anchor)", () => {
+  // §1654 (REQ-014) — STRUCTURAL malformation reaching the CMS parse WITH a valid anchor configured.
+  //
+  // The eleven cases around this one are SEMANTIC failures on well-formed DER — a tampered signature, a rogue
+  // chain, an expired cert, a missing EKU, a substituted digest. None of them exercises what happens when the
+  // BYTES are malformed past the trust-anchor check, and that is where `cms.ts`'s 22 non-null assertions live
+  // (`der.ts` holds 14 more). A `!` is erased at runtime: if the sibling bounds-check that justifies it is ever
+  // narrowed, the failure is a `TypeError` from deep inside a parser, not a named refusal.
+  //
+  // MEASURED at §1654 by fuzzing `parseTimeStampResp` directly: 10 malformed inputs (empty, single tag,
+  // truncated length, length-beyond-buffer, indefinite form, all-0xff…) each produced a NAMED `Error` and zero
+  // TypeErrors — the DER layer is clean. Two attempts to fuzz the CMS layer the same way never reached it: one
+  // short-circuited at `chain-not-configured`, the next died parsing the garbage anchor I had supplied. Reaching
+  // this parse requires a REAL chain, which is why the case belongs here, beside the fixtures that build one.
+  it("a structurally malformed token with a VALID trust anchor fails NAMED, never with a TypeError", async () => {
+    const mangled: Array<[string, Uint8Array]> = [
+      ["truncated to the first byte", new Uint8Array([0x30])],
+      ["length beyond the buffer", new Uint8Array([0x30, 0x7f, 0x02, 0x01, 0x00])],
+      ["indefinite length form", new Uint8Array([0x30, 0x80, 0x00, 0x00])],
+      ["all 0xff", new Uint8Array(48).fill(0xff)],
+      ["granted status, junk token", concat([tlv(0x30, concat([tlv(0x30, encodeDerInteger(0)), tlv(0x30, tlv(0x04, new Uint8Array(8).fill(0xab)))]))])],
+      // The shapes that reach a non-null deref rather than a length check: an EMPTY ContentInfo makes
+      // `ciKids[0]!` undefined, and an OID-only one makes `ciKids[1]` undefined.
+      ["EMPTY ContentInfo sequence", tlv(0x30, concat([tlv(0x30, encodeDerInteger(0)), tlv(0x30, new Uint8Array(0))]))],
+      ["ContentInfo carrying only an OID", tlv(0x30, concat([tlv(0x30, encodeDerInteger(0)), tlv(0x30, tlv(0x06, new Uint8Array([0x2a, 0x86])))]))],
+    ];
+    for (const [name, bytes] of mangled) {
+      const err = await verifyTsaSignature(bytes, { trustAnchors: [caCertDer] }).then(
+        (r) => ({ threw: false as const, r }),
+        (e: unknown) => ({ threw: true as const, e }),
+      );
+      if (err.threw) {
+        expect(err.e, `${name}: a malformed token must fail NAMED — a TypeError means a non-null assertion outlived the bounds check that justified it`).not.toBeInstanceOf(TypeError);
+        expect(err.e).not.toBeInstanceOf(RangeError);
+        expect((err.e as Error).message.length, `${name}: the refusal carries no message`).toBeGreaterThan(0);
+      } else {
+        // Returning is acceptable ONLY as an explicit negative — never a silent pass on garbage.
+        expect(err.r.verified, `${name}: a malformed token VERIFIED`).toBe(false);
+      }
+    }
+  });
+
   it("with NO trust anchors returns an explicit unverified state, never a silent pass", async () => {
     const resp = await mkResp({ signerCertDer: signerCertValid });
     const none = await verifyTsaSignature(resp, {});

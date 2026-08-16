@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1100 | §1653 | **§1654** | **DEFECT — A MALFORMED TSA RESPONSE CRASHED THE VERIFIER WITH A TypeError INSTEAD OF REFUSING BY NAME.** §1653's rule mechanised: a non-null assertion IS a claim that a sibling guarantees presence, and it is ERASED at runtime. 66 in production source, **36 in the TSA signature path** — a parser of bytes an external authority or attacker supplies. **DER layer clean** (10 malformed inputs → 10 NAMED errors, 0 TypeErrors). **CMS layer took three attempts to reach**: the first returned `chain-not-configured` for everything (short-circuit before parsing), the second died on the garbage anchor I supplied, the third used the suite's real CA — *each looked like a result; only reading the RETURNED VALUE showed it had not reached the subject*. With a valid anchor, an **EMPTY ContentInfo → `TypeError: Cannot read properties of undefined`** (`ciKids[0]!`). The 11 existing CMS cases are all SEMANTIC failures on well-formed DER, so nothing exercised structural malformation past the anchor check. **Five instances of one idiom, counted before fixing**; exactly one `[0]!` in the file was already length-guarded. Fixed with the file's own `expect()` helper. Rule: **a non-null assertion is a comment the compiler believes and the runtime forgets — where the value comes from parsing untrusted input, `!` is not a shortcut for a check, it is the absence of one.** Impact: not a bypass (fails closed either way) but the DIAGNOSIS — a TypeError from inside a DER parser instead of `MALFORMED: missing ContentInfo contentType`. ledger 755/755. |
 | 1099 | §1652 | **§1653** | **ASIDE-GUARD CLASS CLOSED (6/6) — AND §1652's PREDICTED THIRD CATEGORY FOUND ITS MEMBERS.** Narrowing the sweep to lines that ARE a guard (not prose mentioning *defensive*) leaves exactly **6** of the 36 matches; all now probed. Five are pinned (IIF cleaner 3 RED · Concierge confidence re-gate 2 · placed-photo binding 2 · status-cache kind check 1 · driver `!item.deferred` 1). **Two are silent for a NEW reason**: `mirror-sweep`'s `draft === undefined` and the translator's `EDI_PLAN_SHAPE` assertion are covered by a **SIBLING FUNCTION's** habit — `mapLegacyExport` always sets `event`; `mapTenderToBooking` always leads with `quote.requested`. Rule: **a guarantee living in another function is the weakest redundancy and the only kind that can change without touching the guard** — construction is checked by the compiler or the DB on every write, a sibling's behaviour is checked by nothing. Both got triggers naming what the guard stands between: a `TypeError` that **aborts the whole mirror sweep**, and an **opaque 500 to a partner on a valid tender**. Also stated: **30 of the 36 matches are prose, not guards** — the number a future sweep will reproduce. |
 | 1098 | §1651 | **§1652** | **SWEPT §1651's RULE — 6 ASIDE-GUARDS PROBED, AND THE RULE IS NARROWER THAN IT LOOKED.** Guards added as an aside announce themselves (*while there* · *belt-and-suspenders* · *defensive* · *redundant*), so the class is enumerable: **36** in production source, 6 probed by deletion. **Four are properly pinned** — the QuickBooks IIF cleaner (3 RED), the Concierge's REQ-093 confidence re-gate (2), the delivery gate's placed-photo BINDING (2), the status-cache kind check (1). **Stating *asides go untested* would have generalised from one instance (§1625's error)** — the honest form is **an aside-guard is where to LOOK, not what to expect.** The two silent ones differ in kind, which is the useful part: §1651's watermark clause was **load-bearing and untested** (a JS check cannot see a write that landed after this process read its config) and got a test; the Watchtower anomaly re-check is **redundant by construction** — its SELECT filters `json_extract('$.basis.anomaly') IS NOT NULL` and SQLite returns NULL for BOTH a missing path and a JSON null, the only two ways the JS yields null — so it got §1634's artifact: the mutation result at the line plus a **reopen trigger** (if that WHERE broadens, this line is all that stands between a sane quote and a FALSE CRITICAL alarm). Rule: **'silent' has three answers — untested-and-load-bearing needs a TEST, redundant-by-construction needs a COMMENT, redundant-because-a-sibling-covers-it needs a TRIGGER — and only reading the SELECTOR tells them apart.** |
 | 1097 | §1650 | **§1651** | **RE-VERIFIED FIVE FIXED DEFECTS — AND THE ONE PART OF A FIX THAT HAD NO TEST.** A fixed defect is a REPO-OWNED row, the only kind that can go stale, so each earlier fix's defect was re-planted: the driver's parked capture (park→grave) reds **3** cases incl. *a parked item RE-PROBES… an ordering race self-heals* (a Critical, properly defended); `device_keys` CAS reds **1**; the X12 delimiter refusal reds **6**; §1588's sibling-safe write is pinned by its `SiblingWritingFeed` seam. **The fifth is the finding: §1588's MONOTONIC `WHERE`, added in the same commit as *while there, push the monotonic check into the WHERE too*, has NO test — deleting it left the worker 147/147.** Rule: **a fix's incidental hardening is the part that gets no test** — the defect you just reproduced hands you a regression case for free; the guard you add because you noticed it has no reproduction to point at, so it ships unwatched, and §1634's *a silent guard eventually gets deleted* applies to it exactly. Not redundant: the JS check cannot see a write that landed after this process read its config (two sweeps, slow one lands last → the watermark moves BACKWARDS and every later tick re-reads rows). New case reuses §1588's seam; deleting the clause reds `expected 8 to be 9999`. |
@@ -92900,3 +92901,61 @@ future sweep will reproduce, and 30 of them are not members.
 **133/133**. Six sources mutated and restored byte-identical across §1652–§1653. The inserts shifted **5
 citations**, repointed by their measured offsets. Board carried forward from **`8c0952c`** (§1652's commit,
 **0 commits since**, measured there as **21 PASS · 0 FAIL · 5 BLOCKED**).
+
+---
+
+## §1654 — PHASE GATE / DEFECT: a malformed TSA response crashed the verifier with a TypeError instead of refusing by name — five unguarded derefs, one idiom (REQ-014/118)
+
+§1653 ended on *a guarantee that lives in another function is the weakest kind of redundancy*. Its mechanical
+form is the **non-null assertion**: `!` is a claim that a sibling guarantees presence, and it is **erased at
+runtime**. Sweeping production source finds **66**, concentrated where it matters most — **36 in the TSA
+signature path** (`cms.ts` 22, `der.ts` 14), a parser of bytes an external authority (or an attacker) supplies.
+
+**The DER layer is clean, measured directly.** Ten malformed inputs — empty, single tag, truncated length,
+length-beyond-buffer, indefinite form, `0x84 ff ff ff ff`, all-`0xff` — each produced a **named** `Error`
+("DER: content overruns buffer", "unsupported length form (127 bytes)"), with **zero** TypeErrors.
+
+**The CMS layer took three attempts to reach at all, which is the method lesson.** The first fuzz returned
+`{verified:false, reason:"chain-not-configured"}` for every input — the verifier short-circuits before parsing,
+so nothing under test ran. The second supplied a garbage trust anchor and died parsing *that*. The third used
+the suite's real generated CA. **Each attempt looked like a result; only reading the returned value, rather than
+the exit status, showed it had not reached the subject.**
+
+**With a valid anchor and a malformed token, the verifier crashes:**
+
+```
+EMPTY ContentInfo sequence → TypeError: Cannot read properties of undefined
+```
+
+`ciKids[0]!` on an empty `SEQUENCE`. **The eleven existing CMS cases are all SEMANTIC failures on well-formed
+DER** — tampered signature, rogue chain, expired cert, missing EKU, substituted digest — so nothing exercised a
+structurally malformed token past the anchor check.
+
+**Five instances of one idiom, counted before fixing** (§"N instances share one idiom"): `algId!`/`algKids[0]!`
+(SPKI), `ciKids[0]!` (ContentInfo), `encapKids[0]!` (eContentType), `digestAlg…[0]!`, `sidKids[0]!`/`[1]!`
+(SignerInfo sid). Exactly one `[0]!` in the file was already guarded — `kids.length === 2` — which is what the
+other five were missing. **The file already had the right tool**: `expect(t, tag, code, what)` throws a named
+`TsaVerifyError("MALFORMED", …)` on `undefined`. All five now use it.
+
+> **A non-null assertion is a comment the compiler believes and the runtime forgets.** It says "a sibling
+> guarantees this", and when the sibling is a parser handed hostile bytes, the guarantee is exactly what an
+> attacker is trying to break. Where the value comes from parsing untrusted input, `!` is not a shortcut for a
+> check — it is the absence of one.
+
+**Impact, stated precisely.** Not a signature bypass: the failure is a crash, and the anchor path fails closed
+either way. What it costs is the diagnosis — an operator investigating a failed anchor sees a `TypeError` from
+inside a DER parser instead of `MALFORMED: missing ContentInfo contentType`, on a REQ-014 tamper-evidence run
+that a malformed or hostile TSA response can trigger at will.
+
+**A gate's own anchor rotted, and it failed LOUDLY — which is the design working.** The constant-time-comparison
+gate rosters two legitimate `===` sites by **bare `path:line`**, and my five inserts moved one of them
+(`cms.ts:431` → `:436`). Its calibration case — *"the detector no longer finds X — it broke, or that line moved;
+re-verify before trusting a clean scan"* — is what caught it, so a rotted allowlist entry cannot silently become
+a blind spot. That is the failure mode [[line-numbers-are-not-a-key]] names, met by a roster that was built
+expecting it.
+
+**Phase gate.** `packages/ledger/src/tsa/cms.ts` (5 derefs → named refusals) + `cms.test.ts` (+1 case with 7
+malformed shapes) + the repointed roster entry. Proved both ways: the case REDS against the unfixed source with the TypeError, and passes
+after. ledger **755/755** (was 754), api **886/886**, typecheck clean. `der.ts` mutated and restored
+byte-identical. Board **RE-MEASURED at `1f1c06f`** (§1653's commit) **plus this phase's uncommitted fix —
+0 commits since**: `pnpm verify:merge` → **21 PASS · 0 FAIL · 5 BLOCKED**, the same five non-repo-fixable holds.
