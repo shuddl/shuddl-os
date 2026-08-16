@@ -50,6 +50,26 @@ describe("ExceptionsQueue (REQ-082)", () => {
     expect(await screen.findByText(/NO OPEN EXCEPTIONS/)).toBeTruthy();
   });
 
+  // §1667 — a MALFORMED body, not a rejected fetch. Every failure case in the app suites injects a
+  // REJECTION (25 of them repo-wide), which proves the .catch handles a network/ApiError. None injects a
+  // 200 whose SHAPE is wrong, so nothing exercises `ExceptionsResponse.parse` throwing INTO that catch —
+  // and that is the hazard this view's own header names: "an absent key ⇒ state undefined ⇒ the next render
+  // hits .length/.map ⇒ an uncaught TypeError that white-screens Command". The parse is what converts that
+  // into an honest error state, and until now the conversion was untested on this surface.
+  it("a MALFORMED response becomes the honest error state, never a white screen", async () => {
+    mockGet.mockResolvedValue({ exceptions: [{ shipment_id: 7, kind: {}, ts: "tuesday", open: "yes" }] });
+    render(<ExceptionsQueue onAuthError={vi.fn()} onOpenShipment={vi.fn()} />);
+
+    // POSITIVE assertions, deliberately. The first draft asserted only the ABSENCE of a fabricated row and
+    // it passed under the pre-§782 cast — because the cast makes React render an object child, the whole tree
+    // throws, and the DOM comes back EMPTY. An empty document satisfies every "is not present" check, which is
+    // §1626's rule met head-on: an absence claim needs a positive companion. The panel surviving IS the
+    // difference between a degraded view and a white screen.
+    expect(await screen.findByText("COULD NOT LOAD EXCEPTIONS")).toBeTruthy();
+    expect(screen.getByText("EXCEPTIONS"), "the panel itself must survive a bad body").toBeTruthy();
+    expect(screen.queryByText("7"), "a malformed row must never render as an exception").toBeNull();
+  });
+
   it("a 401 drops the session (onAuthError)", async () => {
     const onAuthError = vi.fn();
     mockGet.mockRejectedValueOnce(new ApiError("UNAUTHORIZED", 401, "no session"));
