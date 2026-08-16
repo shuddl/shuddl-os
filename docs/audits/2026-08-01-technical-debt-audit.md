@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1099 | §1652 | **§1653** | **ASIDE-GUARD CLASS CLOSED (6/6) — AND §1652's PREDICTED THIRD CATEGORY FOUND ITS MEMBERS.** Narrowing the sweep to lines that ARE a guard (not prose mentioning *defensive*) leaves exactly **6** of the 36 matches; all now probed. Five are pinned (IIF cleaner 3 RED · Concierge confidence re-gate 2 · placed-photo binding 2 · status-cache kind check 1 · driver `!item.deferred` 1). **Two are silent for a NEW reason**: `mirror-sweep`'s `draft === undefined` and the translator's `EDI_PLAN_SHAPE` assertion are covered by a **SIBLING FUNCTION's** habit — `mapLegacyExport` always sets `event`; `mapTenderToBooking` always leads with `quote.requested`. Rule: **a guarantee living in another function is the weakest redundancy and the only kind that can change without touching the guard** — construction is checked by the compiler or the DB on every write, a sibling's behaviour is checked by nothing. Both got triggers naming what the guard stands between: a `TypeError` that **aborts the whole mirror sweep**, and an **opaque 500 to a partner on a valid tender**. Also stated: **30 of the 36 matches are prose, not guards** — the number a future sweep will reproduce. |
 | 1098 | §1651 | **§1652** | **SWEPT §1651's RULE — 6 ASIDE-GUARDS PROBED, AND THE RULE IS NARROWER THAN IT LOOKED.** Guards added as an aside announce themselves (*while there* · *belt-and-suspenders* · *defensive* · *redundant*), so the class is enumerable: **36** in production source, 6 probed by deletion. **Four are properly pinned** — the QuickBooks IIF cleaner (3 RED), the Concierge's REQ-093 confidence re-gate (2), the delivery gate's placed-photo BINDING (2), the status-cache kind check (1). **Stating *asides go untested* would have generalised from one instance (§1625's error)** — the honest form is **an aside-guard is where to LOOK, not what to expect.** The two silent ones differ in kind, which is the useful part: §1651's watermark clause was **load-bearing and untested** (a JS check cannot see a write that landed after this process read its config) and got a test; the Watchtower anomaly re-check is **redundant by construction** — its SELECT filters `json_extract('$.basis.anomaly') IS NOT NULL` and SQLite returns NULL for BOTH a missing path and a JSON null, the only two ways the JS yields null — so it got §1634's artifact: the mutation result at the line plus a **reopen trigger** (if that WHERE broadens, this line is all that stands between a sane quote and a FALSE CRITICAL alarm). Rule: **'silent' has three answers — untested-and-load-bearing needs a TEST, redundant-by-construction needs a COMMENT, redundant-because-a-sibling-covers-it needs a TRIGGER — and only reading the SELECTOR tells them apart.** |
 | 1097 | §1650 | **§1651** | **RE-VERIFIED FIVE FIXED DEFECTS — AND THE ONE PART OF A FIX THAT HAD NO TEST.** A fixed defect is a REPO-OWNED row, the only kind that can go stale, so each earlier fix's defect was re-planted: the driver's parked capture (park→grave) reds **3** cases incl. *a parked item RE-PROBES… an ordering race self-heals* (a Critical, properly defended); `device_keys` CAS reds **1**; the X12 delimiter refusal reds **6**; §1588's sibling-safe write is pinned by its `SiblingWritingFeed` seam. **The fifth is the finding: §1588's MONOTONIC `WHERE`, added in the same commit as *while there, push the monotonic check into the WHERE too*, has NO test — deleting it left the worker 147/147.** Rule: **a fix's incidental hardening is the part that gets no test** — the defect you just reproduced hands you a regression case for free; the guard you add because you noticed it has no reproduction to point at, so it ships unwatched, and §1634's *a silent guard eventually gets deleted* applies to it exactly. Not redundant: the JS check cannot see a write that landed after this process read its config (two sweeps, slow one lands last → the watermark moves BACKWARDS and every later tick re-reads rows). New case reuses §1588's seam; deleting the clause reds `expected 8 to be 9999`. |
 | 1096 | §1649 | **§1650** | **THE PIPELINE FROM 'A TEST FILE EXISTS' TO 'AN ASSERTION RUNS' IS GATED AT EVERY STAGE.** §1649 named the shape; the pipeline is finite, so it was enumerated and each stage checked: **(1)** the package runs tests at all — §709, REDS when `agents-worker`'s script is removed; **(2)** the file matches the config's `include` — §1649, built this session, REDS on a stranded file; **(3)** the file is collected — measured **277 on disk / 277 collected** across all 17 suites; **(4)** the assertions execute — §711, REDS on a planted `it.only`. **Stage 4's demonstration is the sharpest**: one `it.only` makes its file report `1 passed, 8 skipped` and **exit 0** — eight guarantees stopped being checked, run still green. **A floor observation examined and deliberately NOT filed**: §711 floors at 250 against **424** live files (~80% → ~59%), and 98 such floors exist; `section-refs` floors at 900 against 24,706. That is the DOCUMENTED convention — `board-citation-ratchet` distinguishes *a RATCHET, not a tripwire* from a floor *deliberately far below… never a count anyone maintains*. Rule: **a tripwire asks 'did the scan break?' and a ratchet asks 'did this number move?' — reading a low floor as weakness is a category error, but so is expecting a tripwire to catch a PARTIAL corpus loss.** |
@@ -10521,7 +10522,7 @@ The metering plumbing is complete and honest end to end. `agent_runs` carries `c
 is **no** false-zero fail-open here).
 
 But **only one agent emits `agent.acted` at all**: the rater, from two byte-identical paths
-(`workers/api/src/routes/rate.ts:260@agent.acted` and `workers/translator/src/inbound.ts:593@agent.acted`),
+(`workers/api/src/routes/rate.ts:260@agent.acted` and `workers/translator/src/inbound.ts:599@agent.acted`),
 reporting `cost_cents: 0` because it is a deterministic engine with no LLM call. Since `agent.acted` **is**
 the metered AI action — billing counts it (`workers/billing/src/metering.ts:3@agent.acted`) and the
 Watchtower budgets it — the meter never observes the agents that would cost anything.
@@ -13330,7 +13331,7 @@ is no obvious place to put the assertion, and it is worth treating a well-writte
 claims and I have adjudicated five. Rather than work the remaining 59 one at a time, the useful question
 is whether they divide.
 
-They do, cleanly. Probed the money-critical one still open — `workers/translator/src/inbound.ts:568@byte-identical`, claiming the EDI
+They do, cleanly. Probed the money-critical one still open — `workers/translator/src/inbound.ts:574@byte-identical`, claiming the EDI
 `quote.priced` payload is *"byte-identical to rate.ts"*. Dropped `floors` from the EDI construction alone:
 
 ```
@@ -25619,7 +25620,7 @@ copies. That is the *two mechanisms disagreeing* check returning a clean negativ
 weight as a delta.
 
 **The four production callers enumerated, not generalized.** `packages/agents/src/concierge/compose.ts:102` and
-`workers/translator/src/inbound.ts:627@assessApproval` are direct moves by construction; `workers/api/src/routes/rate.ts:272` is the interline
+`workers/translator/src/inbound.ts:633@assessApproval` are direct moves by construction; `workers/api/src/routes/rate.ts:272` is the interline
 path; `packages/agents/src/biller/compose.ts` composes the same two rater primitives for its different hold semantics. Only one
 rests on a sentence: the translator passes `assessApproval(quote, {})` on the strength of *"a 204 carries no
 negotiated sell / interline legs"*. True today — the translator constructs no legs — and unpinned, because
@@ -86560,7 +86561,7 @@ watched.
 - `inbound.ts:229@capped` (the R2 quarantine cap) is silent, and correctly so: `quarantine` is reachable ONLY
   from `handleInbound204`, which 413s any over-cap body earlier in the same function. Verified by mutating the
   premise — deleting the post-read 413 reds case (3).
-- `inbound.ts:511@EDI_PLAN_SHAPE` (*"a defensive assertion, not a data path"*) is silent, and its premise is
+- `inbound.ts:517@EDI_PLAN_SHAPE` (*"a defensive assertion, not a data path"*) is silent, and its premise is
   pinned: `inbound.test.ts:233` asserts the exact append sequence `["quote.requested", "quote.priced",
   "agent.acted", "quote.accepted"]`, so a plan that stopped leading with `quote.requested` reds there first.
 - **`inbound.ts:321@declaredLen` — the up-front Content-Length refusal — was silent and is load-bearing.**
@@ -92849,3 +92850,53 @@ typecheck clean. Five sources mutated and restored byte-identical (`iif.ts`, `co
 that file, all repointed by +10 — the content anchors located every one. Board **RE-MEASURED at `a4ae310`**
 (§1651's commit) **plus this phase's uncommitted comment — 0 commits since**: `pnpm verify:merge` → **21 PASS ·
 0 FAIL · 5 BLOCKED**, the same five non-repo-fixable holds.
+
+---
+
+## §1653 — PHASE GATE: the aside-guard class CLOSED at 6 of 6, and §1652's predicted third category found its members (REQ-021/173/016/118)
+
+§1652 probed six of what looked like 36 aside-guards. Narrowing the sweep to lines that **are** a guard — a
+conditional, return, throw or continue — rather than prose mentioning *"defensive"* leaves exactly **6**. All
+six are now probed, so the class is closed.
+
+| guard | mutation | verdict |
+|---|---|---|
+| QuickBooks IIF field cleaner | stripper → identity | **3 RED** — pinned |
+| Concierge REQ-093 confidence re-gate | re-gate deleted | **2 RED** — pinned |
+| delivery gate's placed-photo binding | binding → `true` | **2 RED** — pinned |
+| status-cache defensive kind check | deleted | **1 RED** — pinned |
+| driver sync's `!item.deferred` | deleted | **1 RED** — pinned |
+| Watchtower anomaly re-check | deleted | silent — **redundant by CONSTRUCTION** (§1652) |
+| mirror-sweep's `draft === undefined` | deleted | silent — **covered by a SIBLING** |
+| translator's `EDI_PLAN_SHAPE` assertion | neutered | silent — **covered by a SIBLING** |
+
+*(Eight rows for six guards: §1652 also probed the watermark `WHERE` and the transition-gate binding, which sit
+in the same class.)*
+
+**§1652 predicted a third category and could not name a member. Here are two.** Both are silent for the same
+reason and it is neither of the first two: nothing in the type system or a SQL selector forbids the case — a
+**sibling function** simply never produces it. `mapLegacyExport` always sets `event` on a record that is neither
+an echo nor a quarantine; `mapTenderToBooking` always yields a leading `quote.requested`.
+
+> **A guarantee that lives in another function is the weakest kind of redundancy, and the only kind that can
+> change without touching the guard.** Construction (a schema, a `NOT NULL`, a primary key) is checked by the
+> compiler or the database on every write. A sibling's behaviour is checked by nothing — it is a habit of the
+> code that happens to hold. That is why this category gets a **trigger** rather than a comment saying
+> "unreachable".
+
+**Both triggers name what the guard would then be standing between**, because a trigger that only says "if this
+changes" tells the next reader nothing about whether to care:
+- mirror-sweep: a third record disposition makes this line the only thing between a malformed record and a
+  `TypeError` on `draft.streamKey` that **aborts the whole sweep** — every remaining row unmirrored, on a cron
+  nobody watches.
+- translator: a reordered plan makes this throw the difference between a named `EDI_PLAN_SHAPE` failure and an
+  inbound 204 appending an `undefined` input to the sequencer — **an opaque 500 to a partner on a valid tender**.
+
+**The remaining 30 matches were prose, not guards** — comments explaining that a value is read defensively, or
+that a rule is redundant, with no branch attached. Worth stating because the first count (36) is the one a
+future sweep will reproduce, and 30 of them are not members.
+
+**Phase gate.** Two comment-only edits (`mirror-sweep.ts`, `inbound.ts`); agents-worker **148/148**, translator
+**133/133**. Six sources mutated and restored byte-identical across §1652–§1653. The inserts shifted **5
+citations**, repointed by their measured offsets. Board carried forward from **`8c0952c`** (§1652's commit,
+**0 commits since**, measured there as **21 PASS · 0 FAIL · 5 BLOCKED**).

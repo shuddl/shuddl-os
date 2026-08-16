@@ -250,6 +250,14 @@ export async function sweepTenantLegacyMirror(deps: MirrorSweepDeps): Promise<Mi
       continue;
     }
     const draft = rec.event;
+    // §1653 — SILENT UNDER MUTATION, and the reason is a SIBLING's guarantee, not this file's. Deleting this
+    // line leaves agents-worker 148/148 green: no test reaches it, because `mapLegacyExport` always sets
+    // `event` on a record that is neither an echo nor a quarantine (the two branches above). That makes it
+    // §1652's THIRD kind of silent — covered by a sibling rather than by construction — so it gets a trigger
+    // rather than a test. REOPEN TRIGGER: if `mapLegacyExport` gains a record shape that carries no `event`
+    // (a third disposition, a partial map), this line stops being defensive and becomes the only thing
+    // between a malformed record and a `TypeError` on `draft.streamKey` that aborts the WHOLE sweep — every
+    // remaining tenant row unmirrored, on a cron nobody is watching.
     if (draft === undefined) continue; // (defensive — a non-echo, non-quarantine record always carries an event)
 
     const shipmentId = await anchorStream(db, draft.streamKey, draft, now);

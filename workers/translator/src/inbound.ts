@@ -508,6 +508,12 @@ export async function handleInbound204(request: Request, deps: InboundDeps): Pro
   // 2a. quote.requested — the map-204 core already built this valid edi-source append (source:"edi"). It is the
   //     record that the tender arrived; append it FIRST, exactly as the Concierge appends quote.requested.
   const requestedEvent = plan.appends[0];
+  // §1653 — SILENT UNDER MUTATION (translator 133/133 with this assertion neutered), because the sibling it
+  // names guarantees the shape. §1652's third kind of silent: covered by a SIBLING, not by construction, so
+  // the artifact is a trigger rather than a test. REOPEN TRIGGER: if `mapTenderToBooking` ever emits a plan
+  // whose first append is not `quote.requested` — a reordering, a new leading control append — this throw is
+  // what turns that into a named `EDI_PLAN_SHAPE` failure instead of an inbound 204 appending an `undefined`
+  // input to the sequencer, which surfaces to a partner as an opaque 500 on a valid tender.
   if (requestedEvent === undefined || requestedEvent.kind !== "quote.requested") {
     // A defensive assertion, not a data path: mapTenderToBooking always yields exactly one leading quote.requested.
     throw new Error("EDI_PLAN_SHAPE: mapTenderToBooking must yield a leading quote.requested append");
