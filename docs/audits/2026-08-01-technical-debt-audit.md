@@ -91264,5 +91264,7 @@ table, measured before the ban was written.
 > in prose since the scan was written, and the gap only mattered the day someone wrote a data migration —
 > which is to say, it would have been found by the accident it was there to prevent.
 
-**Phase gate.** tools **145 files / 1482** (six cases added); typecheck 0. One gate widened. Board re-measured
-below.
+**Phase gate.** tools **145 files / 1482** (six cases added); typecheck 0. One gate widened, and ten citations repointed across five files
+after the insertion shifted `invariants.ts` — exactly the drift §1599 described, caught by the content anchors
+rather than by a reader. Board re-measured at `e520ecb`: **21 PASS · 0 FAIL · 5 BLOCKED** (aggregate BLOCKED,
+exit 2 — the five owner-side private-fixture holds).
