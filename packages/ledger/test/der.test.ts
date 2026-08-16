@@ -194,3 +194,38 @@ describe("§1607 REQ-014: readTlv's limit bounds a nested read by its parent", (
     expect(readTlv(BUF, 0, 8).contentEnd).toBe(8);
   });
 });
+
+// §1608 (REQ-014/118) — TRAILING BYTES AFTER THE OUTERMOST ELEMENT ARE ACCEPTED, DELIBERATELY.
+//
+// DER is a canonical encoding: nothing follows the outermost element. `parseTimeStampResp` reads the root TLV
+// and never compares `root.end` to the buffer length, so a response with bytes appended parses clean —
+// measured below with four.
+//
+// UNLIKE §1606/§1607 THIS IS NOT FIXED, and the difference is what a refusal would cost. A child overrunning
+// its parent is malformed by definition, so rejecting it breaks no traffic. Trailing data is also malformed,
+// but the code that would trip on it is a THIRD PARTY's timestamp authority reached over HTTP, and a strict
+// parser that rejects a padded-but-otherwise-valid response turns a cosmetic server quirk into a failed daily
+// anchor. The trade is not worth taking blind: the appended bytes are inert — the signature is verified over
+// the PARSED SignedData, so trailing garbage cannot forge anything, only offend canonicality.
+//
+// So this pins the behaviour instead of changing it. If a real TSA is ever wired and its responses are known
+// clean, tightening is a one-line change with this case as its inverse.
+describe("§1608 REQ-014: trailing bytes after a TimeStampResp parse (pinned, not fixed)", () => {
+  const IMPRINT = Uint8Array.from({ length: 32 }, (_, i) => i);
+
+  it("a clean response parses — the control for the case below", () => {
+    expect(() => parseTimeStampResp(buildGrantedTimeStampResp(IMPRINT, 12_345n, new Date("2026-01-01T00:00:00Z")))).not.toThrow();
+  });
+
+  it("four appended bytes are still ACCEPTED (canonicality is not enforced at the outermost element)", () => {
+    const ok = buildGrantedTimeStampResp(IMPRINT, 12_345n, new Date("2026-01-01T00:00:00Z"));
+    const padded = new Uint8Array(ok.length + 4);
+    padded.set(ok, 0);
+    padded.set([0xde, 0xad, 0xbe, 0xef], ok.length);
+    expect(
+      () => parseTimeStampResp(padded),
+      "trailing bytes are now refused — canonicality is enforced at the root. That is a deliberate tightening: " +
+        "update this case to assert the refusal and note it in audit §1608.",
+    ).not.toThrow();
+  });
+});
