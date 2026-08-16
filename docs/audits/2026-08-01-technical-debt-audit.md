@@ -90848,4 +90848,5 @@ three; ledger **37 files / 749 tests** green with it.
 > ask which ones do the thing the helper was fixed to prevent.**
 
 **Phase gate.** ledger **37 files / 749 tests**; der **18**; typecheck and lint 0. Two production files changed
-(one signature widened, three call sites bounded). Board re-measured below.
+(one signature widened, three call sites bounded). Board re-measured at `d7a48ca`:
+**21 PASS · 0 FAIL · 5 BLOCKED** (aggregate BLOCKED, exit 2 — the five owner-side private-fixture holds).
