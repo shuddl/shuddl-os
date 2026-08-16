@@ -90298,4 +90298,5 @@ only `lint` after. The order that holds is the one already written down — **ty
 not after the last edit I expected to matter.** Fixed at `d0b7b24`; typecheck 0, edi 49/49.
 
 **Phase gate.** edi **6 files / 49 tests**; translator **13 files / 133**; lint 0. One production
-schema changed — board re-measured below.
+schema changed, so the board was re-measured after the fix at `4899bf5`: **21 PASS · 0 FAIL · 5 BLOCKED**
+(aggregate BLOCKED, exit 2 — the five owner-side private-fixture holds).
