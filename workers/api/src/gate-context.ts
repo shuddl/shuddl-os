@@ -45,6 +45,19 @@ export async function deviceOwnedBy(control: D1Database, tenant: string, deviceI
       // revoked (stolen, lost, off-boarded) device kept its write access to positions. `revoked_ts` is
       // absent on an active entry and json_extract returns NULL for both a missing key and an explicit
       // null, so `IS NULL` is the correct active test for both shapes.
+      // §1633 (REQ-025) — WHY THE TENANT CLAUSE CANNOT BE TESTED, AND WHAT WOULD MAKE IT LOAD-BEARING.
+      // Mutation-measured: dropping `u.tenant_id = …` alone leaves the whole api suite GREEN (882/882), while
+      // neutering the `u.id`/`device_id` conjuncts reds 2 — so the query is live and its other components are
+      // covered. The tenant component is silent because `users.id` is a GLOBAL `TEXT PRIMARY KEY`
+      // (`0001_control.sql`): a sub belongs to exactly one tenant by construction, so this clause can only ever
+      // AGREE with `u.id = ?2`. A test could not be made to fail without violating that PK, so this is
+      // documented rather than tested (the "construction forbids the divergence" case — a value compared to
+      // itself). What it still buys: defence in depth against a MIS-ISSUED token whose `sub` and `tenant` claims
+      // disagree.
+      // REOPEN TRIGGER: if `users` ever becomes per-tenant-keyed (`PRIMARY KEY (tenant_id, id)`, or ids that
+      // repeat across tenants — a plausible multi-tenant SSO change), this clause becomes the ONLY thing
+      // stopping a device enrolled under another tenant from authorizing GPS writes here, and it needs a real
+      // cross-tenant case at that moment.
       "SELECT 1 AS ok FROM users u, json_each(u.device_keys) je " +
         "WHERE u.tenant_id = (SELECT id FROM tenants WHERE slug = ?1) " +
         "AND u.id = ?2 AND json_extract(je.value,'$.device_id') = ?3 " +
