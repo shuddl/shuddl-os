@@ -68,11 +68,30 @@ describe("REQ-031/032/182 §785: the evidence-email and dunning recipient resolv
     ).toBe(biller);
   });
 
-  it("both still contain the billing preference (the rule the parity test cannot see on its own)", () => {
+  it("both still contain the billing preference AND the address validator (the rules parity cannot see)", () => {
     // Parity alone certifies agreement, INCLUDING agreement on a wrong answer. This is the cheap floor that
     // stops both copies drifting together; the behavioural proof lives in each worker's own suite.
+    //
+    // §1643 — THE FLOOR HAD ONE RULE AND THE BODY HAS TWO. Measured: bypassing `plausibleEmail` IDENTICALLY in
+    // both copies — reading the raw contact `email` instead — left this file green (both still contain
+    // `"billing"`), and with it agents 235/235, api 884/884 and ledger 754/754. The exact "drifting together"
+    // the comment above names, slipping past the floor written to stop it, because the floor named one of the
+    // two rules the body implements. `plausibleEmail` is the other: it rejects an address with no `@` or
+    // carrying CR/LF, and it is the only thing standing between a malformed contact and the mail sender.
     for (const [name, body] of [["biller", biller], ["dunning", dunning]] as const) {
       expect(body, `${name}: the "kind === billing" preference is gone`).toContain('"billing"');
+      // COUNT, not presence. The first version of this line was `toContain("plausibleEmail(")` and it PASSED
+      // under the very mutation it was written for: bypassing the guard on the BILLING branch leaves the
+      // fallback loop's call in the body, so the substring is still there. Presence is not usage. The body
+      // calls it three times — the find predicate, the billing return, and the fallback — and the bypass
+      // drops that to one.
+      const calls = (body.match(/plausibleEmail\(/g) ?? []).length;
+      expect(
+        calls,
+        `${name}: the resolver calls plausibleEmail ${calls}× (expected 3 — find predicate, billing return, ` +
+          'fallback). A contact with no "@", or one carrying CR/LF, would be handed to the mail sender. Both ' +
+          "copies can be wrong TOGETHER and the parity assertion above would still pass.",
+      ).toBe(3);
     }
   });
 });
