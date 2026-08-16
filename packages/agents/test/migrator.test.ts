@@ -97,4 +97,29 @@ describe("buildOverrides — rescues weak/unmapped headers, never downgrades a c
     const guesses = await new DeterministicMigrator().guess(HEADERS);
     expect(buildOverrides(HEADERS, guesses)).toEqual({});
   });
+
+  it("§1677 REQ-035 — a guess BELOW 0.8 never overrides, even on a header the deterministic pass could NOT map", () => {
+    // REQ-035 is explicit: "Migrator: any export→primitives with confidence; <0.8 queues review". The floor
+    // lives in `buildOverrides` as the SECOND conjunct of `!baseConfident && g.confidence >= 0.8` — and every
+    // case above varies only the FIRST. "Customer" @0.6 is ignored because its deterministic map is already
+    // confident, not because 0.6 is low. So the floor itself was unexercised: replacing `>= 0.8` with `>= 0`
+    // left packages/agents 236/236 AND the import route 20/20 green (§1677).
+    //
+    // What that costs is not a dropped column (CLAUDE.md #10's rule, already gated) but a SILENTLY MIS-MAPPED
+    // one: an ambiguous header — the bare "name"/"ref" the system prompt warns the model about — takes a
+    // 0.2-confidence guess and overwrites the deterministic mapping during a ONE-SHOT legacy onboarding.
+    const weak = [{ header: "Widget Code", field: "pro" as const, confidence: 0.79 }];
+    expect(
+      buildOverrides(HEADERS, weak),
+      "0.79 is below REQ-035's floor: it must queue for review, never apply — and 'Widget Code' is unmapped " +
+        "deterministically, so the never-downgrade rule is NOT what is refusing it here",
+    ).toEqual({});
+
+    // The boundary is INCLUSIVE (`>= 0.8`), which is exactly what "<0.8 queues review" means. Pinned from both
+    // sides so neither loosening the floor nor tightening it past the requirement can pass.
+    const atFloor = [{ header: "Widget Code", field: "pro" as const, confidence: 0.8 }];
+    expect(buildOverrides(HEADERS, atFloor), "0.8 is AT the floor and applies — REQ-035 queues below it, not at it").toEqual({
+      "Widget Code": { field: "pro", confidence: 0.8 },
+    });
+  });
 });

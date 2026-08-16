@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { repoRoot } from "./repo-root.js";
 
 // §1452 (REQ-118/119) — A BOARD FIGURE CITED WITHOUT ITS COMMIT IS A CLAIM WITH NO EXPIRY.
@@ -48,6 +49,61 @@ function unnamedBoardCitations(root: string): string[] {
   return out;
 }
 
+/**
+ * Every short SHA a board-citing section names, that does NOT resolve to a commit in this repository.
+ *
+ * §1677 ADDED THIS, because naming a commit and naming a REAL commit are different claims and only the first
+ * was checked. I wrote `9d02e34` into a phase gate's board line — a plausible hex string I had not verified —
+ * and every docs gate passed, because the rule above is satisfied by the SHAPE of a hex token. A board verdict
+ * whose commit cannot be resolved is unverifiable by the next reader, which is the exact failure §1451 records
+ * (a board restated while 23 commits landed) arriving by a different door.
+ *
+ * §997 MEASURED THIS AND DECLINED IT, correctly: 151/160 cited SHAs resolved and all 9 misses were benign
+ * (money in cents, account ids, `abc1234` placeholders), so there was no defect to gate. §1677 is the first
+ * real instance, which is what changes the verdict — not a better argument.
+ *
+ * SCOPING, corrected by its own first run. Restricting to board-citing sections is NOT enough: §4 is the index,
+ * it cites boards, and it also contains the sentence in which §997 QUOTES its own benign misses — so the first
+ * version flagged `22208400` and `abc1234`, the record's permanent false-positive floor (prose naming
+ * known-bad values). What actually separates them is the PHRASE: this record cites a commit as "measured at
+ * `sha`" / "carried from `sha`" / "at `sha`", never as an appositive. So the token must be the object of one
+ * of those prepositions. Mechanical, no English reading, and it is the idiom the record already uses.
+ */
+function unresolvableShas(root: string): string[] {
+  const text = readFileSync(`${root}/${AUDIT}`, "utf8");
+  const cited: { section: string; sha: string }[] = [];
+  for (const section of text.split(/\n(?=## §\d+ )/)) {
+    const id = /^## §(\d+) /.exec(section);
+    if (id === null || !BOARD.test(section)) continue;
+    // "measured at `sha`", "carried from `sha`", "at `sha`", "since `sha`" — the object of a commit preposition.
+    for (const m of section.matchAll(/\b(?:at|from|since|commit)\s+`([0-9a-f]{7,40})`/gi)) {
+      cited.push({ section: `§${id[1]}`, sha: m[1] as string });
+    }
+  }
+  if (cited.length === 0) return [];
+  // ONE `git cat-file --batch-check` over the unique set. Per-SHA spawns timed out at 5s under the parallel
+  // `test:tools` run (measured, §1677) while passing standalone — a check whose cost scales with the record
+  // will eventually fail for a reason that has nothing to do with the record.
+  const unique = [...new Set(cited.map((c) => c.sha))];
+  const probe = spawnSync("git", ["cat-file", "--batch-check"], {
+    cwd: root,
+    input: unique.map((sha) => `${sha}^{commit}`).join("\n") + "\n",
+    encoding: "utf8",
+  });
+  if (probe.status === null || typeof probe.stdout !== "string") {
+    throw new Error("git cat-file --batch-check could not run — this check cannot certify anything");
+  }
+  const lines = probe.stdout.trim().split("\n");
+  const missing = new Set<string>();
+  lines.forEach((line, i) => {
+    // A resolvable object prints "<full-oid> commit <size>". A MISS echoes the input — "9d02e34^{commit}
+    // missing" — which CONTAINS the word `commit`, so a loose /\bcommit\b/ passes every miss (measured: the
+    // re-plant went green, §1677). Anchor on the full shape instead.
+    if (!/^[0-9a-f]{40} commit \d+$/.test(line.trim())) missing.add(unique[i] as string);
+  });
+  return cited.filter((c) => missing.has(c.sha)).map((c) => `${c.section}: ${c.sha}`);
+}
+
 describe("§1452 REQ-118: a cited board names the commit it was measured at", () => {
   const root = repoRoot();
   const unnamed = unnamedBoardCitations(root);
@@ -59,6 +115,18 @@ describe("§1452 REQ-118: a cited board names the commit it was measured at", ()
     const text = readFileSync(`${root}/${AUDIT}`, "utf8");
     const citing = text.split(/\n(?=## §\d+ )/).filter((s) => /^## §\d+ /.test(s) && BOARD.test(s));
     expect(citing.length, "no section cites a board figure — the splitter or the pattern broke, not the record").toBeGreaterThan(100);
+  });
+
+  it("§1677 every commit a board citation names RESOLVES in this repository", () => {
+    // Not a ratchet: this one is exact. A fabricated SHA is never a dated record worth grandfathering — it is
+    // a verdict the next reader cannot re-measure, and there were zero when this was written.
+    expect(
+      unresolvableShas(root),
+      "a phase gate cites a board measured at a commit that does not exist in this repository. Naming a commit " +
+        "and naming a REAL one are different claims; only the shape was ever checked, which is how `9d02e34` " +
+        "shipped (§1677). Re-read the commit with `git log --oneline` and correct it — do NOT delete the SHA, " +
+        "because an unnamed board is the §1451 defect this gate exists for",
+    ).toEqual([]);
   });
 
   it("the historical count does not GROW", () => {

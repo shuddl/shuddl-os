@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1123 | §1676 | **§1677** | **REQ-035's CONFIDENCE FLOOR WAS ENFORCED IN CODE AND DEFENDED BY NOTHING.** genesis/01 §2 gives every agent a confidence gate; two are numeric and have register rows (REQ-093 0.9, **REQ-035 0.8**). The migrator's floor — `!baseConfident && g.confidence >= 0.8` in `buildOverrides`, reached from `routes/import.ts` — is REAL code, not just the system prompt's *a low-confidence guess is routed to human review* (that sentence is instruction to a MODEL, and would have been a rule-3 violation had the code floor been missing). **But `>= 0.8` → `>= 0` left packages/agents 236/236 and the import route 20/20 GREEN**: every existing case varies only the FIRST conjunct — *Customer* @0.6 is refused by `baseConfident`, NOT by the floor — so **unmapped + low confidence**, the only combination the floor decides, was never driven. Cost is not a dropped column (separately gated) but a silently MIS-MAPPED one, during a ONE-SHOT legacy onboarding nobody re-runs. Pinned from BOTH sides (0.79 must not apply, 0.8 must). **Outlier, not a class — measured**: REQ-093 is defended at both its sites (resolve 1 RED, compose 2 RED). **A confounded mutation nearly mis-attributed that**: the first concierge probe rewrote all 7 `9000`s including the SCORING values, so its single RED could not distinguish floor from score — **a mutation that changes two things measures neither**, and that applies to a RED you WANT. Also discarded a per-agent coverage census that reported *Scheduler 0 / Gatekeeper 0*: both are V1-scope and both implemented under other filenames — **a census over names measures naming**. **AND I FABRICATED A COMMIT SHA IN THAT VERY SECTION** — cited the board with the string `9d02e34`, a plausible hex string never looked up (§1676's commit is `3b1d668`). Every docs gate passed **including `board-citation-ratchet`, whose whole subject is that sentence**: its rule matches a commit as a HEX TOKEN, so **naming a commit and naming a REAL one are different claims and only the first was checked**. §997 had measured this and declined a gate CORRECTLY (151/160 resolved, all 9 misses benign) — **the first real instance is what changes the verdict, not a better argument**. Added as an assertion to the EXISTING gate (§760: a gate per defensive line is its own debt), and **its scoping was wrong on the first run**: §4 cites boards AND quotes §997's own benign misses, so it flagged `22208400`/`abc1234` — the permanent FP floor of prose naming known-bad values. Fixed by keying on the PHRASE (*measured at* / *carried from*), not the section. Rule: **a gate can enforce the SHAPE of a claim while leaving the claim unverified — the most comfortable kind of green.** Across all 3 numeric agent gates, **2 were undefended when first probed** (rater §1640, migrator here), both a threshold whose neighbouring cases never varied the value it reads. NO production source changed |
 | 1122 | §1675 | **§1676** | **ENUMERATE THE PAIRS, NOT THE STORES.** §1590 closed atomicity across all four storages; §1672 found a cross-store defect anyway, because *D1 ↔ R2* is a property of neither store. Enumerated mechanically: 221 sources → **5 modules** write two stores. **Two harness bugs found first, both reading as a clean tree**: a glob needing an intermediate directory dropped `anchor.ts` (the file the pattern ORIGINATES in), then the corrected corpus returned ZERO because **zsh does not word-split an unquoted parameter** — the loop ran once with 221 paths as one filename. Caught by a positive control, not by reading. **Anchor pair: CLEAN NEGATIVE** — `evidence.ts`'s citation of *the anchor.ts pattern* is TRUE, and the 7yr exemption (a literal in one file matched against a list in another) is defended from BOTH ends: dropping `tsa_receipt` 2 RED, writing a different valid kind 2 RED (the anchor's own read path queries the kind twice). Re-confirmed: `created_ts` DEFAULT 0 makes the *7yr duration* defense vacuous, so kind-exclusion is the ONLY one. **DEFECT (live): a log claimed preservation it had just failed to perform** — the unresolvable-tender path printed *could not preserve X* and, one line later, *is preserved at X*, at the moment an operator decides whether the document exists anywhere (and a 422 is never retried). Fixed + mutation-proved. **Quarantine's ordering is INVERTED** vs the rule stated twice elsewhere — safe only because the ACK follows both writes and the VAN redelivers; now stated, since an unexplained contradiction invites either churn or a copy into a context with no retry contract. **AND A FALSE ALARM OF MY OWN**: I was writing up *nine anchored citations silently stale in one edit* — a headline contradicting §1673 — when the 3 turned out to be **`head -3`** on the checker's output. Recomputed: **10 stale, 10 reported, 0 silent.** The mechanism caught every one and §1673's decline is STRENGTHENED. Rule: **a framed digest is not a measurement** — `head` becomes an analytical claim the instant you count what it printed |
 | 1121 | §1674 | **§1675** | **STOPPING POINT — 4 PHASES, 2 LIVE DEFECTS, ONE CLASS HALF-CLOSED; BOARD RE-MEASURED AT `e23eea9`: 21 PASS · 0 FAIL · 5 BLOCKED.** **Both real defects are ONE mistake in two places**: a D1 row read as proof that R2 bytes exist. The sweep deletes bytes FIRST and tombstones SECOND, so an ORDINARY tick (not just a crash) leaves an `active` row with no bytes, and a `ratecon` tombstone outlives its bytes BY DESIGN as the audit record — so one consumer answered *your evidence is stored* when it was not, and the other *the paperwork exists* about paperwork it had deliberately destroyed. **The invariant was stated in three files and checked in none**; two corrected, the third (a migration) correctly REFUSED by the forward-only lock. The rule that survives, now at both call sites: **a reader that needs the BYTES must ask R2; a reader that needs *was this retention-deleted* may trust the column.** Suites: api 889 · ledger 755 · tools 149 files/1495. **Do not re-derive**: the JSON hazard is sized+frozen not fixed (owner's call); §1673's refusal stands (FP-dominated — a THIRD false-green would be new evidence); §1672's residual race is directional and needs a transaction D1+R2 do not share. **3 reopen triggers, each with its killing condition** — REQ-184 landing, a kind leaving POD_RETAINED_KINDS, a third comment-satisfied false-green |
 | 1120 | §1673 | **§1674** | **DEFECT (latent): THE DISPATCH GATE ACCEPTS A RETENTION-DELETED RATE-CON.** Swept the documents readers by BEHAVIOUR (*does it act as though bytes exist without asking R2*), not by API call: **10 readers**, 8 fine — the Biller POD lookup and the anchor-receipt EXISTS **safe by the KIND exemption, not by checking anything**, which stops being true the moment a kind leaves POD_RETAINED_KINDS. The exception is `#enforceDispatch`: REQ-043's *the required carrier paperwork exists* asked `SELECT 1 FROM documents WHERE shipment_id AND kind` with **no retention_status**, and `ratecon` is a 1-year 'default' doc whose row the sweep KEEPS as the audit record — so a tombstone recording that the evidence was destroyed satisfied a gate whose own comment says *the evidence must exist before a driver rolls*. Latent (nothing writes a ratecon until REQ-184), fixed fail-closed; reverting the clause flips the case **403 → 201**. 0007's column comment — the invariant's THIRD statement — I tried to correct and **`check:invariants` refused it** (*migrations are forward-only*); reverted byte-for-byte. **I had checked for a content pin and concluded wrong**: a grep for the two hash-pin spellings came back empty and I read that as absence — the pin is a LOCK FILE, sharing no substring with anything I searched. The gate caught in one run what my reading had already got wrong. **And §1673's reopen trigger fired ONE PHASE LATER**: the +7 shift rotted 4 anchors the checker reported and **a 5th it did not** (`@geo`, subject moved 1008→1015, green because prose nearby says geo). **But the two false-greens differ**: `@geo` occurs **22×** in its target (anchors nothing — arithmetic), `@UNRESOLVED_VISIBILITY` **3×** (a good anchor beaten by one comment — English). Measured all **472**: 50 anchors occur once, **18 occur 21+** (`@b` 119×, `@port` 76×, `@append` 66×). Built `anchor-specificity` (ratchet at 17 after `@geo`→`@deliveryFence`), **whose header states it catches ONE of the two** and that §1673's refusal stands. Rule: **a metric that would not have caught the defect you found is decoration** — check the real instances against the proposed rule BEFORE building it |
@@ -94117,3 +94118,116 @@ one heavily-commented file that happened **zero** times.
 by 4 mutations across both directions of a cross-file coupling, 19 citations remapped by computed line-map,
 1 self-inflicted false alarm caught and recorded. translator **133→134/134**. Edits `workers/`, so the board
 is re-measured at commit.
+
+---
+
+## §1677 — PHASE GATE: REQ-035's confidence floor was enforced in code and defended by nothing (REQ-035/093/118)
+
+genesis/01 §2 gives each of the 13 agents a **confidence gate** — the third column of the mesh table. Two are
+numeric and therefore checkable as written: Concierge's *"Confidence <0.9 … → human review"* and Migrator's
+*"<0.8 field confidence → mapping review"*. Both have register rows (REQ-093, **REQ-035**), so both are scope.
+
+**A false start worth recording.** The first attempt measured evidence per agent by matching agent NAMES
+against filenames, and reported **Scheduler 0 / Gatekeeper 0** — both V1-scope agents with, apparently, no
+source at all. That is a naming artifact: Gatekeeper is `packages/ledger/src/gates/*` plus the sequencer's
+`#enforceDispatch`, Scheduler is the appointments path. **A census over names measures naming**
+([[find-the-dispatch-not-the-string]]); the roster was discarded and the two numeric gates probed directly.
+
+### The finding: the floor exists, is reached, and nothing tested it
+
+`buildOverrides` gates an LLM column-mapping proposal with `!baseConfident && g.confidence >= 0.8`, and
+`routes/import.ts` reaches it in production. So REQ-035 is enforced in CODE — not merely described in the
+system prompt, which also states it (*"a low-confidence guess is routed to human review, not applied, so do not
+inflate it"*). That sentence is instruction to a model; it is not a gate, and had the code floor been absent
+this would have been a rule 3 violation. It was not.
+
+**But replacing `>= 0.8` with `>= 0` left `packages/agents` 236/236 and the import route 20/20 GREEN.**
+
+The reason is visible once the two conjuncts are separated. Every existing case varies only the FIRST:
+
+| existing case | header | conf | why it is refused |
+|---|---|---|---|
+| "Customer" | deterministically mapped | 0.6 | `baseConfident` — **not** the floor |
+| "Widget Code" | unmapped | 0.9 | accepted (above the floor) |
+
+Nothing ever drove **unmapped + low confidence**, which is the only combination the floor decides. Same shape
+as [[presence-tests-cannot-reach-value-constraints]]: the constraint sat behind cases that could never reach
+it.
+
+**What it costs is not a dropped column** — CLAUDE.md #10's no-silent-drop rule is separately gated — but a
+**silently MIS-MAPPED** one: exactly the ambiguous header the prompt warns about (*"a bare `name` or `ref`"*)
+takes a 0.2-confidence guess and overwrites the deterministic mapping, during a **one-shot legacy onboarding**
+where nobody re-runs the import to compare.
+
+Closed with the boundary pinned from **both** sides, since `>= 0.8` inclusive is exactly what *"<0.8 queues"*
+means: `0.79` must not override (**RED** when the floor is dropped) and `0.8` must (**RED** when the floor is
+tightened to `> 0.8`).
+
+### It is an outlier, not a class — measured, not assumed
+
+The sibling gate was probed the same way. REQ-093's floor is enforced at TWO sites, and both are defended:
+`resolve.ts` **1 RED**, `compose.ts` **2 RED** — including the case named for the exact boundary
+(*"resolution_confidence 8000 (below the 9000 floor) ⇒ queued"*).
+
+**A confounded mutation nearly mis-attributed that.** The first concierge probe rewrote *every* `9000` in both
+files — 7 occurrences, including the SCORING values the module yields (`existing (no weight) → 9000`) and two
+in prose. One test reded, and crediting that to "the floor is defended" would have been unearned: the floor and
+the scores had moved together, so the RED could not distinguish them. Re-run against the two floor CONSTANTS
+alone, the verdict held — but only the second run was evidence.
+
+> **A mutation that changes two things measures neither.** [[attribute-the-red-before-crediting-it]] applies
+> as much to a RED you *want* as to one you don't.
+
+**The pattern across all three numeric agent gates**: Rater's floor ladder (§1640, a collapse left 1,288 tests
+green), Migrator's mapping floor (here), Concierge's auto-tie floor (defended, twice). **Two of three were
+undefended when first probed** — and both failures were a threshold whose surrounding cases never varied the
+value the threshold reads.
+
+### And then I fabricated a commit SHA in this very section
+
+Writing the phase gate above, I cited the board with the string `9d02e34` — a plausible seven-hex token I
+had not looked up. §1676's commit is **`3b1d668`**. Every docs gate passed, including
+`board-citation-ratchet`, whose whole subject is this sentence: its rule is *"a board citation must name a
+commit"*, and a commit is matched as **a hex token**. **Naming a commit and naming a REAL commit are different
+claims, and only the first was checked** — so the record's most load-bearing sentence, the one a later reader
+uses to re-measure, pointed at nothing.
+
+**§997 had already measured this and declined the gate — correctly.** *"151/160 resolve locally, the 9 misses
+being money values, account ids and `abc1234` placeholders — so no gate."* At that time it was a clean
+negative: there was no defect. **What changes the verdict is the first real instance, not a better argument**,
+and the instance is mine. The gate is an assertion added to the EXISTING one, not a new file — §760's rule
+that a gate per defensive line is its own debt.
+
+**Its scoping was wrong on the first run, and the record's own text is what proved it.** Restricting to
+board-citing sections is insufficient: §4 is the index, it cites boards, and it contains the very sentence in
+which §997 QUOTES its benign misses — so the check flagged `22208400` and `abc1234`, the permanent
+false-positive floor of prose naming known-bad values. What separates them is not the section but the
+**phrase**: this record writes *"measured at `sha`"*, *"carried from `sha`"*, never an appositive. Requiring
+the token to be the object of that preposition is mechanical, needs no English, and is the idiom already in
+use. Re-planting the exact string I shipped now reds with `§1677: 9d02e34`; the real SHA in the same phrase
+stays green.
+
+> **A gate can enforce the SHAPE of a claim while leaving the claim itself unverified**, and that is the most
+> comfortable kind of green — the sentence looks disciplined, carries a commit, and points nowhere.
+
+**Then the fix broke the fix, twice, and only the re-plant said so.** A spawn per SHA passed standalone at
+3.7s and **timed out at 5s under the parallel `test:tools` run** — a check whose cost scales with the record
+eventually fails for a reason unrelated to the record. Batched into one `git cat-file --batch-check`… and the
+re-plant came back **GREEN**. The reason is a detail no reading would surface: a MISS echoes the input, so the
+line reads `9d02e34^{commit} missing` — which **contains the word `commit`**, and the loose `/\bcommit\b/`
+test passed every miss. Anchored on the full shape (`^[0-9a-f]{40} commit \d+$`) it reds again.
+**Two rewrites, two silent breakages, both caught by re-planting rather than by reading** — and the second one
+had produced a gate that ran, passed, and checked nothing.
+
+> Its first live catch was **my own prose**: the section and the index row both QUOTED the bad citation
+> verbatim, so the phrase rule matched inside the quotation. Reworded to name the string without forming a
+> citation. **A gate about a claim will fire on the record's description of that claim** — the FP floor is not
+> a flaw to be filtered away, it is a thing to write around.
+
+**Phase gate.** 1 defect closed (a REQ-mandated numeric gate with zero coverage), 2 mutations RED on their own
+assertions, sibling gate probed and clean via 3 REDs across 2 sites, 1 confounded mutation caught and re-run,
+1 measurement approach discarded as a naming artifact, **1 fabricated SHA shipped into this section, caught,
+corrected, and gated** (reversing §997's decline on new evidence, with its scoping corrected by its own first
+run). **No production source changed** — in both halves the code was right and the evidence was absent.
+packages/agents **236→237/237** · import route 20/20 · tools **1495→1496**. Board carried from `3b1d668`
+(§1676's commit, **0 commits since**), measured there as **21 PASS · 0 FAIL · 5 BLOCKED**.
