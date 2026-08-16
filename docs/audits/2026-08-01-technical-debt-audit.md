@@ -818,6 +818,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1040 | §1593 | **§1594** | **THE ENCODING AXIS CLOSED — THE ONE BOUNDARY THAT FAILED IS THE ONE WITH NO ESCAPE MECHANISM.** Five boundaries where a value enters a format someone else parses. **HTML**: safe by construction (`renderToStaticMarkup`, no `dangerouslySetInnerHTML`). **IIF**: `clean()` strips `\t\r\n` from every string field, `docNum` included (hoisted, which is why it reads unguarded at the call site). **CSV**: textbook RFC-4180 `csvField`. **JSON/SQL**: `stringify` / bound params. **X12**: the defect (§1593). **Its location is not a coincidence** — every format that OFFERS escaping had it applied; the only failure was the format that offers none, where there is nothing to forget and nothing to review. **Escaping is a habit that formats teach; X12 never reminds anyone. Sort embedding boundaries by whether the format has an escape mechanism and start where it does not.** Also recorded: the `join(",")` probe was **24/25 false positives** (SQL placeholder lists), and narrowing it would have missed the only real CSV emitter. |
 | 1041 | §1594 | **§1595** | **TWO AXES PROBED, BOTH CLOSED, MECHANISM RECORDED FOR EACH.** **Local time/DST**: the gate's `outside_hours` rests on `localWall`, which formats through `Intl.DateTimeFormat` (h23), derives the weekday by REBUILDING local Y/M/D as UTC rather than parsing a locale string, and THROWS on an invalid IANA zone; §186 already pinned spring-forward and fall-back in `America/New_York`. **Penny conservation**: closed three ways — Hamilton largest-remainder for the 10000-bps pie, the SAME `largestRemainder` in BigInt for bps→cents so *"the derivation and the money projection can never round apart"*, and a runtime postcondition that throws if parts do not sum to the total. **A shared subroutine is a stronger guarantee than two correct implementations** — what closes it is not that each rounds correctly but that there is only ONE rounding. Also: a `-i` grep for `dst` matched ~95 files, the second substring-matching probe failure in two sections. |
 | 1042 | §1595 | **§1596** | **EMPTY-STATE CORRECTNESS — A FRESH TENANT AS THE ADVERSARY.** The state every tenant passes through exactly once, in production, before anyone is watching; its failures are silent by nature (`NaN` from a zero divisor, `Infinity` from a spread `Math.min`, a `TypeError` from a seedless `reduce`). All three shapes swept: every divide-by-length and every `Math.min(...)` is guarded, and `watchtower`'s guard is EXACT because `shipments` is `[...oldestByShipment.keys()]` so count and size cannot diverge. **One change**: a seedless `reduce` in `legacy-mirror` is safe only because the loop three lines up always pushes before it sets — an invariant held at a distance, where a filter on the push turns a pass over tenant config into a TypeError. Guard made local. **"Guarded by construction" and "guarded" differ by how far you have to read, and that distance is what makes a future edit look safe.** Also: the KPI returns `UNKNOWN`, not `0` — *no price on air* applied to a metric. |
+| 1043 | §1596 | **§1597** | **SESSION PHASE GATE — THE STOPPING POINT, AND WHY IT IS ONE.** **4 production defects fixed**, each RED before the fix: `isRecord` accepting arrays on the copy guarding the MCP wire; `device_keys` lost updates (five concurrent enrollments left ONE key; a revoke racing an enroll RESURRECTED the revoked key); the mirror sweep reverting a concurrent partner certification; unconstrained X12 values restructuring an interchange. Plus 2 gates, 1 detector corrected, 1 blind test repaired, 1 guard localised — **26 production files, 44 test files, 87 commits, 13 checklist rows**. **3 owner decisions filed** (fence disclosure High, OAuth code Med, EDI refuse-vs-sanitise). **6 axes closed with mechanisms recorded.** **Why it is a stopping point**: the last four probes dissolved on reading, and in three the record already held a better answer — when probes stop finding code defects and start rediscovering the record, the repo-owned surface is at a floor. Kept honestly: 1 finding withdrawn same-day, 1 typecheck break, **3 substring-probe failures**. Board `5ce3e7d`: 21 PASS / 0 FAIL / 5 BLOCKED. |
 | 856 | §1409 | **§1410** | **SWEEPING MY OWN SECTIONS FOR §1409's ERROR, AND A DETECTOR THAT COULD NOT HAVE FOUND IT.** §1404's precedent: a class like this gets ONE measurement, not a gate, since a correction necessarily quotes what it corrects. **The first sweep returned ZERO and was worthless** — it extracted superseded text as `~~struck~~` only, but the very case §1409 found is marked the other way, as *"a 16-step chain …"* **until audit §1029**. **My detector encoded one of the repo's TWO conventions, so it could never have found the known positive.** Twelfth instance of the session's constant, caught because a zero is the answer this session has learned never to accept. **A second false signal inside the control:** asking *"is it inside `~~…~~`?"* with `~~[^~]*16-step` returned True — because an unrelated `~~` sits earlier and `[^~]*` spanned the gap. **A regex answering "is X inside a delimiter" by searching for the delimiter anywhere before X will say yes to the whole file.** Re-run over both conventions: **109 superseded passages, zero quoted without a marker** — and that zero is worth something, because the corrected detector demonstrably flags a reconstruction of §1408's sentence. **§1409's error was singular, not a habit** |
 | **855** | §1408 | **§1409** | **I QUOTED STRUCK TEXT AS CURRENT, AND THE REPO HAD SOLVED IT 380 SECTIONS EARLIER.** §1408 cited CLAUDE.md's account of `verify:dev` as *"a 16-step chain … reaches 4 of 16"*. Measured: **18 steps**. **But the drift is my quotation's, not the law's** — CLAUDE.md's current text says that reading held *"until audit §1029"*, was *"invalidated hours later by `7b61624`"*, and that **the total is stated no longer, only the position that matters: step 4, and nothing after it**. I quoted the struck half of a correction as the claim. **Eleventh measurement error, and the first where the artifact had already anticipated the failure I was about to report.** **§1029's move is exactly §1402's, reached 373 sections apart and independently:** faced with a number that rots, REMOVE the number and keep the invariant. A convention arrived at twice from opposite ends of the record is the closest this audit has to a law about documentation. Substantively: `verify:dev` is still an unaggregated `&&` chain at 18 steps, and that is **not** a defect — CLAUDE.md documents it, names `verify:merge` as the real verdict, and `wp-exit-audit.test.ts:19` records that a naive matcher yields *"4 of 16"* and *"reads as a serious constitutional finding and is an artifact"*. **Tenth clean negative** |
 | 854 | §1407 | **§1408** | **VERIFYING MY OWN DELIVERABLE IS WIRED, BY THE STANDARD §1304 SET.** Five gates were built this session and each reported as working; §1304's standard is **verified WIRED before the board is read**, because a gate that runs when I invoke it and not when CI does is decoration with a green tick. **First measurement said ZERO** — searching the merge log for the five names returns 0 mentions each, which reads as "they never ran". It is the §1362 reporter difference: the tools suite runs under vitest v4 (summary only) while worker suites at v3.2.7 print per-file. The same run reports **125 files passed**, 120 + 5. **Tenth measurement error avoided by not believing a zero.** Measured properly three ways: `vitest list` shows **21 cases** across the five; `run-gate.ts:46` wires `unit-tests` to the `test` script; and `test` is `test:tools; t=$?; … ; exit $(( t \|\| p ))`. **Proved end-to-end:** breaking `law-enforcers` makes `pnpm test:tools` exit 1, which propagates. Also worth noting: that script AGGREGATES rather than `&&`-chains — the defect CLAUDE.md records for `verify:dev`, which reaches 4 of 16 steps |
@@ -90407,3 +90408,58 @@ and the comment makes it explicit rather than leaving `0` to look like data.
 **Phase gate.** adapters **3 files / 51 tests**; typecheck 0. One production guard widened, no behaviour change
 (the widened branch is unreachable today, which is the point). Board re-measured at `5ce3e7d`:
 **21 PASS · 0 FAIL · 5 BLOCKED** (aggregate BLOCKED, exit 2 — the five owner-side private-fixture holds).
+
+## §1597 — PHASE GATE: the SESSION's stopping point, and why it is one (REQ-118/119)
+
+A stopping point is worth declaring only when it can be *characterised*, so: what this session changed, what it
+left for the owner, and — the part that matters for whoever resumes — **what it stopped finding, and why.**
+
+**Four production defects fixed, each proved RED before the fix.**
+
+| defect | consequence had it shipped |
+|---|---|
+| `isRecord` accepted arrays on the copy guarding the MCP wire (§1581) | an array became `structuredContent`, which the REST mirror returns as the whole body |
+| `device_keys` lost updates (§1587) | five concurrent enrollments left ONE key; a revoke racing an enroll **resurrected the revoked key** — a lost phone keeps signing |
+| the mirror sweep rewrote a column with two writers (§1588) | a partner certification landing mid-sweep was silently reverted |
+| X12 values were unconstrained (§1593) | a `*` in a shipment reference restructured the interchange; a `~` in a city broke the SE01 segment count |
+
+Plus one guard moved next to what it guards (§1596), two gates added (§1585 binding discoverability, §1586
+fixture-manifest totality), one detector corrected (§1578's `cost_cents`), and one test that could not see its
+own subject repaired (§1575). **26 production files, 44 test files, 87 commits.**
+
+**Three items filed for the owner, all with the decision named rather than a "fix this".** The geofence
+disclosure asymmetry (**High** — omitting `accuracy_m` is rewarded, disclosing it is penalised); the OAuth code
+that is single-use sequentially and not concurrently (**Med** — every remedy is architectural, and the D1 one
+spends the single spare table); and EDI refuse-vs-sanitise (**Low–Med** — refusal strands, substitution makes a
+reference unmatchable). Thirteen checklist rows in total.
+
+**Six axes closed, each with its mechanism recorded** — because *which* mechanism made a sweep come back empty
+is what tells the next reader whether the emptiness survives the next commit: atomicity across four storages
+(§1590), retry × side effects (§1591, closed by a **required type**), encoding across five formats (§1594,
+where the only failure was the format with no escape mechanism), local time/DST and penny conservation (§1595),
+empty state (§1596), and the decision layers (§1579, one defect in five).
+
+**Why this is a stopping point rather than a pause.** The last four probes ended the same way: the hypothesis
+dissolved on reading, and in three of them **the record already held a better answer than the one I was
+constructing** — R2's duplicate-vs-strand row (§1590), the acceptance registry's `filmed` deltas (§1583), and
+`no-audio-capture`'s header, which had already tested all three CONFIRM-gated prohibitions and explained why
+only one needs a gate (*"reaching them means writing a subsystem"*). When a session's probes stop finding code
+defects and start rediscovering the record, the repo-owned surface is at a floor and the remaining work is the
+owner's: **five private fixtures and a handful of decisions.**
+
+**And the phase-index gate caught this very section, for the same reason as §1575.** The heading read
+*"SESSION PHASE GATE"*, and the gate derives its list from `^#+ §(\d+) — PHASE GATE\b` — so a section that
+announces itself as a phase gate in English was not one in the document's own terms, while its index row
+claimed it was. Second catch by the same gate this session, both from varying a heading I had no reason to
+vary. **A derived list punishes creativity in exactly the place creativity is worthless.**
+
+**What the session got wrong, kept for the next one.** One finding filed and withdrawn the same day (§1582 →
+§1583: I swept two record surfaces and concluded "tracked nowhere" without reading the registry the audited
+gate reads from). One typecheck break committed because vitest strips types and I ran `typecheck` before the
+last edit (§1593). And **three substring-matching probe failures** — `dst` inside ordinary words, `join(",")`
+at 24/25 SQL placeholders, and `voice` inside `invoice` — the third landing two sections *after* I recorded the
+lesson. That rate is the honest argument for word-boundaries by default, not for trying harder.
+
+**Board at `5ce3e7d`: 21 PASS · 0 FAIL · 5 BLOCKED** (aggregate BLOCKED, exit 2). The five are the private
+fixtures, unchanged all session and not repo-fixable. tools **145 files / 1476**; nothing pushed; `genesis/09`
+and the concurrent author's files untouched throughout.
