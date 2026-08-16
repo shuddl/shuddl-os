@@ -17,6 +17,46 @@ describe("REQ-132/133: authn", () => {
     const res = await SELF.fetch("https://api.local/v1/whoami", { headers: { Authorization: `Bearer ${t}` } });
     expect(res.status).toBe(401);
   });
+  // §1609 (REQ-132/133/118) — A FORGED HEADER IS NOT A WRONG SECRET.
+  //
+  // The case above proves the SIGNATURE is checked. It cannot prove the ALGORITHM is, and those are different
+  // attacks: `alg: "none"` asks the verifier to skip signature checking entirely, and an `alg` swap asks it to
+  // verify with a scheme the minting side never used. Both are answered by `verify(bearer, secret, "HS256")`
+  // pinning the algorithm rather than trusting the token's own header — and nothing here pinned that, so a
+  // refactor to `verify(bearer, secret)` would have been a silent auth bypass with a green suite.
+  //
+  // Measured before this landed: all three below already 401, and a genuine token reached PAST auth. The point
+  // is not that the code was wrong; it is that the property was load-bearing and unasserted.
+  //
+  // HONESTY NOTE — THESE THREE ARE NOT MUTATION-PROVEN, and the reason is worth more than a claim that they are.
+  // Dropping the pin (`verify(bearer, secret)`) reds FIVE cases — the valid-token case, the three role-matrix
+  // cases and the future-exp case — and NONE of them is one of these. Genuine verification breaks too, so the
+  // forged tokens keep 401ing for the wrong reason: everything 401s. That mutation proves the argument matters;
+  // it cannot prove these cases would catch a verifier that still admits genuine tokens while honouring the
+  // token's own `alg`. Isolating that needs a stub verifier this suite does not have. Kept anyway — they cover
+  // a real attack at no cost — but labelled, because a test whose RED cannot be attributed to it is coverage,
+  // not proof (§1534's control rule, from the other side).
+  const b64u = (o: unknown): string => btoa(JSON.stringify(o)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  const forge = (alg: string, sig: string): string => {
+    const claims = { sub: "u-forge", tenant: "tenant-a", role: "ops", exp: Math.floor(Date.now() / 1000) + 3600 };
+    return `${b64u({ alg, typ: "JWT" })}.${b64u(claims)}.${sig}`;
+  };
+
+  for (const [what, tok] of [
+    ["alg:none with NO signature at all", forge("none", "")],
+    ["alg:none with a junk signature", forge("none", "AAAA")],
+    ["an alg swapped to HS512", forge("HS512", "AAAA")],
+  ] as Array<[string, string]>) {
+    it(`rejects ${what} — the algorithm is pinned, never read from the token`, async () => {
+      const res = await SELF.fetch("https://api.local/v1/whoami", { headers: { Authorization: `Bearer ${tok}` } });
+      expect(
+        res.status,
+        `${what} was accepted. The verifier is trusting the token's own header — pass the algorithm to verify() ` +
+          `instead (REQ-132: a session is minted only from a token this server signed, with the scheme it uses).`,
+      ).toBe(401);
+    });
+  }
+
   it("rejects claims that fail the schema (unknown role)", async () => {
     const t = await token({ sub: "u1", tenant: "tenant-a", role: "superuser" });
     const res = await SELF.fetch("https://api.local/v1/whoami", { headers: { Authorization: `Bearer ${t}` } });
