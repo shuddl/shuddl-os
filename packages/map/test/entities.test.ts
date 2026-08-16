@@ -206,9 +206,21 @@ describe("setEntityState — instant paint via feature-state (REQ-076)", () => {
       },
       setPaintProperty: (): void => {},
     };
+    // §1679 — assert the WHOLE state object, both ways. This case used to pass "DWELL" and assert only the
+    // status, so it read as coverage of a risk reason-code that nothing produces and nothing paints. The
+    // production shape is the second call: three arguments, `risk: null`.
     setEntityState(map, "shp-1", "at-risk", "DWELL");
     expect(calls[0]?.[0]).toEqual({ source: "fleet", id: "shp-1" });
-    expect(calls[0]?.[1]).toMatchObject({ status: "at-risk" });
+    expect(calls[0]?.[1], "a supplied risk is written verbatim — the seam works, it is simply unfed").toEqual({
+      status: "at-risk",
+      risk: "DWELL",
+    });
+
+    setEntityState(map, "shp-2", "healthy");
+    expect(calls[1]?.[1], "THE PRODUCTION SHAPE: MapCanvas passes three args, so risk is always null").toEqual({
+      status: "healthy",
+      risk: null,
+    });
   });
 });
 

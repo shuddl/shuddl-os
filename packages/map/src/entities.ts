@@ -216,6 +216,20 @@ export interface StatefulMap {
 /** Apply a status to one entity as an event lands — O(1) paint via feature-state, no geometry
  * re-parse. The `chip`/`statusStr` property mirror (for layout/filter/cluster) is the caller's job
  * (useFleet), flushed on the next throttled `setData`. */
+/**
+ * §1679 — `risk` IS A DECLARED SEAM WITH NO PRODUCER AND NO CONSUMER, stated so the next reader does not
+ * assume it does something. Measured: the sole production caller (`MapCanvas.tsx`) passes THREE arguments, so
+ * feature-state always carries `risk: null`; and **no paint expression or style anywhere reads
+ * `["feature-state", "risk"]`** — the `at-risk` STATUS is fully painted (its own layer, rings, opacity), the
+ * reason CODE behind it is not. It is threaded through three declarations (`FleetEntityState`,
+ * `useFleet.setState`, here) and arrives nowhere.
+ *
+ * NOT DELETED, and not wired either: no register row scopes a risk reason-code on the map, so wiring it is an
+ * amendment (CLAUDE.md source-of-truth #1) and deleting an exported affordance is a judgement the owner should
+ * make against the REQ-077 exception-pulse work. §796 set the precedent for this class (parsed-but-unconsumed):
+ * record it, keep the shape honest, do not silently prune. What IS fixed here is the appearance of life — the
+ * test used to pass "DWELL" and assert only the status.
+ */
 export function setEntityState(map: StatefulMap, id: string, status: Status, risk?: string): void {
   map.setFeatureState({ source: "fleet", id }, { status, risk: risk ?? null });
 }
