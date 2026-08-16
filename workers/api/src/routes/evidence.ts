@@ -215,7 +215,15 @@ export function mountEvidenceRoutes(app: Hono<{ Bindings: Env; Variables: Vars }
       .prepare("SELECT r2_key, retention_status FROM documents WHERE id = ?")
       .bind(documentId)
       .first<{ r2_key: string; retention_status: string }>();
-    if (existing !== null && existing.retention_status === "active") {
+    // §1672 — the row alone is NOT sufficient evidence that the bytes are present. ROW-IFF-BYTES holds by
+    // construction on the WRITE path (R2 first, row last), but the RETENTION SWEEP deletes bytes FIRST and
+    // tombstones SECOND (documents/retention.ts). Between those two awaits the row still reads 'active' while
+    // its bytes are already gone — and that is not merely a crash window: a request interleaving with an
+    // ORDINARY sweep tick observes it, once per deleted document. Trusting the row here returned 200 with a
+    // document_id and r2_key for evidence that was NOT stored, and the caller (a driver whose capture is
+    // retrying) records that 200 as success and never re-sends. One HEAD on the duplicate path is the price
+    // of the claim being true; on a miss we fall through and re-store the verified bytes below.
+    if (existing !== null && existing.retention_status === "active" && (await c.env.EVIDENCE.head(key)) !== null) {
       // Bytes already stored — re-drive the Biller too (a prior re-drive may have been lost; the Biller dedupes).
       redrivePodBilling(c, session.tenant, shipment_id, recording);
       return c.json({ document_id: documentId, r2_key: existing.r2_key }, 200);
@@ -238,7 +246,15 @@ export function mountEvidenceRoutes(app: Hono<{ Bindings: Env; Variables: Vars }
       redrivePodBilling(c, session.tenant, shipment_id, recording); // Task 9 — a stored POD signature unblocks the Biller
       return c.json({ document_id: documentId, r2_key: key }, inserted.meta.changes > 0 ? 201 : 200);
     }
-    // RE-INSTATE a retention-tombstoned doc: the bytes were just restored above; mark the row active again and
+    // RE-INSTATE. Two ways to arrive: a retention-TOMBSTONED row ('expired'), or (§1672) an 'active' row whose
+    // bytes the sweep has already deleted. Both are "row exists, bytes were absent", and both want the same
+    // repair. RESIDUAL RACE, stated because it is real: if the sweep is mid-flight, its pending tombstone
+    // (`… WHERE id = ? AND retention_status = 'active'`) can land AFTER this re-instate and flip the row to
+    // 'expired' while the bytes we just restored are present. That leaves orphan BYTES, not an orphan claim —
+    // the direction retention.ts itself names safe ("for a DELETE the safe miss is keep longer, never delete
+    // sooner"), and strictly better than the 200-with-no-bytes this replaced. Closing it fully needs the two
+    // stores in one transaction, which D1 and R2 do not share.
+    // The bytes were just restored above; mark the row active again and
     // restart its retention clock from THIS RE-SUBMISSION (a wall-clock now, NOT recording.recorded_at — the
     // recording event's ledger time is >retention old by definition of "already tombstoned", so binding it
     // would make the next sweep tick re-delete the freshly re-uploaded bytes, REQ-198). The first-insert path

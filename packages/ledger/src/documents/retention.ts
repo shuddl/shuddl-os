@@ -5,10 +5,17 @@
 //
 // THE INVARIANT (evidence.ts:182-202 / packages/ledger/src/anchor.ts:213@documents ): a documents row exists IFF its R2 bytes exist. The
 // sweep preserves it by TOMBSTONING, never orphaning: it DELETEs the bytes and marks the row
-// `retention_status='expired'` (an AUDIT record that the doc existed and was retention-deleted). An 'active'
-// row still means "bytes present"; an 'expired' row means "bytes intentionally retention-deleted" — the row is
-// never orphaned (it never claims active bytes that are gone) and the bytes are never orphaned (deleted WITH a
-// row record). See sweepTenantExpiredDocuments for the crash-safe delete-then-tombstone ordering.
+// `retention_status='expired'` (an AUDIT record that the doc existed and was retention-deleted). An 'expired'
+// row means "bytes intentionally retention-deleted"; the bytes are never orphaned (deleted WITH a row record).
+//
+// WHAT AN 'active' ROW DOES *NOT* PROVE (§1672, measured). The sentence here used to read "an 'active' row
+// still means bytes present … the row never claims active bytes that are gone". That is FALSE for the length
+// of this sweep's own delete→tombstone window: the delete lands first, so between the two awaits the row reads
+// 'active' with its bytes already gone. Not a crash window — any request interleaving with an ORDINARY tick
+// observes it, once per deleted document. A READER MAY NOT INFER BYTE PRESENCE FROM THE ROW; it must ask R2.
+// The upload's duplicate path inferred exactly that and returned 200 + an r2_key for evidence it had not
+// stored (fixed at routes/evidence.ts with a HEAD). The ordering itself stays — reversing it would orphan
+// BYTES, and §54's rule is that a DELETE's safe miss is "keep longer", never "delete sooner".
 //
 // TENANT ISOLATION (REQ-025): the caller binds `db` to ONE tenant's D1; the sweep + the storage metric key ONLY
 // off `evidence/<tenant>/` (evidenceTenantPrefix) — a defense-in-depth guard refuses to delete any key outside
@@ -117,9 +124,13 @@ const TOMBSTONE_SQL = "UPDATE documents SET retention_status = 'expired' WHERE i
  *
  * Per expired candidate: DELETE the R2 bytes FIRST (idempotent — a missing key is a no-op), THEN tombstone the
  * row. Ordering is crash-safe + SELF-HEALING: a crash after the delete leaves the row 'active', so the NEXT
- * tick re-selects it, re-deletes (no-op), and completes the tombstone — the only transient torn state is
- * "active row, bytes already gone", exactly the graceful miss the /pub bytes proxy already 404s on
- * (routes/documents.ts). An already-tombstoned doc is excluded by the query ⇒ a re-sweep is a total no-op
+ * tick re-selects it, re-deletes (no-op), and completes the tombstone. The torn state is "active row, bytes
+ * already gone", and §1672 corrected two things this doc used to claim about it. (1) It is not crash-only —
+ * the two awaits give an ordinary tick the same window, once per deleted document. (2) The consumers are not
+ * just the /pub bytes proxy (which 404s gracefully, routes/documents.ts): the EVIDENCE UPLOAD's duplicate
+ * path reads the same 'active' predicate, and trusting it returned a 200 claiming stored evidence that was
+ * gone. Enumerating one consumer and stopping is how the second one shipped.
+ * An already-tombstoned doc is excluded by the query ⇒ a re-sweep is a total no-op
  * (idempotent). POD/tsa_receipt are never candidates (7yr). TENANT-SAFE: a key outside this tenant's evidence
  * prefix is SKIPPED, never deleted.
  */

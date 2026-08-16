@@ -186,6 +186,7 @@ beforeAll(async () => {
     "ev-reinstate",
     "ev-req198",
     "ev-active-reup",
+    "ev-torn",
   ]) {
     await seedShipment(id);
   }
@@ -460,6 +461,40 @@ describe("POST /v1/evidence — retention fields (REQ-116)", () => {
     const row = await env.TENANT_A_DB.prepare("SELECT retention_status FROM documents WHERE id = ?").bind(docId).first<{ retention_status: string }>();
     expect(row?.retention_status, "the row is active again — no active row ever claims deleted bytes").toBe("active");
     expect(await docCount(shp, hash), "re-instatement never duplicates the row").toBe(1);
+  });
+
+  it("§1672 ROW-IFF-BYTES vs the SWEEP: an 'active' row whose bytes the sweep already deleted must NOT yield a 200 claiming stored evidence", async () => {
+    const shp = "ev-torn";
+    const bytes = nextEvidenceBytes();
+    const hash = await recordPlacedPhoto(shp, bytes);
+    const first = await upload({ shipment_id: shp, photo_hash: hash }, bytes, opsTok);
+    expect(first.status, JSON.stringify(first.json)).toBe(201);
+    const docId = first.json?.document_id as string;
+    const key = r2Key(TENANT, shp, hash);
+
+    // The sweep deletes bytes FIRST and tombstones SECOND (documents/retention.ts). Between those two awaits
+    // the row still reads 'active' with its bytes gone. Reachable WITHOUT a crash: any request interleaving
+    // with an ordinary sweep tick observes it, once per deleted document. Reproduce it exactly — delete the
+    // bytes and leave the row alone (the sibling test at "RE-INSTATE" does BOTH halves, i.e. a COMPLETED
+    // sweep, which is why this state had no coverage).
+    await env.EVIDENCE.delete(key);
+    const status = await env.TENANT_A_DB.prepare("SELECT retention_status FROM documents WHERE id = ?")
+      .bind(docId)
+      .first<{ retention_status: string }>();
+    expect(status?.retention_status, "precondition: the interrupted sweep leaves the row ACTIVE").toBe("active");
+    expect(await env.EVIDENCE.get(key), "precondition: the bytes are gone").toBeNull();
+
+    // Re-upload the same verified bytes. Before §1672 this returned 200 + document_id + r2_key with NOTHING
+    // stored: a driver retrying a capture is told the evidence landed, records success, and never re-sends.
+    const again = await upload({ shipment_id: shp, photo_hash: hash }, bytes, opsTok);
+    expect([200, 201]).toContain(again.status);
+    expect(again.json?.document_id, "the same deterministic doc id").toBe(docId);
+    expect(
+      await env.EVIDENCE.get(key),
+      "THE ASSERTION: a 2xx on the duplicate path must mean the bytes are actually present. The row said " +
+        "'active' and the row was wrong — only a HEAD against R2 can tell the difference.",
+    ).not.toBeNull();
+    expect(await docCount(shp, hash), "the repair never duplicates the row").toBe(1);
   });
 
   it("REQ-198 — re-instating a >1yr-old tombstoned doc RESTARTS the retention clock from NOW, so the very next sweep does NOT re-delete the fresh bytes", async () => {

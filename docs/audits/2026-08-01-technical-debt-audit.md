@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1118 | §1671 | **§1672** | **DEFECT (live): THE EVIDENCE UPLOAD RETURNS 200 FOR BYTES THE RETENTION SWEEP ALREADY DELETED.** Two files state one invariant and disagree. `evidence.ts` calls ROW-IFF-BYTES *airtight in BOTH directions* and its duplicate path returns 200 on the row alone; `retention.ts` deletes bytes FIRST and tombstones SECOND, naming the state *the only transient torn state: active row, bytes already gone*. Measured: **`status=200 bytes_restored=false`** — a driver retrying a capture is told the evidence landed, records success, never re-sends, and the ledger event points at a hash whose bytes are gone. **The sweep's doc got two things wrong about its own window**: (1) it is NOT crash-only — the two awaits give an ORDINARY tick the same window, once per deleted doc, nothing crashing; (2) it **enumerated one consumer and stopped** (*exactly the graceful miss the /pub proxy 404s on*) while the upload's fast path reads the same `active` predicate — and there it is not a read that fails politely but a **write that reports success**. Rule: **a comment enumerating the consumers of a known-torn state is making a completeness claim, and it is the one sentence nothing checks.** Fixed with a HEAD on the duplicate path, falling through to the existing re-instate repair. **RESIDUAL STATED, not hidden**: a mid-flight tombstone can land after the re-instate → orphan BYTES, the direction retention.ts itself names safe (*a DELETE's safe miss is keep longer*), strictly better than 200-with-no-bytes; closing it needs one transaction across D1+R2, and the ordering must NOT reverse. The sibling test does BOTH halves of the sweep (a COMPLETED one), which is why the interrupted state had no coverage. Restore verified **against the saved copy** — `git diff` is the wrong instrument once a file carries uncommitted work (§1671's rule, refined). api 888/888 · ledger 755/755 |
 | 1117 | §1670 | **§1671** | **A RATCHET ON THE SCANNING-JSON BLAST RADIUS — AND A RESTORE THAT OVERWROTE THE WRONG FILE.** §1670 sized the hazard at 21 scanning sites; both real fixes are the owner's (a `CHECK (json_valid(col))` migration needs a REQ row; the per-reader guard trades the wedge for a silent skip). **In scope meanwhile: stop the surface widening.** The gate freezes the count at 21, names the three ways out in its failure message (pin the key, guard with `json_valid`, or raise the number in a commit that says why), and may fall never grow. **Deliberately NOT a correctness gate** — it cannot make a corrupt row safe; it makes a 22nd tenant-wide outage surface cost a conversation instead of a merge. RED-proved by planting one. **And a restore overwrote the wrong file**: an OR-fallback backup (`cp A $S/orig 2>/dev/null` falling through to `cp B $S/orig`) saved **A**, because A existed, so restoring B from it wrote A's contents into B — `exceptions.ts` came back as `board.ts`, **165 insertions / 118 deletions**, visible only because `git diff --stat` ran immediately after. **And the gate was caught by an older gate on its first run**: `corpus-extension` (§1507) reded on it — the corpus was `.ts`-only over `packages`+`workers`, the exact shape §1507 makes unrepeatable after six gates were measured blind to the 14 `.tsx` render views; widened to `/\.tsx?$/`, **count unchanged at 21**, and the re-plant redone IN a `.tsx` (`evidence-email-view.tsx`, one of §1507's own six). `check-table-shape` then reded twice on this very row for quoting a shell OR operator. Rule: **a restore must be verified like a mutation and the check is that the diff is EMPTY; an OR-fallback backup silently changes WHICH file the name refers to — name the backup after the file, never after the intent.** |
 | 1116 | §1669 | **§1670** | **§1669's COUNT WAS 8; IT IS 21 — and the widest reader is the VISIBILITY LENS.** §1669 filed the malformed-JSON wedge against `json_each`, which was the function I tripped rather than the class. **`json_extract` in a scanning WHERE raises identically** (measured: `WHERE json_extract(names,'$.legal') = ?1` → `D1_ERROR: malformed JSON`). Re-counted by the right predicate — *does the WHERE pin a key before the JSON call, or scan?* — **21 SCANNING sites vs 7 behind a key**. The widest are over `events.payload` and §1669 named NONE of them: credit reconciliation, the SLA sweep, the KPI computes, and **`lens.ts:60`, the visibility lens** scanning `party_refs` to decide what a counterparty may see. One malformed payload fails all four at once. **A mitigation that is not one**: the canonical hash covers the payload, so corruption is DETECTABLE — but the scan raises before anything verifies a hash. Rule: **a count is only as good as the predicate that produced it, and mine was a FUNCTION NAME rather than the shape of the hazard** — *where does a JSON operator evaluate over rows the caller did not ask for* is 2.6× larger. Row amended in place. |
 | 1115 | §1668 | **§1669** | **DEFECT (FILED) — ONE MALFORMED JSON BLOB RAISES FOR EVERY READER IN THE TENANT.** §1668 moved the question to *what shape do the tests never inject*: across all worker suites, a rejected promise **195×**, a malformed JSON column **0×**. A test for the Biller's `try/JSON.parse/catch` guard found something larger: seeding ONE party with truncated `contacts` left the Biller correct (held `recipient_unresolved`, invoice intact) **and reded 48 cases across 6 other files** — the api suites share one D1. Probe named it: **`D1_ERROR: malformed JSON: SQLITE_ERROR`**. `json_each(p.contacts)` raises regardless of WHICH party you seek, so one corrupt blob fails every email lookup in the tenant — consumer throws, queue retries, tenant wedged by an unrelated row. **8 readers share the idiom**, and the worst are `users.device_keys` (`gate-context`, `sequencer`, `devices`) where one bad row **refuses every driver in the tenant**. **The schema has ZERO `json_valid` CHECKs** — every column is `TEXT NOT NULL DEFAULT '[]'` with a `-- j` COMMENT as its only marker. Rule: **a column whose validity is documented by a comment and depended on by eight scanners is an invariant with no owner.** FILED not fixed — the durable fix is a CHECK constraint, i.e. a MIGRATION, which needs a REQ row. |
@@ -93729,3 +93730,62 @@ only when it is not). Verified after: api **887/887**.
 **Phase gate.** One new gate file (3 cases, green; RED-proved twice — a `.ts` plant, then a `.tsx` plant after
 the corpus widened, each restored to an EMPTY diff). api **887/887** · tools **148 files / 1492**. Edits
 `tools/`, so the board is re-measured at commit.
+
+---
+
+## §1672 — PHASE GATE: DEFECT (live) — the evidence upload returns 200 for bytes the retention sweep already deleted (REQ-116/168/118)
+
+Two files state one invariant and they do not agree. `routes/evidence.ts` calls it **airtight in BOTH
+directions** — *"an ACTIVE row means the verified bytes are already stored"* — and its duplicate path returns
+**200** on that basis without touching R2. `documents/retention.ts` says the sweep **deletes the bytes FIRST
+and tombstones the row SECOND**, and names the resulting state itself: *"the only transient torn state is
+active row, bytes already gone."*
+
+**Measured, not reasoned** (probe, then pin):
+
+```
+§1672 PROBE: status=200 bytes_restored=false
+```
+
+A re-upload of the same byte-verified evidence is answered **200 with a `document_id` and an `r2_key`, and
+nothing is stored.** The caller is a driver whose capture is retrying; it records the 200 as success and never
+re-sends. The bytes are gone and the ledger event still points at their hash.
+
+### Two things the sweep's own doc got wrong about its own window
+
+1. **It is not a crash window.** The doc says *"a crash after the delete leaves the row 'active'"*. But the
+   sweep `await`s the R2 delete and then `await`s the tombstone — in an isolate, another request runs in
+   between. The torn state occurs during an **ordinary tick, once per deleted document**, with nothing
+   crashing.
+2. **It enumerated one consumer and stopped.** *"exactly the graceful miss the /pub bytes proxy already 404s
+   on"* — true, and the proxy does degrade gracefully. The **upload's duplicate path reads the same `active`
+   predicate** and was not named. That second consumer is where the invariant is load-bearing, because there
+   it is not a read that fails politely but a **write that reports success**.
+
+> **A comment that enumerates the consumers of a known-torn state is making a completeness claim**, and it is
+> the one sentence in the file nothing checks. The list was written when the proxy was the only reader;
+> the upload's fast path arrived later and matched a predicate the list had already declared safe.
+
+### The fix, and the residual stated rather than hidden
+
+`existing.retention_status === "active"` is no longer sufficient: the duplicate path now also requires
+`(await c.env.EVIDENCE.head(key)) !== null`. On a miss it falls through and re-stores the verified bytes, which
+is the repair the re-instate branch already performs for tombstoned rows — the same "row exists, bytes absent"
+condition arrived at two ways. Cost: one HEAD on the duplicate path only.
+
+**RESIDUAL, measured and left in place**: if the sweep is mid-flight, its pending tombstone can land *after*
+the re-instate and mark 'expired' while the restored bytes are present — **orphan bytes, not an orphan claim.**
+That is the direction `retention.ts` itself names safe (*"for a DELETE the safe miss is keep longer, never
+delete sooner"*), and strictly better than the 200-with-no-bytes it replaces. Closing it fully needs the two
+stores in one transaction, which D1 and R2 do not share; the ordering must NOT be reversed, since tombstone-first
+orphans bytes on every crash instead of a race.
+
+The three falsified comments were rewritten to state what an `active` row does **not** prove. The sibling test
+covering re-instatement performs **both** halves of the sweep (delete *and* tombstone) — a **completed** sweep
+— which is precisely why the interrupted one had no coverage.
+
+**Phase gate.** 1 production file fixed, 2 comment blocks corrected, 1 pin added (RED on the reverted fix, with
+the intended assertion, restore verified byte-identical **against the saved copy** — `git diff` is the wrong
+instrument once a file carries uncommitted work, the refinement §1671's rule needed). api **887→888/888** ·
+ledger **755/755** · lint clean · 1 rotted citation repointed (`CANDIDATES_SQL` :105→:112, moved by my own
+header insert). Edits `packages/` and `workers/`, so the board is re-measured at commit.
