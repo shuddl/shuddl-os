@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1093 | §1646 | **§1647** | **RULE 10 HOLDS ON BOTH MIGRATION PATHS — AND A PROBE THAT MEASURED THE WRONG PACKAGE FOR SIX PHASES.** Making an unmapped column vanish: the ONE-SHOT import has **12 watchers**, the CONTINUOUS 171-col overlay **2** (including the sweep's own gap-anomaly test — the law's CONSUMER, not just its producer). Clean negative. **The method defect is the content**: the continuous path first measured as 1 watcher with the consumer's suite at 235/235 GREEN, which looked like a finding. A **positive control** killed it — an UNCONDITIONAL `throw` at the mutated line left that suite green, which no correct code can do. Cause: **`--filter @shuddl/agents` is `packages/agents`; the worker is `@shuddl/agents-worker`** — two packages, similar names, and `workers/agents/src/` owns biller/interline-split/mirror-sweep, all mutated this session. **13 citations across six phases** cite the wrong tree. Both affected conclusions RE-MEASURED: **§1643 survives and is stronger** (worker 147/147 also green ⇒ 2,020 not 1,873); **§1632 is CORRECTED in place** — forcing `resolveAuthority` to legacy REDS `watchtower-cron`, because `watchtower.ts:486@resolveAuthority` reads the value DIRECTLY while the other three sites pass it through `authoritativeSource(x,false)`; *dormant by construction* is true of 3 sites, false of the 4th. Rule: **a package filter is a silent scope selector that fails toward 'nothing happened'** — it reports a real, passing suite while the tree under test is untouched. |
 | 1092 | §1645 | **§1646** | **STOPPING POINT — the assertion-strength arc (§1638–§1645), and a CLEAN NEGATIVE.** Final probe: bare `toThrow()` accepts any error from any layer — **417** exist, but most are contracts schema tests where `parse(bad)` has ONE layer and a bare throw is precise. Neutering `FloorsConfig`'s ladder refinement reds **two watchers, both named for it**, one titled *…the SCHEMA now refuses both outright (**the layer above the engine**)* — §1645's rule already applied by an earlier phase. Completes §1640's picture: the schema pins MISORDERED and permits EQUAL by design, so the collapse was a TEMPLATE defect, not a schema one. **Arc total: 5 defects, all in ASSERTIONS not behaviour, every one found by mutating; zero production source changed across nine phases** (6 tests added, 2 assertions strengthened, 1 floor converted presence→count). Rule: **an assertion is only as strong as the weakest thing that satisfies it, and you cannot read that off the page** — `>=` on a strict fixture, `toContain` where the defect is a call COUNT, a status where the claim is *nothing was written*, a bare `toThrow` across two layers. **Re-planting the violation after writing the fix is what separated the four that worked from the two that did not.** |
 | 1091 | §1644 | **§1645** | **CLOSED §1644's NAMED GAP — AND THE CASE FIRST PASSED FROM THE WRONG LAYER.** §1644 shipped a count floor for both resolvers and said plainly the dunning route still had no behavioural case. This adds it. **The first construction seeded a CRLF address from the start and returned `skipped`/`draft_not_found`** — the Collector never DRAFTS for a party it cannot address, so the refusal came one layer EARLIER than the resolver under test, and that version would have passed with the send guard deleted. Corrected: seed a GOOD address so the draft exists, corrupt the contact AFTER drafting, leaving the send-path resolver as the only thing that can refuse. Asserts `held`/`recipient_unresolved`, that the sender got nothing, AND that no `message.sent` was appended (no phantom send record); reds under the both-copies bypass. Rule: **a refusal proves the layer that PRODUCED it, not the layer you aimed at** — make the input valid far enough to REACH the subject, then break exactly the thing under test. Both outward-mail paths now have behavioural cases; three artifacts cover three failure modes (parity: one-sided drift · count: both-sided drift · behaviour: the answer being wrong). api 886/886. |
 | 1090 | §1643 | **§1644** | **THE FLOOR WRITTEN TO STOP TWO COPIES DRIFTING TOGETHER NAMED ONE OF THE TWO RULES — AND MY FIRST FIX WAS DECORATION.** 207 test cases compare two implementations; the discriminator makes probing them unnecessary — **a parity test is safe exactly when something else pins at least one side's behaviour.** The repo already knew this: `recipient-parity` carries a companion whose comment states §1643's rule almost verbatim (*parity alone certifies agreement, INCLUDING agreement on a wrong answer… the cheap floor that stops both copies drifting together*). It floored `"billing"` and §1643's mutation changed the OTHER rule, walking straight past it. **Then my fix failed silently**: `toContain("plausibleEmail(")` passed **3/3 under the very bypass it was written for**, because the FALLBACK loop still calls the validator — the substring survives while the billing branch stops using it. **Presence is not usage**; the floor is now a COUNT (3 calls) and reds `calls plausibleEmail 1× (expected 3)`. **Third time this session a fix of mine needed the mutation RE-RUN before it could be believed** (§1630's transit case, §1643's wrong property, this floor) — **the rule that keeps paying is not 'write the test', it is 'RE-PLANT the violation after writing it'.** Scope honest: the floor covers both copies, the behavioural case covers only the Biller, and dunning still has none. |
@@ -91836,7 +91837,16 @@ Forcing it to return `"legacy"` for every module:
 | worker | result |
 |---|---|
 | api | 7 failed — authority-flip + Watchtower, incl. *"a tenant-a parity_drift auto-fallback flips ONLY tenant-a's authority_map (REQ-025)"* |
-| **agents** | **235/235 GREEN** |
+| ~~**agents**~~ `packages/agents` | ~~**235/235 GREEN**~~ **⚠️ WRONG PACKAGE — corrected at §1647** |
+
+> **CORRECTION (§1647).** That row cited `packages/agents`; the call sites live in `workers/agents`, whose
+> package is **`@shuddl/agents-worker`** and which this phase never ran. Re-measured there, forcing
+> `resolveAuthority` to `"legacy"` **REDS one test** — `watchtower-cron.test.ts`'s *"runWatchtower THREADS
+> sequencerFor(env) into the sweep"*. The reason is in this section's own exploration and was not carried into
+> its conclusion: `watchtower.ts:486@resolveAuthority` consumes the value **directly** (`=== "native"`), not through
+> `authoritativeSource(x, false)`. **So "dormant by construction" holds for the three `authoritativeSource`
+> call sites and NOT for the fourth**, which is behaviourally live today and pinned by a worker test. The
+> reopen trigger below stands unchanged; the coverage was better than this section claimed, not worse.
 
 The asymmetry is not a coverage gap, it is the design: every agents call site passes
 `authoritativeSource(await resolveAuthority(db, m), false)`, and that function is
@@ -92546,3 +92556,55 @@ rater **171/171** · api **886/886** · agents **235/235** · ledger **754/754**
 files / 1485**. Board carried forward from **`41ec211`** (§1645's commit, **0 commits since**; last measured at
 `5f61e9a` as **21 PASS · 0 FAIL · 5 BLOCKED**, and no phase since has changed a file any gate reads except this
 record and three test files).
+
+---
+
+## §1647 — PHASE GATE: rule 10 holds on both migration paths — and a probe that measured the wrong PACKAGE for six phases (REQ-035/118/119)
+
+§1646 named `legacy-export-replay` as the last BLOCKED subject with a repo-side story. Its law is CLAUDE.md
+rule 10: **any legacy column that does not map raises a gap row, never disappears.** There are two
+implementations of it, and both were probed by making an unmapped column vanish.
+
+| path | watchers |
+|---|---|
+| the ONE-SHOT drag-drop import (`migrator.ts`, WP-14) | **12** — 6 adapters + 6 api |
+| the CONTINUOUS 171-column overlay (`legacy-mirror.ts`, REQ-035 WP-15) | **2** — 1 adapters + 1 agents-worker |
+
+**Both defended, end to end** — the continuous path's second watcher is the sweep's own
+*"misc_note + legacy_status raise 2 gap anomalies per sweep; a second sweep RE-raises them"*, which is the law's
+consumer, not just its producer. A clean negative for the law.
+
+### The method defect, which is the real content of this phase
+
+**The continuous path first measured as 1 watcher, with the consumer's suite reporting 235/235 GREEN.** That
+looked like a finding: the mapper drops a column and the sweep that exists to surface it notices nothing. It was
+false, and a **positive control** is what caught it — an *unconditional* `throw` at the mutated line left that
+suite green, which no correct code can do.
+
+> **`pnpm --filter @shuddl/agents` is `packages/agents`. The worker is `@shuddl/agents-worker`.** Two packages,
+> similar names, different trees — and `workers/agents/src/` owns `biller.ts`, `interline-split.ts`,
+> `mirror-sweep.ts`, all of which this session mutated. Every "agents 235/235" in this record is
+> `packages/agents`: a true number about the wrong tree. **13 citations**, across six phases.
+
+**Both affected conclusions were re-measured against `@shuddl/agents-worker` rather than reasoned about:**
+
+- **§1643 SURVIVES, and is stronger.** Bypassing `plausibleEmail` in both copies leaves the worker suite
+  **147/147** green as well — so the claim *"1,873 tests and the validator could be skipped"* was if anything an
+  undercount (2,020).
+- **§1632 IS CORRECTED, in place.** Forcing `resolveAuthority` to `"legacy"` **reds** `watchtower-cron.test.ts`
+  there. The cause sits in §1632's own exploration and never reached its conclusion: `watchtower.ts:486@resolveAuthority` reads
+  the value **directly** (`=== "native"`), while the other three call sites pass it through
+  `authoritativeSource(x, false)`. *Dormant by construction* is true of three call sites and false of the
+  fourth. The correction makes the coverage better than claimed.
+
+> **A package filter is a silent scope selector, and a wrong one fails toward "nothing happened".** It reports a
+> real, passing suite — the most reassuring possible output — while the tree under test is untouched. This is
+> [[run-the-suite-that-owns-the-file]] with the twist that the *name matched*: the error was invisible precisely
+> because `@shuddl/agents` exists and is green. **When a mutation in package A is measured by suite B, prove
+> the link with an unconditional throw before trusting any green.**
+
+**Phase gate.** Documentation only, plus a struck-and-corrected row in §1632. Four mutations across
+`migrator.ts`, `legacy-mirror.ts`, `authority.ts`, `biller.ts`/`dunning.ts` — all restored byte-identical.
+adapters **51/51** · agents **235/235** · **agents-worker 147/147** · api **886/886** · ledger **754/754**.
+Board carried forward from **`8658201`** (§1646's commit, **0 commits since**; last measured at `5f61e9a` as
+**21 PASS · 0 FAIL · 5 BLOCKED**).
