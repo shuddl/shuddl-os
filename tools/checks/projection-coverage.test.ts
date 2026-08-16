@@ -111,7 +111,7 @@ describe("§870: no read-model projection ships untested", () => {
     // MODULE-level, not symbol-level, and that is the lesson from measuring this by hand first (§871): a
     // symbol probe for `projectMessages` reported NO PRODUCTION CALLER and was WRONG — that function is
     // internal, and the module's production entry point is `applyMessageProjection`, which the sequencer
-    // imports at workers/api/src/do/sequencer.ts:482@applyMessageProjection — so a roster of per-module
+    // imports at workers/api/src/do/sequencer.ts:494@applyMessageProjection — so a roster of per-module
     // entry-point names would rot, while "is this module imported by anything that ships" cannot, because it
     // asks about the file rather than about a name I guessed.
     const prodFiles = execSync("git ls-files -- '*.ts' '*.tsx'", { cwd: root, encoding: "utf8" })

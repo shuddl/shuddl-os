@@ -90,7 +90,7 @@ describe("POST /v1/devices — authenticated device enrollment (REQ-013/016/025)
   // JWK with a TEST-LOCAL helper and asserts only that the result starts with `dev_`.
   //
   // What a divergence costs, traced rather than assumed: the driver's locally-computed id is the offline
-  // dedupe key `(device_id, device_seq)`, and `sequencer.ts:305@device_id` requires a device-namespaced event's
+  // dedupe key `(device_id, device_seq)`, and `sequencer.ts:317@device_id` requires a device-namespaced event's
   // `device_id` to equal `actor.device` AND its signature to verify — a guard written so one device cannot
   // squat another's slot. If the two derivations disagreed, every driver would sign captures under an id the
   // server never registered, and EVERY device-namespaced append would be refused. Fail-closed, so this is an

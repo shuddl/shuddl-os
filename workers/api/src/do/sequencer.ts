@@ -257,6 +257,18 @@ export class ShipmentSequencer extends DurableObject<Env> {
     // id-equality above already rejects any (tenant|streamId) that doesn't hash to THIS instance's id, so
     // any change to either input lands on a different DO and a pin mismatch is effectively unreachable.
     // Kept as belt-and-suspenders + self-documentation of what this instance is bound to.
+    //
+    // §1634 (REQ-025) — THAT CLAIM IS NOW MEASURED, not argued, because a guard whose removal is silent will
+    // eventually be deleted by someone doing everything right (§235):
+    //   · deleting THIS pin check alone → 882/882 GREEN. Silent.
+    //   · deleting the id-equality check alone → 2 RED, both named for it (`sequencer.test.ts` forged-tenant;
+    //     `plg-isolation-matrix` G2). The pin does NOT catch those, and the reason is the tell: both drive a
+    //     FRESH stub, so `pinned` is null and this branch cannot fire. The primary guard is the only one there.
+    // Reaching this throw needs the SAME DurableObjectId from a DIFFERENT (tenant, streamId) — a hash
+    // collision — so no caller can construct it, and a test aimed here would be intercepted by id-equality and
+    // would measure THAT instead (an assertion downstream of a second guard measures the guard, not its
+    // subject). Hence: documented, deliberately not tested. If id-equality is ever weakened or removed, this
+    // stops being redundant for any stream that has already appended once.
     const pinned = this.pin ?? (await this.ctx.storage.get<{ tenant: string; streamId: string }>("pin")) ?? null;
     if (pinned && (pinned.tenant !== tenant || pinned.streamId !== streamId)) {
       throw rpcError("FORBIDDEN", { reason: "pin mismatch" });
