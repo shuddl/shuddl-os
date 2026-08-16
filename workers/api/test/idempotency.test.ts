@@ -93,6 +93,41 @@ describe("idempotency", () => {
     }
   });
 
+  // §1613 (REQ-025/206) — THE SIBLING OF THE CASE BELOW, ONE DIMENSION OVER.
+  //
+  // Tenant scoping answers "can another TENANT replay this?" and says nothing about another PRINCIPAL inside
+  // the same tenant. Two routes take a party AND an operator — `accept-quote` and `claim`, both
+  // `requireRole("admin","ops","portal")` — so before `sub` joined the tuple, one Idempotency-Key used by both
+  // collided on (tenant, method, pathname, key).
+  //
+  // The cost is a SWALLOWED WRITE more than a leak: the second caller is served the first's cached response
+  // and their own mutation never runs, while the status says it worked. Nothing legitimate shares a scope
+  // across principals — a retry comes from the session that issued the original — so this only removes a false
+  // match.
+  it("§1613: keys are PRINCIPAL-scoped — a second user in the SAME tenant with the same key executes fresh", async () => {
+    const send = async (sub: string, n: number): Promise<Response> =>
+      SELF.fetch("https://api.local/v1/_echo", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${await token({ sub, tenant: "tenant-a", role: "ops" })}`,
+          "content-type": "application/json",
+          "Idempotency-Key": "shared-key-1613",
+        },
+        body: JSON.stringify({ n }),
+      });
+
+    const first = await send("u-alice", 1);
+    expect(first.headers.get("idempotency-replay"), "setup: the first call must not itself be a replay").toBeNull();
+
+    const second = await send("u-bob", 2);
+    expect(
+      second.headers.get("idempotency-replay"),
+      "a DIFFERENT principal in the same tenant was served the first caller's cached response — their own " +
+        "mutation never ran, and the status told them it succeeded",
+    ).toBeNull();
+    expect(await second.text(), "the second caller's own body must come back, not the first's").toContain('"n":2');
+  });
+
   it("keys are tenant-scoped — tenant-b with the same key executes fresh", async () => {
     await post("key-2", { n: 1 }, "tenant-a");
     const other = await post("key-2", { n: 2 }, "tenant-b");
