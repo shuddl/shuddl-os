@@ -172,8 +172,21 @@ export function mountPortalActionRoutes(app: Hono<{ Bindings: Env; Variables: Va
     // Deterministic event id from the Idempotency-Key (the mutation middleware already required it): a retry
     // reproduces the SAME id → DO dedupe → no duplicate claim. Two DIFFERENT keys are two DIFFERENT claims (a
     // party may legitimately file more than one), which is correct.
+    //
+    // §1615 — THE PRINCIPAL IS IN THE SEED, and it was not. This route is `requireRole("admin","ops","portal")`,
+    // so a party and an operator both reach it. §1613 folded `sub` into the HTTP idempotency scope, which stops
+    // the second caller being SERVED the first's cached response — and that is exactly what exposed this: the
+    // second request now RUNS, derives the same `portal-claim:<shipment>:<key>` id, and the sequencer dedupes it.
+    // The caller receives the first party's event with a 201 while their own claim is never recorded.
+    //
+    // Fixing one layer moved the collision down a layer rather than removing it. Seeding with `sub` keeps the
+    // stated property — a retry reproduces its own id, two keys are two claims — and adds the missing one: two
+    // PARTIES are two claims.
     const idemKey = c.req.header("Idempotency-Key");
-    const eventId = idemKey === undefined ? crypto.randomUUID() : await deterministicUuid(`portal-claim:${shipmentId}:${idemKey}`);
+    const eventId =
+      idemKey === undefined
+        ? crypto.randomUUID()
+        : await deterministicUuid(`portal-claim:${shipmentId}:${session.sub}:${idemKey}`);
 
     // The message.received payload (typed MessageReceivedPayload). channel 'portal' + intent 'claim'; from_ref is
     // SERVER-CONTROLLED (who filed it), never a client field. The claim text rides inline in `body` (bounded);

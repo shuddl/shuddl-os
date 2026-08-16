@@ -71,6 +71,15 @@ async function fileClaim(shipmentId: string, body: unknown, tok: string): Promis
   });
   return { status: res.status, json: (await res.json().catch(() => null)) as Record<string, unknown> | null };
 }
+/** File a claim with an EXPLICIT Idempotency-Key, so two principals can be driven with the same one (§1615). */
+async function fileClaimWithKey(shipmentId: string, body: unknown, tok: string, key: string): Promise<Res> {
+  const res = await SELF.fetch(`https://api.local/v1/shipments/${shipmentId}/claim`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${tok}`, "Idempotency-Key": key, "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  return { status: res.status, json: (await res.json().catch(() => null)) as Record<string, unknown> | null };
+}
 async function listEvents(shipmentId: string, tok: string): Promise<{ status: number; events: LedgerEvent[]; body: string }> {
   const res = await SELF.fetch(`https://api.local/v1/shipments/${shipmentId}/events`, { headers: { Authorization: `Bearer ${tok}` } });
   const body = await res.text();
@@ -278,6 +287,37 @@ describe("Piece 3 — POST /v1/shipments/:id/claim (REQ-085/100)", () => {
     const row = await env.TENANT_A_DB.prepare("SELECT channel, direction FROM messages WHERE id = ?").bind(`msg:${r.json?.id as string}`).first<{ channel: string; direction: string }>();
     expect(row?.channel).toBe("portal");
     expect(row?.direction).toBe("in");
+  });
+
+  // §1615 (REQ-025/085/100) — TWO PRINCIPALS, ONE KEY: THE COLLISION §1613's FIX EXPOSED.
+  //
+  // The claim event id is derived from the Idempotency-Key so a retry reproduces its own id and the sequencer
+  // dedupes it. The seed used to be `portal-claim:<shipment>:<key>` — no principal — and this route is
+  // `requireRole("admin","ops","portal")`, so a party and an operator both reach it.
+  //
+  // Before §1613, the HTTP idempotency cache hid this: the second caller was served the first's cached response
+  // and never ran. Folding `sub` into that scope made the second request EXECUTE — which is when the deeper
+  // collision became reachable: same shipment, same key, same derived id, DO dedupe, and the second filer gets
+  // the FIRST party's event back with a 201 while their own claim is never recorded. Fixing one layer moved the
+  // collision down a layer; this pins the layer underneath.
+  it("§1615: two DIFFERENT principals filing with the SAME Idempotency-Key produce two DISTINCT claims", async () => {
+    const sharedKey = "shared-idem-1615";
+    const first = await fileClaimWithKey(SHP, { description: "party sees crushed cartons" }, await portalTok(PORTAL_P), sharedKey);
+    expect(first.status, "setup: the party's claim must land").toBe(201);
+
+    const second = await fileClaimWithKey(SHP, { description: "ops files a separate note" }, await opsTok(), sharedKey);
+    expect(second.status, "the second filer must not be refused").toBe(201);
+    expect(
+      second.json?.id,
+      "the second principal was handed the FIRST party's event — same derived id, deduped at the sequencer — so " +
+        "their own claim was never recorded while the 201 said it was",
+    ).not.toBe(first.json?.id);
+
+    // Both claims exist on the timeline: two filings, two events.
+    const list = await listEvents(SHP, await opsTok());
+    const ids = list.events.map((e) => e.id);
+    expect(ids).toContain(first.json?.id);
+    expect(ids).toContain(second.json?.id);
   });
 
   it("filing a claim on a shipment it CANNOT see → 403", async () => {
