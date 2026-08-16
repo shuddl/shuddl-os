@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1075 | §1628 | **§1629** | **THE CLASS BEHIND §1628, MEASURED 3-FOR-3 — AND A CONSENT GATE ANOTHER TENANT COULD UNLOCK.** Why rows 1–5 are safe and row 10 was not: **a cross-tenant handle is caught by 'returns empty' only when the tenant's data IS the answer.** Where it is a CONFIG that TRANSFORMS an answer (tariff, consent, geofence), a wrong handle returns a DIFFERENT answer, not an absent one — nothing is missing, so nothing looks wrong. Six loaders; one out immediately (`resolveProofToCashEntitlement` reads CONTROL_DB and the record already holds it TWICE as a deliberately-uncalled REQ-162 SKU gate — searched before filing). All three route-reachable members mutated to tenant-b: `isolation.test.ts` stays **68/68 GREEN** for every one, while the worker reds 39 / 7 / 2 on incidental pricing and behaviour tests. **The consent case is the finding**: all 7 catches are fail-CLOSED (tenant-b has no consent, so legitimate posts break) — the safe direction, and the only one anything could see. **A ConsentAck in ANOTHER tenant's D1 authorising GPS this tenant never authorised had no test**, and consent is the gate where failing open is a privacy breach, not an outage. Rule: **measuring that a mutation reds loudly says nothing about WHICH direction is covered — the loud one is usually the harmless one, because it breaks the happy path everybody tests.** New case asserts the REASON (§81 on this very file) + nothing inserted; reds `expected 201 to be 403`. 11/11; api 880/880. |
 | 1074 | §1627 | **§1628** | **THE REQ-025 GATE COULD NOT SEE A CROSS-TENANT RATE-CONFIG READ.** The skill's row 10 said *NO — add*, with its own header warning not to trust that column unmutated. Mutating the rate handle to tenant-b's D1 reds **39 tests across 10 files** — so it never shipped green — while `isolation.test.ts`, the gate that runs on every merge, stays **67/67**. The row was wrong in BOTH directions. Why is precise: §571 closed it with two ATTACK SHAPES (X-Tenant-Id, ?tenant=), which prove a CLIENT HINT is rejected; neither observes WHICH TARIFF PRICED THE QUOTE, so neither sees a wrong handle no client touched. **'The client cannot choose the tenant' and 'the server chose the right one' are independent failures, and only the second is about the data.** Fix uses a tool already in the file (DISTINCT per-tenant configs, so `sell_cents` reveals who priced it — used for the HOST-routed surface, never the JWT-keyed one); tenant-b's number is COMPUTED, not hardcoded; re-planting reds exactly one test. **Then the registry itself**: its header makes a missing case an open Critical, so it was asserting FOUR Criticals §174 had already measured false — the correction lived in the parent SKILL.md and never reached the sub-document. Rows now ⚠️ where the catch is incidental: **state the MECHANISM of a catch, not its polarity — a stale ❌ costs a redundant test, a stale ✅ costs the thing the gate exists for.** 68/68. |
 | 1073 | §1626 | **§1627** | **§1626'S TOP-RANKED EVIDENCE, APPLIED WHERE IT WAS MISSING — 4 CROSS-TENANT REFUSALS CLAIMED 'NO APPEND' AND MEASURED A STATUS CODE.** 28 refusal cases on mutating calls: 5 assert the side effect, 23 response-only. Most of the 23 are auth middleware (handler never runs) — **but splitting by STATUS was wrong**: two cases titled *fail-closed 403 (reads tenant-a's D1)* are handlers that RAN, because gates here are server-side and in-handler (REQ-030). **Classify by whether the handler ran, never by the status returned.** Four REQ-025 tests each stated in prose what they did not measure — one says *NOTHING is appended* in capitals — while asserting only 403/404. Source is correct (the draft lookup is step 1 and returns early; both read to confirm), so this is an EVIDENCE defect: the one property the law exists to prevent, an append in the WRONG tenant's D1, was carried by a comment, and a comment cannot fail. Fix counts BOTH databases per refused call + tenant-b's approval still `open` + no `message.sent` for its invoice. **Mutation chosen so the RED is attributable**: an append in the `draft_not_found` branch keeps the 404, so only the new assertion fires (`{a:1,b:0}` vs `{a:0,b:0}`). Rule: **a refusal test on a mutating path is two claims — *it answered no* and *it did nothing* — and the status code backs only the first.** 67/67. |
 | 1072 | §1625 | **§1626** | **VERIFIED THE SAMPLE §1625 GENERALISED FROM — THE RULE GAINS ITS SECOND HALF.** §1625 checked 2 of 13 absence assertions and generalised; all thirteen now checked. **The conclusion survives, the reason does not**: only 2 of 10 carry a whole-shape assertion, and the other eight are safe for a different reason — a **positive assertion of the refusal**. Four kinds exist, not one: a whole-shape `toEqual`, a **status code** (403/404), an **error code** (`-32001` + `confirm_required`), and — strongest — an **unobserved side effect** (`calls.some(POST) === false` proves the refusal happened UPSTREAM of the write, which no response-body assertion can). **And the premise needed checking**: 'loosely typed' was inferred from a VARIABLE NAME, then confirmed by reading — had any been the typed `RpcBody`, the compiler already defended it. **A hazard list built from a naming pattern is a list of candidates, not instances.** 13 candidates, 0 load-bearing, 0 defects — verified rather than inferred. |
@@ -91634,3 +91635,55 @@ The rows are now ⚠️ rather than ✅ where the catch is incidental, because t
 **Phase gate.** `isolation.test.ts` (+1 case, 68/68) and the skill's two record files; `rate.ts` mutated and
 restored byte-identical (`git diff` empty). No `packages/`, `workers/src`, `db/` or `tools/` change, so the board
 verdict at `e520ecb` (**21 PASS · 0 FAIL · 5 BLOCKED**) still stands.
+
+---
+
+## §1629 — PHASE GATE: the class behind §1628, measured — every route-reachable tenant-config read is invisible to the REQ-025 gate, and the consent gate could be unlocked by another tenant's document (REQ-025/030/190)
+
+§1628 was one row. Its property generalises, and the generalisation is what makes rows 1–5 safe and row 10 not:
+
+> **A cross-tenant handle is caught by "returns empty" only when the tenant's data IS the answer.** `_probe`
+> returns a marker; `/v1/events` returns rows; a wrong handle yields the wrong marker or no rows, and any
+> ordinary assertion trips. But where the tenant's data is a **CONFIG that TRANSFORMS an answer** — a tariff, a
+> consent record, a facility geofence — a wrong handle returns a *different answer*, not an absent one. Nothing
+> is missing, so nothing looks wrong.
+
+**Six tenant-scoped config/policy loaders exist.** One is out of the class immediately:
+`resolveProofToCashEntitlement` reads `CONTROL_DB`, not a tenant DB, and the record already carries it **twice**
+as a deliberately-uncalled REQ-162 SKU gate awaiting a post-M-H unlock (`GO-LIVE-CHECKLIST:94`). Searched
+before filing; not a finding.
+
+**All three route-reachable members measured, by mutating the handle to tenant-b's binding:**
+
+| loader | `isolation.test.ts` (the REQ-025 gate, every merge) | whole api worker |
+|---|---|---|
+| `loadTenantRatingConfig` (§1628) | **68/68 GREEN** | 39 failed / 10 files |
+| `loadStreamPrior` → consent gate | **68/68 GREEN** | 7 failed / 2 files |
+| `loadTransitMatrix` | **68/68 GREEN** | 2 failed |
+
+**Three for three.** The gate charged with REQ-025 sees none of them; every catch is a pricing or behaviour test
+noticing a changed number. (`resolveAuthority` and `loadFacility` are the remaining two — reachable from queue
+consumers and the sequencer DO rather than a route, so the isolation suite never exercises them at all. Named
+here rather than claimed closed.)
+
+**The consent case is the one that matters, and its direction is the finding.** All 7 catches on
+`loadStreamPrior` are **fail-CLOSED**: tenant-b holds no consent, so legitimate posts start 403ing. That is the
+safe failure, and it was the only one anything could see. The dangerous direction — **a ConsentAck sitting in
+another tenant's D1 authorising GPS capture that this tenant's stream never authorised** — had no test at all.
+Consent is precisely the gate where failing open is a privacy breach rather than an outage.
+
+> **Measuring that a mutation "reds loudly" says nothing about WHICH direction is covered.** A gate has two
+> failure modes and they are not symmetric; the loud one is usually the harmless one, because it breaks the
+> happy path everybody tests. Ask which direction the existing reds represent before believing a gate is
+> covered.
+
+The new case lives in `positions-gate.test.ts`, where the driver-assignment, device-registration and consent
+seeding already exist (the registry cites cross-file coverage for anchors and evidence too). It asserts the
+**reason**, not a bare 403 — audit §81 recorded on this very file that a wrong-reason pass on a security test is
+indistinguishable from a right one — and asserts nothing was inserted. Under the mutation it reds with
+`expected 201 to be 403`: the position was **accepted**.
+
+**Phase gate.** `positions-gate.test.ts` (+1 case, 11/11) plus the §1628 record. `rate.ts` and `positions.ts`
+each mutated and restored byte-identical (`git diff` empty on both); api worker **880/880**. No `packages/`,
+`workers/src`, `db/` or `tools/` change, so the board verdict at `e520ecb` (**21 PASS · 0 FAIL · 5 BLOCKED**)
+still stands.

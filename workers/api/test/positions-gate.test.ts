@@ -1,6 +1,8 @@
 import { SELF, env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
-import { TENANT_SLUG, TEST_DEVICE_ID, ensureSchema, post, seedShipment, token } from "./helpers.js";
+import { TENANT_SLUG, TEST_DEVICE_ID, ensureSchema, ensureTenantBSchema, post, seedShipment, token } from "./helpers.js";
+import { eventFixture } from "@shuddl/contracts";
+import { eventToRow } from "@shuddl/ledger/lens";
 import { canonicalPositionBytes } from "@shuddl/ledger/anchor";
 import { sha256Hex } from "@shuddl/ledger/canonical";
 
@@ -131,6 +133,47 @@ describe("POST /v1/positions — server-side gate parity (REQ-190)", () => {
     const ts = 1_720_000_100_003;
     const res = await postPosition(positionInput(SHP_NOCONSENT, TEST_DEVICE_ID, ts), await driverTok());
     expect(res.status).toBe(403);
+    expect(res.body?.code).toBe("GATE_BLOCKED");
+    expect(res.body?.gate?.required_evidence).toContain("consent");
+    expect(await positionCount(SHP_NOCONSENT, TEST_DEVICE_ID, ts)).toBe(0);
+  });
+
+  // §1629 (REQ-025/030) — THE FAIL-OPEN DIRECTION OF THE CONSENT GATE, which nothing covered.
+  //
+  // `loadStreamPrior(db, …)` takes the SESSION tenant's handle, so the gate's answer is computed from tenant
+  // data — the §1628 shape, where a wrong handle changes the ANSWER rather than emptying it. Measured: pointing
+  // that one call at tenant-b's D1 leaves `isolation.test.ts` (the REQ-025 gate) at 68/68 GREEN and reds 7 tests
+  // here and in `lens-adversarial` — **all of them fail-CLOSED**, because tenant-b has no consent so legitimate
+  // posts break. That is the safe direction, and it is the only one the suite could see.
+  //
+  // The dangerous direction is this one: a ConsentAck sitting in ANOTHER tenant's D1 for the same shipment id,
+  // authorising GPS capture that THIS tenant's stream never authorised. Consent is the one gate where failing
+  // open is a privacy breach rather than an outage, so it is worth pinning explicitly. Under the mutation this
+  // case returns 201 instead of 403.
+  it("a ConsentAck in ANOTHER tenant's D1 never unblocks this tenant's stream (REQ-025 value direction)", async () => {
+    await ensureTenantBSchema(env);
+    // The SAME shipment id tenant-a deliberately has no consent for, consented in tenant-b only.
+    const e = eventFixture("document.attached", {
+      id: crypto.randomUUID(),
+      stream_id: `s:${SHP_NOCONSENT}`,
+      shipment_id: SHP_NOCONSENT,
+      seq: 0,
+      visibility: "internal",
+      party_refs: [],
+      payload: { doc_kind: "consent", policy_version: "v1", operating_state: "CA", acknowledged: true },
+    });
+    const row = eventToRow(e);
+    row.hash = "b1".padEnd(64, "0"); // unique 64-hex — keeps UNIQUE(hash) and the append-only insert guard happy
+    const cols = Object.keys(row);
+    await env.TENANT_B_DB.prepare(`INSERT OR IGNORE INTO events (${cols.join(",")}) VALUES (${cols.map(() => "?").join(",")})`)
+      .bind(...cols.map((c) => row[c]))
+      .run();
+
+    const ts = 1_720_000_100_013;
+    const res = await postPosition(positionInput(SHP_NOCONSENT, TEST_DEVICE_ID, ts), await driverTok());
+    // The reason must be UNCHANGED by tenant-b's row — same code, same required evidence (audit §81: assert the
+    // REASON; a bare 403 here would also pass if the assignment or device gate had refused for its own reason).
+    expect(res.status, "tenant-b's ConsentAck granted GPS capture on tenant-a's stream").toBe(403);
     expect(res.body?.code).toBe("GATE_BLOCKED");
     expect(res.body?.gate?.required_evidence).toContain("consent");
     expect(await positionCount(SHP_NOCONSENT, TEST_DEVICE_ID, ts)).toBe(0);
