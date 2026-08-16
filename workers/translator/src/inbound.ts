@@ -186,6 +186,17 @@ async function extractIsaControl(raw: string): Promise<string> {
 // QUARANTINE: an idempotent anomalies row (INSERT OR IGNORE on the deterministic id) + the raw bytes in R2,
 // then ACK 200. A malformed / no-stable-ref tender is NEVER dropped and NEVER retry-stormed back at the partner.
 // The R2 payload is capped defensively (the body is already ≤ MAX_BODY_BYTES; this is belt-and-suspenders).
+//
+// ORDERING (§1676) — this writes the D1 ROW FIRST and the R2 BYTES SECOND, the INVERSE of the rule
+// `routes/evidence.ts` and `packages/ledger/src/anchor.ts` both state ("R2 first, row last, so the row exists
+// iff the bytes are stored"). That is deliberate and safe HERE for a reason that does not travel: the 200 is
+// returned only AFTER both writes, and an un-ACKed interchange is REDELIVERED by the VAN — so a fault between
+// them yields no ACK, the partner resends, and the upsert + same-key put heal it. The other two modules have
+// no redelivery contract; their reader can arrive at any time, which is why THEY must order R2 first.
+// Do not "align" this with them, and do not copy this ordering anywhere the caller is not guaranteed to retry.
+// The residual, stated: a partner that treats a 5xx as terminal leaves an open anomaly whose detail names a
+// key with no object — visible and wrong, rather than invisible and lost, which is the trade this module
+// exists to make (CLAUDE.md #10).
 async function quarantine(
   deps: InboundDeps,
   // The ALREADY-RESOLVED tenant handle (2026-08-01 §12). This used to re-resolve through
@@ -397,14 +408,24 @@ export async function handleInbound204(request: Request, deps: InboundDeps): Pro
     // partner pinned at 000000001) silently overwrote each other. Truncate the tail and append a body hash,
     // so redelivery still overwrites (same bytes ⇒ same key) while a DIFFERENT document cannot.
     const r2Key = unresolvableKey(tenantSlug, partnerId, `${isaControl.slice(0, 64)}-${(await sha256Hex(raw)).slice(0, 16)}`);
+    // §1676 — whether the bytes actually landed is TRACKED, because the sentence below is what an operator
+    // reads during the incident and then acts on. It used to claim "The raw tender is preserved at <key>"
+    // UNCONDITIONALLY, so a failed put printed "could not preserve <key>" and, one line later, "is preserved
+    // at <key>" — two contradictory claims about the same key, at the moment someone is deciding whether the
+    // document still exists anywhere. The 422 is unchanged either way; only the claim is.
+    let preserved = false;
     try {
       const capped = rawBytes.byteLength > MAX_BODY_BYTES ? rawBytes.slice(0, MAX_BODY_BYTES) : rawBytes;
       await deps.evidence.put(r2Key, capped);
+      preserved = true;
     } catch (putErr) {
       console.error(`edi inbound-204: could not preserve the unresolvable tender at ${r2Key} (the refusal still stands):`, putErr);
     }
+    const fate = preserved
+      ? `The raw tender is preserved at ${r2Key}`
+      : `The raw tender is NOT preserved (the R2 put above failed) — this interchange now exists ONLY in the partner's outbox, and a 422 will not be retried`;
     console.error(
-      `edi inbound-204: tenant ${tenantSlug} could not be RESOLVED (a claimed-pool row whose policy is unusable, or which names no valid pool_binding) — refusing 422, NOT 5xx: this is deterministic and a retry cannot fix it. The raw tender is preserved at ${r2Key}; no anomalies row is possible because the tenant D1 is what failed to resolve:`,
+      `edi inbound-204: tenant ${tenantSlug} could not be RESOLVED (a claimed-pool row whose policy is unusable, or which names no valid pool_binding) — refusing 422, NOT 5xx: this is deterministic and a retry cannot fix it. ${fate}; no anomalies row is possible because the tenant D1 is what failed to resolve:`,
       err,
     );
     return json(422, { error: "tenant unresolvable" });

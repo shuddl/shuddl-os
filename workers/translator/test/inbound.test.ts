@@ -493,6 +493,36 @@ describe("REQ-201/202 — inbound 204 → gated chain, NO booking.created", () =
     }
   });
 
+  it("§1676 (h3b) when preserving the unresolvable tender FAILS, the log must not claim it was preserved", async () => {
+    // The refusal is best-effort about the bytes and deliberate about the status: an R2 fault must not turn a
+    // deterministic 422 into a 5xx retry-storm. What it must not do is LIE about the outcome. The claim and
+    // the catch print one line apart, and an operator reading "could not preserve X" followed by "is
+    // preserved at X" has to guess which one is true — during the incident where the answer decides whether
+    // the document still exists anywhere.
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const seq = new RecordingSeq();
+      const deps = makeDeps(seq, new RecordingTransport(), goodSecrets());
+      const boom = {
+        ...deps,
+        tenantDbFor: (): Promise<D1Database> => Promise.reject(new Error("UNKNOWN_TENANT: claimed row policy unusable")),
+        evidence: { ...deps.evidence, put: (): Promise<never> => Promise.reject(new Error("R2 unavailable")) } as unknown as R2Bucket,
+      };
+      const res = await handleInbound204(await signedRequest(tender204()), boom);
+
+      expect(res.status, "an R2 fault must NOT convert the deterministic refusal into a retriable 5xx").toBe(422);
+      const logged = errSpy.mock.calls.flat().filter((a): a is string => typeof a === "string");
+      expect(logged.some((s) => s.includes("could not preserve")), "the failure itself is still reported").toBe(true);
+      expect(
+        logged.some((s) => s.includes("is preserved at")),
+        "THE ASSERTION: nothing may claim the tender was preserved when the put threw — the operator acts on this line",
+      ).toBe(false);
+      expect(logged.some((s) => s.includes("NOT preserved")), "and the truthful outcome is stated positively").toBe(true);
+    } finally {
+      errSpy.mockRestore();
+    }
+  });
+
   it("(h4) a TRANSIENT resolution fault stays RETRIABLE (5xx) — only a deterministic one is 422 (§36)", async () => {
     // The §29 guard caught EVERY throw from tenantDbFor and answered 422. But that call does a live
     // control-plane D1 read, so one blip on a HEALTHY claimed tenant became a PERMANENT refusal (a VAN does

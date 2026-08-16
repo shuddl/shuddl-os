@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1122 | §1675 | **§1676** | **ENUMERATE THE PAIRS, NOT THE STORES.** §1590 closed atomicity across all four storages; §1672 found a cross-store defect anyway, because *D1 ↔ R2* is a property of neither store. Enumerated mechanically: 221 sources → **5 modules** write two stores. **Two harness bugs found first, both reading as a clean tree**: a glob needing an intermediate directory dropped `anchor.ts` (the file the pattern ORIGINATES in), then the corrected corpus returned ZERO because **zsh does not word-split an unquoted parameter** — the loop ran once with 221 paths as one filename. Caught by a positive control, not by reading. **Anchor pair: CLEAN NEGATIVE** — `evidence.ts`'s citation of *the anchor.ts pattern* is TRUE, and the 7yr exemption (a literal in one file matched against a list in another) is defended from BOTH ends: dropping `tsa_receipt` 2 RED, writing a different valid kind 2 RED (the anchor's own read path queries the kind twice). Re-confirmed: `created_ts` DEFAULT 0 makes the *7yr duration* defense vacuous, so kind-exclusion is the ONLY one. **DEFECT (live): a log claimed preservation it had just failed to perform** — the unresolvable-tender path printed *could not preserve X* and, one line later, *is preserved at X*, at the moment an operator decides whether the document exists anywhere (and a 422 is never retried). Fixed + mutation-proved. **Quarantine's ordering is INVERTED** vs the rule stated twice elsewhere — safe only because the ACK follows both writes and the VAN redelivers; now stated, since an unexplained contradiction invites either churn or a copy into a context with no retry contract. **AND A FALSE ALARM OF MY OWN**: I was writing up *nine anchored citations silently stale in one edit* — a headline contradicting §1673 — when the 3 turned out to be **`head -3`** on the checker's output. Recomputed: **10 stale, 10 reported, 0 silent.** The mechanism caught every one and §1673's decline is STRENGTHENED. Rule: **a framed digest is not a measurement** — `head` becomes an analytical claim the instant you count what it printed |
 | 1121 | §1674 | **§1675** | **STOPPING POINT — 4 PHASES, 2 LIVE DEFECTS, ONE CLASS HALF-CLOSED; BOARD RE-MEASURED AT `e23eea9`: 21 PASS · 0 FAIL · 5 BLOCKED.** **Both real defects are ONE mistake in two places**: a D1 row read as proof that R2 bytes exist. The sweep deletes bytes FIRST and tombstones SECOND, so an ORDINARY tick (not just a crash) leaves an `active` row with no bytes, and a `ratecon` tombstone outlives its bytes BY DESIGN as the audit record — so one consumer answered *your evidence is stored* when it was not, and the other *the paperwork exists* about paperwork it had deliberately destroyed. **The invariant was stated in three files and checked in none**; two corrected, the third (a migration) correctly REFUSED by the forward-only lock. The rule that survives, now at both call sites: **a reader that needs the BYTES must ask R2; a reader that needs *was this retention-deleted* may trust the column.** Suites: api 889 · ledger 755 · tools 149 files/1495. **Do not re-derive**: the JSON hazard is sized+frozen not fixed (owner's call); §1673's refusal stands (FP-dominated — a THIRD false-green would be new evidence); §1672's residual race is directional and needs a transaction D1+R2 do not share. **3 reopen triggers, each with its killing condition** — REQ-184 landing, a kind leaving POD_RETAINED_KINDS, a third comment-satisfied false-green |
 | 1120 | §1673 | **§1674** | **DEFECT (latent): THE DISPATCH GATE ACCEPTS A RETENTION-DELETED RATE-CON.** Swept the documents readers by BEHAVIOUR (*does it act as though bytes exist without asking R2*), not by API call: **10 readers**, 8 fine — the Biller POD lookup and the anchor-receipt EXISTS **safe by the KIND exemption, not by checking anything**, which stops being true the moment a kind leaves POD_RETAINED_KINDS. The exception is `#enforceDispatch`: REQ-043's *the required carrier paperwork exists* asked `SELECT 1 FROM documents WHERE shipment_id AND kind` with **no retention_status**, and `ratecon` is a 1-year 'default' doc whose row the sweep KEEPS as the audit record — so a tombstone recording that the evidence was destroyed satisfied a gate whose own comment says *the evidence must exist before a driver rolls*. Latent (nothing writes a ratecon until REQ-184), fixed fail-closed; reverting the clause flips the case **403 → 201**. 0007's column comment — the invariant's THIRD statement — I tried to correct and **`check:invariants` refused it** (*migrations are forward-only*); reverted byte-for-byte. **I had checked for a content pin and concluded wrong**: a grep for the two hash-pin spellings came back empty and I read that as absence — the pin is a LOCK FILE, sharing no substring with anything I searched. The gate caught in one run what my reading had already got wrong. **And §1673's reopen trigger fired ONE PHASE LATER**: the +7 shift rotted 4 anchors the checker reported and **a 5th it did not** (`@geo`, subject moved 1008→1015, green because prose nearby says geo). **But the two false-greens differ**: `@geo` occurs **22×** in its target (anchors nothing — arithmetic), `@UNRESOLVED_VISIBILITY` **3×** (a good anchor beaten by one comment — English). Measured all **472**: 50 anchors occur once, **18 occur 21+** (`@b` 119×, `@port` 76×, `@append` 66×). Built `anchor-specificity` (ratchet at 17 after `@geo`→`@deliveryFence`), **whose header states it catches ONE of the two** and that §1673's refusal stands. Rule: **a metric that would not have caught the defect you found is decoration** — check the real instances against the proposed rule BEFORE building it |
 | 1119 | §1672 | **§1673** | **44 OF 467 CONTENT ANCHORS ARE HELD UP BY A COMMENT — AND THE GATE IS DECLINED.** §1672's false-green (a citation 13 lines off its subject, saved by a comment mentioning the symbol) asked how much anchoring is like that. Measured with the checker's OWN extractor: **467 anchored** (matches its report exactly), **44 (9.4%) comment-only** — 11 prose-only annotation citations, 33 where the symbol also exists in code. **The class is dominated by CORRECT uses**: all four widest-distance cases cite the comment deliberately (a TODO recording an UNWIRED exemption at 254 lines; a server-derived-gate-context rule at 272; a measured `produced by NOTHING` note; a hostname-routing statement). **Distance does not discriminate — the two largest gaps are both correct**, and neither does shape, because the anchors ARE code identifiers being discussed in prose. **NO GATE**: the boundary is English, and §1561 already measured that shape at 76%→95% FP after every filter; a rule firing on 33 to catch 1 gets switched off. Recorded instead with a reopen trigger — **a SECOND false-green makes it a class** — plus what the anchor DOES buy (it caught real rot twice this session; it works when the symbol lives only in code, and the blind spot is exactly a stale line whose window contains prose naming the symbol). **Method: the harness said 449/43 against the checker's 467** — I took the first resolution candidate where the checker accepts ANY; corrected, the denominator matched and mention-only rose to 44. **A harness bug that UNDER-reports is the dangerous direction**, caught only because a known fixed point sat on the same line |
@@ -10544,7 +10545,7 @@ The metering plumbing is complete and honest end to end. `agent_runs` carries `c
 is **no** false-zero fail-open here).
 
 But **only one agent emits `agent.acted` at all**: the rater, from two byte-identical paths
-(`workers/api/src/routes/rate.ts:260@agent.acted` and `workers/translator/src/inbound.ts:599@agent.acted`),
+(`workers/api/src/routes/rate.ts:260@agent.acted` and `workers/translator/src/inbound.ts:620@agent.acted`),
 reporting `cost_cents: 0` because it is a deterministic engine with no LLM call. Since `agent.acted` **is**
 the metered AI action — billing counts it (`workers/billing/src/metering.ts:3@agent.acted`) and the
 Watchtower budgets it — the meter never observes the agents that would cost anything.
@@ -13353,7 +13354,7 @@ is no obvious place to put the assertion, and it is worth treating a well-writte
 claims and I have adjudicated five. Rather than work the remaining 59 one at a time, the useful question
 is whether they divide.
 
-They do, cleanly. Probed the money-critical one still open — `workers/translator/src/inbound.ts:574@byte-identical`, claiming the EDI
+They do, cleanly. Probed the money-critical one still open — `workers/translator/src/inbound.ts:595@byte-identical`, claiming the EDI
 `quote.priced` payload is *"byte-identical to rate.ts"*. Dropped `floors` from the EDI construction alone:
 
 ```
@@ -21040,7 +21041,7 @@ header is whatever the client typed.
 
 ### Inbound EDI from an external partner — load-bearing
 
-`workers/translator/src/inbound.ts:369@isUnknownTenant` — the discrimination that decides whether a
+`workers/translator/src/inbound.ts:380@isUnknownTenant` — the discrimination that decides whether a
 failure is *this partner sent us something for a tenant we do not have* (quarantine, keep the bytes) or *a
 real error* (rethrow).
 
@@ -25642,7 +25643,7 @@ copies. That is the *two mechanisms disagreeing* check returning a clean negativ
 weight as a delta.
 
 **The four production callers enumerated, not generalized.** `packages/agents/src/concierge/compose.ts:102` and
-`workers/translator/src/inbound.ts:633@assessApproval` are direct moves by construction; `workers/api/src/routes/rate.ts:272` is the interline
+`workers/translator/src/inbound.ts:654@assessApproval` are direct moves by construction; `workers/api/src/routes/rate.ts:272` is the interline
 path; `packages/agents/src/biller/compose.ts` composes the same two rater primitives for its different hold semantics. Only one
 rests on a sentence: the translator passes `assessApproval(quote, {})` on the strength of *"a 204 carries no
 negotiated sell / interline legs"*. True today — the translator constructs no legs — and unpinned, because
@@ -25881,7 +25882,7 @@ it describes.**
 
 ## §433 — a "parity LOCK" that locked one side, and the trap in fixing it
 
-`workers/translator/src/inbound.ts:239@persistParty` claims to mirror `intake.ts`'s party write — while
+`workers/translator/src/inbound.ts:250@persistParty` claims to mirror `intake.ts`'s party write — while
 `workers/api/src/intake-core.ts` opens by calling itself *"THE ONE implementation of net-new party/shipment
 materialization … no reimplement, no drift."* Two records, one subject, and they cannot both be right.
 
@@ -40261,9 +40262,9 @@ call the remainder an open item without asking the question.
 — and the gate immediately fired on the translator's inbound EDI path:
 
 ```
-inbound.ts:204 → quarantineKey(… tenantSlug …)
-inbound.ts:399 → unresolvableKey(… tenantSlug …)
-inbound.ts:504 → tenderKey(… tenantSlug …)
+inbound.ts:215 → quarantineKey(… tenantSlug …)
+inbound.ts:410 → unresolvableKey(… tenantSlug …)
+inbound.ts:525 → tenderKey(… tenantSlug …)
 ```
 
 **Traced before judging.** `tenantSlug` is `pairing.slug` from a control-plane `pairings`⋈`tenants` lookup
@@ -86580,13 +86581,13 @@ watched.
 
 **Translator: two genuinely redundant, one not.**
 
-- `inbound.ts:229@capped` (the R2 quarantine cap) is silent, and correctly so: `quarantine` is reachable ONLY
+- `inbound.ts:240@capped` (the R2 quarantine cap) is silent, and correctly so: `quarantine` is reachable ONLY
   from `handleInbound204`, which 413s any over-cap body earlier in the same function. Verified by mutating the
   premise — deleting the post-read 413 reds case (3).
-- `inbound.ts:517@EDI_PLAN_SHAPE` (*"a defensive assertion, not a data path"*) is silent, and its premise is
+- `inbound.ts:538@EDI_PLAN_SHAPE` (*"a defensive assertion, not a data path"*) is silent, and its premise is
   pinned: `inbound.test.ts:233` asserts the exact append sequence `["quote.requested", "quote.priced",
   "agent.acted", "quote.accepted"]`, so a plan that stopped leading with `quote.requested` reds there first.
-- **`inbound.ts:321@declaredLen` — the up-front Content-Length refusal — was silent and is load-bearing.**
+- **`inbound.ts:332@declaredLen` — the up-front Content-Length refusal — was silent and is load-bearing.**
 
 **THE FINDING, and it is §1500's shape with the layers reversed.** REQ-202's storage-DoS cap is TWO guards for
 two situations, and the source says so: a declared Content-Length over the ceiling is refused *"without
@@ -88249,7 +88250,7 @@ instances were `warn`-level quarantines of a document. This one hides a credit g
 
 | | site | why |
 |---|---|---|
-| **REOPEN** ×5 | `workers/translator/src/inbound.ts:224@anomalies`, `workers/agents/src/mirror-sweep.ts:179@anomalies`, `packages/ledger/src/projection/status-cache.ts:87@anomalies`, `workers/agents/src/watchtower.ts:161@anomalies`, `packages/ledger/src/anchor.ts:403@anomalies` | id keyed on a **recurring condition** — no new id will ever be minted |
+| **REOPEN** ×5 | `workers/translator/src/inbound.ts:235@anomalies`, `workers/agents/src/mirror-sweep.ts:179@anomalies`, `packages/ledger/src/projection/status-cache.ts:87@anomalies`, `workers/agents/src/watchtower.ts:161@anomalies`, `packages/ledger/src/anchor.ts:403@anomalies` | id keyed on a **recurring condition** — no new id will ever be minted |
 | **ONE-SHOT** ×2 | `workers/agents/src/mirror-sweep.ts:221@anomalies` (id folds `now`), `workers/api/src/routes/import.ts:192@anomalies` (id folds `importId`) | the next occurrence mints its **own** row |
 
 The gate's own positive control pins the discriminator that caught this one: an upsert refreshing
@@ -89070,7 +89071,7 @@ new defects; §1546's own rule is that a sweep's output is a **classification**.
 | `pairingIdFromSub` (mcp/principal) | **a decoder whose consumer does not exist.** Its counterpart `subForPairing` IS called (`principal.ts:150`), so the encoding is write-only in production, and the comment claims it *"recovers it for the MCP session→pairing mapping"* — a use nothing performs (§1349's shape: a comment describing a consumer). |
 
 **`certifyPartner` is the one worth the space.** Two production readers refuse an uncertified partner —
-`workers/translator/src/inbound.ts:426@cert_status` (*"partner not replay-certified"*) and `workers/translator/src/sweep-214.ts:193@cert_status` — and the **only writer** of
+`workers/translator/src/inbound.ts:447@cert_status` (*"partner not replay-certified"*) and `workers/translator/src/sweep-214.ts:193@cert_status` — and the **only writer** of
 `integrations.cert_status` is inside `certifyPartner`. **Nothing calls it.** So on the shipped code path no
 partner can ever become certified, and every inbound 204 and every outbound 214 is refused.
 
@@ -94015,3 +94016,104 @@ Suites: api **889/889** · ledger **755/755** · tools **149 files / 1495** · a
 evidence, 5 citations repointed (one of them invisible to the checker), 1 anchor strengthened, 2 comment blocks
 corrected and 1 correction correctly refused. Board re-measured at `e23eea9`, **0 commits since** — not
 carried forward.
+
+---
+
+## §1676 — PHASE GATE: enumerate the PAIRS, not the stores — one live log defect, one clean negative, and a false alarm of my own making (REQ-118/201)
+
+§1590 closed the atomicity axis **across all four storages** and was thorough about each. §1672 then found a
+cross-store defect anyway, because a defect in *D1 ↔ R2* is not a property of D1 or of R2 — **enumerating
+storages finds storages; the hazard lives in the PAIRING.** So this phase enumerated the pairs.
+
+**Mechanically, not from memory**: 221 production sources, filtered to those writing an external store AND
+issuing a D1 write. **Five modules** — `anchor.ts`, `documents/retention.ts`, `do/sequencer.ts`,
+`routes/evidence.ts`, `translator/src/inbound.ts`.
+
+**Two harness bugs found that first**, both of which read as a clean tree:
+
+1. `packages/*/src/**/*.ts` silently required an intermediate directory, so `packages/ledger/src/anchor.ts`
+   was **not in the corpus** — the very file the pattern originates in.
+2. The corrected corpus then returned **zero** matches, because **zsh does not word-split an unquoted
+   parameter**: the `for` loop ran once with all 221 paths as a single filename.
+
+Both were caught by a positive control asserting `anchor.ts` is in the corpus — not by reading the script.
+*A scan that finds nothing and a scan that ran on nothing are the same output.*
+
+### The anchor pair: a clean negative, verified in both directions
+
+`evidence.ts` cites *"the anchor.ts pattern"* as the origin of R2-first-row-last. **The citation is true** —
+`anchorDay` puts the receipt, puts the manifest, then `INSERT OR IGNORE`s the row, so the row exists iff fully
+anchored. And `anchorProof` never claims bytes: it recomputes the root from D1 leaves and cross-checks the
+row's hash, returning a doc id.
+
+The 7-year exemption is a **string literal in `anchor.ts` matched against a separate literal list in
+`retention.ts`**, so both directions were mutated. Dropping `tsa_receipt` from `POD_RETAINED_KINDS`: **2 RED**.
+Making `anchorDay` write a *different valid kind*: **2 RED** — the anchor's own read path queries
+`kind = 'tsa_receipt'` at two sites, so a unilateral rename breaks the module against itself. Coupled by
+nothing shared, defended from both ends.
+
+One subtlety re-confirmed rather than discovered: the comment claims two independent defenses (kind-exclusion
+**and** the 7yr duration), but `created_ts` is left at DEFAULT **0**, so `0 + 7yr` is already in the past and
+the duration saves nothing. §1536's test title says exactly this. **The kind-exclusion is the only defense**,
+which is why both directions needed mutating.
+
+### DEFECT (live): a log that claimed preservation it had just failed to perform
+
+`inbound.ts`'s unresolvable-tenant path preserves the raw tender best-effort, then refuses **422** — correct,
+because an R2 fault must not convert a deterministic refusal into a 5xx retry-storm. But the outcome line was
+**unconditional**. On a failed put an operator saw:
+
+```
+edi inbound-204: could not preserve the unresolvable tender at <key> …
+edi inbound-204: … refusing 422 … The raw tender is preserved at <key>; no anomalies row is possible …
+```
+
+**Two contradictory claims about one key, one line apart**, at the moment someone is deciding whether the
+document exists anywhere — and a 422 is not retried, so the honest answer ("it exists only in the partner's
+outbox") is the one that determines whether anyone goes and asks for a resend. Fixed by tracking the outcome;
+mutation-proved (restoring the unconditional sentence reds the new case on its own assertion).
+
+### The quarantine's ordering is INVERTED — deliberately, and the reason does not travel
+
+`quarantine()` writes the D1 row **first** and the R2 bytes **second**, the opposite of what `evidence.ts` and
+`anchor.ts` both state as the rule. It is safe here because the **200 is returned only after both writes and
+an un-ACKed interchange is redelivered by the VAN** — a fault yields no ACK, the partner resends, the upsert
+and same-key put heal it. The other two modules have no redelivery contract; their reader can arrive at any
+time, which is why they must order R2 first. **None of that was written down**, so the file presented an
+unexplained contradiction of a rule stated twice elsewhere — an invitation either to "align" it (churn) or to
+copy it somewhere without a retry contract (a real bug). Now stated at the site, with its residual: a partner
+treating 5xx as terminal leaves an open anomaly naming a key with no object — visible and wrong, rather than
+invisible and lost, which is the trade this module exists to make.
+
+### A FALSE ALARM OF MY OWN — and it was pointed at the record's own conclusion
+
+The comment inserts shifted `inbound.ts`, so citations into it needed repointing. Rather than guess offsets
+(two inserts, two different shifts), I computed an exact old→new line map with `difflib` and remapped all of
+them — **19 citations moved, in 4 files.**
+
+Then I compared "citations that moved" against "failures the checker reported" and got **3**, and began
+writing up *nine anchored citations silently stale in a single edit* — a headline that would have contradicted
+§1673's decision to decline the gate. **The 3 was `| head -3`.** I had truncated the checker's own output and
+then reasoned about the truncation.
+
+Recomputed directly — for each of the 10 distinct stale citations, does its anchor still appear within ±2 of
+the stale line in the current file:
+
+| | count |
+|---|---|
+| stale citations into `inbound.ts` | **10** |
+| **reported broken** by `check:citations` | **10** |
+| silently resolving anyway | **0** |
+
+**The anchor mechanism caught every one.** §1673's decline is not merely intact, it is **strengthened**: the
+blind spot needs the stale line's window to contain prose naming the symbol, and across ten stale citations in
+one heavily-commented file that happened **zero** times.
+
+> **A framed digest is not a measurement.** `head` is a display choice that silently becomes an analytical
+> claim the moment you count what it printed. This is the same fault the record has now logged repeatedly, and
+> it was aimed this time at overturning a decision that was correct.
+
+**Phase gate.** 1 production fix (mutation-proved), 1 ordering rationale stated, 1 clean negative established
+by 4 mutations across both directions of a cross-file coupling, 19 citations remapped by computed line-map,
+1 self-inflicted false alarm caught and recorded. translator **133→134/134**. Edits `workers/`, so the board
+is re-measured at commit.
