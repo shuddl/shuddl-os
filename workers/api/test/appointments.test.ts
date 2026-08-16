@@ -9,6 +9,7 @@ import {
   TENANT_SLUG,
   TEST_FACILITY,
   ensureSchema,
+  ensureTenantBSchema,
   post,
   seedFacility,
   seedLeg,
@@ -194,6 +195,29 @@ describe("(B) the capacity gate refuses over the API path (REQ-030), never half-
     const r = await post(s, apptInput(s, fac, {}, { slot_key: "no-such-slot" }), await opsTok());
     expect(r.status).toBe(400);
     expect(await countEvents(s)).toBe(0);
+  });
+
+  // §1632 (REQ-025/028/052) — THE FAIL-OPEN DIRECTION OF THE APPOINTMENT GATE.
+  //
+  // `loadFacility(db, …)` takes the SESSION tenant's handle, so hours, capacity slots and TIMEZONE — the whole
+  // gate input — are tenant data. Measured: pointing that one call at tenant-b's D1 leaves `isolation.test.ts`
+  // at 69/69 GREEN and reds 13 tests here and in the booking suites — every one of them fail-CLOSED, because
+  // tenant-b has no facility so `unknown_facility` blocks the happy path. That is the safe direction and the
+  // only one anything could see.
+  //
+  // This is the other one: a facility that EXISTS in another tenant's D1 under the same id. Seeded identically,
+  // so under the mutation the gate resolves it, the slot validates and the appointment COMMITS — a booking made
+  // against another tenant's operating hours and timezone. `unknown_facility` had no case at all before this.
+  it("a facility that exists ONLY in another tenant's D1 is unknown here → 400 + zero append (REQ-025 value direction)", async () => {
+    await ensureTenantBSchema(env);
+    const fac = "fac-tenant-b-only"; // deliberately NEVER seeded into tenant-a
+    await seedFacility(env.TENANT_B_DB, { ...TEST_FACILITY, id: fac });
+    const s = "appt-xtenant-facility";
+    await seedShipment(s);
+    await seedLeg(s, 0, "pickup", null);
+    const r = await post(s, apptInput(s, fac), await opsTok());
+    expect(r.status, "a tenant-a booking resolved a facility from tenant-b's D1 (REQ-025)").toBe(400);
+    expect(await countEvents(s), "the cross-tenant facility booking appended anyway").toBe(0);
   });
 
   it("window_mismatch (start not on the slot's minute-of-day) → 400 + zero append", async () => {

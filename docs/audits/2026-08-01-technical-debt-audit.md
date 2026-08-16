@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1078 | §1631 | **§1632** | **CLOSED THE LAST TWO LOADERS — A BOOKING THAT COMMITS AGAINST ANOTHER TENANT'S HOURS, AND A PROBE THAT PASSED BECAUSE IT NEVER RAN.** `loadFacility` is the 4th instance: hours, capacity slots and TIMEZONE are tenant data, `isolation.test.ts` stays **69/69 GREEN**, the worker reds 13 — **all fail-CLOSED again** (tenant-b has no facility). The dangerous direction is a facility EXISTING in another tenant's D1 under the same id: seeded identically, the gate resolves it, the slot validates and the appointment **commits** (`expected 201 to be 400`) — booked against another tenant's operating hours and timezone. `unknown_facility` had NO case at all before this. `resolveAuthority` is **dormant BY CONSTRUCTION**: forcing it to 'legacy' reds 7 api tests but leaves agents **235/235**, because every agents call site passes `legacyValueAvailable: false` and `authoritativeSource` then returns native for ANY input — the value is discarded before it can matter. Written reopen trigger: WP-15 Task 4 wiring a mirror. A test today would pass because of the `false` argument, not tenancy (§1630's trap), so it is deliberately NOT written. **And the first probe was invalid**: mutating interline-split to read `env.TENANT_B_DB` returned 235/235 — but `env` is NOT IN SCOPE there, so the line would have thrown had it run. **A mutation naming an out-of-scope identifier fails silently when unreachable, and silence is what an inert read looks like too** — confirm the mutated expression could execute before crediting its silence. Class now fully enumerated: 4 closed with value cases, 1 dormant + trigger, 1 out of class. |
 | 1077 | §1630 | **§1631** | **THE PRIMARY REQ-025 GUARD IS GENUINELY COVERED — A CLEAN NEGATIVE, PLUS THE STOPPING POINT.** After three config loaders the isolation gate could not see, the question is whether the mechanism everything rests on is better defended: the DO re-derives `idFromName(tenant + streamId)` and refuses if it is not its own id. Removing that line reds **2 tests, both NAMED for exactly it** (`sequencer.test.ts` forged-tenant id-equality; `plg-isolation-matrix` G2 claimed-pool identity) — static roster AND claimed pool. Recorded as VERIFICATION, not a find. **One probe left inconclusive and stated as such**: removing the storage pin (whose comment declares itself redundant/unreachable) produced a suite that FAILED TO RUN rather than an assertion failure — unattributable, so not claimed either way. **Thread stops here**: all three route-reachable tenant-config loaders now carry value-direction cases; `resolveAuthority`/`loadFacility` are named-not-closed (queue consumers + the DO, which `isolation.test.ts` never exercises). **Zero production source changed across §1627–§1631** — every defect was in what a test CLAIMED, and all four mutations restored byte-identical. api 881/881; tools 145/1482. |
 | 1076 | §1629 | **§1630** | **CLOSED THE THIRD LOADER — AND THE TEST FIRST PASSED FOR A REASON UNRELATED TO WHAT IT ASSERTED.** The tariff pattern does not transfer: neither seed carries a `transit_matrix`, so both tenants resolve null and an equality assertion compares null to null (vacuous — the §1625/§1626 hazard). Seeding into tenant-b ALONE makes it observable. **Then the case passed WITH the mutation planted**: same `{status:'unavailable'}` as the correct world, so on its first green run it was decoration — a case named for transit isolation that could not fail. Cause: `origin_zip: '97201'` borrowed from the PRICING cases, where it works; transit resolves zones via `matchZone`, which does NOT prefix-match 97201 to the tariff's '970' key (measured on the pure function: 97201→UNKNOWN, 97012→KNOWN/4). Rule: **a fixture value proven in one subsystem is not validated for another — prove it on the NEW consumer.** With 97012 it reds `{status:'known',business_days:4}` vs `{status:'unavailable'}`: a tenant-a quote carrying a four-day promise from another tenant's matrix. **And the surface hides this** — no matrix, unresolvable lane and unresolvable zone all map to one `unavailable`, so a cross-tenant read is indistinguishable from having no data and only a mutation could settle it. 69/69; api 881/881. |
 | 1075 | §1628 | **§1629** | **THE CLASS BEHIND §1628, MEASURED 3-FOR-3 — AND A CONSENT GATE ANOTHER TENANT COULD UNLOCK.** Why rows 1–5 are safe and row 10 was not: **a cross-tenant handle is caught by 'returns empty' only when the tenant's data IS the answer.** Where it is a CONFIG that TRANSFORMS an answer (tariff, consent, geofence), a wrong handle returns a DIFFERENT answer, not an absent one — nothing is missing, so nothing looks wrong. Six loaders; one out immediately (`resolveProofToCashEntitlement` reads CONTROL_DB and the record already holds it TWICE as a deliberately-uncalled REQ-162 SKU gate — searched before filing). All three route-reachable members mutated to tenant-b: `isolation.test.ts` stays **68/68 GREEN** for every one, while the worker reds 39 / 7 / 2 on incidental pricing and behaviour tests. **The consent case is the finding**: all 7 catches are fail-CLOSED (tenant-b has no consent, so legitimate posts break) — the safe direction, and the only one anything could see. **A ConsentAck in ANOTHER tenant's D1 authorising GPS this tenant never authorised had no test**, and consent is the gate where failing open is a privacy breach, not an outage. Rule: **measuring that a mutation reds loudly says nothing about WHICH direction is covered — the loud one is usually the harmless one, because it breaks the happy path everybody tests.** New case asserts the REASON (§81 on this very file) + nothing inserted; reds `expected 201 to be 403`. 11/11; api 880/880. |
@@ -91788,3 +91789,68 @@ at §804.
 `workers/src`, `db/` or `tools/` change across §1627–§1631, so the board verdict at `e520ecb` (**21 PASS · 0 FAIL
 · 5 BLOCKED**) stands unchanged and unre-measured by design — the five BLOCKED remain the private engagement
 fixtures, which no repo-side work can clear.
+
+---
+
+## §1632 — PHASE GATE: closing the two loaders §1631 named — a booking that commits against another tenant's operating hours, and a probe that passed because it never ran (REQ-025/028/052/030)
+
+§1631 left `loadFacility` and `resolveAuthority` named-but-unmeasured because `isolation.test.ts` never reaches
+them. Both are now measured, and they closed in opposite ways.
+
+### `loadFacility` — the fourth instance, and the fail-open direction again
+
+Hours, capacity slots and **timezone** are all tenant data, so this is the §1629 shape exactly: a wrong handle
+changes the gate's answer rather than emptying it.
+
+| | |
+|---|---|
+| `isolation.test.ts` with the handle pointed at tenant-b | **69/69 GREEN** |
+| whole api worker | 13 failed / 4 files |
+
+Four for four. And the 13 are **fail-CLOSED again** — tenant-b has no facility, so `unknown_facility` blocks the
+happy path. The dangerous direction is a facility that **exists** in another tenant's D1 under the same id;
+seeded identically, the mutation resolves it, the slot validates, and the appointment **commits**:
+`expected 201 to be 400`. A booking made against another tenant's operating hours and timezone.
+
+`unknown_facility` had **no case at all** before this — the new test is both the REQ-025 value case and the
+first coverage of an absent facility.
+
+### `resolveAuthority` — dormant BY CONSTRUCTION, with a written trigger
+
+Forcing it to return `"legacy"` for every module:
+
+| worker | result |
+|---|---|
+| api | 7 failed — authority-flip + Watchtower, incl. *"a tenant-a parity_drift auto-fallback flips ONLY tenant-a's authority_map (REQ-025)"* |
+| **agents** | **235/235 GREEN** |
+
+The asymmetry is not a coverage gap, it is the design: every agents call site passes
+`authoritativeSource(await resolveAuthority(db, m), false)`, and that function is
+`if (authority === "native") return "native"; return legacyValueAvailable ? "legacy" : "native";` — **with
+`false`, any authority resolves to native.** The value read is discarded before it can matter, so a wrong-tenant
+read cannot change agent behaviour today. Per-tenant authority itself is covered where it IS consumed (the api
+isolation case above).
+
+> **Reopen trigger (this hold dies when the flag flips):** the moment WP-15 Task 4 wires a legacy mirror and any
+> call site passes `legacyValueAvailable: true`, this read becomes behaviourally live and needs the same
+> value-direction case as the other four. A test written today would pass because of the `false` argument, not
+> because of tenancy — the §1630 trap, so it is deliberately NOT written.
+
+### The probe that passed because it never ran
+
+The first attempt mutated `interline-split.ts` to read `env.TENANT_B_DB` and came back **235/235 green**, which
+read exactly like "the authority value is inert". It was not: **`env` is not in scope in that file** — the only
+occurrence was the mutation itself — so the line would have thrown `ReferenceError` had it executed. The green
+meant the probe never ran.
+
+> **A mutation referencing an identifier that is not in scope fails silently when the line is unreachable, and
+> silence is what an inert read looks like too.** Before crediting a silent mutation, confirm the mutated
+> expression could have executed at all — a `ReferenceError` that never fires is indistinguishable from a
+> harmless change. This is [[a-silent-mutation-has-two-explanations]] with a third explanation: *the probe was
+> never valid*.
+
+**Phase gate.** `appointments.test.ts` (+1 case, 16/16); api worker **882/882**; agents **235/235**. Four
+mutations restored byte-identical (`sequencer.ts`, `interline-split.ts`, `authority.ts`, plus §1631's). No
+`packages/`, `workers/src`, `db/` or `tools/` change persists, so the board verdict at `e520ecb` (**21 PASS ·
+0 FAIL · 5 BLOCKED**) stands. **The tenant-config-loader class is now fully enumerated: 4 measured and closed
+with value cases, 1 dormant with a written trigger, 1 out of class (control plane).**
