@@ -428,6 +428,48 @@ describe("Biller consumer — POD fires invoice.issued + evidence send (REQ-031/
   // Severity is honest: the sender posts JSON, so a CRLF address is far more likely to bounce than to inject.
   // What this pins is that a malformed address is never SELECTED — the same "held, loudly" answer the
   // no-contact case gets, rather than a send attempt at an address the tenant never wrote.
+  // §1669 (REQ-031/003) — a CORRUPT JSON COLUMN, which no test in this repo injected. The suites inject a
+  // rejected promise 195 times and a malformed JSON column zero times, so the three `try { JSON.parse(...) }
+  // catch { return undefined }` guards in the Biller (contacts, geo, refs) are unproven. They matter
+  // operationally rather than cryptographically: a corrupt `parties.contacts` — a partial write, a bad
+  // migration, an ops edit — would throw out of `resolveRecipient` and out of `handlePodSigned`, so the queue
+  // message is retried forever. ONE bad row would wedge the Biller for every tenant on that queue.
+  it("CORRUPT CONTACTS: invalid JSON in parties.contacts holds the send, never crashes the consumer", async () => {
+    const shp = "biller-corrupt-contacts";
+    const party = "party-corrupt-json";
+    await env.TENANT_A_DB.prepare("INSERT OR IGNORE INTO parties (id, kind, names, contacts) VALUES (?,?,?,?)")
+      .bind(party, "shipper", "{}", '{"kind":"billing","email":') // deliberately truncated — JSON.parse throws
+      .run();
+    // §1669 — REPAIR the row before any other file runs: these suites share ONE D1 (isolatedStorage off), and
+    // a malformed `contacts` blob makes `json_each(p.contacts)` RAISE for every reader in the tenant, not just
+    // this party's. Leaving it behind reded 48 cases across 6 files — the finding this fixture surfaced, and
+    // the reason the repair below is not optional hygiene.
+    const repair = async (): Promise<void> => {
+      await env.TENANT_A_DB.prepare("UPDATE parties SET contacts = '[]' WHERE id = ?").bind(party).run();
+    };
+    try {
+    await env.TENANT_A_DB.prepare(
+      "INSERT OR IGNORE INTO shipments (id, shipper_party_id, consignee_party_id, bill_to_party_id, created_ts) VALUES (?,?,?,?,0)",
+    )
+      .bind(shp, party, "party-consignee", party)
+      .run();
+    await seedDeliveryLeg(shp);
+    await priceQuote(shp);
+    const podId = await driveToPod(shp);
+
+    const sender = new RecordingSender();
+    const outcome = await handlePodSigned(msgFor(shp, podId), depsWith(sender));
+    expect(outcome.status, "a corrupt contacts column must HOLD the send, not throw into the queue").toBe("issued_send_pending");
+    if (outcome.status !== "issued_send_pending") throw new Error("unreachable");
+    expect(outcome.reason).toBe("recipient_unresolved");
+    expect(sender.messages).toHaveLength(0);
+    // The invoice still stands — a bad contacts blob is a SEND problem, never an AR problem.
+    expect(await invoiceEvents(shp), "the invoice must issue regardless of a corrupt contact blob").toHaveLength(1);
+    } finally {
+      await repair();
+    }
+  });
+
   it("MALFORMED RECIPIENT: a billing contact whose email carries CRLF is not selected — held, never sent", async () => {
     const shp = "biller-crlf-email";
     const party = "party-crlf-biller";

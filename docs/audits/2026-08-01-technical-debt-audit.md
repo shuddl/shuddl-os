@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1115 | §1668 | **§1669** | **DEFECT (FILED) — ONE MALFORMED JSON BLOB RAISES FOR EVERY READER IN THE TENANT.** §1668 moved the question to *what shape do the tests never inject*: across all worker suites, a rejected promise **195×**, a malformed JSON column **0×**. A test for the Biller's `try/JSON.parse/catch` guard found something larger: seeding ONE party with truncated `contacts` left the Biller correct (held `recipient_unresolved`, invoice intact) **and reded 48 cases across 6 other files** — the api suites share one D1. Probe named it: **`D1_ERROR: malformed JSON: SQLITE_ERROR`**. `json_each(p.contacts)` raises regardless of WHICH party you seek, so one corrupt blob fails every email lookup in the tenant — consumer throws, queue retries, tenant wedged by an unrelated row. **8 readers share the idiom**, and the worst are `users.device_keys` (`gate-context`, `sequencer`, `devices`) where one bad row **refuses every driver in the tenant**. **The schema has ZERO `json_valid` CHECKs** — every column is `TEXT NOT NULL DEFAULT '[]'` with a `-- j` COMMENT as its only marker. Rule: **a column whose validity is documented by a comment and depended on by eight scanners is an invariant with no owner.** FILED not fixed — the durable fix is a CHECK constraint, i.e. a MIGRATION, which needs a REQ row. |
 | 1114 | §1667 | **§1668** | **THE ALL-NEGATIVE-ASSERTION CLASS SWEPT — THE ONLY INSTANCE WAS THE ONE I WROTE.** §1667's rule is mechanical, so every render test was swept. First pass: **22 candidates**; corrected detector: **1**; and that one is safe too. **Two detector faults, each would have produced a false finding**: `findByTestId` as a positive anchor (StatementView's PRIVACY case awaits `findByTestId("invoice-INV-A")` BEFORE asserting `SECRET-DIV` is absent — an empty DOM fails at the anchor), and **`.not.toBeNull()` inside a `waitFor`, which is a wait-until-PRESENT gate, not a negative** (App's empty-board case waits for `captured.fleet` to be non-null; a crashed App leaves it null and the waitFor times out). **Both are positives wearing negative syntax** — the shape a naive detector inverts. Zero true instances remain. **The class was empty until I introduced its only member at §1667** — the existing suite already anchors its absences, and the discipline three phases rediscovered was already in the code being audited. Sharpest form: **a privacy test with no positive anchor certifies a blank page.** |
 | 1113 | §1666 | **§1667** | **THE SAME GAP ON COMMAND — AND MY OWN TEST PASSED ON A WHITE SCREEN BEFORE IT CAUGHT ONE.** Across all app suites, failure is injected as a REJECTION **25 times** and as a malformed BODY **zero** — every `.catch` proved against a network error, no parse proved to throw into one. Command validates at **12 response sites** and its views carry the reasoning (*`get<T>` is a CAST… an uncaught TypeError that white-screens Command*), but the conversion was untested. **My first draft asserted only ABSENCES and stayed GREEN under the pre-§782 cast** — printing the DOM showed why: **empty**. The cast makes React receive an object child, the tree throws, and a blank document satisfies every is-not-present assertion. Rule: **an absence claim needs a positive companion, and a WHITE SCREEN is the strongest possible satisfier of an absence claim** — a test with only negative assertions passes hardest exactly when the surface has failed completely. Rewritten to require the honest error text AND the surviving panel; the cast now reds it alone. **Third fix this session that needed the re-plant to be believed** — the re-plant is the only step that has ever caught these. |
 | 1112 | §1665 | **§1666** | **RE-VERIFIED THE 'A TYPE ARGUMENT IS A CAST' FIX — IT HELD, AND THE ONE THING IT LEFT UNPINNED.** §1665 closed the arc, so the next work is the class that can go stale: repo-owned FIXED rows. This one once produced 16 cast-typed sites, 9 crash-shaped and one rendering **NaN as a billing total**. **The fix held completely: 30 schema validations across the three surfaces, 0 cast-typed responses**, with the parse INSIDE the async fetch so a bad body rejects the promise instead of throwing at render — the loop degrades to STALE or UNAVAILABLE and keeps polling. **What it left unpinned**: both failure tests mock `get` to REJECT (`network down`), proving the catch handles a NETWORK error; **neither exercises `BoardResponse.parse` throwing into that catch** — different layers, same observable (§1645). Not theoretical: **if the parse moved out of the async fetch into a component, both tests still pass while the surface white-screens.** New case injects a malformed BODY (`lat_e6: "north"`, `as_of: "yesterday"`) and asserts unavailable with no items; replacing the parse with the pre-fix cast reds it alone. Rule: **a fix should leave a test for the hazard's SHAPE, not just its instance.** portal 105/105. |
@@ -93562,3 +93563,65 @@ row, then assert the secret is missing. **A privacy test with no positive anchor
 **Phase gate.** No source or test changed — sweep only. command **100/100** · portal **105/105** · driver
 **103/103** · tools **147 files / 1489**. Board carried forward from **`118db91`** (§1667's commit, **0 commits
 since**, measured at `cd6f249` as **21 PASS · 0 FAIL · 5 BLOCKED**).
+
+---
+
+## §1669 — PHASE GATE / DEFECT (FILED): one malformed JSON blob raises for EVERY reader in the tenant — 8 `json_each` sites, no `json_valid` anywhere (REQ-026/093/254/118)
+
+§1668 established the app suites were clean, so the question moved to **what shape the tests never inject**.
+Measured across every worker/package suite: a **rejected promise 195 times**, an unknown-kind message once, a
+NULL column once, and a **malformed JSON column ZERO times** — despite the system storing JSON in `contacts`,
+`device_keys`, `payload`, `config`, `party_refs`, `shipment_ids`.
+
+**A test written for the Biller's guard found something much larger.** Seeding one party whose `contacts` is
+truncated JSON, the Biller behaved perfectly (its `try { JSON.parse } catch { return undefined }` holds the send
+as `recipient_unresolved`, invoice intact) — **and 48 unrelated cases across 6 other files went red.** The api
+suites share one D1, so the row stayed visible, and the probe named the mechanism exactly:
+
+```
+D1_ERROR: malformed JSON: SQLITE_ERROR
+```
+
+**`json_each(p.contacts)` raises on the malformed row no matter which party you are looking for.** The
+concierge's `findPartyByEmail` scans every party's contacts, so **one corrupt blob makes every email lookup in
+that tenant fail** — the consumer throws, the queue retries, and the tenant is wedged by a row that has nothing
+to do with the message.
+
+**Eight readers share the idiom, and the worst two are not the one I found:**
+
+| site | column | blast radius of ONE bad row |
+|---|---|---|
+| `gate-context.ts` · `do/sequencer.ts` · `routes/devices.ts` | `users.device_keys` | **every driver in the tenant refused** — device auth is a `json_each` scan (REQ-254) |
+| `concierge.ts` · `intake-core.ts` | `parties.contacts` | every inbound email and CSR intake fails to resolve a party |
+| `lens.ts` | `events.party_refs` | the visibility lens |
+| `projection/authority.ts` · `projection/money.ts` | `flipped_events`, `shipment_ids` | projections |
+
+**And nothing enforces the invariant those readers depend on: the schema has ZERO `json_valid` CHECK
+constraints.** Every column is `TEXT NOT NULL DEFAULT '[]'` with a `-- j` comment — the marker is a comment.
+
+> **A column whose validity is documented by a comment and depended on by eight scanners is an invariant with
+> no owner.** Every writer today stringifies, so this is not reachable from any request — it needs a bad
+> migration, a partial write, or an ops edit. But the failure is not degraded service for one party; it is
+> `json_each` raising for **every** row the scan touches, which converts one corrupt cell into a tenant-wide
+> outage of driver auth or email intake.
+
+**FILED, not fixed, and the reason is the register.** The durable fix is a `CHECK (json_valid(contacts))` per
+JSON column — construction rather than eight patched readers — and that is a **migration**, which CLAUDE.md puts
+behind a REQ row. The per-reader alternative (`WHERE json_valid(...)`) trades the wedge for a silent skip, which
+on `parties.contacts` means minting a duplicate party instead of matching one — a real trade the owner should
+make deliberately, and one the record already has a precedent for (*"a visible possible-duplicate beats a wrong
+merge"*). Both go in the checklist.
+
+**What IS fixed here:** the Biller's guard now has the test it lacked, and the fixture **repairs the shared row
+in a `finally`** — because leaving it behind is how a single fixture reds 48 cases in six other files.
+
+**Phase gate.** `workers/api/test/biller.test.ts` only (+1 case; api **887/887**, was 886). No source changed —
+`biller.ts` mutated and restored byte-identical. Lint clean. Filed as a checklist row (Med, LATENT, needs a REQ
+row before the migration). Board **RE-MEASURED at `5999dfb`** (§1668's commit) **plus this phase's uncommitted
+work — 0 commits since**: `pnpm verify:merge` → **21 PASS · 0 FAIL · 5 BLOCKED**.
+
+**Three gates caught this phase's own paperwork**, which is worth one line each: `phase-index` (the heading did
+not start `PHASE GATE`), `section-refs` (my test comment cited **§1670**, a section that does not exist — the
+finding is §1669), and `table-shape` (the filed row had **9 cells against an 8-column header**, because I copied
+the shape from a row in a different table). Each is the record's own machinery refusing a plausible-looking
+edit, and the third would have silently DROPPED a cell at render.
