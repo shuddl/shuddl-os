@@ -26,6 +26,15 @@ import { runWatchtowerSweep } from "../../agents/src/watchtower.js";
 const JWT_SECRET = "test-secret-do-not-use-in-prod"; // === vitest.config.ts miniflare bindings.JWT_SECRET
 const nowS = (): number => Math.floor(Date.now() / 1000);
 
+// §1627 (REQ-025) — THE UNOBSERVED SIDE EFFECT. A cross-tenant refusal test that asserts only the status code
+// proves the RESPONSE and nothing about the LEDGER: a handler that appended first and refused second returns the
+// same 404. Both cross-tenant WRITE cases below said "no append" in a comment and measured only the status, which
+// is the weakest of the four ways to back an absence claim (§1626) — and the one place the claim matters most,
+// because an append that lands in the WRONG tenant's D1 is precisely the failure REQ-025 exists to prevent.
+// Counting BOTH databases catches both shapes at once: residue in the caller's tenant, and a breach in the other.
+const eventCount = async (db: D1Database): Promise<number> =>
+  (await db.prepare("SELECT COUNT(*) AS n FROM events").first<{ n: number }>())?.n ?? 0;
+
 // REQ-025: cross-tenant read anywhere = build failure. This suite runs on every merge, forever.
 // It grows a case for every read path added in later WPs — WP-02 adds the ledger event/position routes.
 
@@ -162,24 +171,37 @@ describe("REQ-025 growth: the ledger routes reject the same cross-tenant attacks
   // session naming a tenant-b shipment reads tenant-a's D1 (keyed off the JWT claim via tenantDb) — a tenant-b
   // shipment lives in a DIFFERENT physical D1 the session can never address → zero visible events → 403
   // (fail-closed). NOTHING is appended, no cross-tenant read occurs.
+  // §1627 — these two are NOT auth refusals: the handler RUNS, reads tenant-a's D1, finds zero visible events and
+  // fails closed. So "NOTHING is appended" above is a claim about a handler that executed, and a status code
+  // cannot back it. Both databases are counted for the same reason as the dunning/approval cases below.
   it("accept-quote on a tenant-b shipment id is a fail-closed 403 (reads tenant-a's D1, never tenant-b's)", async () => {
     const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "ops" });
+    const before = { a: await eventCount(env.TENANT_A_DB), b: await eventCount(env.TENANT_B_DB) };
     const res = await SELF.fetch("https://api.local/v1/shipments/tenant-b-only-shipment/accept-quote", {
       method: "POST",
       headers: { ...bearer(t), "Idempotency-Key": crypto.randomUUID(), "content-type": "application/json" },
       body: JSON.stringify({ quote_event_id: "whatever" }),
     });
     expect(res.status).toBe(403);
+    expect(
+      { a: await eventCount(env.TENANT_A_DB), b: await eventCount(env.TENANT_B_DB) },
+      "the fail-closed accept-quote appended anyway — the lens gate refused AFTER reaching the ledger",
+    ).toEqual(before);
   });
 
   it("claim on a tenant-b shipment id is a fail-closed 403 (reads tenant-a's D1, never tenant-b's)", async () => {
     const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "ops" });
+    const before = { a: await eventCount(env.TENANT_A_DB), b: await eventCount(env.TENANT_B_DB) };
     const res = await SELF.fetch("https://api.local/v1/shipments/tenant-b-only-shipment/claim", {
       method: "POST",
       headers: { ...bearer(t), "Idempotency-Key": crypto.randomUUID(), "content-type": "application/json" },
       body: JSON.stringify({ description: "cross-tenant probe" }),
     });
     expect(res.status).toBe(403);
+    expect(
+      { a: await eventCount(env.TENANT_A_DB), b: await eventCount(env.TENANT_B_DB) },
+      "the fail-closed claim appended anyway — the lens gate refused AFTER reaching the ledger",
+    ).toEqual(before);
   });
 
   it("X-Tenant-Id header on POST /v1/shipments/:id/accept-quote is rejected at auth (TENANT_MISMATCH)", async () => {
@@ -248,12 +270,21 @@ describe("REQ-025 growth: the ledger routes reject the same cross-tenant attacks
 
   it("approval-decision on a tenant-b shipment id reads tenant-a's D1 → clean 404, never tenant-b's (REQ-025)", async () => {
     const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "finance" });
+    // §1627 — measure what the refusal must NOT do, not just what it answers. The tenant-b approval seeded above
+    // is the row a leak would decide; its status is the sharpest single observation in this file.
+    const before = { a: await eventCount(env.TENANT_A_DB), b: await eventCount(env.TENANT_B_DB) };
     const res = await SELF.fetch("https://api.local/v1/shipments/tenant-b-only-shipment/approval-decision", {
       method: "POST",
       headers: { ...bearer(t), "Idempotency-Key": crypto.randomUUID(), "content-type": "application/json" },
       body: JSON.stringify({ decision: "approved" }),
     });
     expect(res.status).toBe(404); // no open approval in tenant-a's D1 — no cross-tenant read, no append
+    expect(
+      { a: await eventCount(env.TENANT_A_DB), b: await eventCount(env.TENANT_B_DB) },
+      "the refused decision appended an event — a 404 that still writes is the REQ-025 failure, in either D1",
+    ).toEqual(before);
+    const bRow = await env.TENANT_B_DB.prepare("SELECT status FROM approvals WHERE id = ?1").bind("iso-appr-b").first<{ status: string }>();
+    expect(bRow?.status, "tenant-a's refused decision reached ACROSS and decided tenant-b's open approval").toBe("open");
   });
 
   it("X-Tenant-Id header on POST /v1/shipments/:id/approval-decision is rejected at auth (TENANT_MISMATCH)", async () => {
@@ -552,12 +583,24 @@ describe("REQ-025 growth: the Collector dunning surface reads ONLY the JWT tenan
 
   it("a send named at a tenant-b draft id reads tenant-a's D1 → clean 404, never tenant-b's (REQ-025)", async () => {
     const t = await token({ sub: "u1", tenant: TENANT_SLUG, role: "finance" });
+    // §1627 — this route's refusal is decided INSIDE `sendDunningDraft`, the same function that renders and sends
+    // the mail and appends `message.sent`. The comment below claimed "no append, no send" and measured neither;
+    // the draft lookup is step 1 and returns early, so the claim is TRUE — now it is also observed.
+    const before = { a: await eventCount(env.TENANT_A_DB), b: await eventCount(env.TENANT_B_DB) };
     const res = await SELF.fetch(`https://api.local/v1/dunning/${encodeURIComponent(B_DUN_DRAFT_ID)}/send`, {
       method: "POST",
       headers: { ...{ Authorization: `Bearer ${t}` }, "Idempotency-Key": crypto.randomUUID(), "content-type": "application/json" },
       body: "{}",
     });
     expect(res.status).toBe(404); // no such draft in tenant-a's D1 — no cross-tenant read, no append, no send
+    expect(
+      { a: await eventCount(env.TENANT_A_DB), b: await eventCount(env.TENANT_B_DB) },
+      "the refused send appended an event — `message.sent` for a tenant-b invoice, reached from a tenant-a session",
+    ).toEqual(before);
+    const sent = await env.TENANT_B_DB.prepare("SELECT COUNT(*) AS n FROM events WHERE kind = 'message.sent' AND payload LIKE ?1")
+      .bind(`%${B_DUN_INV}%`)
+      .first<{ n: number }>();
+    expect(sent?.n, "a message.sent for tenant-b's invoice exists — the refusal sent the dunning mail anyway").toBe(0);
   });
 
   it("?tenant= query param on GET /v1/dunning is rejected at auth", async () => {
