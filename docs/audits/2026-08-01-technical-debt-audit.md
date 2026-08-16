@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1127 | §1680 | **§1681** | **SEGMENT STOPPING POINT — THE FILED REGISTER AUDITED AGAINST ITSELF; THE OLDEST OPEN ROW HAD NO EXPIRY CONDITION.** The direct answer to *identify all technical debt* is the filed register asked whether it is still true: **57 OPEN rows, 8 Repo-owned, 4 struck ⇒ exactly FOUR live repo-owned rows** (417 cron double-fire — transport still `NotConfiguredTransport`, verified in source; 418 duplicate-vs-strand — a DECISION, not a code state; 451 pool-binding — re-measured §1680; 454 custody parties — deferred REQ-069, fails CLOSED, R3). **454's trigger was TESTED not assumed** (no commit since §1085 touched its files; the empty result controlled by re-running without the date filter → 2 commits). **THE FINDING: row 451's *Evidence expires* cell held FIX PROSE, not a condition** — how to fix it, never when to distrust it — and **451 is precisely the row that survived four restatements without re-measurement**. A row with no expiry condition is a row nothing ever asks again. Given three greppable conditions. **A detector for the class was written and THROWN AWAY**: it flagged 13 of 68 and twelve were valid triggers phrased differently — the real instance came from READING the four open rows. §1673's rule again: where the boundary is English, read the short list. **SEGMENT §1676–§1681**: 3 gates added, 1 declined on measured evidence, **2 of the segment's own gates caught the author within one phase of being built**; board **21 PASS · 0 FAIL · 5 BLOCKED** at `bd7ad3c`, no repo-owned gate failing |
 | 1126 | §1679 | **§1680** | **THE OLDEST OPEN REPO-OWNED BLOCKER, RE-MEASURED AGAINST THE ARTIFACT.** Row 451 (pool-binding exclusivity enforced on ENUMERATION, not RESOLUTION) has been restated four times; §1056 left a checkable sentence — the wall is ONE version-pinned upstream assert and *the constraint may already be fixed upstream and nobody has looked*. **Looked, at the published tarball.** **(1) CONFIRMED GONE**: `endsWith(".sqlite")` sits at the two recorded lines of the installed 0.9.14 pool entry point (§1056 reproduced exactly) and **zero times anywhere in 0.21.3** — with **three positive controls first**, because an empty grep over an unverified layout is the shape that invites no follow-up (the file does mention `sqlite` 20×). **(2) BUT IT IS AN API MIGRATION, NOT A BUMP**: 0.9.14 exports `.` + **`./config`**, which is where `defineWorkersConfig` lives and what EVERY `vitest.config.ts` here imports; **0.21.3 ships no `/config` entry** and its surface is a pair of upstream pool/test factories under different names — 6 pinning packages plus the workspace `chai` override. **(3) NEW FACT**: the repo is **already on vitest 4.1.10 while the pool pulls `@vitest/runner` 3.2.7**, so the upgrade RESOLVES a standing major mismatch rather than introducing one (0.21.3 ships a v3→v4 codemod because it targets v4). **§1056's diagnosis was right and its sizing was optimistic** — *take a dependency upgrade and re-test* measures as *migrate the pool config API in six packages while crossing a runner major*. Both describe one discovery; only one can be planned against. Not attempted (owner runway); zero source changed |
 | 1125 | §1678 | **§1679** | **THE PARAMETER FORM OF PARSED-BUT-UNCONSUMED — 39 DECLARED, 5 UNFED, 1 DEAD SEAM IN THE MAP.** Four phases in a row found prose asserting a mechanism the code lacks; §1678's instance has a MECHANICAL core, so it was counted instead of fixed again. §796 swept the SCHEMA-field form (203 Zod fields → 1); the PARAMETER form is a different declaration site and had never been swept. **39 exported functions declare an optional param, 5 are never supplied** — 3 have DEFAULTS (legitimately unfed: the default IS the value), leaving **2 bare `?:`**. **The find: `setEntityState(…, risk?)` has NO producer and NO consumer** — the sole caller passes 3 args so feature-state always carries `risk: null`, **no paint expression anywhere reads `["feature-state", "risk"]`** (the `at-risk` STATUS is fully painted; the reason CODE is not), and no register row scopes it. Threaded through THREE declarations, arriving nowhere — **and its test made it look alive**, passing `"DWELL"` while asserting only the status; now asserts the whole state object both ways incl. the production `risk: null`. Not deleted, not wired (§796's precedent: record it, keep the shape honest). Gate frozen at 2, RED-proved by planting a third. **Its own positive control failed first, on MY splitter**: `>` was counted as a closing generic, so `=> void` decremented depth past zero and merged a callback param with its neighbour. **A gate whose subject is a COUNT mis-classifies exactly what it judges when it miscounts — and a miscount looks identical to a finding** |
 | 1124 | §1677 | **§1678** | **THE BILLER'S THREE ANOMALY RULES: TWO LIVE, ONE UNREACHABLE, ONE SEAM NOTHING FEEDS.** genesis/01 names *>$/lb, >$ cap, negative*. **`>$/lb`** runs at PRICING (not at send) and becomes a CRITICAL Watchtower alarm — deliberate, and REQ-040 scopes it *at ingest+pricing*, so genesis's *review before send* is intent while the register is scope: **verification, not a find**. **`negative`** is UNREACHABLE from production — freight validated non-negative, fsc a percentage of it, accessorials `NonNegCents` — so *three rules* is, at that seam, two. **`>$ cap`** does not exist and **zero register rows scope one**, so building it would be scope invention. **The defect: `anomaly.ts` documents its `caps` param as *the tenant-policy seam Task 10 feeds from config* and NOTHING FEEDS IT** — `max_cents_per_lb` lives in exactly two files (the module + its tests), the sole call site omits the argument, and the sharpest part is that `priceShipment` DOES receive a `TenantRatingConfig` on that very line, so a reader concludes the seam is fed while the type carries no cap field. Corrected, incl. that wiring it needs an AMENDMENT. **Plus a silent skip safe only because of another file**: `compose.ts` THROWS on an unknown accessorial code (*no silent drop*) and silently skips a known one that is not `> 0`, three lines apart, unexplained — safe only because `items` is `NonNegCents`, and relaxing that Zod type makes the skip swallow a tenant's configured discount (billing MORE) with rater 171/171 green. **And the pinning test had the direction backwards** (*a negative could silently reduce a valid price* — it would not; compose skips it, so the price goes UP). Rule: **a guard's stated reason is a claim about its CONSUMER, and the consumer is in another file.** **AND §1677's new SHA gate caught ME one phase later** — `f8dc1e6` for `dcf560b`: two fabricated SHAs in two consecutive phases, the argument §997 could not have had |
@@ -94432,3 +94433,70 @@ ours. **A record describing a dependency has to stop borrowing the repo's citati
 upstream; upgrade re-sized from "re-test" to "API migration"; a standing runner-major mismatch surfaced),
 1 checklist row extended, **zero source changed**, 3 positive controls run before trusting an empty result.
 Board carried from `cd0b7fa` (§1679's commit, **0 commits since**) as **21 PASS · 0 FAIL · 5 BLOCKED**.
+
+---
+
+## §1681 — PHASE GATE (SEGMENT STOPPING POINT): the filed debt register audited against itself — four rows open, one with no expiry condition (REQ-118/119)
+
+The most direct answer to *"identify all technical debt"* is not another sweep of the code — it is the filed
+register, asked whether it is still true. `GO-LIVE-CHECKLIST.md` carries **57 rows containing OPEN**, of which
+**8 are Repo-owned**; four of those eight are struck (`~~OPEN~~ **FIXED**`), so the live repo-owned debt is
+**exactly four rows**:
+
+| row | item | why it is still open |
+|---|---|---|
+| 417 | cron sweeps double-fire under overlapping ticks | expires when a transport is wired — **still `NotConfiguredTransport`**, verified in source |
+| 418 | the duplicate-vs-strand decision is unmade | expires when the claim protocol is CHOSEN — a decision, not a code state |
+| 451 | pool-binding exclusivity: enumeration yes, resolution no | re-measured at §1680 |
+| 454 | a pickup custody handoff cannot record REAL parties | blocked on deferred REQ-069 identity; **fails CLOSED**, R3-gated |
+
+**Row 454's trigger was tested rather than assumed**: no commit has touched
+`apps/driver/src/flow/captures.ts` or the driver session seam since §1085 verified it on 2026-08-11. The empty
+result was controlled first — the same `git log` without the date filter returns two commits, so the path
+filter works and the negative is real.
+
+### The finding: the oldest open row had no expiry condition at all
+
+Every row in this table has an **"Evidence expires"** column — the sentence that says when its verdict dies.
+**Row 451's held fix prose instead**: *"the structural answer is a control-plane UNIQUE index … land it with a
+pool-slot expansion or with per-file control DBs."* That is how to fix the row, not when to distrust it.
+
+The correlation is not decorative. **451 is the row that survived four restatements without anyone
+re-measuring it** — §12, §882, §1056 and the row itself each restated the wall, and §1680 was the first pass
+to open the artifact. A row with no expiry condition is a row nothing ever asks again.
+
+Given one: three greppable conditions, any of which kills the verdict — a manifest pinning the pool above
+`0.9.14`, `workers/api/vitest.config.ts` dropping `isolatedStorage: false`, or a second control-plane binding
+appearing in the api `wrangler.toml`.
+
+**A detector for this class was written and thrown away.** A regex for "cells that do not read as a condition"
+flagged **13 of 68** — and twelve are valid triggers phrased differently (*"on any secret rotation"*, *"at
+every close-out"*, *"evidence stands while X is tracked"*). The real instance was found by **reading the four
+open rows**, which is a bounded corpus. §1673's rule holds again: where the boundary is English, read the
+short list rather than build the long detector.
+
+### SEGMENT GATE — §1676 through §1681
+
+| § | finding | disposition |
+|---|---|---|
+| §1676 | a refusal log claimed it preserved a tender it had failed to store | **fixed** + pinned |
+| §1677 | REQ-035's 0.8 confidence floor was enforced in code and defended by nothing | **closed**, both sides of the boundary |
+| §1678 | the anomaly cap seam is documented as config-fed; nothing feeds it | **corrected**; two adjacent claim defects with it |
+| §1679 | the parameter form of parsed-but-unconsumed — 39 declared, 5 unfed, 1 dead seam | **swept + gated** |
+| §1680 | the oldest blocker re-measured: constraint gone upstream, upgrade re-sized | **owner decision, now factual** |
+| §1681 | the filed register audited against itself | 4 rows open, 1 trigger written |
+
+**Three gates were added across the segment** (`anchor-specificity`, `unfed-optional-params`, the SHA
+resolution assertion), **one was declined on measured evidence** (§1673's comment-anchor detector, and the
+decline held when re-tested at §1676), and **two of the segment's own gates caught the author within one phase
+of being built** — the SHA check on §1678, and `unfed-optional-params`' control on its own splitter.
+
+**The state of the build.** `pnpm verify:merge`: **21 PASS · 0 FAIL · 5 BLOCKED** — the five are the standing
+owner-held holds (identity denylist + four private-fixture gates), unchanged all segment. **No repo-owned gate
+is failing.** Live repo-owned debt is the four rows above: two await an owner decision, one awaits deferred
+scope, one awaits a runway. **Every one of them now carries a condition under which someone will look again.**
+
+**Phase gate.** Register audited end to end, 1 missing expiry condition written, 1 trigger verified unfired
+with a control, 1 detector written and discarded on its own false-positive rate, segment closed. **Zero source
+changed this phase.** Board carried from `bd7ad3c` (§1680's commit, **0 commits since**) as **21 PASS · 0
+FAIL · 5 BLOCKED**.
