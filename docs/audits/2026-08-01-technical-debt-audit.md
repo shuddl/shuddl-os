@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1083 | §1636 | **§1637** | **STOPPING POINT — the method statistic.** Ten phases: **nine used EXECUTION (mutation or a relation between artifacts) and found something; the one READ-based phase found nothing**, converging three times on work the record already held. §1602's rule re-confirmed with a tenth data point: **a sweep that greps converges; a probe that mutates finds** — start the next session by planting a violation, not by listing candidates. Second rule, earned three ways this session: **a silent mutation is never an answer** — §1632's was silent because the probe never ran (`env` out of scope), §1634's because the guard is genuinely redundant, §1633's because the divergence is not constructible. Prove the probe COULD have failed before crediting its silence. **Zero production behaviour changed across the arc** — 4 tests, 1 gate, 3 comments recording measurements at the line; all 12 mutations restored byte-identical. REQ-025 inventory complete (4 value cases · 1 dormant+trigger · 1 out of class · 1 untestable · 1 verified · 1 redundant) plus the record's own deletion floor. Board carried from `d843de6`, 1 commit since: **21 PASS · 0 FAIL · 5 BLOCKED**. |
 | 1082 | §1635 | **§1636** | **CLEAN NEGATIVE — AND THE DISCRIMINATOR THE UNBOUNDED-READ ROSTER WAS MISSING.** Three probes converged on the record (budgets: §563/§611/§743/§813 mutation-proved all seven; release-only gates: §807's residual was CLOSED by §808; unbounded reads: 9 rostered sites + their own gate) — **searching the record first is what kept three re-derivations from being published as finds.** The one place a sweep went past it: the **per-stream prior read** (`SELECT * FROM events WHERE stream_id = ? ORDER BY seq`), which runs on the WRITE path twice — the sequencer's `prior()` per gated append and `loadStreamPrior` per raw position. **Not an instance**, and the reason is the missing discriminator: **the nine rostered reads grow with TENANT AGE; this one grows with a SHIPMENT'S LIFECYCLE** — same SQL shape, different growth axis, and only the first is a ceiling. **But the safety rests on a coupling nothing enforces**: exactly one stream grows forever (`t:root`), only `authority.flipped` lands there, and that kind is not in `GATED_KINDS` — enforced by the events route deriving `s:${shipmentId}`, NOT by a guard (`isGatedKind` decides whether to gate, never which stream). Trigger written: any GATED_KIND reaching `t:root` makes `prior()` load the entire tenant control history per append, on a stream that never ends. **Not built** — a refusal is new behaviour and needs a REQ row (§1629's call). |
 | 1081 | §1634 | **§1635** | **THE RECORD'S OWN INTEGRITY WAS INCIDENTAL — SIX VERDICTS COULD BE DELETED WITH EVERY GATE GREEN.** §1634's ratchet catch raised the family question: a ratchet forbids GROWTH, so what stops one being satisfied by DELETION? The family is clean — `citation-ratchet` reports `fell` as a violation too (exact equality, so a deletion forces an explicit re-baseline), and the other two carry corpus floors. **But the record they protect had no floor of its own.** `section-refs` reds only when something still POINTS at a deleted number; measured, **6 of 1619** sections were referenced by nothing but their own heading (§106/107/108/350/413/460), none a stub — 2.0–3.8 KB of real verdicts each. Demonstrated both ways: deleting §460 is silent to `section-refs`, deleting §1600 is caught — **the record is protected exactly where it happens to be cited and nowhere else.** Rule: **a protection that depends on someone having cited the thing is a coincidence, not a protection** — the property worth enforcing is *the record never gets smaller*. New floor freezes 1619 (may only rise) + a duplicate-§N check. **And naming the six changed the thing measured** — this header cites them, so they are no longer orphans; recorded in the gate rather than quietly enjoyed. |
 | 1080 | §1633 | **§1634** | **THE ONE INCONCLUSIVE PROBE, SETTLED — AND THE ANSWER WAS IN WHICH TESTS CATCH THE SIBLING.** §1631's pin probe returned a suite that FAILED TO RUN (45 skipped); re-run cleanly it is **882/882 GREEN, exit 0** — the partial run was flake, not a catch. A silent mutation is a question, and the branch is decided by reading the two tests that catch its sibling: both the forged-tenant case and `plg-isolation-matrix` G2 drive a **FRESH stub**, so `pinned` is null and the pin branch CANNOT fire — which is why deleting id-equality reds them and why the pin is not what saves them. Reaching the pin's throw needs the same DurableObjectId from a DIFFERENT (tenant, streamId) — a hash collision — so it is **redundant (a), not vacuous (b)**, and a test aimed at it would be intercepted by id-equality and measure THAT (§859). Rule: **when a mutation is silent, the SHAPE of the tests catching its sibling often decides the branch — read the defenders, not just the count.** Written at the line per §235. Closes the last §1631 item; the REQ-025 mechanism inventory is complete (4 value cases, 1 dormant+trigger, 1 out of class, 1 untestable, 1 verified, 1 redundant). |
@@ -92063,3 +92064,63 @@ process is for — the same call §1629 made for `resolveAuthority`.
 **Phase gate.** Documentation only — no source, no test, no gate. Board carried forward from **`d843de6`**
 (§1635's commit, **0 commits since**, measured there as **21 PASS · 0 FAIL · 5 BLOCKED**); this phase changes no
 file any gate reads except this record.
+
+---
+
+## §1637 — PHASE GATE / STOPPING POINT: ten phases, and the method statistic that says where to start next time (REQ-118/119)
+
+§1627–§1636 form one arc, and the arc has a measurable shape worth recording before it is forgotten — because
+the previous session's stopping point (§1597) drew the wrong conclusion from a similar moment and §1623 had to
+correct it.
+
+**What each phase used, and what it returned:**
+
+| § | method | result |
+|---|---|---|
+| 1627 | **relation** — a test's assertions vs its handler's write path | 4 refusals claiming "no append", measuring a status |
+| 1628 | **mutation** | the REQ-025 gate blind to a cross-tenant tariff read |
+| 1629 | **mutation ×3** | the class, 3-for-3 — and the consent gate's fail-OPEN direction untested |
+| 1630 | **mutation** | my own new test was decoration; it passed WITH the mutation planted |
+| 1631 | **mutation** | clean negative — the DO's primary guard is properly covered |
+| 1632 | **mutation ×3** | a booking that commits against another tenant's hours; one probe invalid |
+| 1633 | **mutation + positive control** | untested → **untestable**; documented instead of tested |
+| 1634 | **mutation** | the pin is redundant — proved by reading WHICH tests catch its sibling |
+| 1635 | **mutation** (delete a section) | six verdicts deletable with every gate green → new floor gate |
+| 1636 | **read sweeps ×3** | **all three converged on the record**; one discriminator + one trigger |
+
+**Nine of ten phases used execution. The one read-based phase produced zero defects** — three sweeps, three
+re-derivations of work the record already held (budgets §563/§611/§743/§813, the release roster §807→§808, the
+unbounded-read cluster). That is not a statement about those areas being clean; it is a statement about what a
+grep can reach.
+
+> **§1602's targeting rule, re-confirmed with a tenth data point: the record is complete for what can be READ,
+> and thin exactly where a property is only observable by EXECUTING something or is a RELATION between
+> artifacts.** Reading is what this record has done thoroughly for months. A sweep that greps converges; a probe
+> that mutates finds. Start the next session by planting a violation, not by listing candidates.
+
+**A second rule earned twice this session, and it is the one that keeps mutation honest:** a silent result is
+never an answer. §1632's probe was silent because `env` was out of scope and the line never ran; §1634's was
+silent because the guard is genuinely redundant; §1633's was silent because the divergence is not constructible.
+Three different meanings for one green run. **Before crediting silence, prove the probe could have failed** —
+a positive control, an out-of-scope check, or the schema that forbids the case.
+
+**What this arc did NOT change: production behaviour.** Every fix was evidence — four tests added, one gate
+added, three comments recording measurements at the line. All twelve mutations were restored byte-identical.
+The defects were in what tests CLAIMED, which is the §804 shape three phases deep.
+
+### The state, and what is left
+
+**Closed:** the REQ-025 mechanism inventory is complete — 4 tenant-config loaders with value-direction cases,
+1 dormant with a written trigger, 1 out of class (control plane), 1 untestable-by-construction and documented,
+1 primary structural guard verified covered, 1 redundant-by-construction and documented. Plus the record's own
+deletion floor.
+
+**Open, each with the reason it is not being built here:**
+- `resolveAuthority`'s value-direction case — dormant until WP-15 Task 4 wires a legacy mirror (§1632).
+- A gated kind on `t:root` — a refusal is new behaviour and needs a REQ row (§1636).
+- The five BLOCKED gates and four filed owner decisions — engagement-side, unchanged all session.
+
+**Phase gate.** Documentation only. Board carried forward from **`d843de6`** (§1635's commit, **1 commit since**
+— `b952d9d`, docs-only, changing no file any gate reads except this record), measured there as **21 PASS ·
+0 FAIL · 5 BLOCKED**, aggregate BLOCKED (exit 2). tools **146 files / 1485**; api **882/882**; agents
+**235/235**.
