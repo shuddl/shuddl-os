@@ -93621,7 +93621,13 @@ row before the migration). Board **RE-MEASURED at `5999dfb`** (§1668's commit) 
 work — 0 commits since**: `pnpm verify:merge` → **21 PASS · 0 FAIL · 5 BLOCKED**.
 
 **Three gates caught this phase's own paperwork**, which is worth one line each: `phase-index` (the heading did
-not start `PHASE GATE`), `section-refs` (my test comment cited **§1670**, a section that does not exist — the
-finding is §1669), and `table-shape` (the filed row had **9 cells against an 8-column header**, because I copied
+not start `PHASE GATE`), `section-refs` (my test comment cited a section number one past the finding's own — a
+section that does not exist), and `table-shape` (the filed row had **9 cells against an 8-column header**, because I copied
 the shape from a row in a different table). Each is the record's own machinery refusing a plausible-looking
 edit, and the third would have silently DROPPED a cell at render.
+
+**And a fourth, after the commit: writing ABOUT the dangling reference created one.** The sentence above
+originally quoted the bad number literally, and `section-refs` cannot tell a citation from a quotation — the
+token is the token. There is no ignore marker for it (unlike `citation-check: ignore`), so the fix is to
+describe the mistake without spelling it. **A record that gates its own cross-references cannot quote a broken
+one**, which is a small, permanent tax on writing honestly about them.
