@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1111 | §1664 | **§1665** | **STOPPING POINT — device coordinates fuzzed clean, and the §1627–§1665 arc closed.** The last untrusted input is a driver's phone: 12 hostile stamps (NaN lat, ±Infinity lon, MAX_SAFE_INTEGER, beyond the pole, past the antimeridian, fractional e6, negative/NaN accuracy) → **named refusals naming the field, zero TypeErrors**. The one to chase — **accuracy 1e12 m gives `inside:true`** because the circle overlaps everything — **fails closed**: the gate is `r.inside && !r.ambiguous`, so claiming absurd precision-loss buys REFUSAL, not arrival. That asymmetry is the already-filed High owner decision, now measured rather than reasoned; not re-filed. **Arc totals: 3 production defects, each found by a different method** — §1654 (fuzzing a spec parser), §1657 (sweeping 4,052 regexes), §1659 (measuring an idiom's 71:3 ratio) — **and everything else was EVIDENCE**, ~two dozen phases hardening what tests CLAIM, changing zero production behaviour. **Six probe-construction faults, every one caught by a control or an attribution check, none by reading.** Remaining: 5 BLOCKED gates + 4 filed decisions (owner-side), `resolveAuthority`'s case (dormant) and a gated kind on `t:root` (needs a REQ row). |
 | 1110 | §1663 | **§1664** | **'200 WITH A GARBAGE BODY' ACROSS EVERY EXTERNAL PORT — INCLUDING THE ONE WITH NO SPEC AT ALL.** §1654–§1656 covered inputs that FAIL; this is the shape that succeeds and lies, skipping every error path and writing a false success record. **Mail sender: already hardened** with the reasoning at the line (*a 2xx with a NON-JSON body — a proxy answering for a dead upstream — must fall into the same retriable no-id branch, never escape as a raw SyntaxError*), via guarded parse + `safeParse`, retriable because the Idempotency-Key makes redelivery safe. **The interesting port is the LLM: its output can only be wrong against a PROMPT, which the code itself calls *a best-effort steer, not a trust boundary*.** Twelve hostile envelopes through `ClaudeParser`: empty, non-JSON, `null`, content not-an-array/empty, wrong block type, non-string text, wrong-shape result, 2000-deep nesting, 300 KB text, fenced JSON, and a **`__proto__` pollution bait** → all `intent=unknown`, **zero throws, zero TypeErrors, and `Object.prototype` unpolluted**. **The reachability control is what makes it a result**: all-unknown is also what a probe that never reached the parser looks like — two controls (plain + fenced) parse to `intent=quote conf=9000`, and they showed my first 'fence handling broken' read was my own harness's escaping. **Fifth probe fault this session, fifth caught by a control.** |
 | 1109 | §1662 | **§1663** | **EXEMPTION INVENTORY CLOSED — every carve-out in the repo, and what covers each.** §1662's rule needs the exemptions to be enumerable; they are, and the list is small. **Inline: 5 repo-wide, ZERO in production source** (all `no-empty-object-type`, a cosmetic rule, in tests/tooling) — so the *one-line carve-out nobody reviews* class, where this hazard usually lives, is **empty here**. **Config-level: 2** — `no-restricted-globals` off for `packages/ledger/src/tsa/client.ts` (covered by §1662's metering gate) and `no-misused-promises` off for `**/*.test.tsx` (test-only). **The TSA carve-out is narrower than its own message, in the SAFE direction**: the message says the sanctioned egress is *the RFC 3161 TSA client (`src/tsa/**`)* but the config exempts ONE FILE, and measured, **none of the three `src/tsa/` modules calls `fetch(`** — the exemption covers a single identifier reference, `fetchImpl: typeof fetch = fetch`, a default parameter naming the global once while every call goes through the injected port. Rule: **a config tighter than its message is annoying and safe; a message narrower than its config ships a hole, and the two read identically at a glance.** |
 | 1108 | §1661 | **§1662** | **REQ-024's LLM BAN PROVED THROUGH ITS OWN EXEMPTION — AND §1661's INVERSION ALREADY EXISTS.** CLAUDE.md asserts a law that claims its own enforcement (*LLM calls only inside `packages/agents/*` — never in `packages/ledger`, statically linted*), so it was planted against. An `api.anthropic.com` fetch in `packages/ledger/src/merkle.ts` is caught by ESLint with the REASONING in the message (*an LLM is reachable by raw fetch with no import* — which is why it bans a GLOBAL, not an import). **The same fetch inside `src/tsa/**`, the EXEMPT directory, is caught by two tools gates** — including `llm-agent-metering-trigger` (*LLM_AGENTS covers every module that actually CALLS a provider — behaviour, not naming*), written at §682, hundreds of sections before §1661 re-derived the principle. Rule: **a ban and its exemption need different detectors, and the exemption's cannot be a scope rule** — the lint reasons about WHERE a call may appear and must carve out `src/tsa/**`; the metering gate reasons about WHAT the call does and has no carve-out to abuse. **Defence in depth in the only form that matters: not two copies of one rule, but two rules whose blind spots do not overlap.** |
@@ -93392,3 +93393,59 @@ session, and the fifth caught by a control rather than by reading.**
 **Phase gate.** No source or test changed — fuzzing only, harnesses run outside the tree and deleted. agents
 **236/236** · tools **147 files / 1489**. Board carried forward from **`ecd98d2`** (§1663's commit, **0 commits
 since**, measured at `cd6f249` as **21 PASS · 0 FAIL · 5 BLOCKED**).
+
+---
+
+## §1665 — PHASE GATE / STOPPING POINT: device coordinates fuzzed clean, and the §1627–§1665 arc closed (REQ-030/065/118/119)
+
+**The last untrusted input in the system is a driver's phone.** Coordinates arrive from a device, feed
+`insideFence` and `deriveOperatingState`, and decide a REQ-030 gate. Twelve hostile stamps:
+
+| shape | fence | state |
+|---|---|---|
+| `NaN` lat · `±Infinity` lon · `MAX_SAFE_INTEGER` · beyond the pole · past the antimeridian · fractional e6 | **named refusals** (*"point.lat_e6 must…"*, *"…out of range"*) | `XX` |
+| `(0,0)` · negative zero | computed honestly (12,781,979 m away, not inside) | `XX` |
+| negative / `NaN` accuracy | **named refusal** | `CA` |
+| **accuracy 1e12 m** | `{inside: true, distance_m: 0, ambiguous: true}` | `CA` |
+
+**Zero TypeErrors, zero RangeErrors** — every rejection names the field.
+
+**The last row is the one worth chasing, and it fails closed.** A device claiming a trillion-metre accuracy
+circle overlaps everything, so `inside` becomes true — but the gate is
+`r.inside && !r.ambiguous` (`transition-gates.ts:217`), so an ambiguous reading **cannot satisfy it**. Claiming
+absurd precision-loss buys refusal, not arrival. That asymmetry — *omitting* `accuracy_m` avoids the penalty
+that *disclosing* a large one incurs — is the **already-filed High owner decision**, now measured rather than
+reasoned. Not re-filed.
+
+### The arc, §1627–§1665
+
+**Three production defects, each found by a different method:**
+
+| § | defect | found by |
+|---|---|---|
+| 1654 | a malformed TSA response crashed the verifier with a `TypeError` — 5 unguarded derefs | fuzzing a spec-defined parser |
+| 1657 | a quadratic address-scrub: **15,947 ms** on 100 KB of provider error text | sweeping 4,052 regexes for the ReDoS signature |
+| 1659 | `(err as Error).message` at 3 of 74 sites, one re-classifying a signup race from 409 to 500 | measuring an idiom's ratio |
+
+**Everything else was evidence.** Roughly two dozen phases hardened what the tests CLAIM rather than what the
+code does — cross-tenant refusals that asserted a status code, a substitute for a BLOCKED gate that passed with
+the rater zone-blind, a floor ladder that collapsed under 1,288 green tests, a parity gate satisfied by two
+identically-wrong copies. **Zero of those changed production behaviour.**
+
+**The method that produced all of it, stated once:** plant the violation, then re-plant it after writing the
+fix. **Six probe-construction faults this session** — a filter selecting the wrong package, `env` out of scope,
+a config of my own invention, a mangled fixture string, a garbage trust anchor, an assertion naming a property
+that does not exist — and **every one was caught by a control or an attribution check, none by reading.**
+
+### What remains
+
+- **Owner-side, unchanged:** the five BLOCKED gates (absent identity denylist + four private-fixture gates) and
+  four filed decisions — the geofence disclosure asymmetry re-measured above, the OAuth code's concurrent
+  single-use, EDI refuse-vs-sanitise, and the 204 envelope integrity fields.
+- **Named, not built:** `resolveAuthority`'s value-direction case (dormant until WP-15 Task 4 wires a mirror),
+  and a gated kind on `t:root` (a refusal is new behaviour needing a REQ row).
+
+**Phase gate.** No source or test changed — fuzzing only, harness deleted. ledger **755/755** · tools **147
+files / 1489**. Board carried forward from **`4277e82`** (§1664's commit, **0 commits since**; last measured at
+`cd6f249` as **21 PASS · 0 FAIL · 5 BLOCKED**, and no phase since has touched a file any gate reads except this
+record).
