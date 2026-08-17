@@ -29,6 +29,32 @@ import { repoRoot } from "./repo-root.js";
 // The gate list is DERIVED from package.json rather than kept here, so a new `check:*` script is covered on
 // the day it is added — the §541 shape, where a hand-kept enumeration of a set the project already defines is
 // itself the thing that rots.
+//
+// ── §1736 — WHAT COVERS THE OTHER HALF: THE VITEST-BASED GATES IN `tools/` ────────────────────────────────
+//
+// This file's subject is the `check:*` SCRIPTS. The gates that live as vitest files under `tools/` are a
+// different population and nothing here reaches them, which invites the obvious worry — and a sweep of them
+// finds **32 unrooted reads across 10 files** (`readFileSync("package.json")`,
+// `readdirSync("workers")`, `readFileSync(".github/workflows/ci.yml")`, …).
+//
+// MEASURED at §1736, because the assumption most people make here is wrong: `process.cwd()` inside a tools
+// test is the **SHELL's** cwd, NOT the repo root. A temporary probe run from `workers/api` with `--root` at
+// the repo root printed `PROBE_CWD=/…/workers/api`. Vitest does not chdir. So those 32 reads really are
+// cwd-relative.
+//
+// They are nonetheless safe, by three mechanisms and not by care:
+//   1. the suite CANNOT BE INVOKED from elsewhere through its normal path — `pnpm exec vitest run --config
+//      vitest.tools.config.ts` from `workers/api` exits **1** with "No test files found" (the include glob
+//      resolves against the caller). A run that does not start cannot pass over nothing.
+//   2. `readFileSync`/`readdirSync` on a missing path THROW — §559's class 1, loud and fail-closed. That is
+//      every one of the 32 but one.
+//   3. the single class-3 candidate — `authority-population.test.ts`'s `grep … || true`, which returns EMPTY
+//      rather than throwing — carries its own corpus floor (`toBeGreaterThan(5)`, "the search is wrong, not
+//      the tree").
+//
+// So §559's hazard does not reach this population: the run does not start, or the read throws, or the floor
+// fires. Recorded here rather than left implicit because the 32 sites LOOK like the defect this file exists
+// for, and the next sweep will find them again.
 
 interface Gate {
   name: string;

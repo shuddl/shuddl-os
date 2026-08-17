@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1182 | §1735 | **§1736** | **THE CWD ASSUMPTION WAS BACKWARDS, AND MY FIRST SWEEP WAS A MATCHER ARTEFACT.** `cwd-parity.test.ts` covers the `check:*` SCRIPTS and says so; the vitest gates under `tools/` are a different population nothing reaches. **Two wrong answers first.** The sweep reported **39** suspects — including a gate written this session — because `([^)]{0,90})` **stopped at the first `)` inside a template literal** and never saw `{ cwd: root }`; paren-matched, it is **32 real sites across 10 files**, none of them mine. Then the assumption: vitest surely runs tests with cwd at the config root. **Measured with a probe from `workers/api`: `PROBE_CWD=…/workers/api` — vitest does NOT chdir**, so those 32 reads really are cwd-relative. **Safe anyway, by three mechanisms and not by care**: (1) the suite cannot be invoked from elsewhere — the include glob resolves against the caller, so it exits **1** "No test files found", and a run that does not start cannot pass over nothing; (2) `readFileSync`/`readdirSync` THROW on a missing path (31 of 32, §559 class 1); (3) the one class-3 candidate (`authority-population`'s `grep` with a shell fallback to true, which returns EMPTY rather than throwing) carries its own corpus floor. **Two instruments wrong in OPPOSITE directions** — a regex that over-reported by not seeing an options object, an assumption that would have under-reported by imagining a chdir — and only printing the value settled it. 0 defects, 0 gates added, recorded in `cwd-parity.test.ts` where the next sweep will look |
 | 1181 | §1734 | **§1735** | **THE REGISTER'S DRIFT LIST GREW AGAIN, AND THE TIDY EXPLANATION WAS WRONG.** §1734 found the checklist's index stale; the same question asked of the repo's FIRST source of truth. `check:coverage` reports **12** status-drift rows (a source citation exists while the tag reads `*-DISCOVERED`/`vNEXT`) against a row that has been re-measured three times and says **eleven** — **REQ-252** is new, and all twelve are **COMMITTED** rows (checked against `git show HEAD:genesis/09…`), so none is the concurrent author's four uncommitted additions. REQ-252 adjudicated by its own citation: **deferral marker**, a comment explaining why a refusal is correct while stop centroids stay V2-E. **THE HYPOTHESIS THIS PHASE FORMED AND THEN KILLED**: a list that only grows (8→10→11→12) has a tidy explanation — the detector counts any citation, deferral comments are the normal way to explain a refusal, so the growth is noise BY DESIGN. One sample reversed it: **REQ-254** carries a passing test (*"a REVOKED device cannot sign an append"*) and **REQ-278** an entire describe of built behaviour — both **implementation with a lagging tag**, genuine drift — while **REQ-257** is PARTIAL (its polling half shipped and was registered as REQ-292; *"the DO-WebSocket half stays vNEXT"*). **The comfortable reading of a growing metric is that the metric is broken; it is worth one sample before believing it**, and here that reading would have been recorded as a reason to stop looking. 0 register edits (owner-signed amendment; genesis/09 also carries another author's work), 0 code changed |
 | 1180 | §1733 | **§1734** | **SEVEN ROWS WERE CLOSED IN THEIR EVIDENCE AND OPEN IN THEIR HEADLINE.** Three consecutive phases picked a row that looked open and found it already handled (§1733's own subject was TRIPWIRED), so it was measured rather than sampled again: of **127** rows whose CLAIM cell reads open, **15** carry a live closure marker in a later cell. All fifteen were READ — 15 being the size where reading beats another matcher revision — and split **7 genuinely closed** (250, 405, 406, 407, 422, 453, 456) vs **8 correctly open**, whose evidence mentions the closure of a SUB-FACET, a gate's BLOCKED output, or a fail-closed note. Row 250 states the defect in its own words: *"the prescribed fix LANDED and **nobody re-read the row**."* The seven are struck, each citing the closure its own evidence already carried; headline-open **127→120**. **A gate was DECLINED with the number**: the detector runs at **8 false positives in 15**, because "closed" words in a debt ledger are mostly about PARTS of a problem — cry-wolf at that rate, and this record already declined one twice on the same grounds (~76%). Instead the residual is named so the next sweep starts from a list, not a regex. **The headline is the only cell most readers see**, so this is not cosmetic — it is inflated open debt, and the reason three phases opened on work already done. 0 code changed |
 | 1179 | §1732 | **§1733** | **A BLOCKER'S DEPENDENCY FACTS, RE-MEASURED — AND THE ASSERT CONTRADICTS ITSELF TEN LINES AWAY.** The pool-binding row (Med, fix identified and twice reverted) rests on a dependency belief and says so: *"twelve minors stale, so the constraint may already be fixed upstream and **nobody has looked**"* — a note naming its own unmeasured premise is an invitation. Three local facts re-verified and unchanged: installed **0.9.14**, pinned `^0.9.14` in **six** manifests, `chai: "5.3.3"` override still present — so the seven-manifest coordination is real and correctly stays out of scope. **What is new, read in the INSTALLED copy: the assert is an incomplete allowlist that upstream's own code contradicts.** `dist/pool/index.mjs` asserts twice (`:644` push before `copyFile`, `:660` pop before `unlink`), **both loops already skip a non-`.sqlite` entry BY NAME** (`if (name === BLOBS_DIR_NAME) break;`), and the **same module at `:793`** walks a DO directory and **FILTERS** instead of asserting. So it is not an invariant upstream holds — the disposition sharpens from *"may already be fixed upstream"* to **a named upstream defect with a small known fix**, worth an issue independent of the bump and worth knowing before anyone budgets "rework 70 test files". Recorded in BOTH places two different readers look: the row, and `workers/api/vitest.config.ts` where `isolatedStorage: false` is actually set. 0 code changed, 0 reserved scope taken |
@@ -97320,3 +97321,66 @@ citations, labelled as such, so the amendment pass starts from adjudications rat
 by its own citation, 3 earlier members sampled and 2 found to be genuine drift rather than deferral markers, 1
 plausible dismissal of the whole metric formed and refuted before it was written down, 0 register edits, 0 code
 changed.
+
+---
+
+## §1736 — PHASE GATE: the cwd assumption was backwards, and my first sweep was a matcher artefact (REQ-118)
+
+`cwd-parity.test.ts` states its own scope: it covers the `check:*` **scripts**, derived from `package.json`.
+The vitest-based gates under `tools/` are a different population, and nothing reaches them. So: are any of
+them cwd-dependent?
+
+### Two wrong answers before the right one
+
+**First sweep: 39 suspects.** It flagged `unbounded-event-scans.test.ts` — a gate written in this session —
+for `execSync(git ls-files …)` "without cwd". That call reads
+`execSync(\`git ls-files …\`, { cwd: root, encoding: "utf8" })`. The matcher captured `([^)]{0,90})` and
+**stopped at the first `)` inside the template literal**, so it never saw the options object. A paren-matched
+rewrite gives **32 real sites across 10 files** — none of them written this session.
+
+**Then the assumption.** The natural reading is that vitest runs tests with cwd at the config root, which
+would make all 32 harmless. Measured with a temporary probe run from `workers/api`:
+
+```
+PROBE_CWD=<repo>/workers/api
+```
+
+**Vitest does not chdir.** `process.cwd()` inside a tools test is the *shell's* cwd, so those 32 reads really
+are cwd-relative.
+
+### Why they are safe anyway — three mechanisms, none of them care
+
+1. **The suite cannot be invoked from elsewhere.** `pnpm exec vitest run --config vitest.tools.config.ts` from
+   `workers/api` exits **1**, *"No test files found"* — the include glob resolves against the caller. A run
+   that does not start cannot pass over nothing.
+2. **`readFileSync`/`readdirSync` throw** on a missing path — §559's class 1, loud and fail-closed. That is 31
+   of the 32.
+3. The **one** class-3 candidate — `authority-population.test.ts`'s `grep … || true`, which returns empty
+   rather than throwing — carries its own corpus floor, `toBeGreaterThan(5)` with *"the search is wrong, not
+   the tree"*.
+
+So §559's hazard does not reach this population, and there is nothing to fix and no gate to add. The result is
+recorded **in `cwd-parity.test.ts`** — the file a reader consults about this class — because the 32 sites look
+exactly like the defect that file exists for, and the next sweep will find them again.
+
+> Two instruments were wrong before one was right, and they failed in opposite directions: a regex that
+> **over**-reported by not seeing an options object, and an assumption that would have **under**-reported by
+> imagining a chdir that does not happen. The only thing that settled it was printing the value.
+
+### Two gates fired on this section while it was being written
+
+Recorded because both are the record's own documented hazards, caught in the act:
+
+- The probe output was pasted verbatim, so the section carried a real `/Users/<name>/…` path and the
+  absolute-path gate reded. Fixed by writing the SHAPE — `<repo>/workers/api`.
+- The index row quoted a shell fallback containing two pipe characters **inside a code span**, and GFM treats
+  a pipe as a cell delimiter regardless of the span (the §1206 correction). The row rendered with 6 cells
+  against a 4-cell header and `check:tables` caught it. Fixed by naming the construct instead of quoting it.
+
+Both are §829/§871's rule — *write the shape, never the instance* — and both were caught by running
+`pnpm run test:tools` **before** committing rather than after.
+
+**Phase gate.** 1 population measured that an existing gate explicitly does not cover, 1 sweep discarded as a
+matcher artefact (39 → 32, including a false hit on this session's own gate), 1 widely-held assumption about
+the test runner falsified by a two-line probe, 3 safety mechanisms identified and each verified, 0 defects
+found, 0 gates added, 0 code changed — a bounded negative result recorded where the next reader will look.
