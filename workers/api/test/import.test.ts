@@ -459,6 +459,47 @@ describe("§1729 the migrator's ids are byte-stable — the import id is the see
     ).toBe("8ea0be22922e0fd2e6bf6b7d2a629088");
   });
 
+  // §1730 — THE TWO IDS SEEDED FROM THE ROOT, WHICH PINNING THE ROOT DOES NOT COVER.
+  //
+  // §1729 pinned `import_id` and said explicitly that doing so does NOT pin what is derived from it: the
+  // per-row shipment id and the gap-row id carry their own domain tags (`migrate:shipment:`, the `mig_`
+  // prefix), and mutating either was 900/900 green. These are those two.
+  //
+  // PROVENANCE, stated because it differs from §1729's: the import-id golden was **computed** from the seed
+  // the route's comment documents. These two are **captured** from a run against the same fixed sheet, because
+  // their seeds take values this test does not own — the migrator's own `rowIndex`, and the gap's
+  // `reason`/`columnOrdinal`. Reproducing those offline would mean re-implementing the adapter, which is how
+  // an extractor ends up asserting itself.
+  //
+  // A captured golden pins STABILITY, not correctness — it says "this derivation still produces what it
+  // produced", which is exactly the property at stake (these ids are `shipments.id` and `anomalies.id`, both
+  // persisted, both re-derived on a re-import that INSERT OR IGNORE expects to collide). Correctness of the
+  // seed shape is carried by the computed root above. The capture is ATTRIBUTED rather than trusted: mutating
+  // each domain tag reds these assertions, which is what proves the values come from the derivations named.
+  it("the per-row shipment id and the gap-row id are byte-stable", async () => {
+    await importSheet();
+    // ASSERT EXISTENCE BY ID, not the first row of a scan. Two attempts failed here and each taught the same
+    // thing from a different side: an unordered `first()` picked an arbitrary gap row (the sheet raises more
+    // than one), and an ORDER BY version then passed alone but FAILED under the full suite, because the
+    // tenant D1 carries other files' shipments and the lexicographically-first one is not this import's.
+    // Existence-by-id is immune to both and is exactly as sensitive: a changed derivation means the golden id
+    // is simply absent.
+    const shp = await env.TENANT_A_DB.prepare("SELECT id FROM shipments WHERE id = ?").bind("shp_0dd1ff37f931b9a9").first<{ id: string }>();
+    const gap = await env.TENANT_A_DB.prepare("SELECT id FROM anomalies WHERE id = ?").bind("mig_01267f7a8c8610dfcf8812b8").first<{ id: string }>();
+    expect(
+      shp?.id,
+      "the migrate SHIPMENT id moved — no shipment with the expected id exists after the import. It is " +
+        "`shipments.id`, and a re-import of a sheet already loaded relies on re-deriving it exactly for " +
+        "INSERT OR IGNORE to be a no-op; a changed tag makes the re-import create a second shipment per row.",
+    ).toBe("shp_0dd1ff37f931b9a9");
+    expect(
+      gap?.id,
+      "the GAP-ROW id moved — no anomaly with the expected id exists. It is `anomalies.id` for a " +
+        "no-silent-drop record (the Migrator rule), so a changed tag re-raises every gap on re-import instead " +
+        "of collapsing onto the existing row.",
+    ).toBe("mig_01267f7a8c8610dfcf8812b8");
+  });
+
   it("the same sheet re-imports to the SAME id, and one changed cell to a different one", async () => {
     // The route's law is content-determinism, so both directions matter: a re-import must collide (that is what
     // makes INSERT OR IGNORE a no-op) and a different sheet must not (or two imports would overwrite one row).

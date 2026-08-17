@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1176 | §1729 | **§1730** | **A CAPTURED GOLDEN IS LEGITIMATE, IF YOU SAY SO AND ATTRIBUTE IT.** §1729 refused the inference that pinning the import-id root covers what is seeded from it; this closes those two — the per-row `migrate:shipment:` id and the `mig_` gap-row id. They force a distinction the arc had not met: every golden so far was **computed** (documented seed, test owns every input), and these cannot be — their seeds take the migrator's own `rowIndex` and a gap's `reason`/`columnOrdinal`, so reproducing them offline would mean **re-implementing the adapter in the test**, which is how an extractor ends up asserting itself. So they are **captured**, and the test says so: a computed golden pins seed-shape correctness AND stability; a captured one pins **stability only** — which is the property at stake, since both ids are persisted (`shipments.id`, `anomalies.id`) and re-derived on a re-import that `INSERT OR IGNORE` expects to COLLIDE. **A capture must be ATTRIBUTED, never trusted**: mutating each domain tag reds its assertion (0→1 RED each), establishing the value comes from the derivation named. **TWO attempts failed, same mistake from different sides**: an unordered `first()` read an arbitrary gap row (the sheet raises more than one), and the ORDER BY version then passed ALONE but failed under the FULL SUITE, because the tenant D1 carries other files' shipments. Both asked a scan for a row and assumed which row they got; the fix is to stop scanning and assert the golden id EXISTS — immune to ordering and neighbours, equally sensitive. Caught by the merge gate, not the file-scoped run. api 900→901, 0 behaviour changed. Row **seven → three** |
 | 1175 | §1728 | **§1729** | **RE-MEASURING GREW THE ROW, BECAUSE THE SUBJECT WAS NAMED PER-ROW AND NOT PER-DERIVATION.** §1728's rule applied to the three remaining names: the three FILES hold **six** derivations, and §1717 had probed only three of them. The unprobed three — the migrator's **import-id root**, the migrator's **gap-row id** (`mig_`), and the mirror-sweep **gap id** (`lgm_gap_`). All six re-measured across owner AND `workers/api`: **all six unpinned**. First re-measurement in the arc that did NOT shrink the row — the corrected method is not a way of making rows smaller, it is a way of making them true, and here it made this one bigger. **One closed**: the import-id root, the worst to leave loose because it SEEDS the other two migrator ids (a change re-keys the whole import in one step) and is persisted as `agent_runs.id`; its law is stated in the route's own comment and asserted by nothing — mutating it left api **898/898 GREEN**. Cheap for §1726's reason: the route RETURNS `import_id` and an inline sheet is content the test owns byte-for-byte, so the golden is **computed from the documented seed, not captured from a run**. Pinned in both directions the law needs (re-import must collide; one changed cell must not); mutation-proved 0→2 RED. **Tempting inference refused**: pinning the root does NOT pin the ids derived from it — `migrate:shipment:` and `mig_` are their own tags and are still 900/900 green. api 898→900, 0 behaviour changed |
 | 1174 | §1727 | **§1728** | **ONE ROW MEMBER WAS TWO DERIVATIONS, AND THE PROBE MUTATED THE UNUSED ONE.** There are two `edi:shipment:` seeds: `map-204.ts` for the STABLE-REF id (SID→BM→PRO) that virtually every tender takes, and `inbound.ts@orderLevelOnlyShipmentId` for the PO-only fallback that folds the interchange control in as a per-delivery discriminator. §1717 mutated **inbound.ts**, saw 141/141 green, and filed "the translator EDI shipment id" as unpinned — it had mutated the branch default tenders never take. Re-measured separately: map-204 reds **3** (the round-trip fixture carries a derived id, covered all along), inbound reds **none**. That branch IS exercised by three cases and **every one asserts a COUNT**, so a derivation changing every id keeps all three identical. The seed's comment makes three claims and counts reach only the middle one; the third — stability across deploys — is the one that bites, because a changed seed makes a same-interchange RETRY mint a second shipment: the silent duplicate the comment prefers a visible one over, by the back door. Pinned with literals for both interchanges (asserting all three claims at once); mutation-proved 0→1 RED on the seed, 0→2 on dropping the ISA. **The block failed on its first run** — appended at file scope, outside the `describe` whose `beforeEach` certifies the partner, so the tender was refused and the assertion read `undefined`; a test inherits nothing from the block above it. translator 141→142, 0 behaviour changed. **Row now seven → three, and three of the four removals were MEASUREMENT CORRECTIONS rather than new coverage** |
 | 1173 | §1726 | **§1727** | **THE FILE THAT EXISTS TO PIN THE ID LAW HELD ONLY SELF-COMPARISONS.** `agents/test/id-determinism.test.ts` exists for one law — a redelivery must re-derive the same id so the sequencer's dedupe collapses it — and its three assertions are same-seed-twice, same-seed-across-a-stubbed-clock, same-seed-across-a-stubbed-random. Each closes a real hazard and **each survives a change that moves every output byte**, because both sides move together: §1716's mutation left agents 148/148 GREEN, this file included. Byte-stability is exactly what the file is about — its header says the guarantee is DELEGATED across a worker seam, so a redelivery after a derivation change makes one POD **two invoices** on an append-only ledger. Literals added + a different-input control + a domain-tag separation case; mutation-proved 0→2 RED (shared builder) and 0→1 RED (the Biller tag). **Row 462 CLOSED — both workers now notice.** **And a measurement error of my own**: §1717 probed each seed by running only THE OWNING SUITE. For the Biller invoice document id that gave agents 148/148 green — true, and the wrong question, because the same file's header says the assertion *"necessarily lives"* in `workers/api`. Re-measured across suites it reds `heartbeat.test.ts`: **covered all along**, and the row loses a member it never should have had (five→four). The other three re-confirmed unpinned in BOTH owner and api. Recipe corrected: mutate the seed and run the owning suite **AND workers/api** — `run-the-suite-that-owns-the-file` has a stated exception when the guarantee is delegated across a seam. agents 148→151, 0 behaviour changed |
@@ -97032,3 +97033,59 @@ still 900/900 green. Five derivations remain.
 derivations found that a per-row subject had hidden, 1 closed at zero production change with a golden computed
 rather than captured, 2 directions of its law asserted, 1 mutation direction proved, 1 tempting inference
 explicitly refused, 0 behaviour changed. api **898→900**.
+
+---
+
+## §1730 — PHASE GATE: a captured golden is legitimate, if you say so and attribute it (REQ-118/119)
+
+§1729 pinned the migrator's import-id root and refused the inference that doing so covers the ids seeded from
+it. This phase takes those two — the per-row `migrate:shipment:` id and the `mig_` gap-row id — and they force
+a question the arc had not yet met.
+
+### Computed vs captured
+
+Every golden so far was **computed**: the seed was documented, the test owned every input, and the expected
+value came from the derivation's stated shape. These two cannot be. Their seeds take values the test does not
+own — the migrator adapter's own `rowIndex`, and a gap's `reason`/`columnOrdinal`. Reproducing them offline
+would mean **re-implementing the adapter in the test**, which is how an extractor ends up asserting itself.
+
+So they are **captured** from a run against the same fixed sheet, and the test says so. The distinction is not
+cosmetic:
+
+| | pins | carried here by |
+|---|---|---|
+| computed golden | correctness of the seed shape **and** stability | §1729's import-id root |
+| captured golden | **stability only** — "this derivation still produces what it produced" | these two |
+
+Stability is exactly the property at stake: both ids are persisted (`shipments.id`, `anomalies.id`) and both
+are re-derived on a re-import that `INSERT OR IGNORE` expects to **collide**. A changed tag makes the re-import
+create a second shipment for every row, and re-raise every gap.
+
+**A capture must be attributed, never trusted.** Mutating each domain tag reds its assertion — **0 → 1 RED**
+each — which is what establishes that the captured value comes from the derivation named rather than from some
+other path that happened to write that row.
+
+### Two failed attempts, and the shape they share
+
+The first read used an unordered `first()`. The sheet raises **more than one** gap row, so the captured value
+was an arbitrary one — a test that would have passed for the wrong reason, and only while the ordering held.
+The `ORDER BY` re-run returned a different id and caught it.
+
+The ORDER BY version then passed **alone** and failed **under the full suite**: the tenant D1 carries other
+files' shipments, so the lexicographically-first row is not this import's. Caught by the merge gate, not by the
+file-scoped run — the §1162 shape, where a gate's verdict under load differs from its verdict in isolation.
+
+Both attempts made the same mistake from different sides: **they asked a scan for a row and then assumed which
+row they got.** The fix is to stop scanning — assert the golden id **exists**:
+
+```sql
+SELECT id FROM shipments WHERE id = ?   -- the golden, bound
+```
+
+Immune to ordering and to neighbours, and exactly as sensitive: a changed derivation means the id is simply
+absent. Re-attributed after the rewrite — each domain-tag mutation still reds its assertion.
+
+**Phase gate.** 2 derivations closed, 1 methodological distinction (computed vs captured) named and recorded in
+the test rather than assumed, 2 attribution mutations proved, 1 non-deterministic capture caught by its own
+stated hazard before it could freeze, 0 behaviour changed. api **900→901**. The row is **seven → three**:
+concierge shipment, mirror-sweep quarantine, mirror-sweep gap.
