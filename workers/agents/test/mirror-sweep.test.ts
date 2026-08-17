@@ -382,3 +382,51 @@ describe("§1588 REQ-021 — a concurrent writer's key on integrations.config su
     expect(cfg.legacy_mirror.watermark.cursor, "the sweep must still advance its own watermark").toBeGreaterThan(0);
   });
 });
+
+// §1731 (REQ-035/118/119) — THE QUARANTINE ID'S BYTES. The two cases above assert COUNTS (2, still 2), so a
+// derivation that changed every id it produces keeps both counts identical and both green — measured, 151/151.
+// For THIS id that is the property, not a detail: its own comment above says it folds the ROW CONTENT and not
+// the clock precisely so the same bad row collides across sweeps and REOPENS rather than duplicating. A
+// changed seed makes the next sweep write a second row for a bad row already quarantined, and the operator's
+// cleared row never reopens — the §1540 failure by another route.
+//
+// (Its sibling `lgm_gap_` is deliberately NOT stable — it folds `now` so each sweep mints a fresh row — and
+// both of ITS real properties are already defended: dropping `now` and dropping the column identity each red a
+// case. Byte-stability is the wrong question there, which is why only this one gets a golden.)
+describe("§1731 the quarantine anomaly id is byte-stable (REQ-035)", () => {
+  // CAPTURED, not computed (the §1730 distinction, stated because it changes what this proves): the seed folds
+  // `stableStringify(q.raw)` over an adapter-owned row shape, so reproducing it offline would mean
+  // re-implementing the adapter in the test. A captured golden pins STABILITY — "this derivation still
+  // produces what it produced" — which is exactly the property here, and it is ATTRIBUTED rather than
+  // trusted: the mutations recorded in §1731 red these assertions, which is what ties the values to this seed.
+  //
+  // Both ids are asserted, not just one. The fixture quarantines TWO rows for two different reasons, and a
+  // seed that collapsed them (dropping `q.naturalKey`, say) would leave ONE row and a count-based case would
+  // read "still idempotent".
+  it("the two quarantined rows derive exactly these ids, and a re-sweep reuses them", async () => {
+    await seedConfig(A(), 0);
+    const seq = new RecordingSeq();
+    const feed = new StaticFeed(genericExport);
+    await sweepTenantLegacyMirror({ db: A(), seq, feed, integrationId: LEGACY_MIRROR_INTEGRATION_ID, tenant: "tenant-a", now: 1_000 });
+
+    const ids = async (): Promise<string[]> =>
+      (await A().prepare("SELECT id FROM anomalies WHERE rule LIKE 'legacy_mirror.quarantine%' ORDER BY id").all<{ id: string }>()).results.map(
+        (r) => r.id,
+      );
+    expect(
+      await ids(),
+      "a quarantine anomaly id moved. It folds the ROW CONTENT and not the clock so the same bad row COLLIDES " +
+        "across sweeps and reopens; a changed seed writes a second row for a row already quarantined, and an " +
+        "operator's cleared row never reopens — §1540's failure by another route.",
+    ).toEqual(["lgm_quar_9453d841c917b6b3ab6dd178", "lgm_quar_c6804541985fc96cce003a85"]);
+
+    // The collide-across-sweeps half, asserted on the IDS rather than on a count: a count of 2 after a re-sweep
+    // is satisfied by two NEW ids replacing two old ones just as well as by the same two persisting.
+    await resetWatermark(A(), 0);
+    await sweepTenantLegacyMirror({ db: A(), seq, feed, integrationId: LEGACY_MIRROR_INTEGRATION_ID, tenant: "tenant-a", now: 9_000 });
+    expect(await ids(), "a re-sweep must reuse the SAME two ids — that is what makes the reopen possible").toEqual([
+      "lgm_quar_9453d841c917b6b3ab6dd178",
+      "lgm_quar_c6804541985fc96cce003a85",
+    ]);
+  });
+});
