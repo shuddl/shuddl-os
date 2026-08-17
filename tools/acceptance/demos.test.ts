@@ -209,4 +209,62 @@ describe("§889: a spine test may not be gutted", () => {
     const total = Object.keys(ASSERTION_FLOOR).reduce((n, f) => n + assertionCount(root, f), 0);
     expect(total, "the spine's aggregate assertion count fell below the derived floor").toBeGreaterThanOrEqual(MIN_ASSERTIONS);
   });
+
+  // §1692 — THE HOLE THE BLOCK ABOVE NAMES, GIVEN A NUMBER.
+  //
+  // The floors count `expect(` call sites, and their own header says what that cannot see: "a HOLLOWED
+  // assertion — `toBeDefined()` counts the same as a penny-exact invoice comparison. Counting is the cheap
+  // half." Hollowing is the erosion that PRESERVES the count: swap `toBe(148000)` for `toBeDefined()` and
+  // every floor above still holds while the demo stops proving anything.
+  //
+  // The ratio is mechanical, so unlike a judgement about whether an assertion is STRONG it needs no English.
+  // MEASURED at §1692 across the seven spine files: **12 weak of 245 call sites = 4.9%**, per file
+  // 0.0–10.3%. The cap sits at 15% — roughly triple the live ratio, so ordinary churn and legitimate presence
+  // checks never trip it, while a systematic swap does.
+  //
+  // WHAT IT DOES NOT CLAIM: a weak matcher is not a defect. `toBeDefined()` on a presence check is exactly
+  // right, which is why this is a RATIO with headroom rather than a ban. It catches the DIRECTION of a
+  // trend, not the merit of any single line.
+  const WEAK_MATCHER = /\.(toBeDefined|toBeTruthy|toBeFalsy|toBeNull|toBeUndefined)\(/g;
+
+  /**
+   * PER FILE, not aggregate — and the first cut of this gate got that wrong (§1692).
+   *
+   * An aggregate cap dilutes a single-file gutting across the whole spine: hollowing TWELVE assertions in
+   * `heartbeat.test.ts` — demo #1's entire causal chain — moved the aggregate from 4.9% to 9.8% and passed a
+   * 15% cap. That is the exact defect this gate exists for, sailing through it. The floors above are per-file
+   * for the same reason their header gives about case counts, and this must match them.
+   *
+   * MEASURED at §1692, per file: heartbeat 2.1% · signup-to-quote 0.0% · stop-flow 0.0% · airplane-soak
+   * 10.3% · quote-book 6.7% · command-heartbeat 7.5% · MapCanvas 5.9%. The cap is 25% — over twice the
+   * highest live file, so presence checks stay legitimate, while the 12-swap above lands at 27%.
+   */
+  const MAX_WEAK_RATIO_PER_FILE = 0.25;
+
+  it("§1692 no spine file HOLLOWS OUT — the erosion an assertion count cannot see", () => {
+    const rows = Object.keys(ASSERTION_FLOOR).map((key) => {
+      // Resolved exactly as `assertionCount` does — through the runner's own packageDirs() Map — so the
+      // numerator and denominator can never read different files.
+      const [pkg, file] = key.split(" ") as [string, string];
+      const dir = packageDirs(root).get(pkg);
+      if (dir === undefined) throw new Error(`no workspace package named ${pkg}`);
+      const text = readFileSync(`${root}/${dir}/${file}`, "utf8");
+      const calls = assertionCount(root, key);
+      const weak = (text.match(WEAK_MATCHER) ?? []).length;
+      return { key, weak, calls, ratio: calls === 0 ? 1 : weak / calls };
+    });
+
+    const total = rows.reduce((n, r) => n + r.calls, 0);
+    expect(total, "no spine assertions counted — the resolver or the counter broke, not the spine").toBeGreaterThan(150);
+
+    const hollow = rows.filter((r) => r.ratio > MAX_WEAK_RATIO_PER_FILE);
+    expect(
+      hollow.map((r) => `${r.key}: ${r.weak}/${r.calls} weak (${(r.ratio * 100).toFixed(1)}%)`),
+      "a spine file's assertions have HOLLOWED OUT: weak matchers (toBeDefined/toBeTruthy/toBeFalsy/" +
+        "toBeNull/toBeUndefined) now exceed a quarter of its call sites. The floors above cannot see this — " +
+        "replacing a penny-exact comparison with toBeDefined() keeps the count identical while the demo stops " +
+        "proving what it claims. A weak matcher is not itself a defect (a presence check is exactly right); " +
+        "what this catches is the DIRECTION of a whole file. Live at §1692: 0.0%–10.3% per file",
+    ).toEqual([]);
+  });
 });
