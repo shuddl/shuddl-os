@@ -21,7 +21,7 @@ import { z } from "zod";
 //     404 with no distinguishing oracle.
 //
 // Pure (takes the JWT secret as an ARG, never reads c.env), so it is unit-testable and REUSABLE: this same
-// `mintDocDownloadCap` is the seam the Biller can later call — workers/agents/src/biller.ts:600@photos —
+// `mintDocDownloadCap` is the seam the Biller can later call — workers/agents/src/biller.ts:605@photos —
 // to embed a signed evidence URL in the POD evidence email, WITHOUT this task rewiring the Biller.
 //
 // §734 — this read `biller.ts:409` (UNANCHORED) and :409 is `loadBookingQuoteRef`, an unrelated line. The

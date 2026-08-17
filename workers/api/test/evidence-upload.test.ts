@@ -673,3 +673,47 @@ describe("§1718 the evidence key WRITER and the retention READER agree (REQ-025
     expect(isTenantEvidenceKey(evidenceKey("tenant-b", "shp-1", "c".repeat(64)), "tenant-a")).toBe(false);
   });
 });
+
+// §1719 (REQ-025) — THE THIRD COPY OF THE TENANT-EVIDENCE GUARD, at the Biller's POD-attach gate.
+//
+// `loadActivePodDocument` selects the POD row by (shipment, hash) and then re-checks that its `r2_key` lives
+// in THIS tenant's key space — the row itself is not trusted. That check was a hand-written
+// `startsWith(`evidence/${tenant}/`)`, the third literal of one guard (retention.ts owns the builder,
+// documents.ts had the second). §1719 routed it through the builder.
+//
+// It needed a test of its own, and the mutation is why: reverting this line to a raw literal WITHOUT the
+// trailing slash left `workers/agents` at 148/148 GREEN. The consequence is not abstract — the Biller ATTACHES
+// these bytes to the evidence email that goes out with the invoice, so a sibling tenant's POD would be
+// delivered to this tenant's customer.
+//
+// Control first, for the reason §921 states: `null` is also what "no such row" returns, so a refusal and an
+// absence are the same value. The control proves the row is findable before the guard is asked about it.
+describe("§1719 loadActivePodDocument refuses a row whose r2_key is in a SLUG-EXTENDING sibling's namespace", () => {
+  it("the same row resolves under its own tenant and is refused under the shorter slug", async () => {
+    const shp = "ev-1719-sibling";
+    const hash = randomHex64();
+    const siblingTenant = `${TENANT}-legacy`;
+    // A documents row addressed into the SIBLING's namespace. Seeded directly: the point is a row the query
+    // finds and the guard must reject, which the upload route would never produce.
+    await env.TENANT_A_DB.prepare(
+      "INSERT INTO documents (id, shipment_id, party_id, kind, r2_key, hash, lifecycle_class, visibility, created_ts, retention_status) " +
+        "VALUES (?, ?, NULL, 'POD', ?, ?, 'pod-7yr', 'internal', ?, 'active')",
+    )
+      .bind(`evidence:${shp}:${hash}`, shp, `evidence/${siblingTenant}/${shp}/${hash}`, hash, Date.now())
+      .run();
+
+    // CONTROL: the row IS findable — the query's other filters (shipment, hash, kind, active) all pass. So a
+    // null below can only be the namespace guard.
+    expect(
+      await loadActivePodDocument(env.TENANT_A_DB, siblingTenant, shp, hash),
+      "the control: this row resolves for the tenant whose namespace its key is in",
+    ).not.toBeNull();
+
+    expect(
+      await loadActivePodDocument(env.TENANT_A_DB, TENANT, shp, hash),
+      `a POD row keyed into ${siblingTenant}'s namespace was accepted for ${TENANT}. The Biller attaches these ` +
+        "bytes to the evidence email that ships with the invoice, so this is a sibling tenant's POD delivered " +
+        "to this tenant's customer. The separator is the trailing slash in evidenceTenantPrefix.",
+    ).toBeNull();
+  });
+});

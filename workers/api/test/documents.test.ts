@@ -383,3 +383,53 @@ describe("§921 — REQ-025: the doc cap is confined to its own tenant's namespa
     expect((await SELF.fetch(`https://api.local/pub/documents/${crossed}`)).status).toBe(404);
   });
 });
+
+// §1719 (REQ-025/085) — THE SIBLING-SLUG BOUNDARY, WHICH §921 SITS BESIDE RATHER THAN ON.
+//
+// §921 above pins the coarse case — a cap for tenant-a naming tenant-b's key — and pins it correctly, with
+// the control first. What its probe cannot reach is the character actually doing the separating. The guard is
+// a `startsWith`, so `tenant-a` and `tenant-b` (equal length, neither a prefix of the other) are refused by
+// the SLUG comparison alone; the TRAILING SLASH never enters. Measured at §1718: deleting that slash left
+// `workers/api` at 893/893 and `packages/ledger` at 755/755 GREEN, while a cap signed for `tenant-a` would
+// have streamed `evidence/tenant-a-legacy/…`.
+//
+// The route also used to re-author the predicate as its own string literal — one of THREE copies of that
+// guard. §1719 routed it through the one builder, so this case pins the WIRING as well as the boundary: a
+// revert to a raw literal, or a change to the builder, has to fail here.
+//
+// CONTROL FIRST, and the reason is a mistake made writing this very block: the first draft asserted three
+// 404s with no control, and deleting the guard outright left all three GREEN — `deny()` is the uniform
+// failure, so "no such object" and "refused" are the same response. Only §921's paired shape distinguishes
+// them.
+describe("§1719 — REQ-025: a SLUG-EXTENDING sibling is a different tenant (the trailing slash)", () => {
+  const JWT = "test-secret-do-not-use-in-prod"; // the vitest binding (workers/api/vitest.config.ts)
+  const exp = (): number => Math.floor(Date.now() / 1000) + 300;
+
+  it("a cap for tenant-a naming `evidence/tenant-a-legacy/…` is refused, while its OWN tenant is served", async () => {
+    const siblingKey = `evidence/${TENANT_SLUG}-legacy/shp-sib/${"b".repeat(64)}`;
+    await env.EVIDENCE.put(siblingKey, new Uint8Array([4, 5, 6]));
+
+    // CONTROL: the bytes exist and ARE served to the tenant whose namespace they live in. Without this the
+    // 404 below would be satisfied by an absent object — the wrong reason.
+    const own = await mintDocDownloadCap(JWT, { t: `${TENANT_SLUG}-legacy`, k: siblingKey, expSeconds: exp() });
+    expect((await SELF.fetch(`https://api.local/pub/documents/${own}`)).status, "the control: the object exists and serves").toBe(200);
+
+    // The defect shape: MAC-valid, signed for the SHORTER slug, addressing the longer one's bytes. This is
+    // the only assertion in the api suite that fails when the trailing slash goes.
+    const crossed = await mintDocDownloadCap(JWT, { t: TENANT_SLUG, k: siblingKey, expSeconds: exp() });
+    expect(
+      (await SELF.fetch(`https://api.local/pub/documents/${crossed}`)).status,
+      `a cap signed for ${TENANT_SLUG} reached ${TENANT_SLUG}-legacy's bytes. The separator between one ` +
+        "tenant's namespace and the next is the trailing slash in evidenceTenantPrefix (packages/ledger) — " +
+        "this is CLAUDE.md rule 8's boundary, on a READ.",
+    ).toBe(404);
+  });
+
+  it("a NON-evidence key under the right tenant is refused too (the prefix is the namespace, not just the slug)", async () => {
+    // Control-free BY CONSTRUCTION and therefore the weaker of the two: no tenant's evidence prefix covers
+    // `anchors/`, so there is no cap that legitimately serves this key through THIS route. It is here because
+    // the guard's subject is the whole prefix; the case above is the one that carries the proof.
+    const cap = await mintDocDownloadCap(JWT, { t: TENANT_SLUG, k: `anchors/${TENANT_SLUG}/2026-07-09/manifest.json`, expSeconds: exp() });
+    expect((await SELF.fetch(`https://api.local/pub/documents/${cap}`)).status).toBe(404);
+  });
+});

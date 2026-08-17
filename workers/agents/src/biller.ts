@@ -30,6 +30,7 @@ import { rowToEvent } from "@shuddl/ledger/lens";
 import { authoritativeSource, resolveAuthority } from "@shuddl/ledger/authority";
 import { plausibleEmail } from "@shuddl/ledger/contacts";
 import { terminalHoldBodyRef, UNBILLED_HOLD_MARKER_KIND } from "@shuddl/ledger/queries/unbilled";
+import { isTenantEvidenceKey } from "@shuddl/ledger/documents/retention";
 import { composeInvoice, renderEvidenceEmail, SendError } from "@shuddl/agents";
 import type { EvidenceEmailData, EvidenceMessage, EvidenceSender } from "@shuddl/agents";
 import type { Leg } from "@shuddl/rater";
@@ -303,7 +304,11 @@ export async function loadActivePodDocument(
     .bind(shipmentId, evidenceHash)
     .first<{ r2_key: string }>();
   if (row === null) return null;
-  if (!row.r2_key.startsWith(`evidence/${tenant}/`)) return null; // REQ-025 — the row must live in THIS tenant's key space
+  // REQ-025 — the row must live in THIS tenant's key space. §1719: this used to re-author
+  // `evidence/${tenant}/` as a third literal of the same guard. It now calls THE builder, so the trailing
+  // slash that separates `tenant-a` from `tenant-a-legacy` is defended in one place (retention.ts §1718)
+  // instead of three — the copies here and in documents.ts were both silent when it was removed.
+  if (!isTenantEvidenceKey(row.r2_key, tenant)) return null;
   return { r2_key: row.r2_key };
 }
 

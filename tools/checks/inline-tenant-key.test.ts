@@ -80,9 +80,26 @@ const ACCOUNTED: ReadonlyArray<{ file: string; contains: string; how: string }> 
   { file: "workers/translator/src/sweep-214.ts", contains: "edi/${tenant}/214/${dedupeKey}", how: "builder: sent214Key" },
   { file: "workers/translator/src/sweep-214.ts", contains: "edi/${tenant}/quarantine/", how: "builder: quarantineKey" },
   { file: "workers/translator/src/sweep-214.ts", contains: "edi/${tenant}/unresolvable/", how: "builder: unresolvableKey" },
-  // PREFIX GUARDS — not keys built, but keys CHECKED. Same tenant segment, same consequence if dropped.
-  { file: "workers/agents/src/biller.ts", contains: "evidence/${tenant}/", how: "guard: the POD row must live in this tenant's namespace" },
-  { file: "workers/api/src/routes/documents.ts", contains: "evidence/${claims.t}/", how: "guard: doc-cap confinement — pinned by documents.test.ts (§921)" },
+  // ── §1719: THE TWO "PREFIX GUARD" ROWS THAT USED TO SIT HERE ARE GONE, AND THE REASON IS THE POINT ──
+  //
+  // They read `biller.ts → evidence/${tenant}/ (guard: the POD row must live in this tenant's namespace)` and
+  // `documents.ts → evidence/${claims.t}/ (guard: doc-cap confinement)`. Both were correctly ACCOUNTED. Both
+  // were also third and second COPIES of one predicate, and this registry cannot tell those apart: a row here
+  // says "someone is watching this literal", never "this literal should exist".
+  //
+  // What the accounting could not see: the guard is a `startsWith`, so the TRAILING SLASH is the entire
+  // separation between `tenant-a` and `tenant-a-legacy`, and deleting it from any copy was SILENT —
+  // ledger 755/755, api 893/893, agents 148/148. The `documents.ts` row even cited §921, which probes
+  // tenant-a vs tenant-b: equal length, neither a prefix of the other, so it sits beside that boundary
+  // rather than on it.
+  //
+  // §1719 routed both call sites through `isTenantEvidenceKey` (@shuddl/ledger/documents/retention), so the
+  // literals no longer exist and the rows had to go — the §672 half is what flagged them, which is that
+  // half working. The boundary now has behavioural pins at all three sites (retention.test.ts §1718,
+  // documents.test.ts §1719, evidence-upload.test.ts §1718/§1719), each with a positive control.
+  //
+  // The registry keeps only the two COMPOSERS below: the writer (`evidenceKey`) and the matcher
+  // (`evidenceTenantPrefix`), bound to each other by a parity test.
   // THE TWO INLINE SITES. No builder exists, so tenant-scope.test.ts cannot see either.
   {
     file: "workers/api/src/routes/import.ts",

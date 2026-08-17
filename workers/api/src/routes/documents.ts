@@ -1,5 +1,6 @@
 import type { Hono } from "hono";
 import { lensFor, readEvents } from "@shuddl/ledger/lens";
+import { isTenantEvidenceKey } from "@shuddl/ledger/documents/retention";
 import { ApiError, envelope } from "../middleware/error.js";
 import { resolveTenantDb } from "../tenants.js";
 import { mintDocDownloadCap, verifyDocDownloadCap } from "../pub/doc-cap.js";
@@ -129,7 +130,10 @@ export function mountDocumentRoutes(app: Hono<{ Bindings: Env; Variables: Vars }
     // Defense in depth (REQ-025): the SIGNED key MUST live in the SIGNED tenant's R2 namespace
     // (`evidence/<t>/…`, the evidenceKey template) — so even a MAC-valid cap can only ever reach ITS OWN
     // tenant's bytes. Any drift => the uniform 404.
-    if (!claims.k.startsWith(`evidence/${claims.t}/`)) return deny();
+    // §1719: this was a second hand-written copy of the guard, and dropping its trailing slash was silent
+    // across 893 api tests — a signed cap for tenant `t1` would have reached `evidence/t10/…`. It now
+    // calls THE builder, so the boundary cases in retention.test.ts defend this authorization check too.
+    if (!isTenantEvidenceKey(claims.k, claims.t)) return deny();
     let obj: R2ObjectBody | null;
     try {
       obj = await c.env.EVIDENCE.get(claims.k);
