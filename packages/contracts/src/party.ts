@@ -39,6 +39,10 @@ export async function partyIdForEmail(email: string): Promise<string> {
  * would orphan every name-keyed party ever created and split each one in two. Byte-exactness is the point,
  * not symmetry — do not "tidy" this prefix.
  *
+ * §1717: that paragraph was the ONLY thing defending it. Mutating this seed left contracts 349/349,
+ * api 891/891 and agents 148/148 GREEN — 1,388 tests, while every name-keyed party id changed. It is now
+ * pinned by goldens in `packages/contracts/test/party.test.ts`, so the forbidden tidy-up fails loudly.
+ *
  * Extracted (audit §433) per the note BOTH call sites carried. It had been inlined three times — once in
  * `workers/api/src/intake-core.ts` and twice in `workers/translator/src/core/map-204.ts` — under a comment
  * reading "MUST byte-match … pinned by test/party-id-parity.test.ts". That lock pinned only the translator

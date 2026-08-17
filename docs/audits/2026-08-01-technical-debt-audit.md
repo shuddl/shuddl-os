@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1163 | §1716 | **§1717** | **NINE PERSISTED-ID DERIVATIONS, ONE GOLDEN BETWEEN THEM.** §1716's finding turned into a question and asked of every id derivation whose output is stored, answered by mutating each seed and running the owning suite: **8 of 9 change every id they will ever produce with NOTHING noticing** (Biller invoice, Concierge shipment, mirror-sweep quarantine, billing credit-doc, api intake shipment, api migrate shipment, translator EDI shipment, and `partyIdForName`). The one defect rather than gap: **`partyIdForName` sits eight lines below `partyIdForEmail` in the same file** — the sibling has a golden introduced as "pins the byte law", and this one, under the HARSHER statement of that law (*"re-namespacing it would orphan every name-keyed party ever created … do not 'tidy' this prefix"*), had **no assertion of any kind**. Mutating its seed left contracts 349/349 + api 891/891 + agents 148/148 GREEN — **1,388 tests** — while every name-keyed party id changed, and a duplicate there splits BILLING. **A comment that names the wrong edit and forbids it by name is the strongest evidence someone will make it** — exactly when prose stops being enough. Fixed: goldens for both, the normalization, the deliberate namespace ASYMMETRY (so a "make these consistent" tidy-up fails three assertions), and non-collision; mutation-proved twice (`intake:party:nam:` and the forbidden `shuddl:party:name:` each red 2). The other seven stay FILED with their per-derivation verdicts rather than exported-just-to-assert. contracts 349→353, 0 behaviour changed |
 | 1162 | §1715 | **§1716** | **FOURTEEN COPIES OF ONE ID DERIVATION, AND THE TESTS COULD NOT SEE IT MOVE.** A grep for `function deterministicUuid` found SIX; the single-source gate written in the same phase immediately failed on **SEVEN MORE FILES** carrying the identical layout under seven other names (`uuidFromSeed` x2, `bookingEventIdFor`, `conciergeEventId`, `sendHoldNoteId`, `overdueSignalId`, `flipEventId`, `deterministicEventId`). **14 definitions, 13 files, 4 workers, 3 textual shapes — the name sweep found 43%.** They all agree: 406 seeds, ZERO disagreements, against a positive control that disagreed on 314. Nothing made them agree except that nobody had edited one — §1547 one level more dangerous, because these ids are how re-runs collapse and they are ALREADY PERSISTED in append-only `events`: a drifted copy appends a duplicate that cannot be deleted. **And the coverage was thinner than the copy count suggests** — mutating the derivation left `workers/api` at **891/891 GREEN** and `workers/agents` at **148/148**, including the api's own "accepting the SAME quote twice is idempotent" case, because both accepts in one run derive the same MUTATED id and still collapse. Those tests prove internal consistency; **byte-stability against rows written by a PREVIOUS deploy is what an in-process test structurally cannot see.** Landed: one builder in contracts (the `party.ts` precedent), 6 golden seed→id pairs in real production seed shapes + one seed per variant nibble chosen by SEARCHING for 8/9/a/b, a single-source gate that detects the LAYOUT as well as the name, 2 dead `sha256Hex` helpers removed. Limit stated: agents (148) and billing (76) STILL do not notice — now one function behind a golden instead of fourteen behind nothing. 0 behaviour changed. 27 citations repointed BY ORDINAL in the pre-edit file, never by nearest candidate — the checker accepts any candidate within ±2 and would have gone green on a wrong one |
 | 1161 | §1714 | **§1715** | **THE API DOES NOT DEPEND ON CLIENT DISCIPLINE; THE METER BESIDE IT DOES.** Row 294 says *only* a rare post-reserve api failure over-counts — a completeness claim, so it was tested. Two dedupes sit on one booking with DIFFERENT scopes: the api keys on the **quote** (`portal-actions.ts:146@deterministicUuid` derives the event id from `quote_event_id`, one event even past the HTTP idempotency window), the caps meter keys on `<derivedIdempotencyKey>:<shipment>:<quote>` — and `deriveIdempotencyKey` uses a CLIENT-supplied `idempotency_key` as its ENTIRE material. The 2026-08-01 convergence audit bound the TARGET into that marker to kill an under-count; **the inverse was never measured**. Measured now: **two accepts of the SAME quote under two DIFFERENT client keys reserve TWICE** (same `accepted_event_id`, tally `{18_000, 2}`) while the api appends ONE `quote.accepted`. **The asymmetry is the finding** — the api's dedupe is structural and proved with two RANDOM keys (`portal-actions.test.ts:236@pa-shp-idem`); the meter's holds only while the client keeps its token stable. Not theoretical: an agent whose first attempt's RESPONSE was lost retries with a fresh token and burns a slot for a booking that already happened. Still Low — OVER-count fails CLOSED, and the UTC-month self-heal is itself pinned (`metering.test.ts:58@periodOf`). CHARACTERIZED, not fixed: re-scoping a money gate's counter is the owner's, so the residual is stated at `caps.ts:211@RESIDUAL`, row 294 now contradicts its own *only*, and the undesired number is asserted so a re-scope fails loudly. mcp caps 20→21 |
 | 1160 | §1713 | **§1714** | **THREE STORES PIN THAT THEY EXPIRE; THE ONE THAT MUST NOT WAS HELD BY PROSE.** Row 442 re-measured at HEAD: `expirationTtl` **0** in both marker files, **no `.delete(`** in either, `listSentMarkerKeys` still unbounded and still per-tick — verdict stands. **The CONTROL is the finding**: the TTL idiom IS used two files away (`mcp/src/oauth.ts`, `api/src/middleware/idempotency.ts`), so its absence here is a CHOICE, not an oversight — the marker's presence IS the delivered record. **The asymmetry nobody had pinned**: three stores carry a deliberate TTL and **each is asserted** (§789 via KV's own `expiration` metadata; the OAuth code), while **this store's PERMANENCE — the property the row itself calls CORRECT — was held by prose alone.** That is the dangerous direction: adding an `expirationTtl` here **looks like hygiene**, uses an idiom already present two files away, passes every existing test, and **re-delivers a webhook to a partner**. **A property whose three siblings are pinned in the OPPOSITE direction is exactly the one a tidy-up will break.** Pinned on the options argument (a bare `put` passes `undefined`), mutation-proved — a planted 30-day TTL reds it by name. Limit stated: the R2 sent-marker half is NOT pinned (permanence there means *nothing deletes it*, a different instrument), and the scale half remains the register decision. mcp 209→210 |
@@ -13291,7 +13292,7 @@ route beside an MCP tool. Name collisions, not duplicated logic. §223 and §224
 derive an identical party id *"so they cannot silently drift into duplicate broker parties (the
 split-billing / credit-hold-evasion risk, on the name axis)."*
 
-**The scheme is inlined three times** — once in `packages/contracts/src/party.ts:49@partyIdForName` (the authority)
+**The scheme is inlined three times** — once in `packages/contracts/src/party.ts:53@partyIdForName` (the authority)
 and **twice in `map-204.ts`**: the bill-to broker branch, and the **no-bill-to branch where the shipper is
 the counterparty**.
 
@@ -13425,7 +13426,7 @@ would happily diverge, it is duplicated — and the comment is the only thing ho
 
 Every one of the five real gaps had the same tell: **the comment named another file by path.** *"Keep in
 lockstep with workers/api/src/routes/positions.ts"*, *"the SAME customer tenants"* naming two workers,
-*"byte-identical to a CSR one"*, *"mirrors `packages/contracts/src/party.ts:49@partyIdForName`"*. A structural claim does not need to name a
+*"byte-identical to a CSR one"*, *"mirrors `packages/contracts/src/party.ts:53@partyIdForName`"*. A structural claim does not need to name a
 file, because the shared mechanism is the reference — `rest.ts` says *"the SAME dispatch"*, not a path.
 
 That is a mechanical filter over the remaining 59, and it costs a grep rather than 59 mutations.
@@ -96307,3 +96308,61 @@ single-source gate added, 0 behaviour changed (every suite byte-identical green:
 translator 134, agents 148, billing 76, packages/agents 237). 27 citations repointed — resolved **by ordinal in
 the pre-edit file, never by nearest candidate**, because the checker accepts any candidate within ±2 and would
 have gone green on a wrong one.
+
+---
+
+## §1717 — PHASE GATE: nine persisted-id derivations, one golden between them (REQ-118/119/196)
+
+§1716's finding — *an in-process test proves same-input-same-output within one run, never that the output
+matches what a previous deploy persisted* — is a question, not just a conclusion. This phase asks it of every
+other id derivation whose output is stored, and answers it the only way that works: by mutating each seed and
+running the owning suite.
+
+| derivation | seed | suites run | verdict under mutation |
+|---|---|---|---|
+| `partyIdForName` | `intake:party:name:` | contracts 349 · api 891 · agents 148 | **GREEN — all 1,388** |
+| `partyIdForEmail` | `shuddl:party:email:` | contracts 349 | 1 RED (its golden) |
+| Biller invoice id | `biller:invoice:` | agents 148 | GREEN |
+| Concierge shipment id | `concierge:shipment:` | agents 148 | GREEN |
+| mirror-sweep quarantine id | `lgm_quar_` | agents 148 | GREEN |
+| billing credit-doc id | `billing:credit-doc:` | billing 76 | GREEN |
+| api intake shipment id | `intake:shipment:` | api 891 | GREEN |
+| api migrate shipment id | `migrate:shipment:` | api 891 | GREEN |
+| translator EDI shipment id | `edi:shipment:` | translator 134 | GREEN |
+
+**Eight of nine change every id they will ever produce without a single test noticing.** One golden, on one
+member, is the whole defence.
+
+### The one that is a defect rather than a gap
+
+`partyIdForName` sits eight lines below `partyIdForEmail` in the same file, under the harsher statement of the
+same law:
+
+> *"THE `intake:` PREFIX IS LEGACY AND DELIBERATE … re-namespacing it would orphan every name-keyed party ever
+> created and split each one in two. Byte-exactness is the point, not symmetry — **do not 'tidy' this
+> prefix**."*
+
+The sibling above it carries a golden introduced with the words *"pins the byte law"*. This one carried **no
+assertion of any kind** — not a golden, not a shape check, nothing. The discipline was applied and stopped one
+function short, on the member whose own comment argues hardest for it.
+
+> **A comment that names the wrong edit and forbids it by name is the strongest available evidence that
+> someone will make it.** That is exactly when prose stops being enough — §1613's shape, and
+> `check-what-a-discipline-stops-one-line-short-of` again.
+
+Fixed, not filed: `party.test.ts` now pins both goldens, the normalization, the deliberate namespace
+ASYMMETRY (so a "make these consistent" change fails three assertions instead of silently re-keying half the
+parties table), and non-collision. Mutation-proved twice — `intake:party:nam:` and the forbidden tidy-up
+`shuddl:party:name:` each red 2 tests. contracts **349→353**.
+
+### The other seven stay filed, and why
+
+Each needs its own golden in its own worker, and several of the functions are private — exporting them purely
+to assert them is a change to seven production files for zero behaviour, which is a larger and lower-value
+edit than the measurement that motivates it. The table above IS the deliverable: a filed row now carries the
+exact probe, per derivation, so the next person does not re-measure it. The blast radius is bounded and known
+— a duplicate `shp_`/`inv_`/`credit_` row rather than a wrong number — and it is strictly smaller than
+`partyIdForName`, whose duplicates split BILLING.
+
+**Phase gate.** 9 derivations probed by mutation (8 green, 1 red), 1 stated law found undefended and pinned, 2
+mutation REDs proving the pin, 7 filed with their measured verdicts, 0 behaviour changed. contracts 349→353.

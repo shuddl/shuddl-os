@@ -133,7 +133,7 @@ export async function mapTenderToBooking(tender: TenderDoc, ctx: MapTenderCtx): 
       // the id already converges on the normalized form, and this keeps the stored value consistent with it.
       party = { id: await partyIdForEmail(rawEmail), kind: "broker", name: billTo.name, email: normalizePartyEmail(rawEmail) };
     } else {
-        // The name-keyed derivation is now SHARED, not mirrored: `packages/contracts/src/party.ts:49@partyIdForName`
+        // The name-keyed derivation is now SHARED, not mirrored: `packages/contracts/src/party.ts:53@partyIdForName`
         // (REQ-196), called here and by workers/api/src/intake-core.ts. The refactor this comment used to ask
         // for has been done (audit §433) — the scheme was inlined in three places under a "parity LOCK" that
         // pinned only this side, so changing intake-core's prefix left it green while the two surfaces derived
@@ -145,7 +145,7 @@ export async function mapTenderToBooking(tender: TenderDoc, ctx: MapTenderCtx): 
   } else {
     // No bill-to on the tender: the shipper IS the counterparty (Concierge: requester = shipper). shipperStop
     // is defined here (we returned above unless originZip came from it). Name-keyed derivation — see the
-      // shared-derivation note above (`packages/contracts/src/party.ts:49@partyIdForName`, pinned by
+      // shared-derivation note above (`packages/contracts/src/party.ts:53@partyIdForName`, pinned by
       // test/party-id-parity.test.ts).
     const shName = (shipperStop as NonNullable<typeof shipperStop>).name;
     const normName = shName.trim().toLowerCase();
