@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1170 | §1723 | **§1724** | **WHICH FILED COUNTS ROT, AND THE THREE THAT COULD.** Rather than re-measure ninety-odd count-bearing rows, asked what HOLDS each count. Four re-measured by their own definitions and **all four STAND** (rows 422, 423, 458, 210 — a clean negative result). The discriminator: a gate that reads the DOC's number cannot rot (row 210); prose asserting an ABSENCE rots only by a deliberate act; **prose over a conditional or a derived subset is what rotted at §1722 and §1723**; and a `FROZEN_*` constant beside a prose count is TWO numbers with nothing joining them. `unbounded-reads-roster.test.ts:86@ROSTER` learned that at §823/§1019 — its row read "7 sites" while the roster held 8, green for two audits, because the agreement test matched the HEADING. **The pattern was never carried forward**: of five `FROZEN_*` ratchets, three have a checklist row stating the same figure and NONE reads the doc — `json-scan-ratchet` (21), `unbounded-event-scans` (11), `error-code-producers` (2), all written after the precedent, two by me this session. All three now bound; the ErrorCode one binds on **identity** rather than count because its row says "**Two**" as a word (and naming the members fails on removal, addition, or a rewrite about different codes — none of which a `2` notices). Mutation-proved by name, and **one probe had to be redone**: renaming the doc's `FLOOR_APPROVAL_REQUIRED` to `…_REQUIRED_X` left it GREEN because `toContain` takes a substring — the first probe's non-zero output was §1724 in PASSING test names. 0 behaviour changed, tools 1511→1514 |
 | 1169 | §1722 | **§1723** | **MY OWN GATE COMMENT STATED A NUMBER ITS METHOD CANNOT PRODUCE.** §1722 found a filed count invalidated by a later fix; the first candidate for the same shape elsewhere was **this session's own work**. Two record sources count producerless members of the 35-kind taxonomy and disagree: row 208 says SEVEN and names them; §1695's comment in `error-code-producers.test.ts` says FOUR. **Running §1695's OWN method over `EVENT_KINDS` returns ZERO** — every kind is credited, because the taxonomy is WALKED (`visibility.ts`, `lens.ts`, the three projections name every member). §1695 stated a number **as if this file's scan had produced it**; it had not — the four were quoted from row 208's list. **Row 208 is right**, and for the reason worth preserving: its seven come from the APPEND-SEAM corpus, not text, precisely because text cannot answer this for a walked vocabulary. **The correction makes §1695's argument STRONGER** — the walk crediting all 35 is the sharpest evidence that a walked vocabulary hides nothing from a scan and needs a different instrument. Landed: the comment corrected at the source; the ZERO asserted (meaningful in the direction it can break — a kind added to the taxonomy but not to the projections would be the first uncredited member, a real defect), mutation-proved by renaming one kind; and **row 208 inoculated** against the text-scan probe that would falsely retire it. 0 behaviour changed, tools 1510→1511 |
 | 1168 | §1721 | **§1722** | **A FIX IN ONE FILE INVALIDATED A FILED COUNT IN ANOTHER.** §1721 showed CI's perf step now passes; this asks what a pass there is worth. Row 205 already answered — *"in CI the perf gate enforces ONE of the three budgets its step name advertises"* — so this re-COUNTED rather than re-derived. **The number is ZERO.** The spec has five `expect()` sites: two UNCONDITIONAL vacuity guards (`frames.length`, `interactions.length`) and three budgets, **all three conditional** — interaction and long-task on a hardware rasterizer, FPS on `PERF_REFERENCE_MACHINE=1`, which nothing in the repo sets. The row was **correct when written and invalidated by a later fix nobody re-read it against**: §1709 moved interaction behind the rasterizer guard (right, and necessary — the breach was 51.5ms where one frame costs 266ms) and thereby removed the last budget CI enforced. Measured both ways with §1721's knob: CI's condition prints `BUDGETS ENFORCED 0/3`, this machine `2/3`. **So on CI this blocking merge gate can only ever fail on a vacuity guard** — it proves the harness sampled 1,000 entities and nothing about how fast the board is. Landed: one `BUDGETS ENFORCED n/3` line stating the TOTAL, which the three honest NOT ASSERTED lines never did — printed, never asserted, because a zero is a true statement about the RUNNER and failing on it would make an honest environment look like a regression. 0 assertions added or removed, 0 behaviour changed. Third consecutive phase whose finding is a record claim rather than code |
 | 1167 | §1720 | **§1721** | **THE HIGHEST-SEVERITY OPEN ROW, RE-MEASURED: THE RED IS STALE, NOT DIAGNOSTIC.** Row 461 (High) says CI fails every run with one expected red masking a real one. Measured: `origin/main` is `e587373`, all three most recent runs carry that same SHA, **154 commits sit unpushed**, and `git merge-base --is-ancestor f0c966c e587373` is **FALSE** — so the perf fix chain (`2d91b42`→`76b16cf`→`f0c966c`, plus §1709) **has never been run by CI**. The row describes a tree 154 commits behind. **CI is not reporting on the current code at all**, which is sharper than "a red masks a red". Second measurement: the failing condition was never switchable — the same failure was diagnosed three times against a machine that could not reproduce it — so §1721 adds `PERF_FORCE_SOFTWARE=1` (one ternary on the launch args). Under it the renderer is `SwiftShader (software=true)` and `pnpm perf:map -- --mode merge` exits **0**, `PASS / executed:true / assertions:1`, both hardware-sensitive budgets NOT ASSERTED with reasons — so the fix is verified INSIDE the condition that was failing it, not merely green on hardware that never saw it. Default path re-verified unchanged (Apple M1 Max, software=false, PASS). Stated plainly: nothing is pushed and this audit does not push; after a push CI still fails the merge-evidence step on unvendored fixtures. **The actionable change is expected reds going from two steps to one** — and row 461's "three ways out" were never the first step; the first step is a push. Closes the §1714–§1720 arc |
@@ -96696,3 +96697,58 @@ stands; only the supporting number was wrong, and wrong in the direction that ma
 **Phase gate.** 2 disagreeing record counts reconciled by measurement, 1 of them mine and corrected at the
 source, 1 prose claim converted to an assertion and mutation-proved, 1 row inoculated against the probe that
 would falsely retire it, 0 behaviour changed. tools **1510→1511**.
+
+---
+
+## §1724 — PHASE GATE: which filed counts rot, and the three that could (REQ-118/119)
+
+§1722 and §1723 each found a record count wrong. Rather than re-measure all ninety-odd count-bearing rows,
+this phase asked the cheaper question first: **what holds each count, and which holders can fail silently?**
+
+Re-measured four rows by their own definitions — and three of the four **stand**:
+
+| row | claim | measured at HEAD |
+|---|---|---|
+| 423 | no `coverage` config in any vitest config | **0 of 11** declare one — stands |
+| 422 | no `testTimeout` in `vitest.tools.config.ts`; four named gates set none either | none set, all four bare — stands |
+| 458 | 21 scanning `json_each`/`json_extract` sites; zero `json_valid` CHECKs | ratchet green at 21; `json_valid` still **0** — stands |
+| 210 | 9 unbounded list reads | roster green at 9 — stands, and **the gate reads the doc's number** |
+
+### The discriminator
+
+| what holds the count | can it rot silently? |
+|---|---|
+| a gate that reads the **doc's** number and compares it (row 210) | **no** — the document is an input |
+| a gate holding a `FROZEN_*` constant, doc stating the same number separately | **the two can drift** |
+| prose asserting an **absence** ("no timeout", "no coverage config") | only by a deliberate act, which its own subject prompts |
+| prose over a **conditional or a derived subset** | **yes — this is what rotted at §1722 and §1723** |
+
+`unbounded-reads-roster.test.ts:86@ROSTER` learned this the hard way at §823/§1019: its row read *"7 sites"*
+while the roster held 8, green, for two audits, because the agreement test matched the **heading** and not the
+number. Its own header says so — *"a doc-and-code agreement test that never compares the number is agreeing
+about a title."*
+
+**That pattern was never carried forward.** Measured: of the five `FROZEN_*` ratchets in `tools/checks`, three
+have a checklist row stating the same figure and **none of the three reads the doc** — `json-scan-ratchet` (21),
+`unbounded-event-scans` (11), `error-code-producers` (2). All three were written after the precedent; two of
+them by me, this session.
+
+### What landed
+
+The precedent's binding, in all three — the document parsed, its number extracted, compared to the constant:
+
+- **json-scan-ratchet** and **unbounded-event-scans** bind on the count.
+- **error-code-producers** binds on **identity**, not count, and the row is why: it says *"**Two** ErrorCode
+  members…"* — a word, so a digit match fails on arrival and a word match pins the spelling instead of the
+  subject. Naming the members is stronger anyway: it fails if either is removed, if a third appears, or if the
+  row is rewritten about different codes — none of which a `2` would notice.
+
+All three mutation-proved **by name**, and one of the probes had to be redone: renaming the doc's
+`FLOOR_APPROVAL_REQUIRED` to `…_REQUIRED_X` left the gate GREEN, because `toContain` is satisfied by a
+substring. The first probe's non-zero output was §1724 appearing in *passing* test names, not a failure — the
+`attribute-the-RED` rule catching a hollow proof of my own binding. Re-probed with a real rename, it reds.
+
+**Phase gate.** 4 filed counts re-measured by their own definitions (**4 stand** — a clean negative result), 1
+discriminator derived for which counts can rot at all, 3 doc/gate number pairs bound where a 6-audit-old
+precedent had not been carried forward, 3 bindings mutation-proved by name, 1 hollow proof caught and redone,
+0 behaviour changed. tools **1511→1514**.

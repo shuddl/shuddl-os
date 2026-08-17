@@ -165,4 +165,25 @@ describe("§1695 REQ-118: the error vocabulary is walked, so a dead code cannot 
         "change needing a register amendment, which is why this number may FALL but never grow.",
     ).toBeLessThanOrEqual(FROZEN_PRODUCERLESS);
   });
+
+  // §1724 — THE DOC IS AN INPUT, NOT A NEIGHBOUR (`unbounded-reads-roster.test.ts:86@ROSTER`, §823/§1019).
+  //
+  // Bound by IDENTITY rather than by count, and the row is why: it says "**Two** ErrorCode members…" — a
+  // WORD, so a digit match would fail on arrival and a word match would pin the spelling instead of the
+  // subject. Naming the members is the stronger binding anyway: it fails if either is removed, if a third is
+  // added, or if the row is rewritten about different codes — none of which a "2" would notice.
+  it("§1724 the checklist names the same producerless members this gate freezes (doc and code agree)", () => {
+    const doc = readFileSync(`${repoRoot()}/docs/ops/GO-LIVE-CHECKLIST.md`, "utf8");
+    const row = doc.split("\n").find((l) => l.includes("ErrorCode members have ZERO producers"));
+    expect(row, "the checklist no longer files the producerless-ErrorCode hold — restore it or retire this gate").toBeDefined();
+    const named = producerless(repoRoot());
+    expect(named.length, "the live producerless set moved — this gate's own ratchet should have caught it first").toBe(FROZEN_PRODUCERLESS);
+    for (const code of named) {
+      expect(
+        row,
+        `the checklist row does not name ${code}, which this gate freezes as producerless. The row is the ` +
+          "only place a reader learns WHICH codes a client must not switch on; a count alone does not say.",
+      ).toContain(code);
+    }
+  });
 });

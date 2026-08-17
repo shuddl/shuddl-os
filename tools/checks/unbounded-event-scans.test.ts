@@ -85,4 +85,24 @@ describe("§1713 REQ-118: the whole-history scan surface does not widen while th
         sites.join("\n  "),
     ).toBeLessThanOrEqual(FROZEN_UNBOUNDED);
   });
+
+  // §1724 — THE DOC IS AN INPUT, NOT A NEIGHBOUR. See `unbounded-reads-roster.test.ts:86@ROSTER`, which
+  // learned at §823/§1019 that a frozen count beside a prose count is two numbers with nothing joining them:
+  // that row read "7 sites" while its roster held 8, green, for two audits. This gate's own §1713 header
+  // makes a point of the count being HIGHER than the row first said — which is exactly the drift that binding
+  // prevents from happening twice.
+  it("§1724 the checklist states the same count this gate freezes (doc and code agree)", () => {
+    const doc = readFileSync(`${repoRoot()}/docs/ops/GO-LIVE-CHECKLIST.md`, "utf8");
+    const claimed = /\*\*(\d+)\*\* unbounded `FROM events` reads/.exec(doc);
+    expect(
+      claimed,
+      "the checklist row for the whole-history KPI scans no longer states its site count. Restore it — an " +
+        "unfixed hold whose size nobody states cannot be weighed against the decision to keep filing it.",
+    ).not.toBeNull();
+    expect(
+      Number(claimed![1]),
+      `the checklist claims ${claimed?.[1]} unbounded reads; this gate freezes ${FROZEN_UNBOUNDED}. Whichever ` +
+        "moved, move the other in the SAME commit.",
+    ).toBe(FROZEN_UNBOUNDED);
+  });
 });

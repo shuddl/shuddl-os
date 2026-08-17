@@ -75,4 +75,29 @@ describe("§1671 REQ-118: the scanning-JSON blast radius does not grow while §1
         "raise this number in the same commit that says why. If you REMOVED one, lower it — this may fall.",
     ).toBeLessThanOrEqual(FROZEN_SCANNING);
   });
+
+  // §1724 — THE DOC IS AN INPUT, NOT A NEIGHBOUR.
+  //
+  // `unbounded-reads-roster.test.ts:86@ROSTER` learned this at §823/§1019: a gate that freezes a count while
+  // the checklist states the same count in prose is TWO numbers, and nothing makes them agree. That row read
+  // "7 sites" while its roster held 8, green, for two audits — and the fix was to make the doc's number an
+  // input to the gate. Three later ratchets (this one, `unbounded-event-scans`, `error-code-producers`) did
+  // not carry the pattern forward. This is that binding.
+  //
+  // Deliberately matched on the NUMBER, not the heading: a doc-and-code agreement test that never compares
+  // the number is agreeing about a title.
+  it("§1724 the checklist states the same count this gate freezes (doc and code agree)", () => {
+    const doc = readFileSync(`${repoRoot()}/docs/ops/GO-LIVE-CHECKLIST.md`, "utf8");
+    const claimed = /(\d+) SCANNING `json_each`\/`json_extract` sites/.exec(doc);
+    expect(
+      claimed,
+      "the checklist no longer states a SCANNING site count for the malformed-JSON hold. Restore it — the " +
+        "number is the thing this pins, and a hold whose size nobody states is a hold nobody can size.",
+    ).not.toBeNull();
+    expect(
+      Number(claimed![1]),
+      `the checklist claims ${claimed?.[1]} scanning sites; this gate freezes ${FROZEN_SCANNING}. Whichever ` +
+        "moved, move the other in the SAME commit.",
+    ).toBe(FROZEN_SCANNING);
+  });
 });
