@@ -441,6 +441,51 @@ describe("WP-15 Task 4b — the forgeability lock at the events route (REQ-030/0
     expect(row?.source).toBe("native"); // and as stored in the ledger
   });
 
+  it("§1702 the WHOLE server-emitted set is refused — not just the one kind a sibling case happens to use", async () => {
+    // The refusal set had exactly ONE exercise in the suite (the invoice.issued case below, which uses it
+    // incidentally to make a different point about layering). Nothing asserted the other four, so removing any
+    // of them from SERVER_EMITTED_KINDS was silent. This walks the set — the §1695 lesson: a vocabulary
+    // referenced one member at a time is a vocabulary that can lose a member unnoticed.
+    const ops = await token({ sub: "lgp-set-ops", tenant: TENANT_SLUG, role: "ops" });
+    for (const kind of ["invoice.issued", "invoice.corrected", "split.computed", "payment.received", "settlement.executed"] as const) {
+      const r = await post("lgp-set-all", evt("lgp-set-all", kind, {}), ops);
+      expect(r.status, `${kind} must be refused as server-emitted (REQ-030)`).toBe(403);
+    }
+    expect(await streamCount("lgp-set-all"), "a refused kind appends nothing").toBe(0);
+  });
+
+  it("§1702 CHARACTERIZATION: quote.priced and quote.accepted are NOT refused — the open §1125/§1130 bypass", async () => {
+    // This asserts the DEFECT, deliberately, because the row that records it (GO-LIVE-CHECKLIST, Med) was held
+    // by prose alone: nothing failed if the hole closed, and nothing failed if it widened.
+    //
+    // The exposure: `SERVER_EMITTED_KINDS`' own comment says these kinds are appended "ONLY through
+    // server-internal seams … and the Rater", yet an ops/admin/driver principal can hand-craft a quote.priced
+    // through this route — bypassing the rater, the REQ-040 floors and the anomaly detector — and then forge a
+    // matching quote.accepted, which the Biller's guard accepts because it verifies consistency and existence,
+    // never provenance.
+    //
+    // WHY THIS IS A TEST AND NOT A FIX: the row's own analysis concludes the remedy is a RULE ("any kind with a
+    // dedicated gated route is refused by the generic route"), not two more entries, and that rule is an owner
+    // decision. Measured here so the decision is held by something that fails: WHEN either kind starts being
+    // refused, this case reds and whoever closed it must update the checklist row rather than leave it stale.
+    const ops = await token({ sub: "lgp-forge-quote", tenant: TENANT_SLUG, role: "ops" });
+    const priced = await post(
+      "lgp-forge-q",
+      evt("lgp-forge-q", "quote.priced", { quote_id: "q-forged", sell_cents: 1, lines: [{ line_no: 1, kind: "freight", code: "freight", amount_cents: 1 }] }),
+      ops,
+    );
+    expect(
+      priced.status,
+      "quote.priced is now refused — the §1125 bypass is CLOSED. Update the GO-LIVE-CHECKLIST row and delete this case.",
+    ).not.toBe(403);
+
+    const accepted = await post("lgp-forge-q", evt("lgp-forge-q", "quote.accepted", { quote_event_id: "q-forged" }), ops);
+    expect(
+      accepted.status,
+      "quote.accepted is now refused — the §1130 half is CLOSED. Update the row and delete this case.",
+    ).not.toBe(403);
+  });
+
   it("belt: invoice.issued is refused UPSTREAM as server-emitted (a second, independent lock) — never reaches the append", async () => {
     // invoice.issued can never be client-appended via this route (SERVER_EMITTED_KINDS), so the forged legacy
     // source is moot for it — a plain FORBIDDEN, not a GATE_BLOCKED (no required_evidence). Documents the layering.
