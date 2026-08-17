@@ -860,3 +860,57 @@ describe("REQ-201/202 — inbound 204 → gated chain, NO booking.created", () =
     expect((await env.EVIDENCE.list({ prefix: "edi/tenant-a/" })).objects).toHaveLength(0);
   });
 });
+
+// §1728 (REQ-201/205/118) — THE ORDER-LEVEL-ONLY IDENTITY, WHOSE THREE CLAIMS WERE ALL COUNTED AND NONE PINNED.
+//
+// There are TWO `edi:shipment:` derivations, and that mattered. `map-204.ts` seeds the STABLE-REF id (SID → BM
+// → PRO) that virtually every tender takes; `inbound.ts@orderLevelOnlyShipmentId` seeds the PO-only fallback,
+// folding the interchange control in as a per-delivery discriminator. §1717 probed "the translator EDI shipment
+// id", mutated `inbound.ts`, and read the resulting 141/141 green as "unpinned". Half right: re-measured
+// separately, the map-204 path reds **3** cases (the round-trip fixture carries a derived id), and the
+// inbound path reds **none** — the probe had mutated the branch the default tenders never take.
+//
+// The PO-only branch IS exercised, by three cases above. Every one of them asserts a COUNT — two shipments,
+// two `quote.accepted` — so a derivation that changed every id it produces keeps all three counts identical
+// and all three green. The comment on the seed states three claims and the counts reach only the middle one:
+//
+//   1. a same-interchange retry REPRODUCES the id (idempotent)          — counted, not pinned
+//   2. two deliveries on one PO are two loads (visible over silent)     — counted
+//   3. the id is stable across deploys                                  — unreachable by any count
+//
+// (3) is the one that bites: this id is `shipments.id` and the root of an `s:<id>` stream. A changed seed makes
+// the retry in (1) mint a SECOND shipment for a delivery already in the ledger — the silent duplicate the
+// comment says it prefers a visible one over, arriving by the back door.
+describe("§1728 the PO-only shipment id is byte-stable, and the ISA is its discriminator (REQ-205)", () => {
+  // The same per-test setup the booking cases use: REQ-203 books only from a REPLAY-CERTIFIED partner, and
+  // isolatedStorage rolls the seed back after each test. Without it the tender is refused and the assertion
+  // below reads `undefined` — which is how this block failed on its first run.
+  beforeEach(async () => {
+    await seedEdiPartner(env.TENANT_A_DB, PARTNER_ID, null, "{}");
+    await certifyPartner(env.TENANT_A_DB, PARTNER_ID, "fixtures/edi/roundtrip.json");
+  });
+
+  it("a PO-only tender derives exactly this id; the same interchange re-derives it; a different one does not", async () => {
+    const seq = new RecordingSeq();
+    const deps = makeDeps(seq, new RecordingTransport(), goodSecrets());
+    await handleInbound204(await signedRequest(mkTender({ isa: "000000042", sid: null, bol: null, l11: [["5000", "PO"]] })), deps);
+
+    const first = await env.TENANT_A_DB.prepare("SELECT id FROM shipments").first<{ id: string }>();
+    expect(
+      first?.id,
+      "the PO-only shipment id moved. It is `shipments.id` and the root of an `s:<id>` stream, and it is " +
+        "already persisted: a changed seed makes a same-interchange RETRY mint a second shipment for a " +
+        "delivery already in the ledger — the silent duplicate this derivation exists to avoid.",
+    ).toBe("shp_4e7205e7b3cb666c");
+
+    // (1) idempotent under the SAME interchange — the claim the counts could only reach indirectly.
+    await handleInbound204(await signedRequest(mkTender({ isa: "000000042", sid: null, bol: null, l11: [["5000", "PO"]] })), deps);
+    expect(await count(env.TENANT_A_DB, "shipments"), "a same-ISA retry is the SAME load").toBe(1);
+
+    // (2) the ISA really is the discriminator — a different interchange is a different delivery, and the
+    // literal proves it is discriminated BY THE ISA rather than by anything incidental in the tender.
+    await handleInbound204(await signedRequest(mkTender({ isa: "000000777", sid: null, bol: null, l11: [["5000", "PO"]] })), deps);
+    const ids = await env.TENANT_A_DB.prepare("SELECT id FROM shipments ORDER BY id").all<{ id: string }>();
+    expect(ids.results.map((r) => r.id).sort()).toEqual(["shp_4e7205e7b3cb666c", "shp_8bf46387254e0465"].sort());
+  });
+});
