@@ -26,7 +26,7 @@
 // Concierge shipment those FKs all equal the requester (who has an email contact), so the T6 evidence-
 // recipient gate passes. LLM-free (REQ-024): this consumer only loads records, derives an id, and appends.
 
-import { z, GATE_BLOCKED_PREFIX } from "@shuddl/contracts";
+import { z, GATE_BLOCKED_PREFIX, deterministicUuid } from "@shuddl/contracts";
 import type { BookingCreatedPayload, LedgerEvent } from "@shuddl/contracts";
 import { rowToEvent } from "@shuddl/ledger/lens";
 import type { SeqStubLike } from "./biller.js";
@@ -61,19 +61,13 @@ export type BookingOutcome =
   | { status: "skipped"; reason: "quote_accept_not_found" | "shipment_not_found" | "accepted_quote_not_found"; detail: string };
 
 // ---- deterministic id (no Date, no random — redelivery must reproduce it exactly) -------------------
-async function sha256Hex(s: string): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
-  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
-}
 
 // The booking.created EVENT id: a domain-separated SHA-256 of the quote.accepted event id, shaped into a
 // v4-variant UUID so it satisfies EventInput's z.string().uuid() — the same shaping biller.ts / concierge.ts
 // use. The sequencer dedupes by this id, so a redelivered message returns the ORIGINAL event, never a second
 // booking. Exported so the test can assert the derivation directly.
 export async function bookingEventIdFor(quoteAcceptedEventId: string): Promise<string> {
-  const h = (await sha256Hex(`booking:booking-created:${quoteAcceptedEventId}`)).slice(0, 32);
-  const variant = ((parseInt(h.slice(16, 17) || "0", 16) & 0x3) | 0x8).toString(16); // 8/9/a/b
-  return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-${variant}${h.slice(17, 20)}-${h.slice(20, 32)}`;
+  return deterministicUuid(`booking:booking-created:${quoteAcceptedEventId}`);
 }
 
 // ---- gate-block recognition -------------------------------------------------------------------------

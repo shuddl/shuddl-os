@@ -34,7 +34,7 @@
 // concern (NON-scope here) — this task ships the mirror-IN machinery fail-closed and does NOT change compute paths.
 import { mapLegacyExport, parseSheet, LegacyMirrorConfigSchema, stableStringify } from "@shuddl/adapters";
 import type { LegacyMirrorConfig, MirrorEventDraft, MirrorQuarantine } from "@shuddl/adapters";
-import { EventInput } from "@shuddl/contracts";
+import { EventInput, deterministicUuid } from "@shuddl/contracts";
 
 // The api sequencer DO append surface — hand-written for the SAME reason inbound.ts / the agents Biller bind it:
 // the generic DurableObjectStub RPC mapper explodes on the recursive event union. Only `id` is consumed. In
@@ -105,11 +105,8 @@ async function sha256Hex(s: string): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
-async function deterministicUuid(seed: string): Promise<string> {
-  const h = (await sha256Hex(seed)).slice(0, 32);
-  const variant = ((parseInt(h.slice(16, 17) || "0", 16) & 0x3) | 0x8).toString(16); // 8/9/a/b
-  return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-${variant}${h.slice(17, 20)}-${h.slice(20, 32)}`;
-}
+// `deterministicUuid` is imported from @shuddl/contracts — §1716 consolidated the SIX copies of it (this was
+// one) into the one builder. Its outputs sit in append-only `events.id`; see the byte-contract warning there.
 const truncate = (s: string, n: number): string => (s.length > n ? s.slice(0, n) : s);
 // stableStringify is imported from @shuddl/adapters — THE ONE canonical echo-contract stringify (shared by the
 // mirror-IN idSeed, the project-OUT, and this worker's quarantine-id derivation). No hand-copied replica ⇒ the

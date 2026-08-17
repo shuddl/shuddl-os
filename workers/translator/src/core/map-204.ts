@@ -11,7 +11,7 @@
 // EDI-created and a CSR-created name-only party still converge. IDEMPOTENCE: the shipment id + the whole plan
 // (incl. the append's event id) are deterministic in the tender + ctx, so a redelivered 204 reproduces the
 // SAME ids and the worker's INSERT OR IGNORE / id-dedup is a no-op (the make-agent-idempotent doctrine).
-import { partyIdForEmail, partyIdForName, normalizePartyEmail, EventInput } from "@shuddl/contracts";
+import { partyIdForEmail, partyIdForName, normalizePartyEmail, EventInput, deterministicUuid } from "@shuddl/contracts";
 import type { TenderDoc, EdiAddress } from "@shuddl/edi";
 
 // The parties.kind CHECK set (db/tenant/migrations/0002_domain.sql) — a 204 bill-to is the tendering
@@ -84,11 +84,8 @@ async function sha256Hex(s: string): Promise<string> {
 // A deterministic RFC-4122 UUID (version nibble 4, variant nibble 8-b) derived from a seed — so the
 // quote.requested append has a STABLE id under redelivery (idempotent) yet still satisfies EventInput's
 // `z.string().uuid()`. No randomness, no clock.
-async function deterministicUuid(seed: string): Promise<string> {
-  const h = await sha256Hex(seed); // 64 hex chars
-  const variant = ((parseInt(h.charAt(16), 16) & 0x3) | 0x8).toString(16);
-  return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-${variant}${h.slice(17, 20)}-${h.slice(20, 32)}`;
-}
+// `deterministicUuid` is imported from @shuddl/contracts — §1716 consolidated the SIX copies of it (this was
+// one) into the one builder. Its outputs sit in append-only `events.id`; see the byte-contract warning there.
 
 function nonEmptyAddress(a: EdiAddress | undefined): EdiAddress | undefined {
   return a !== undefined && Object.keys(a).length > 0 ? a : undefined;
@@ -209,7 +206,7 @@ export async function mapTenderToBooking(tender: TenderDoc, ctx: MapTenderCtx): 
     // Envelope confidence is CAPTURE confidence (how sure we are the event was recorded correctly), NOT a trust
     // score of the counterparty's data — a structured, machine-parsed 204 is captured at least as reliably as
     // the Concierge's LLM-parsed inbound email, which appends quote.requested at confidence 10_000
-    // ( workers/agents/src/concierge.ts:751@quote.requested ). Held
+    // ( workers/agents/src/concierge.ts:747@quote.requested ). Held
     // at 10_000 to match that quote.requested precedent (lowering it here would be unexplained drift).
     confidence: 10_000,
     kind: "quote.requested",

@@ -1,5 +1,6 @@
 import type { Hono } from "hono";
 import type { LedgerEvent } from "@shuddl/contracts";
+import { deterministicUuid } from "@shuddl/contracts";
 import { rowToEvent } from "@shuddl/ledger/lens";
 import { plausibleEmail } from "@shuddl/ledger/contacts";
 import {
@@ -86,12 +87,8 @@ function dunningFromName(env: Env): string {
 // A DETERMINISTIC v4-variant UUID (satisfies EventInput.id = z.string().uuid()) from a domain-separated seed —
 // the SAME shaping approvals.ts / rate.ts use. Seeding the message.sent id off (invoice, bucket) makes a re-POST
 // re-derive the SAME id → the sequencer dedupes → one message.sent per draft, ever.
-async function deterministicUuid(seed: string): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(seed));
-  const h = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 32);
-  const variant = ((parseInt(h.slice(16, 17) || "0", 16) & 0x3) | 0x8).toString(16); // 8/9/a/b
-  return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-${variant}${h.slice(17, 20)}-${h.slice(20, 32)}`;
-}
+// `deterministicUuid` is imported from @shuddl/contracts — §1716 consolidated the SIX copies of it (this was
+// one) into the one builder. Its outputs sit in append-only `events.id`; see the byte-contract warning there.
 export async function dunningSentEventId(invoiceId: string, bucket: DunningBucket): Promise<string> {
   return deterministicUuid(`collector:dunning-sent:${invoiceId}:${bucket}`);
 }

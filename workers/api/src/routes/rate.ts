@@ -1,7 +1,7 @@
 import { RATER_AGENT } from "@shuddl/ledger/queries/metrics";
 import type { Hono } from "hono";
 import { z } from "zod";
-import { MAX_WEIGHT_LB, MAX_ZIP_LEN } from "@shuddl/contracts";
+import { MAX_WEIGHT_LB, MAX_ZIP_LEN, deterministicUuid } from "@shuddl/contracts";
 import { priceShipment, assessApproval, resolveTransitDays, unknownAccessorials } from "@shuddl/rater";
 import type { RateRequest, Leg, PricedQuote, ApprovalDecision, TransitResult } from "@shuddl/rater";
 import { ApiError } from "../middleware/error.js";
@@ -106,10 +106,7 @@ function approvalOpts(body: RateBody): { proposedSellCents?: number; legs?: read
 // their existing rows, the missing ones complete, nothing duplicates. Shaped into a v4-variant UUID so it
 // satisfies EventInput.id (z.string().uuid()).
 async function deterministicEventId(idempotencyKey: string, shipmentId: string, kind: string): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`${idempotencyKey}:${shipmentId}:${kind}`));
-  const h = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 32);
-  const variant = ((parseInt(h.slice(16, 17) || "0", 16) & 0x3) | 0x8).toString(16); // 8/9/a/b
-  return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-${variant}${h.slice(17, 20)}-${h.slice(20, 32)}`;
+  return deterministicUuid(`${idempotencyKey}:${shipmentId}:${kind}`);
 }
 
 export function mountRateRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>): void {

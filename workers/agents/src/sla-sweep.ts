@@ -28,6 +28,7 @@
 
 import { nativeVisibleSourceSql } from "@shuddl/ledger/queries/unbilled";
 import type { SeqStubLike } from "./biller.js";
+import { deterministicUuid } from "@shuddl/contracts";
 
 export interface SlaSweepResult {
   /** Overdue inbound rows returned by the query — genuinely-new candidates (note not yet present). */
@@ -119,19 +120,13 @@ const pairKey = (streamId: string, inboundId: string): string => `${streamId}\u0
 // (The former per-row `ANSWERED_SQL` stood here. The REQ-100/174/176 reasoning above is unchanged and now
 //  governs `answeredBatchSql`, which asks the same question for a whole chunk of PAIRS at once — audit §471.)
 
-async function sha256Hex(s: string): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
-  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
-}
 
 // The overdue signal's event id — a domain-separated SHA-256 of the OVERDUE INBOUND's id, shaped into a
 // v4-variant UUID (the same shaping biller.ts/concierge.ts use for EventInput's z.string().uuid()). The
 // `sla-overdue` tag never collides with the concierge quote-event ids derived from the same inbound. The
 // sequencer dedupes by this id, so even absent the query-level exclusion a re-run returns the ORIGINAL note.
 async function overdueSignalId(inboundEventId: string): Promise<string> {
-  const h = (await sha256Hex(`concierge:sla-overdue:${inboundEventId}`)).slice(0, 32);
-  const variant = ((parseInt(h.slice(16, 17) || "0", 16) & 0x3) | 0x8).toString(16); // 8/9/a/b
-  return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-${variant}${h.slice(17, 20)}-${h.slice(20, 32)}`;
+  return deterministicUuid(`concierge:sla-overdue:${inboundEventId}`);
 }
 
 // The overdue note's DETERMINISTIC body_ref — the SELF-CLEARING key (OVERDUE_SQL excludes an inbound once a

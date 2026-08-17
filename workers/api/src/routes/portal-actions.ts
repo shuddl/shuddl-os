@@ -1,6 +1,7 @@
 import type { Hono } from "hono";
 import { z } from "zod";
 import type { SessionClaims } from "@shuddl/contracts";
+import { deterministicUuid } from "@shuddl/contracts";
 import { lensFor, readEvents } from "@shuddl/ledger/lens";
 import { ApiError } from "../middleware/error.js";
 import { requireRole } from "../middleware/auth.js";
@@ -38,12 +39,8 @@ const PORTAL_ACTION_CONFIDENCE_BPS = 10_000; // a deterministic server-recorded 
 // the SAME shaping rate.ts / booking.ts / concierge.ts use, so a retry reproduces the SAME id and the sequencer
 // dedupes by id (one append, never a duplicate). Used to make accept idempotent PER QUOTE and claim idempotent
 // PER Idempotency-Key.
-async function deterministicUuid(seed: string): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(seed));
-  const h = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 32);
-  const variant = ((parseInt(h.slice(16, 17) || "0", 16) & 0x3) | 0x8).toString(16); // 8/9/a/b
-  return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-${variant}${h.slice(17, 20)}-${h.slice(20, 32)}`;
-}
+// `deterministicUuid` is imported from @shuddl/contracts — §1716 consolidated the SIX copies of it (this was
+// one) into the one builder. Its outputs sit in append-only `events.id`; see the byte-contract warning there.
 
 // THE lens gate, shared by both seams: prove the caller can SEE :id through its OWN lens (the exact seam the
 // events read + status-link mint use), fail-closed. A portal session missing party_id throws LENS_UNRESOLVED →

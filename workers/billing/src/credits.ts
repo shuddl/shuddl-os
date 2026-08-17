@@ -18,7 +18,7 @@
 // (usage_credits), MERGING into stripe_refs (json_patch) so issue and settlement both contribute and neither
 // clobbers `metered`. The sweep OVERWRITES only `metered` on conflict; this OVERWRITES only `stripe_refs`. The
 // two never fork (metering.ts owns the row identity; both key it the same way).
-import { z, EventInput } from "@shuddl/contracts";
+import { z, EventInput, deterministicUuid } from "@shuddl/contracts";
 import { periodOf, usageCreditsId } from "./metering.js";
 import type { PlatformLedger } from "./platform-ledger.js";
 import type { StripeWebhookEvent } from "./billing.js";
@@ -42,9 +42,7 @@ async function sha256Hex(s: string): Promise<string> {
 // A DETERMINISTIC v4-variant UUID from a domain-tagged seed (the same shaping the Biller's uuidFromSeed uses),
 // so the platform ledger's id-dedup returns the ORIGINAL event on a redelivery/duplicate.
 async function uuidFromSeed(seed: string): Promise<string> {
-  const h = (await sha256Hex(seed)).slice(0, 32);
-  const variant = ((parseInt(h.slice(16, 17) || "0", 16) & 0x3) | 0x8).toString(16); // 8/9/a/b
-  return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-${variant}${h.slice(17, 20)}-${h.slice(20, 32)}`;
+  return deterministicUuid(seed);
 }
 
 // The three ids all key off the payment CORRELATION id (the Stripe payment_intent for a purchase). The invoice

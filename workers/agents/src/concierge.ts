@@ -28,7 +28,7 @@
 //     adapter at the composition root (NotConfiguredParser by default, ClaudeParser iff a key+model is
 //     bound), exactly like the Biller's evidenceSender(). The consumer itself calls no LLM.
 
-import { z, normalizePartyEmail, partyIdForEmail } from "@shuddl/contracts";
+import { z, normalizePartyEmail, partyIdForEmail, deterministicUuid } from "@shuddl/contracts";
 import type { LedgerEvent, MessageReceivedPayload, ZoneTariff } from "@shuddl/contracts";
 import { rowToEvent } from "@shuddl/ledger/lens";
 import { authoritativeSource, resolveAuthority } from "@shuddl/ledger/authority";
@@ -130,9 +130,7 @@ async function sha256Hex(s: string): Promise<string> {
 // EventInput's z.string().uuid() — the same shaping rate.ts/biller.ts use. The sequencer dedupes by this
 // id, so a redelivered message returns the ORIGINAL event, never a second.
 async function conciergeEventId(domain: string, messageEventId: string): Promise<string> {
-  const h = (await sha256Hex(`concierge:${domain}:${messageEventId}`)).slice(0, 32);
-  const variant = ((parseInt(h.slice(16, 17) || "0", 16) & 0x3) | 0x8).toString(16); // 8/9/a/b
-  return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-${variant}${h.slice(17, 20)}-${h.slice(20, 32)}`;
+  return deterministicUuid(`concierge:${domain}:${messageEventId}`);
 }
 
 // The created shipment id (word-chars only ⇒ a valid `s:<id>` stream). Deterministic from the message id so
@@ -154,9 +152,7 @@ function sendHoldBodyRef(messageSentEventId: string): string {
   return `concierge-send-hold/${messageSentEventId}`;
 }
 async function sendHoldNoteId(messageSentEventId: string): Promise<string> {
-  const h = (await sha256Hex(`concierge:send-hold:${messageSentEventId}`)).slice(0, 32);
-  const variant = ((parseInt(h.slice(16, 17) || "0", 16) & 0x3) | 0x8).toString(16); // 8/9/a/b
-  return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-${variant}${h.slice(17, 20)}-${h.slice(20, 32)}`;
+  return deterministicUuid(`concierge:send-hold:${messageSentEventId}`);
 }
 
 // A created party's id is derived from the requester email via the SHARED @shuddl/contracts matcher

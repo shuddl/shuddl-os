@@ -1,6 +1,7 @@
 import type { Hono } from "hono";
 import { z } from "zod";
 import type { Role, SessionClaims } from "@shuddl/contracts";
+import { deterministicUuid } from "@shuddl/contracts";
 import { ApiError } from "../middleware/error.js";
 import { requireRole } from "../middleware/auth.js";
 import { resolveTenantDb } from "../tenants.js";
@@ -40,12 +41,8 @@ const STATUS_VALUES = new Set(["open", "decided"]);
 // the SAME shaping rate.ts / portal-actions.ts use. Deriving the approval.decided id from the requested_event_id
 // makes a re-decision reproduce the SAME id → the sequencer dedupes by id (one approval.decided per approval,
 // the FIRST decision wins), so the ledger never gains a duplicate even under a race.
-async function deterministicUuid(seed: string): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(seed));
-  const h = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 32);
-  const variant = ((parseInt(h.slice(16, 17) || "0", 16) & 0x3) | 0x8).toString(16); // 8/9/a/b
-  return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-${variant}${h.slice(17, 20)}-${h.slice(20, 32)}`;
-}
+// `deterministicUuid` is imported from @shuddl/contracts — §1716 consolidated the SIX copies of it (this was
+// one) into the one builder. Its outputs sit in append-only `events.id`; see the byte-contract warning there.
 
 // The matrix satisfaction check (server-side). admin clears ANY requirement; otherwise the role must EQUAL the
 // required role. required_role only ever holds "ops" or "finance" (the matrix), but this is total over any string.

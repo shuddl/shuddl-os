@@ -24,7 +24,7 @@
 // derives ids, appends through the DO, and sends. It runs in workers/agents (REQ-024: agents may call
 // LLMs, the ledger may not — this one happens to need none).
 
-import { z } from "@shuddl/contracts";
+import { z, deterministicUuid } from "@shuddl/contracts";
 import type { GeoStamp, InvoiceIssuedPayload, LedgerEvent, QuotePricedPayload } from "@shuddl/contracts";
 import { rowToEvent } from "@shuddl/ledger/lens";
 import { authoritativeSource, resolveAuthority } from "@shuddl/ledger/authority";
@@ -95,9 +95,7 @@ async function sha256Hex(s: string): Promise<string> {
 // SAME event id on redelivery and gets the ORIGINAL event back, never a second. Shared by the Biller and
 // the interline-split producer (REQ-019) so both agents' id law lives in ONE place.
 export async function uuidFromSeed(seed: string): Promise<string> {
-  const h = (await sha256Hex(seed)).slice(0, 32);
-  const variant = ((parseInt(h.slice(16, 17) || "0", 16) & 0x3) | 0x8).toString(16); // 8/9/a/b
-  return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-${variant}${h.slice(17, 20)}-${h.slice(20, 32)}`;
+  return deterministicUuid(seed);
 }
 
 // The invoice EVENT id: domain-tagged on the POD event id (redelivery-stable; see uuidFromSeed).

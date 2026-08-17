@@ -212,7 +212,7 @@ async function runCapsCheck(ctx: ToolCtx, tool: ToolDef, args: unknown): Promise
     // The composite is bound to the target but still LED by the derived key, so the replay only fires when the
     // client sends the SAME `idempotency_key` (or none — identical args canonicalize identically). Vary that one
     // string across two accepts of the SAME quote and the meter reserves TWICE for a booking the api collapses
-    // to ONE event. The api does not depend on client discipline for this: workers/api/src/routes/portal-actions.ts:149@deterministicUuid derives the
+    // to ONE event. The api does not depend on client discipline for this: workers/api/src/routes/portal-actions.ts:146@deterministicUuid derives the
     // quote.accepted id DETERMINISTICALLY from the quote id, so a second accept is one event even past the
     // HTTP idempotency window (proved with two RANDOM keys — see workers/api/test/portal-actions.test.ts:236@pa-shp-idem — and this is proved, not asserted. The meter's scope is
     // the derived key; the api's is the quote — narrower scope, higher count. Direction: OVER-count ⇒ fails

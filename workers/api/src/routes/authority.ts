@@ -1,6 +1,6 @@
 import type { Hono } from "hono";
 import { z } from "zod";
-import { AuthorityModule, type AuthorityLevel } from "@shuddl/contracts";
+import { AuthorityModule, deterministicUuid, type AuthorityLevel } from "@shuddl/contracts";
 import { computeModuleParity } from "@shuddl/ledger/parity";
 import { ApiError } from "../middleware/error.js";
 import { requireRole } from "../middleware/auth.js";
@@ -134,10 +134,7 @@ export async function gatesGreenFor(db: D1Database, module: AuthorityModule): Pr
 // by id (returns the existing row, never a second append). Shaped into a v4-variant UUID so it satisfies
 // EventInput.id. Mirrors rate.ts deterministicEventId.
 async function flipEventId(idempotencyKey: string, module: string, to: string): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`authority.flip:${idempotencyKey}:${module}:${to}`));
-  const h = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 32);
-  const variant = ((parseInt(h.slice(16, 17) || "0", 16) & 0x3) | 0x8).toString(16); // 8/9/a/b
-  return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-${variant}${h.slice(17, 20)}-${h.slice(20, 32)}`;
+  return deterministicUuid(`authority.flip:${idempotencyKey}:${module}:${to}`);
 }
 
 export function mountAuthorityRoutes(app: Hono<{ Bindings: Env; Variables: Vars }>): void {

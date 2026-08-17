@@ -25,7 +25,7 @@
 // The X12 parse (tokenize/parse204), the 204→plan mapping (mapTenderToBooking), the quarantine descriptor, and
 // the 990 serialize are the PURE @shuddl/edi + Task-6 cores; this file is composition + I/O wiring only. LLM-free.
 import { RATER_AGENT } from "@shuddl/ledger/queries/metrics";
-import { parseTenantPolicy, describeTenantPolicyRejection, isUnknownTenant } from "@shuddl/contracts";
+import { parseTenantPolicy, describeTenantPolicyRejection, isUnknownTenant, deterministicUuid } from "@shuddl/contracts";
 import { parse204, tokenize, build990 } from "@shuddl/edi";
 import type { TenderDoc } from "@shuddl/edi";
 import { priceShipment, assessApproval } from "@shuddl/rater";
@@ -117,11 +117,8 @@ async function sha256Hex(s: string): Promise<string> {
 
 // A deterministic v4-variant UUID from a domain-separated seed — the SAME shaping map-204 / rate.ts /
 // portal-actions use, so a redelivered 204 reproduces the SAME event id and the sequencer dedupes by id.
-async function deterministicUuid(seed: string): Promise<string> {
-  const h = (await sha256Hex(seed)).slice(0, 32);
-  const variant = ((parseInt(h.slice(16, 17) || "0", 16) & 0x3) | 0x8).toString(16); // 8/9/a/b
-  return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-${variant}${h.slice(17, 20)}-${h.slice(20, 32)}`;
-}
+// `deterministicUuid` is imported from @shuddl/contracts — §1716 consolidated the SIX copies of it (this was
+// one) into the one builder. Its outputs sit in append-only `events.id`; see the byte-contract warning there.
 
 // HMAC-SHA256(secret, body) as lowercase hex.
 async function hmacHex(secret: string, body: ArrayBuffer): Promise<string> {

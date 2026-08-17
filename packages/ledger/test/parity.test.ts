@@ -309,7 +309,7 @@ describe("PARITY_TOLERANCE_BPS + edges (REQ-023, CLAUDE.md rule 6)", () => {
 //
 // MEASURED before this existed: dropping "edi" from the list left `packages/ledger` 625/625 GREEN, and the
 // two api suites that consume it (kpis, source-aware-ledger) exit 0 as well. The entry is not dead —
-// `workers/translator/src/core/map-204.ts:208@source` stamps `source: "edi"` on every EDI-tendered event — so a
+// `workers/translator/src/core/map-204.ts:205@source` stamps `source: "edi"` on every EDI-tendered event — so a
 // silent removal makes EDI freight invisible to every aggregate at once: uninvoiced, un-SLA'd, unwatched.
 //
 // THE EXPECTATION IS DERIVED FROM THE CONTRACT, NOT RESTATED (§433/§434). A frozen literal would pin today's
