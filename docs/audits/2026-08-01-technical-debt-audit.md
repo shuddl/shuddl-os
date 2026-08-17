@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1209 | §1762 | **§1763** | **THE EXACTNESS-GUARD CLASS, SWEPT — AND THE RULE THAT DECIDES WHICH ONES MATTER.** Two instances is a class, so this counted instead of fixing: **every `BigInt(` in non-test source**, 7 files. **The geo resolver was unpinned** — rewriting both cross-product predicates in float left all **38** tests in the owning suite green, and **3,000,000 random (edge, point) triples found ZERO disagreements** (a disagreement needs the exact cross to land within ~16 of zero; a random one is ~1e16). So the witness was **CONSTRUCTED**: pick an edge with **coprime** deltas so a cross product of exactly 1 is reachable, solve with extended Euclid — exact says off-edge (interior, the state code), float says collinear (**boundary → "XX"**). 3 tests added; under the mutation **exactly 1 of 41 fails**, and it is the witness. The mild direction is a fail-closed jurisdiction; the same rounding decides `eastOfPoint`, which returns a **confident wrong state**. **THE RULE**: an exactness guard is load-bearing exactly when the result's ROUNDING GRANULARITY is comparable to the error — money rounds to the cent (the error IS a cent), geo compares against ZERO (any error flips it), and **DSO rounds to DAYS while its error is sub-millisecond: 0 / 200,000 answers differ, so that BigInt is genuinely unnecessary**. Cheaper than mutating everything. **And the §1762 asymmetry is now 2 of 2**: the rater's monetary product is pinned by a test named for it, both ledger guards were not — the louder failure attracts the proof. 0 production code changed |
 | 1208 | §1761 | **§1762** | **A GUARD NO MUTATION CAN JUSTIFY, AND ONLY THE ARITHMETIC CAN.** The rater's money chain has a derived overflow ceiling a test recomputes; the ledger's money core has the same exposure and had **none**. Building it inverted my conclusion twice. **(1)** The planned mutation — rewrite the BigInt Hamilton core in floating point — **passed all fifteen tests**, so the claim written before measuring was false. **(2)** Brute force: **0 disagreements in 400,000 random allocations across the whole admissible range, and 0 in 40,000,000 ADVERSARIAL cases** shaped to maximise the widest product; the first appear one decade up (8/50,000 at 1e13, ~27% by 1e17). The obvious reading — *the BigInt is unnecessary* — is ALSO wrong, and the test written to confirm it is what caught that: **the widest intermediate at the contract bound is 9.99999999999e15, past 2^53**, so the products truly are unrepresentable and the assertion first written here failed pointing the wrong way. Both hold because a ≤1 error in a ~1e16 product only moves `floor(product/10000)` when it crosses a multiple of the divisor — which never happened in 40.4M trials. **The class**: deleting this guard looks exactly like deleting dead weight, stays green forever on every admissible input, and corrupts money RARELY rather than never — the worse failure mode. Its mirror, the rater's ceiling, got algebra written for it only because its failure was a loud HTTP 500; **the louder failure got the proof, the silent one got nothing.** 6 tests added, asserting the ALGEBRA and reading the bound off the schema rather than restating it, pinned bidirectionally so a LOWERED bound also fails here. 768 ledger tests green, 0 production code changed |
 | 1207 | §1760 | **§1761** | **DOES THE COMMITTED REPOSITORY PASS? EVERY STATIC GATE, SWEPT.** §1756 found one gate red on the committed tree and green in the working copy; §1759 fixed half. Both were spot checks of gates already suspected. Asked generally with a **detached worktree at HEAD**: **20 gates, 16 agree, 4 differ, 1 real.** The real one is `check:traceability` on the REQ-289 annotation (the owner's uncommitted register row). The other three announce themselves in their own output — two `ERR_MODULE_NOT_FOUND` on a workspace package, and the bundle ratchet refusing to report clean with no built bundles, **which is the §481 hardening proving itself in a tree nobody built**. **The harness bug is the lesson**: run through `pnpm` inside such a worktree and it exits **1 with ZERO output**, reporting all eighteen as committed-FAIL — caught only because one gate had been hand-run minutes earlier and printed a real verdict. A probe reporting *everything is broken* is more likely broken itself. **Closes**: §1759 verified against the committed tree (citations OK at HEAD, ratchet at baseline), so §1760's prediction is measured rather than awaited; and the committed tree's sole failure is a swept conclusion, not a guess. **Declines in writing** the obvious §1759-style fix (scrub the `REQ-289` token from comments): the reference is TRUE not rotted, two of seven files are another author's so it cannot flip the verdict, and the token is how the next reader finds the explanation. 0 code changed |
 | 1206 | §1759 | **§1760** | **THE MASKED RED, FOUND — AND THREE OF MY OWN CLAIMS CORRECTED.** §1758 said *"no gate reading the working tree can detect this"* — true, and it overlooked the gate that does NOT read the working tree: **CI checks out a clean clone**. **(1)** §1721's *"154 commits unpushed"* is superseded — `origin/main` is **`562bbd7`** (2026-08-17), only **4** unpushed; the owner has been pushing and CI runs current code. **(2)** The perf fix landed: the newest run's ONLY failed step is *merge evidence gate (REQ-288)*, so §1721's two-reds-to-one prediction held in CI. **(3)** But that step failed for a **COMPOUND** reason and its name hides which — the CI log at `562bbd7` contains the four rotted citations verbatim. **So CI carried a real, unattributed FAILURE beside the expected BLOCKED — exactly what row 461's headline says, still true AFTER §1721 declared the unexpected half fixed.** The masking is structural: one aggregate step runs all 26 gates, so its name and conclusion are identical whether one gate failed or five are blocked. **Three instruments, three blind spots, one defect surviving four days in the intersection**: the working copy passes, the local board reads the working copy, and CI reports the real failure under the expected step's name. §1759's fix removes it; the next run failing on BLOCKED alone is the check that closes it. 0 code changed |
@@ -98685,3 +98686,73 @@ the direction of the ceiling inequality, the second by the very test written to 
 adversarial cases establishing that the guard is unobservable by testing; 1 arithmetic relationship that
 governs money correctness and was asserted nowhere, now asserted bidirectionally and derived from the schema;
 6 tests added; 768 ledger tests green; 0 production code changed.
+
+---
+
+## §1763 — PHASE GATE: the exactness-guard class, swept — and the rule that decides which ones matter (REQ-166/003)
+
+§1762 found one guard required by arithmetic and invisible to testing. Two instances is a class
+(`n-instances-usually-share-one-idiom`), so this phase stopped fixing and started counting: **every `BigInt(`
+in non-test source**, seven files, asked the same question — *what breaks if this becomes ordinary number
+arithmetic, and does anything notice?*
+
+### The sweep
+
+| site | what the guard buys | consequence of removal | pinned before this phase |
+|---|---|---|---|
+| `packages/rater/src/money.ts` | exact monetary product | **off by 1¢** | **YES** — a test named for it |
+| `packages/ledger/src/money/split.ts` | exact Hamilton apportionment | a rare wrong cent in an interline split | **NO** — closed §1762 |
+| `packages/ledger/src/geo/polygon-source.ts` | exact orientation / cross products | **a wrong or fail-closed jurisdiction** | **NO** — closed here |
+| `packages/ledger/src/queries/metrics.ts` (DSO) | exact weighted age sum | **nothing observable** | not needed — see below |
+| translator quarantine hash · the two TSA modules | 64-bit / byte semantics, not precision | a different question | — |
+
+### The geo guard: unpinned, and a constructed witness that catches it
+
+`polygon-source.ts` states its own arithmetic — *microdegree deltas reach ~3.6e8, their products ~6.5e16, past
+`Number.MAX_SAFE_INTEGER`* — and nothing tested it. **Rewriting both predicates in ordinary number arithmetic
+left all 38 tests in the owning suite GREEN.** Random search does not find it either: **3,000,000 random
+(edge, point) triples from the validated E6 domain produced ZERO disagreements**, because a disagreement needs
+the exact cross product to land within the float error of zero (~16 at 6.5e16), and a random one is ~1e16.
+
+So the witness was **constructed, not sampled**. Choose an edge whose deltas are **coprime** — then the
+reachable cross products are exactly the integers, so a point with `|cross| = 1` exists — and solve for it with
+the extended Euclidean algorithm:
+
+```
+edge a=(-180.000000, -90.000000) → b=(180.000000, 89.999987)     dx=360000000  dy=179999987  (coprime)
+point (lat -41.538465, lon -83.076923)
+    exact (BigInt)  cross = 1  → strictly off the edge → interior → the state code
+    float           cross = 0  → reads as ON the edge  → boundary → "XX"
+```
+
+Three tests added. Under the float mutation **exactly one fails — the witness — and the other 40 pass**, which
+is the attribution: the guard's removal was invisible to the entire existing suite and is now caught by the
+test built for it. A silently fail-closed jurisdiction is the *mild* direction; the same rounding decides
+`eastOfPoint`, where it flips a ray crossing and returns a **confident wrong state**.
+
+### The rule the sweep produced
+
+Not every exactness guard is load-bearing, and the discriminator is not the size of the product:
+
+> **An exactness guard matters exactly when the result's rounding granularity is comparable to the error.**
+
+- **Money** rounds to the **cent** — and the error *is* a cent. Load-bearing.
+- **Geo** compares the product against **zero** — an error of any size flips the decision. Load-bearing.
+- **DSO** rounds to **days** while the error is sub-millisecond. Measured: **0 / 200,000** day-rounded answers
+  differ between the BigInt and float accumulations, over the full `Cents` domain and three-year ages. Its
+  BigInt is harmless and unnecessary — the one honest "this could be a number" in the sweep.
+
+That rule is cheaper than mutating everything, and it is what a future reader should apply first.
+
+### The ordering, confirmed twice
+
+§1762 noted that the rater's ceiling got algebra written for it because its failure mode is a loud HTTP 500,
+while the ledger's silent twin got nothing. This phase is the second instance of the same asymmetry: the
+rater's monetary product is pinned **by a test named for it**; both ledger guards were unpinned. **Two of two.
+The louder failure attracts the proof.**
+
+**Phase gate.** 7 BigInt sites enumerated and classified rather than a third one-off fix; 1 guard found
+unpinned and closed with a **constructed** witness after 3M random samples found nothing; 1 mutation attributed
+to exactly one failing test out of 41; 1 guard measured **unnecessary** (200,000 cases) rather than assumed
+load-bearing; 1 reusable rule derived — compare the error to the *rounding granularity*, not to 2^53; 171 rater
++ 41 jurisdiction tests green; 0 production code changed.

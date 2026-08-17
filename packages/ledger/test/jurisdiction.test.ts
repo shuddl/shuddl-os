@@ -215,3 +215,79 @@ describe("fixture integrity: the active artifact is byte-bound to the hash-pinne
     expect(licensed.path).toBeNull();
   });
 });
+
+// ── §1763 — THE EXACT-GEOMETRY GUARD, WITH A WITNESS (REQ-166) ──────────────────────────────────────────
+//
+// polygon-source.ts states its own arithmetic: *"Microdegree deltas reach ~3.6e8; their products reach
+// ~6.5e16, past Number.MAX_SAFE_INTEGER — so the orientation/cross-product predicates use BigInt."* That is
+// correct and it is load-bearing, and until now **nothing tested it**: rewriting both predicates in ordinary
+// number arithmetic left all 38 tests in this file GREEN (measured, audit §1763). It is the same shape §1762
+// found in the money core — a guard whose removal looks exactly like removing dead weight.
+//
+// Random search does not find it either: 3,000,000 random (edge, point) triples drawn from the validated E6
+// domain produced ZERO disagreements, because a disagreement needs the exact cross product to land within
+// the float error of zero (~16 at 6.5e16), and a random cross product is ~1e16.
+//
+// So the witness is CONSTRUCTED, not sampled. Pick an edge whose deltas are COPRIME — then the reachable
+// cross products are exactly the integers, so a point with |cross| = 1 exists — and solve for it with the
+// extended Euclidean algorithm. At that point:
+//
+//     exact (BigInt)  cross = 1   → the point is strictly OFF the edge → interior → "ZZ"
+//     float           cross = 0   → the point reads as ON the edge     → boundary → "XX"
+//
+// A jurisdiction silently downgraded to fail-closed is the mild direction of this fault; the same rounding
+// decides `eastOfPoint`, where it flips a crossing and answers a CONFIDENT WRONG STATE. Both are unreachable
+// while the predicates stay exact, which is the point of pinning it.
+describe("§1763 — exact integer geometry: a constructed witness the float predicate gets wrong", () => {
+  // Edge a→b with dx = 360,000,000 and dy = 179,999,987 (coprime). The ring closes through the NW corner,
+  // putting the interior on the cross > 0 side, which is the side the in-domain witness lands on.
+  const WITNESS = {
+    ring: [
+      [-180, -90],
+      [180, 89.999987],
+      [-180, 90],
+      [-180, -90],
+    ] as [number, number][],
+    lat_e6: -41_538_465,
+    lon_e6: -83_076_923,
+  };
+
+  const source = buildFromRaw({
+    schema: "shuddl.jurisdiction.v1",
+    version: "witness-1763",
+    provenance: "audit §1763 — constructed, not licensed data",
+    coverage: ["ZZ"],
+    border_policy: "fail-closed",
+    states: [{ code: "ZZ", polygons: [WITNESS.ring] }],
+  });
+
+  it("the artifact is accepted and the witness coordinate survives the degree → microdegree build", () => {
+    expect(source).not.toBeNull();
+    // Math.round(lon * 1e6) must reproduce the integers the witness was solved for, or it tests nothing.
+    for (const [lon, lat] of WITNESS.ring) {
+      expect(Math.round(lon * 1e6) / 1e6).toBe(lon);
+      expect(Math.round(lat * 1e6) / 1e6).toBe(lat);
+    }
+  });
+
+  it("resolves the witness INTERIOR — the exact predicate says off-edge by one microdegree", () => {
+    // With the cross product in floating point this returns FAIL_CLOSED_STATE instead: the 1-unit offset
+    // rounds to zero, `onSegment` reports collinear, and the resolver answers "on a state line".
+    expect(resolveStateE6(source!, WITNESS.lat_e6, WITNESS.lon_e6)).toBe("ZZ");
+    expect(resolveStateE6(source!, WITNESS.lat_e6, WITNESS.lon_e6)).not.toBe(FAIL_CLOSED_STATE);
+  });
+
+  it("the arithmetic that makes the guard necessary, recomputed rather than restated", () => {
+    // The module's justification, as an assertion: the widest product in the E6 domain overflows 2^53.
+    const maxDx = 360_000_000; // lon spans [-180e6, 180e6]
+    const maxDy = 180_000_000; // lat spans  [-90e6, 90e6]
+    expect(maxDx * maxDy).toBeGreaterThan(Number.MAX_SAFE_INTEGER);
+    // And the witness itself: exact = 1, but both products are past 2^53 and round to the same double.
+    const [ax, ay] = [-180_000_000, -90_000_000];
+    const [bx, by] = [180_000_000, 89_999_987];
+    const exact = BigInt(bx - ax) * BigInt(WITNESS.lat_e6 - ay) - BigInt(by - ay) * BigInt(WITNESS.lon_e6 - ax);
+    expect(exact).toBe(1n);
+    const asFloat = (bx - ax) * (WITNESS.lat_e6 - ay) - (by - ay) * (WITNESS.lon_e6 - ax);
+    expect(asFloat).toBe(0); // the whole defect, in one line
+  });
+});
