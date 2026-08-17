@@ -98518,12 +98518,9 @@ gate (REQ-288)"* — the two-expected-reds-to-one change actually happened in CI
 **(3) That one step was failing for a compound reason, and its name hides which.** The CI log at `562bbd7`
 contains, verbatim:
 
-```
-docs/audits/…:850      → coverage.ts:209@scanRecordedHomes
-docs/audits/…:51346    → tools/traceability/coverage.ts:209@…
-docs/audits/…:98324    → coverage.ts:209@…
-docs/ops/GO-LIVE-CHECKLIST.md:469 → coverage.ts:209@…
-```
+four entries, one per rotted citation — two in the audit at lines 850 and 51346, one more at 98324, and one in
+the checklist at 469 — each naming the same target: the `coverage.ts` line-209 anchor on `scanRecordedHomes`
+(described here, deliberately, rather than reproduced: see below).
 
 So CI has been carrying a **real, unattributed FAILURE** next to the expected BLOCKED — which is precisely what
 row 461's headline says (*"an expected red is masking a real one"*) and which remained true **after** §1721
@@ -98538,6 +98535,20 @@ so its name and its conclusion are the same whether one gate failed or five are 
 
 Three instruments, three different blind spots, one defect surviving four days in the intersection. §1759's fix
 removes it; the next CI run should fail on BLOCKED alone, and **that is the check that closes this**.
+
+### And I committed through the gate that catches this
+
+Quoting that CI log **reproduced four citation strings**, which the citation gate parsed and reded — the fourth
+instance this session of writing *about* a citation and thereby creating one. That part is a familiar mistake.
+The new part is worse: `verify:docs` and `git commit` were chained in **one shell call**, so the commit ran
+regardless of the gate's verdict, and the count that would have shown it (`grep -c`, returning **0**) scrolled
+past unread.
+
+> This session's own rule is *run the gate that owns the artifact before committing*. Chaining them into one
+> command satisfies the letter and destroys the point: a verdict you do not read is not a check. Separate the
+> call, or make the commit conditional on the gate — never both in one line with the result unexamined.
+
+Repaired in the next commit by describing the four entries instead of reproducing them.
 
 **Phase gate.** 1 claim of mine (*"no gate can detect this"*) overturned by naming the gate that can, 3 prior
 statements corrected against fresh measurement (the unpushed count, the perf prediction's outcome, the nature
