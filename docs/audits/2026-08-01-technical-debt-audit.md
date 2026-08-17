@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1167 | §1720 | **§1721** | **THE HIGHEST-SEVERITY OPEN ROW, RE-MEASURED: THE RED IS STALE, NOT DIAGNOSTIC.** Row 461 (High) says CI fails every run with one expected red masking a real one. Measured: `origin/main` is `e587373`, all three most recent runs carry that same SHA, **154 commits sit unpushed**, and `git merge-base --is-ancestor f0c966c e587373` is **FALSE** — so the perf fix chain (`2d91b42`→`76b16cf`→`f0c966c`, plus §1709) **has never been run by CI**. The row describes a tree 154 commits behind. **CI is not reporting on the current code at all**, which is sharper than "a red masks a red". Second measurement: the failing condition was never switchable — the same failure was diagnosed three times against a machine that could not reproduce it — so §1721 adds `PERF_FORCE_SOFTWARE=1` (one ternary on the launch args). Under it the renderer is `SwiftShader (software=true)` and `pnpm perf:map -- --mode merge` exits **0**, `PASS / executed:true / assertions:1`, both hardware-sensitive budgets NOT ASSERTED with reasons — so the fix is verified INSIDE the condition that was failing it, not merely green on hardware that never saw it. Default path re-verified unchanged (Apple M1 Max, software=false, PASS). Stated plainly: nothing is pushed and this audit does not push; after a push CI still fails the merge-evidence step on unvendored fixtures. **The actionable change is expected reds going from two steps to one** — and row 461's "three ways out" were never the first step; the first step is a push. Closes the §1714–§1720 arc |
 | 1166 | §1719 | **§1720** | **THE CLASS CLOSED AS ONE PROPERTY, AND BOUNDED TO ONE MEMBER.** Instead of a fourth boundary case, the property is stated once: **for any tenant-scoped key builder P, `P("t")` must NOT be a prefix of `P("t-legacy")`** — exactly the sentence that was FALSE for `evidenceTenantPrefix` without its slash, and it is false precisely when the tenant segment ENDS the string. Applied to all ten builders the repo owns, with a falsifiability control in each suite; mutation-proved by shortening `anchorManifestKey` and `tenderPrefix` to end at the tenant (each reds the property BY NAME). **The class is bounded to one member for a structural reason**: `evidence/<tenant>/` is the only namespace whose prefix terminates at the tenant; every other puts a literal component after it (`/tender/`, `/214/`, `/990/`, `/imports/`) or is addressed by full key only (`anchors/…`, `watchtower/…`). A bounded negative result, and the property is what keeps it true — the other nine are safe by a coincidence of naming nobody recorded as a decision. **One more real gap on the way**: §1718 pinned the slash INSIDE the builder, but `computeTenantStorageBytes` READS the prefix and hands it to `r2.list`, so it can be widened at the call site — silent at **756/756**, and the consequence is a tenant's storage reading summing a sibling's bytes. **Two of this phase's own probe results were corrected before becoming findings**: the translator list greens were CORRECT (the mutation is a semantic no-op there), and the one translator RED came from a broken shipment-id slice, not from any tenant-boundary assertion. ledger 756→762, translator 134→141, 0 behaviour changed |
 | 1165 | §1718 | **§1719** | **TWO MORE COPIES OF §1718'S GUARD, AND A REGISTRY THAT ACCOUNTS FOR DUPLICATES.** The tenant-evidence predicate existed twice more, hand-written: `documents.ts` (whether a signed cap may READ these bytes, on the unauthenticated `/pub/documents/:cap` where the cap IS the gate) and `biller.ts` (which POD the evidence email may ATTACH). Dropping the trailing slash from either was SILENT — api **893/893**, agents **148/148**. Both routed through the one builder. **The registry already knew, and that is the finding**: `inline-tenant-key.test.ts` (§925) had an ACCOUNTED row for each, and its §672 half flagged them the moment the literals went — that half working perfectly. **A registry row says "someone is watching this literal"; it can never say "this literal should not exist."** The `documents.ts` row even cited its proof (§921) — a real test that probes `tenant-a` vs `tenant-b`, equal length, neither a prefix of the other, so it sits one character BESIDE the boundary. Also: I wrote a single-source gate for this subject before noticing §925 and **deleted it** — a second mechanism over one subject is the hazard this audit keeps finding in other people's code. And the vacuity I nearly shipped: the first draft asserted three 404s with no control, and deleting the route's guard left all three GREEN, because `deny()` makes "refused" and "no such object" the same response. Rewritten to §921's paired shape. 3 pins with controls, 4 mutation directions, 2 stale rows removed with rationale, 0 behaviour changed. api 893→896 |
 | 1164 | §1717 | **§1718** | **A CROSS-TENANT *DELETE* GUARD WHOSE ONLY WORKING CHARACTER WAS UNTESTED.** §1717 swept persisted IDs; this is the sibling class, persisted ADDRESSES. The evidence key has a WRITER (`evidence.ts@evidenceKey`) and a READER (`retention.ts@evidenceTenantPrefix`, which decides what the retention sweep may DELETE) — **two independent string literals**, under a reader comment reading *"share-lint: a single prefix, never two drifting string literals"*, which is true inside retention.ts and **false across the boundary that matters**. Neither side could see the other move: writer-drift reds 8 api cases and leaves ledger 755/755; reader-drift reds 1 ledger case and leaves api 891/891. **The finding is one character**: the guard is a `startsWith`, so the TRAILING SLASH is what separates tenants — and the case naming the law probes `tenant-a` vs `tenant-b`, **equal length, neither a prefix of the other**, so every assertion passes with the slash deleted. Deleting it left ledger 755/755 GREEN while tenant-a's sweep would DELETE `evidence/tenant-a-legacy/...` — CLAUDE.md rule 8's boundary, on a delete, with the probe sitting beside it rather than on it. The other drift direction is worse than it looks: stranded keys are counted `skipped_foreign_key` and never deleted — **a retention failure whose telemetry reads like the tenant guard working.** Landed: slug-EXTENDING siblings + the reverse direction + a positive control, and the writer↔reader parity that never existed — each reading one side and COMPUTING the other, never restating a layout. Mutation-proved in 3 directions; reader-drift and slash-drop went from 0 api reds to 1 each. ledger 755→756, api 891→893, 0 behaviour changed |
@@ -96535,3 +96536,63 @@ any assertion covers the tenant boundary. Both would have been filed as findings
 builders with 2 falsifiability controls, 2 property mutations proved by name, 1 class bounded to a single
 member with the structural reason recorded, 2 of this phase's own probe results corrected before they became
 findings, 0 behaviour changed. ledger **756→762**, translator **134→141**.
+
+---
+
+## §1721 — PHASE GATE: the highest-severity open row, re-measured: the red is stale, not diagnostic (REQ-288/158/118)
+
+Row 461 (**High**) says *CI fails on every run, and an expected red is masking a real one* — the merge-gate job
+fails two steps, and only the fixtures one is expected. It is the highest-severity repo-owned row open, and
+every gate this audit builds reports into it. It has been restated several times and never re-measured, which
+is exactly the shape `measure-the-blocker-dont-restate-it` warns about. Three questions: is it ONE thing, is
+any of it MINE, can I EXERCISE it locally.
+
+### (1) CI is not testing this code
+
+| measurement | value |
+|---|---|
+| `origin/main` | `e587373` |
+| SHA of the three most recent runs | `e587373` — all of them |
+| `git rev-list --count e587373..HEAD` | **154** |
+| `git merge-base --is-ancestor f0c966c e587373` | **false** |
+
+The perf fix chain — `2d91b42` → `76b16cf` → `f0c966c`, plus §1709's rasterizer gating — **has never been run
+by CI.** Nothing has been pushed since 2026-08-15. The row's "two failed steps, only the second expected"
+describes a tree 154 commits behind.
+
+> The row's framing was *an expected red is masking a real one*. The measured framing is sharper: **CI is not
+> reporting on the current code at all**, so no failure it shows can be attributed to anything present.
+
+### (2) The failing condition is now reproducible, and the fix holds inside it
+
+The perf step's whole difference between CI and this machine is which rasterizer answered — and that was not
+switchable, which is why the same failure was diagnosed three times against a machine that could not reproduce
+it. §1721 adds `PERF_FORCE_SOFTWARE=1` to `packages/map/playwright.config.ts`, one ternary on the launch args.
+
+Both paths measured:
+
+| | renderer | verdict |
+|---|---|---|
+| `PERF_FORCE_SOFTWARE=1` (CI's condition) | `ANGLE … SwiftShader driver` — `software=true` | **PASS**, exit 0, `executed: true, assertions: 1`; both hardware-sensitive budgets `NOT ASSERTED` with their reasons printed |
+| unset (default, unchanged) | `ANGLE … Apple M1 Max` — `software=false` | PASS, exit 0, `executed: true, assertions: 1` |
+
+So the perf step is fixed **and verified under the exact condition that was failing it**, rather than green on
+hardware that never saw the failure. The gate is not vacuous in either mode — it still executes one real
+assertion when the hardware-sensitive ones stand down.
+
+Nothing in CI reads the variable (the runner is already software), so it is a reproduction aid, not a switch on
+the verdict: the spec still decides what to assert from the renderer it actually **got**.
+
+### What is still true, stated plainly
+
+Nothing has been pushed, and this audit does not push. After a push CI will still conclude `failure` on the
+merge-evidence step while the private fixtures are unvendored — that is the fail-closed contract, not a bug.
+**The actionable change is that the expected reds go from two steps to one**, leaving a signal whose single
+failure has one documented cause. Row 461's "three ways out" all address that remaining one; none of them was
+ever the first step, and the first step is a push.
+
+**Phase gate.** 1 High row re-measured rather than restated, its central claim corrected by two independent
+measurements, 1 previously un-exercisable CI condition made reproducible in one line, 2 rasterizer paths
+verified with their gate JSON, 0 gates weakened, 0 behaviour changed on the default path. This closes the
+tenant-prefix/derivation arc that ran §1714–§1720 and returns the record's highest-severity row to a measured
+state.

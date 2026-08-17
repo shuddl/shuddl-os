@@ -28,7 +28,17 @@ export default defineConfig({
       // SwiftShader's compositor Commit floor (~360-520ms at first paint) makes the 100ms long-task
       // budget unreachable regardless of code quality. Ask for the real GPU; the spec verifies whether
       // it was granted and refuses to assert the budget against a software rasterizer.
-      args: ["--enable-gpu", "--use-angle=metal", "--ignore-gpu-blocklist", "--enable-features=Vulkan"],
+      //
+      // §1721 — `PERF_FORCE_SOFTWARE=1` asks for the OPPOSITE, so a developer on a GPU can reproduce CI's
+      // rendering condition without editing this file. It exists because the CI perf failure was diagnosed
+      // three times against a machine that could not reproduce it: the whole difference between the two
+      // verdicts is which rasterizer answered, and that was not switchable. Nothing reads this variable in
+      // CI (the runner is already software), so setting it there is a no-op rather than a footgun; and the
+      // spec decides what to assert from the renderer it actually GOT, never from this flag.
+      args:
+        process.env.PERF_FORCE_SOFTWARE === "1"
+          ? ["--use-gl=swiftshader", "--disable-gpu"]
+          : ["--enable-gpu", "--use-angle=metal", "--ignore-gpu-blocklist", "--enable-features=Vulkan"],
     },
   },
   webServer: {
