@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1164 | §1717 | **§1718** | **A CROSS-TENANT *DELETE* GUARD WHOSE ONLY WORKING CHARACTER WAS UNTESTED.** §1717 swept persisted IDs; this is the sibling class, persisted ADDRESSES. The evidence key has a WRITER (`evidence.ts@evidenceKey`) and a READER (`retention.ts@evidenceTenantPrefix`, which decides what the retention sweep may DELETE) — **two independent string literals**, under a reader comment reading *"share-lint: a single prefix, never two drifting string literals"*, which is true inside retention.ts and **false across the boundary that matters**. Neither side could see the other move: writer-drift reds 8 api cases and leaves ledger 755/755; reader-drift reds 1 ledger case and leaves api 891/891. **The finding is one character**: the guard is a `startsWith`, so the TRAILING SLASH is what separates tenants — and the case naming the law probes `tenant-a` vs `tenant-b`, **equal length, neither a prefix of the other**, so every assertion passes with the slash deleted. Deleting it left ledger 755/755 GREEN while tenant-a's sweep would DELETE `evidence/tenant-a-legacy/...` — CLAUDE.md rule 8's boundary, on a delete, with the probe sitting beside it rather than on it. The other drift direction is worse than it looks: stranded keys are counted `skipped_foreign_key` and never deleted — **a retention failure whose telemetry reads like the tenant guard working.** Landed: slug-EXTENDING siblings + the reverse direction + a positive control, and the writer↔reader parity that never existed — each reading one side and COMPUTING the other, never restating a layout. Mutation-proved in 3 directions; reader-drift and slash-drop went from 0 api reds to 1 each. ledger 755→756, api 891→893, 0 behaviour changed |
 | 1163 | §1716 | **§1717** | **NINE PERSISTED-ID DERIVATIONS, ONE GOLDEN BETWEEN THEM.** §1716's finding turned into a question and asked of every id derivation whose output is stored, answered by mutating each seed and running the owning suite: **8 of 9 change every id they will ever produce with NOTHING noticing** (Biller invoice, Concierge shipment, mirror-sweep quarantine, billing credit-doc, api intake shipment, api migrate shipment, translator EDI shipment, and `partyIdForName`). The one defect rather than gap: **`partyIdForName` sits eight lines below `partyIdForEmail` in the same file** — the sibling has a golden introduced as "pins the byte law", and this one, under the HARSHER statement of that law (*"re-namespacing it would orphan every name-keyed party ever created … do not 'tidy' this prefix"*), had **no assertion of any kind**. Mutating its seed left contracts 349/349 + api 891/891 + agents 148/148 GREEN — **1,388 tests** — while every name-keyed party id changed, and a duplicate there splits BILLING. **A comment that names the wrong edit and forbids it by name is the strongest evidence someone will make it** — exactly when prose stops being enough. Fixed: goldens for both, the normalization, the deliberate namespace ASYMMETRY (so a "make these consistent" tidy-up fails three assertions), and non-collision; mutation-proved twice (`intake:party:nam:` and the forbidden `shuddl:party:name:` each red 2). The other seven stay FILED with their per-derivation verdicts rather than exported-just-to-assert. contracts 349→353, 0 behaviour changed |
 | 1162 | §1715 | **§1716** | **FOURTEEN COPIES OF ONE ID DERIVATION, AND THE TESTS COULD NOT SEE IT MOVE.** A grep for `function deterministicUuid` found SIX; the single-source gate written in the same phase immediately failed on **SEVEN MORE FILES** carrying the identical layout under seven other names (`uuidFromSeed` x2, `bookingEventIdFor`, `conciergeEventId`, `sendHoldNoteId`, `overdueSignalId`, `flipEventId`, `deterministicEventId`). **14 definitions, 13 files, 4 workers, 3 textual shapes — the name sweep found 43%.** They all agree: 406 seeds, ZERO disagreements, against a positive control that disagreed on 314. Nothing made them agree except that nobody had edited one — §1547 one level more dangerous, because these ids are how re-runs collapse and they are ALREADY PERSISTED in append-only `events`: a drifted copy appends a duplicate that cannot be deleted. **And the coverage was thinner than the copy count suggests** — mutating the derivation left `workers/api` at **891/891 GREEN** and `workers/agents` at **148/148**, including the api's own "accepting the SAME quote twice is idempotent" case, because both accepts in one run derive the same MUTATED id and still collapse. Those tests prove internal consistency; **byte-stability against rows written by a PREVIOUS deploy is what an in-process test structurally cannot see.** Landed: one builder in contracts (the `party.ts` precedent), 6 golden seed→id pairs in real production seed shapes + one seed per variant nibble chosen by SEARCHING for 8/9/a/b, a single-source gate that detects the LAYOUT as well as the name, 2 dead `sha256Hex` helpers removed. Limit stated: agents (148) and billing (76) STILL do not notice — now one function behind a golden instead of fourteen behind nothing. 0 behaviour changed. 27 citations repointed BY ORDINAL in the pre-edit file, never by nearest candidate — the checker accepts any candidate within ±2 and would have gone green on a wrong one |
 | 1161 | §1714 | **§1715** | **THE API DOES NOT DEPEND ON CLIENT DISCIPLINE; THE METER BESIDE IT DOES.** Row 294 says *only* a rare post-reserve api failure over-counts — a completeness claim, so it was tested. Two dedupes sit on one booking with DIFFERENT scopes: the api keys on the **quote** (`portal-actions.ts:146@deterministicUuid` derives the event id from `quote_event_id`, one event even past the HTTP idempotency window), the caps meter keys on `<derivedIdempotencyKey>:<shipment>:<quote>` — and `deriveIdempotencyKey` uses a CLIENT-supplied `idempotency_key` as its ENTIRE material. The 2026-08-01 convergence audit bound the TARGET into that marker to kill an under-count; **the inverse was never measured**. Measured now: **two accepts of the SAME quote under two DIFFERENT client keys reserve TWICE** (same `accepted_event_id`, tally `{18_000, 2}`) while the api appends ONE `quote.accepted`. **The asymmetry is the finding** — the api's dedupe is structural and proved with two RANDOM keys (`portal-actions.test.ts:236@pa-shp-idem`); the meter's holds only while the client keeps its token stable. Not theoretical: an agent whose first attempt's RESPONSE was lost retries with a fresh token and burns a slot for a booking that already happened. Still Low — OVER-count fails CLOSED, and the UTC-month self-heal is itself pinned (`metering.test.ts:58@periodOf`). CHARACTERIZED, not fixed: re-scoping a money gate's counter is the owner's, so the residual is stated at `caps.ts:211@RESIDUAL`, row 294 now contradicts its own *only*, and the undesired number is asserted so a re-scope fails loudly. mcp caps 20→21 |
@@ -96366,3 +96367,61 @@ exact probe, per derivation, so the next person does not re-measure it. The blas
 
 **Phase gate.** 9 derivations probed by mutation (8 green, 1 red), 1 stated law found undefended and pinned, 2
 mutation REDs proving the pin, 7 filed with their measured verdicts, 0 behaviour changed. contracts 349→353.
+
+---
+
+## §1718 — PHASE GATE: a cross-tenant DELETE guard whose only working character was untested (REQ-025/116/118)
+
+§1717 swept persisted **ids**. The sibling class is persisted **addresses** — R2 keys — where a drift does not
+duplicate a row, it strands every object ever written at the old path. Same probe, applied to the evidence key.
+
+### Two literals, and a comment describing the situation it is in
+
+| | layout |
+|---|---|
+| the WRITER — `workers/api/src/routes/evidence.ts:82@evidenceKey` | `` `evidence/${tenant}/${shipmentId}/${hash}` `` |
+| the READER — `packages/ledger/src/documents/retention.ts:82@evidenceTenantPrefix`, which decides what the retention sweep may **DELETE** | `` `evidence/${tenant}/` `` |
+
+The reader carries the comment *"the sweep's delete-guard AND the storage-cost list both key off THIS one
+builder (share-lint: a single prefix, never two drifting string literals)."* That is **true inside
+retention.ts** and **false across the boundary that matters** — the writer re-authors the layout. There were
+two drifting string literals, under a comment invoking the rule against them.
+
+Neither side could see the other move. Measured: changing the **writer's** prefix reds 8 api cases and leaves
+`packages/ledger` at **755/755**; changing the **reader's** reds exactly 1 ledger case and leaves `workers/api`
+at **891/891**.
+
+### The finding: one character, and the existing probe could not reach it
+
+`isTenantEvidenceKey` is a `startsWith`. What separates one tenant from the next is the **trailing slash**. The
+case that names the law — *"isTenantEvidenceKey scopes to the tenant's own evidence prefix (REQ-025)"* — probes
+with `tenant-a` versus `tenant-b`: **equal length, neither a prefix of the other**, so every one of its
+assertions passes with the slash deleted.
+
+> Deleting it left `packages/ledger` at **755/755** and `workers/api` green, while `tenant-a`'s retention sweep
+> would accept and **DELETE** `evidence/tenant-a-legacy/...`. CLAUDE.md rule 8 makes a cross-tenant READ a build
+> failure. This is the same boundary, on a delete, and the probe was sitting beside it rather than on it.
+
+And the direction of the *other* drift is worse than it looks: keys stranded outside the sweep's reach are
+counted `skipped_foreign_key` and never deleted — **a retention failure whose telemetry reads like the tenant
+guard working.**
+
+### What landed
+
+Two assertions, each reading one side and computing the other rather than restating a layout — a third literal
+would agree with whichever copy it was typed from and prove nothing:
+
+1. `retention.test.ts` — siblings whose slug **extends** the tenant's (`tenant-a-legacy`, `tenant-a2`,
+   `tenant-abc`), the reverse direction so "compare lengths" is not a fix either, and a positive control so a
+   guard that refused everything could not pass.
+2. `evidence-upload.test.ts` — the **writer↔reader parity** that never existed: every key the api writes must
+   fall inside the prefix the sweep may delete, plus a sibling that must not, so a permissive reader cannot
+   satisfy it.
+
+Mutation-proved in three directions. Before: reader-drift **0 red** in api, slash-drop **0 red** anywhere.
+After: writer-drift 9 red (was 8), reader-drift 1 red in api (was 0) and 1 in ledger, slash-drop 1 red in api
+(was 0) and 1 in ledger.
+
+**Phase gate.** 1 cross-tenant DELETE boundary found undefended and pinned, 1 writer↔reader parity added where
+a comment had claimed one, 3 mutation directions proved, 1 false comment corrected in place, 0 behaviour
+changed. ledger **755→756**, api **891→893**.

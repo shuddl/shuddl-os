@@ -66,7 +66,19 @@ export function retentionMsFor(lifecycleClass: string): number {
 // ── tenant-scoped R2 key discipline (REQ-025) ─────────────────────────────────────────────────────────────
 /** The R2 prefix that holds ONE tenant's evidence bytes — the SAME layout evidence.ts writes
  *  (`evidence/<tenant>/<shipment>/<hash>`). The sweep's delete-guard AND the storage-cost list both key off
- *  THIS one builder (share-lint: a single prefix, never two drifting string literals). */
+ *  THIS one builder.
+ *
+ *  §1718 CORRECTION — that used to end "(share-lint: a single prefix, never two drifting string literals)",
+ *  which was true INSIDE this file and false across the boundary that matters: `evidence.ts@evidenceKey`
+ *  re-authors the layout, so there ARE two literals. Measured, neither side could see the other move —
+ *  changing the writer left this package at 755/755, changing this left `workers/api` at 891/891. They are not
+ *  merged (the writer lives in a worker, this in the package the worker imports), so what enforces the
+ *  agreement is a PARITY test that reads one and computes the other:
+ *  `workers/api/test/evidence-upload.test.ts` §1718.
+ *
+ *  THE TRAILING SLASH IS THE GUARD. `isTenantEvidenceKey` is a `startsWith`, so without it `tenant-a` matches
+ *  `evidence/tenant-a-legacy/...` and this tenant's sweep DELETES a sibling's bytes. Removing it was silent
+ *  across 755 tests until §1718 added the slug-EXTENDING sibling cases; do not remove it. */
 export function evidenceTenantPrefix(tenant: string): string {
   return `evidence/${tenant}/`;
 }

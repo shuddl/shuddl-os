@@ -3,8 +3,8 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { eventFixture, type EventKind } from "@shuddl/contracts";
 import { capture, type CaptureParams, type DeviceContext, type EvidenceField } from "@shuddl/driver-core";
 import { eventToRow } from "@shuddl/ledger/lens";
-import { sweepTenantExpiredDocuments } from "@shuddl/ledger/documents/retention";
-import { MAX_EVIDENCE_BYTES } from "../src/routes/evidence.js";
+import { sweepTenantExpiredDocuments, isTenantEvidenceKey } from "@shuddl/ledger/documents/retention";
+import { MAX_EVIDENCE_BYTES, evidenceKey } from "../src/routes/evidence.js";
 import { loadActivePodDocument } from "../../agents/src/biller.js";
 import {
   CONSENT,
@@ -636,3 +636,40 @@ describe("REQ-116/198 §756: a re-upload of an ACTIVE doc leaves the retention c
   });
 });
 
+
+// §1718 (REQ-025/116) — THE WRITER AND THE READER OF ONE PERSISTED ADDRESS, NEVER COMPARED.
+//
+// `evidenceKey` (workers/api) writes `evidence/<tenant>/<shipment>/<hash>`. `evidenceTenantPrefix`
+// (packages/ledger) decides which R2 keys the retention sweep may DELETE — and re-authors the same layout as
+// a second string literal, under a comment that reads *"share-lint: a single prefix, never two drifting
+// string literals"*. That claim is true INSIDE retention.ts, where both consumers use the builder. It is
+// false across the boundary that matters, because the writer does not.
+//
+// Measured before this test existed: changing the WRITER's prefix reds 8 api cases and leaves
+// `packages/ledger` at 755/755; changing the READER's reds exactly 1 ledger case and leaves api at 891/891.
+// Neither side can see the other move — so the drift that silently strands every object outside the sweep's
+// reach was invisible from both.
+//
+// This is the only assertion that reads one side and COMPUTES the other. It deliberately does NOT rebuild the
+// layout: a third literal here would agree with whichever copy I typed it from and prove nothing.
+describe("§1718 the evidence key WRITER and the retention READER agree (REQ-025/116)", () => {
+  it("every key the api writes falls inside the prefix the sweep is allowed to delete", () => {
+    for (const t of ["tenant-a", "t1", "acme-west"]) {
+      const key = evidenceKey(t, "shp-1", "a".repeat(64));
+      expect(
+        isTenantEvidenceKey(key, t),
+        `evidenceKey wrote ${key}, which evidenceTenantPrefix(${t}) does not cover. The two layouts have ` +
+          "drifted: every object written after the change sits OUTSIDE the retention sweep's reach, is counted " +
+          "as `skipped_foreign_key`, and is never deleted — a retention failure whose telemetry reads like the " +
+          "tenant guard working.",
+      ).toBe(true);
+    }
+  });
+
+  it("and a sibling tenant's key does NOT — the guard still separates, it is not just permissive", () => {
+    // Without this, a reader that returned true for everything would satisfy the case above.
+    const key = evidenceKey("tenant-a-legacy", "shp-1", "b".repeat(64));
+    expect(isTenantEvidenceKey(key, "tenant-a"), "a slug-extending sibling must not fall in tenant-a's namespace").toBe(false);
+    expect(isTenantEvidenceKey(evidenceKey("tenant-b", "shp-1", "c".repeat(64)), "tenant-a")).toBe(false);
+  });
+});

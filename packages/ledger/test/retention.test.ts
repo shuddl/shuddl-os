@@ -108,6 +108,31 @@ describe("REQ-116 — the kind → retention-class map (durations)", () => {
     expect(isTenantEvidenceKey("evidence/tenant-b/shp/hash", "tenant-a")).toBe(false);
     expect(isTenantEvidenceKey("anchors/tenant-a/2026-07-09/tsr.der", "tenant-a")).toBe(false);
   });
+
+  // §1718 (REQ-025) — THE ONLY CHARACTER DOING THE WORK, AND THE CASE ABOVE CANNOT REACH IT.
+  //
+  // This guard is a `startsWith`, so what separates one tenant from the next is the TRAILING SLASH in
+  // `evidenceTenantPrefix`. The three cases above use `tenant-a` and `tenant-b` — equal length, neither a
+  // prefix of the other — so every one of them passes with the slash deleted. Measured: removing it leaves
+  // `packages/ledger` at **755/755** and `workers/api` green, while `tenant-a`'s retention sweep would accept
+  // and DELETE `evidence/tenant-a-legacy/...`. A cross-tenant read is a build failure (CLAUDE.md rule 8); this
+  // is the same boundary on a DELETE.
+  //
+  // The probe has to straddle the boundary to test it: a sibling whose slug EXTENDS this one's.
+  it("§1718 a tenant whose slug EXTENDS this one's is NOT ours — the trailing slash is the whole guard", () => {
+    for (const sibling of ["evidence/tenant-a-legacy/shp/hash", "evidence/tenant-a2/shp/hash", "evidence/tenant-abc/shp/hash"]) {
+      expect(
+        isTenantEvidenceKey(sibling, "tenant-a"),
+        `${sibling} is a DIFFERENT tenant's namespace. Accepting it lets tenant-a's retention sweep delete a ` +
+          "sibling's evidence bytes — the REQ-025 boundary, on a DELETE. The separator is the trailing slash " +
+          "in evidenceTenantPrefix; do not remove it.",
+      ).toBe(false);
+    }
+    // ...and the reverse direction, so the fix can't be "require an exact length" either.
+    expect(isTenantEvidenceKey("evidence/tenant-a/shp/hash", "tenant-a-legacy")).toBe(false);
+    // The positive control: without this, a guard that returned false for EVERYTHING would pass the four above.
+    expect(isTenantEvidenceKey("evidence/tenant-a/shp/hash", "tenant-a"), "our own key must still match").toBe(true);
+  });
 });
 
 describe("REQ-116 — the retention sweep deletes expired non-POD bytes + tombstones the row", () => {
