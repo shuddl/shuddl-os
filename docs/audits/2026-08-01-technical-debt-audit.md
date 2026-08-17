@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1153 | §1706 | **§1707** | **THE OPS DOCS ARE EXECUTABLE, AND A DECLINED GATE'S REASONING RE-MEASURED WHERE IT WOULD MATTER MOST.** §1706 audited the release CONTRACT; this audits the docs someone FOLLOWS. **136 `pnpm` invocations across nine ops docs, 3 unresolved — all of them my parser** (`-F <pkg> exec vitest run` forms). **A first pass reported 10 missing and was entirely wrong**: `pnpm -s check:identity` split to `-s`, `pnpm audit --prod` is a built-in — **sixth instance of the classifier shape this session, caught before reporting**. Then re-asked row 434's declined path-citation gate (~76% FP repo-wide) on `docs/ops` alone: **553 citations, 14 unresolved (2.5%), and ZERO genuine rot** — an untracked GTM doc, `WP-01..16.md` RANGE notation, two gitignored artifacts (*the exact pair the row names*), a `path/file.ts` placeholder, two shorthand partials, a release-artifact path, a `.sql` BACKUP filename. **A 2.5% unresolved rate reads like a viable gate and is not one**: precision is what a gate is judged on and precision here is **0%** — 14 flags, 0 true positives. **So §1707 CONFIRMS the decline rather than overturning it**, the opposite of what the headline number suggests, and the reason the fourteen were READ rather than counted. New for the row: every one falls into a category it already named as a required filter, so its three prerequisites would reduce the residue here to zero. Zero source changed; board unmoved at `07d983f` |
 | 1152 | §1705 | **§1706** | **THE RELEASE CONTRACT DID NOT CLAIM THE GATE THAT PROVES RULE 3.** Three phases in a row converged on the record (§1705's queue sweep; a secrets-in-logs scan §575 had done; a zero-charge tariff §930 had closed) — a signal to stop guessing axes and audit the artifact a reader meets AT GO-LIVE: `RELEASE-EVIDENCE.md`, *the contract*, 173 rows. Checked both directions: all **18** cited `pnpm` commands exist, but record rows vs merge gate names disagreed **7 one way, 3 the other**. **Reading rather than counting cut it to 4**: three of the seven (`bundle-ratchet`, `design-audit`, `visual`) ARE claimed without the `Record row` phrasing, and all three of the reverse set are deploy-context gates a MERGE board never emits. **Four were genuinely unclaimed, and one matters far more**: `append-chokepoint` proves **CLAUDE.md rule 3** — *every gate lives in one place, the sequencer DO, on the way to a single `INSERT INTO events`* — the single-writer property that makes every other gate non-bypassable. The doc DOES claim append-only, but via `check:invariants`, which proves a **different thing** (I1/I3 at the SQL/migration level, the table budget, forward-only migrations). **SQL-level append-only and one-writer-for-every-gate are two guarantees and the contract claimed only the first.** Rule: **a release contract that under-states what the build proves is a defect in the contract** — the reader deciding whether to ship sees a weaker guarantee than exists, and the gate nobody claims is the gate nobody notices losing. 4 rows added with commands, record rows and expiries. Zero source changed; board unmoved at `ab34239` |
 | 1151 | §1704 | **§1705** | **THE QUEUE'S POISON HANDLING, MEASURED PER SCOPE — A CLEAN NEGATIVE THAT CONVERGES ON THE RECORD.** What the build does with a message that can never succeed: retry forever and the queue blocks; ack and the work is lost. **Exactly one consumer**, verified two ways (only `workers/agents/wrangler.toml` declares `[[queues.consumers]]`; only `workers/agents/src/index.ts` has an `async queue()`), so one disposition governs every trigger. The three-way split is right: unparseable body → **ack as poison** (redelivery is pure cost), `resolveTenantDb` throw → **retry** (C3's fix — it may be a claimed-pool tenant), handler throw → **retry** with a rate-limit delay variant. **And the bound is CONFIGURED, not assumed** — the comment claims *max_retries=5 then the DLQ*; measured in **all three scopes** (dev, staging, **prod**), each sets `max_retries = 5` + a `dead_letter_queue`, so §1501's deterministic-error hazard is bounded at five then parked. **Converges on the record**: nothing consumes the DLQ, but `wrangler.toml` says so itself (*until WP-11 Watchtower consumes the DLQ*) and the checklist files it THREE times — row 132 *GAP — DLQ provisioned, no procedure*, row 253, and row 449 which had already measured the identical fact. The concierge deliberately routes AROUND it (*queueing this inbound for a human rather than losing it to the DLQ*), which is what a correct consumer does when it knows the DLQ is unread. **A sweep that converges on the record is verification; the only failure mode is claiming it as a find.** Zero source changed, zero new findings — and that is the result. Board unmoved at `0585f9d` |
 | 1150 | §1703 | **§1704** | **SEGMENT STOPPING POINT — EVERY OPEN REGISTER ROW NOW HAS A VERIFIED HOLDING PATTERN.** Six phases worked the filed register itself and finish it: §1698 priced the geofence High (the flagged population is third-party/replayed clients, **not** the PWA) with its pin mutation-proved; §1699 re-characterised the B2A blocker from *decision* to **concurrency** (it expires on a commit); §1700 verified all four remaining unclassified defences; §1701 confirmed the six External rows correctly owned and re-measured the remote gap **1,016 → 1,278 → 62 → 134**, of which **98 are this loop's**; §1702 found a live REQ-030 bypass **unpinned in both directions** and pinned it without deciding the fix; §1703 named 2 hidden pins and proved one class escapes enumeration three different ways. **A parked row's danger is not the defect it names — that is known and accepted — but that its truth degrades SILENTLY while it sits**, and four were degrading. **Methodological result: five classifier errors, one shape** (§1682 4-vs-29 · §1689 · §1693 · §1700 nearly a false alarm · §1703), each caught only by opening a file the pattern claimed to have read — now in memory. **The counter-measure that worked every time is a FIXED POINT**: §1703's ratchet was discarded for reproducing 2 of 6 known sites, §1695's parse for returning 0 kinds, §1701's count because 235 > 134 is impossible. **The gates that shipped are the ones whose calibration was checked.** Board re-measured at `945bfe0`: 21 PASS · 0 FAIL · 5 BLOCKED, api 891, tools 1504/151 |
@@ -95757,3 +95758,62 @@ remaining differences are the phrasing and context cases above.
 apparent drift reduced to **4 real omissions** by reading rather than counting, 4 claim rows added including the
 one for rule 3. **Zero source changed.** Board carried from `ab34239` (§1705's commit, **0 commits since**)
 as **21 PASS · 0 FAIL · 5 BLOCKED**.
+
+---
+
+## §1707 — PHASE GATE: the ops docs are executable, and a declined gate's reasoning re-measured on the corpus where it would matter most (REQ-118/119)
+
+§1706 audited the release *contract*. This audits the docs someone **follows** — where a wrong command or a
+wrong path fails at the worst possible moment.
+
+### Every command in every ops doc resolves
+
+**136 `pnpm` invocations across nine ops docs**, checked against `package.json`. **3 unresolved, all of them my
+parser** — `-F <pkg> exec vitest run <pattern>` forms it does not model. So the operational docs are
+executable as written.
+
+**A first pass reported 10 "missing" and was entirely wrong**: `pnpm -s check:identity` split to `-s`, and
+`pnpm audit --prod` is a pnpm built-in rather than a script. **Sixth instance of the classifier shape this
+session** — caught before reporting this time, which is the only difference that matters.
+
+### Row 434's declined gate, re-measured where it would matter most
+
+That row declined a path-citation gate at **~76% false positives** over all non-plan markdown. Re-asked on
+`docs/ops` alone:
+
+| | |
+|---|---|
+| path-only citations | **553** |
+| unresolved | **14 (2.5%)** |
+| of those, genuine rot | **0** |
+
+The fourteen: an untracked GTM doc, `WP-01..16.md` **range notation**, two gitignored build artifacts (*the
+exact pair the row already names*), a `path/file.ts` placeholder, two shorthand partials, a release-artifact
+path, and a `.sql` **backup filename** that is not a repo file at all.
+
+> **A 2.5% unresolved rate reads like a viable gate and is not one.** Precision is what a gate is judged on,
+> and precision here is **0%** — fourteen flags, zero true positives. The low rate confirms the corpus is
+> clean; it says nothing good about the detector. **§1707 therefore CONFIRMS §434's decline rather than
+> overturning it** — which is the opposite of what the headline number suggests, and the reason the fourteen
+> were read individually instead of counted.
+
+What is new for the row: **every one of the fourteen falls into a category the row already named as a required
+filter**, so its three prerequisites would reduce the residue here to zero. A future implementer now knows the
+scoped corpus is clean and the filter list is complete against it. The trigger is unchanged.
+
+### And a gate I had not met caught the write-up
+
+Recording the fourteen on the row put four dead paths **inside a trigger cell**, and `trigger-paths` (§1474)
+failed: *"a reopen trigger is keyed to a file that no longer exists, so it can NEVER fire — and a row whose
+trigger cannot fire is indistinguishable from a row whose trigger has not fired."* Exactly its purpose, aimed
+at me. Reworded so the trigger names no path that cannot resolve.
+
+That is the **eighth** time this session a gate has fired on the record's description of the thing it gates —
+after the fabricated SHA, the node_modules path, the quoted citations, the shell `||`, the regex alternation.
+**A record that quotes its subject verbatim will be read as asserting it**, and the correct fix is always to
+name without quoting, never to weaken the gate.
+
+**Phase gate.** 9 ops docs checked for executability (136 invocations, 0 real misses), 1 classifier error caught
+before reporting, 1 declined gate's reasoning re-measured on the highest-stakes corpus and **confirmed**, 1 row
+updated with the scoped number, 1 unfamiliar gate met by tripping it. **Zero source changed.** Board carried from `07d983f` (§1706's commit,
+**0 commits since**) as **21 PASS · 0 FAIL · 5 BLOCKED**.
