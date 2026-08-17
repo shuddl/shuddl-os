@@ -49,6 +49,33 @@ function producerless(root: string): string[] {
   return codes.filter((c) => !texts.some((t) => t.includes(c)));
 }
 
+/**
+ * §1696 — THE SAME WALK, OVER EVERY DECLARED VOCABULARY.
+ *
+ * §1695's rule generalised, then measured: nine contracts vocabularies carry three or more members, and
+ * exactly TWO are never iterated — `ErrorCode` (0 walk sites) and `AuthorityFlipReason` (0). The rule predicts
+ * dead members there, and it was right ONCE: ErrorCode has two, AuthorityFlipReason has none (all three of
+ * `promote`/`drift`/`manual` are emitted at real `authority.flipped` construction sites). **Being unwalked is
+ * a RISK FACTOR, not a diagnosis** — which is why this is a ratchet over the whole class rather than a claim
+ * about any one enum.
+ *
+ * WHAT IT CANNOT SEE, stated because the limit is real: a producer is detected by the member string appearing
+ * in a production source, so a member whose name is a COMMON WORD is credited by any unrelated use. Measured
+ * at §1696: `AuthorityFlipReason.manual` showed four "producers", three of which were
+ * `method: "manual"` on `dims.captured`. The count therefore UNDER-reports dead members and never
+ * over-reports — safe for a ratchet, useless as a census.
+ */
+const VOCABULARIES: ReadonlyArray<{ file: string; name: string }> = [
+  { file: "packages/contracts/src/errors.ts", name: "ErrorCode" },
+  { file: "packages/contracts/src/authority.ts", name: "AuthorityFlipReason" },
+];
+
+/** PURE: members of a `z.enum([...])` declaration by name. */
+export function enumMembers(source: string, name: string): string[] {
+  const m = new RegExp(`export const ${name} = z\\.enum\\(\\[([^\\]]*)\\]\\)`, "s").exec(source);
+  return m === null ? [] : [...(m[1] as string).matchAll(/"([^"]+)"/g)].map((x) => x[1] as string);
+}
+
 describe("§1695 REQ-118: the error vocabulary is walked, so a dead code cannot hide", () => {
   const root = repoRoot();
 
@@ -64,6 +91,29 @@ describe("§1695 REQ-118: the error vocabulary is walked, so a dead code cannot 
     // LIVE at §1695: 10 codes, 221 production sources.
     expect(declaredCodes(readFileSync(`${root}/${ERRORS}`, "utf8")).length, "the enum parsed to nothing — the declaration moved or its shape changed").toBeGreaterThanOrEqual(8);
     expect(productionSources(root).length, "almost no production sources — the glob broke, not the tree").toBeGreaterThan(150);
+  });
+
+  it("§1696 no NEW producerless member in ANY unwalked vocabulary", () => {
+    // The corpus is built ONCE. The first cut called productionSources() inside the member loop, re-spawning
+    // `git ls-files` per member — 39 seconds, and an index-based filter that no longer lined up with its list.
+    const files = productionSources(root);
+    const texts = files.map((f) => [f, readFileSync(`${root}/${f}`, "utf8")] as const);
+    const dead: string[] = [];
+    for (const v of VOCABULARIES) {
+      const members = enumMembers(readFileSync(`${root}/${v.file}`, "utf8"), v.name);
+      expect(members.length, `${v.name} parsed to nothing — the declaration moved or changed shape`).toBeGreaterThanOrEqual(3);
+      const others = texts.filter(([f]) => !f.endsWith(v.file)).map(([, t]) => t);
+      for (const m of members) {
+        if (!others.some((t) => t.includes(`"${m}"`))) dead.push(`${v.name}.${m}`);
+      }
+    }
+    expect(
+      dead.length,
+      `${dead.length} member(s) of an UNWALKED vocabulary have no producer, frozen at ${FROZEN_PRODUCERLESS} ` +
+        `by §1696: ${dead.join(", ")}. Nine contracts vocabularies carry 3+ members and only these two are ` +
+        "never iterated; a walked vocabulary cannot hide a dead member because every member gets touched. " +
+        "Emit it, or do not declare it.",
+    ).toBeLessThanOrEqual(FROZEN_PRODUCERLESS);
   });
 
   it("no NEW error code is declared without a producer", () => {
