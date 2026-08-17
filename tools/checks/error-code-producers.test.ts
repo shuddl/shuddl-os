@@ -11,13 +11,21 @@ import { repoRoot } from "./repo-root.js";
 // price appends `approval.requested`) — and REMOVING either is a wire-contract change reserved to a register
 // amendment. So they stay, and this gate stops a THIRD from joining them.
 //
-// WHY THIS VOCABULARY AND NOT THE OTHER ONE (§1695's actual finding). The 35 `EVENT_KINDS` have the same
-// shape — a frozen declared vocabulary — and four of them likewise have no producer (`quote.sent`,
-// `quote.expired`, `pickup.scheduled`, and `call.transcribed`, which is CONFIRM-gated by CLAUDE.md). Nobody
-// had to notice, because the event taxonomy is ITERATED: `for (const kind of EVENT_KINDS)` and friends run at
-// **14** sites, so lens, visibility and chain coverage touch every member whether or not anything emits it.
-// The error enum is iterated at **ZERO** sites — it is only ever referenced one member at a time — which is
-// exactly how two dead codes sat in a wire contract unremarked.
+// WHY THIS VOCABULARY AND NOT THE OTHER ONE (§1695's actual finding, CORRECTED at §1723). The 35
+// `EVENT_KINDS` have the same shape — a frozen declared vocabulary. §1695 wrote that "four of them likewise
+// have no producer" and named them. **That number is not reproducible by the method this file defines, and
+// §1723 measured it: running the producer scan below over EVENT_KINDS finds ZERO.** All 35 are credited,
+// because the taxonomy is ITERATED — `visibility.ts`, `lens.ts` and the three projections name every member,
+// so a text scan sees each one whether or not anything emits it.
+//
+// The correction makes the argument STRONGER, not weaker. Seven kinds genuinely lack an emitter — that is
+// GO-LIVE-CHECKLIST's own row, derived at §418 and re-derived at §1143 against the **append-seam** corpus
+// rather than by text, precisely because text cannot answer this question for a walked vocabulary. §1695
+// quoted a subset of that row's list as if this file's scan had produced it. It had not.
+//
+//   The error enum is iterated at ZERO sites — only ever referenced one member at a time — which is exactly
+//   how two dead codes sat in a wire contract unremarked. The event taxonomy is walked at 14, which is why
+//   the same scan is blind there and why finding ITS dead members needed a different instrument.
 //
 //   A vocabulary that is WALKED cannot hide a dead member. One referenced member-by-member can.
 //
@@ -114,6 +122,35 @@ describe("§1695 REQ-118: the error vocabulary is walked, so a dead code cannot 
         "never iterated; a walked vocabulary cannot hide a dead member because every member gets touched. " +
         "Emit it, or do not declare it.",
     ).toBeLessThanOrEqual(FROZEN_PRODUCERLESS);
+  });
+
+  // §1723 — THE CORRECTION, ASSERTED SO IT CANNOT ROT BACK INTO PROSE.
+  //
+  // This pins the measurement that corrected §1695's comment: the producer scan finds ZERO dead EVENT_KINDS.
+  // It is not a freeze for its own sake — it is meaningful in the direction it can break. A kind added to the
+  // taxonomy but NOT added to `visibility.ts` / `lens.ts` / the projections would be the first member this
+  // scan fails to credit, and that is a real defect (the projections would silently not handle it), not a
+  // bookkeeping change. So a non-zero here is a signal to read, and the message says which.
+  it("§1723 the WALKED taxonomy credits every member — so this scan is blind there, by construction", () => {
+    // EVENT_KINDS is a plain `as const` array, not a `z.enum([...])`, so `enumMembers` does not fit it —
+    // parsed here rather than widening that helper, whose subject is the zod vocabularies.
+    const src = readFileSync(`${root}/packages/contracts/src/events.ts`, "utf8");
+    const block = /export const EVENT_KINDS = \[([\s\S]*?)\]/.exec(src);
+    const kinds = [...(block?.[1] ?? "").matchAll(/"([a-z_.]+)"/g)].map((m) => m[1] as string);
+    expect(kinds.length, "EVENT_KINDS parsed to nothing — the declaration moved or changed shape").toBe(35);
+    const texts = productionSources(root)
+      .filter((f) => f !== "packages/contracts/src/events.ts")
+      .map((f) => readFileSync(`${root}/${f}`, "utf8"));
+    const uncredited = kinds.filter((k) => !texts.some((t) => t.includes(`"${k}"`)));
+    expect(
+      uncredited,
+      `${uncredited.join(", ")} — a declared event kind that NO production source names. Every one of the 35 ` +
+        "is named today because the taxonomy is walked (visibility, lens, the three projections). A member " +
+        "that is not is a kind the projections will silently not handle, which is why this reads as zero and " +
+        "why a non-zero is worth stopping for. NOTE what this does NOT say: seven kinds have no EMITTER " +
+        "(GO-LIVE-CHECKLIST, derived against the append-seam corpus). A text scan cannot see that, and " +
+        "§1695's comment briefly claimed otherwise.",
+    ).toEqual([]);
   });
 
   it("no NEW error code is declared without a producer", () => {
