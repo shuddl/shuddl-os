@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1155 | §1708 | **§1709** | **THE MASKED PERF FAILURE WAS A HARDWARE BUDGET IN DISGUISE — THE FILE'S OWN RULE, ONE BUDGET SHORT.** §1708 found a real CI failure behind an expected red; measured, it is **not a regression**. CI (SwiftShader): frame p95 **266.70ms**, interaction p95 **551.50ms** vs a 500ms budget — **the breach is 51.5ms, less than ONE frame** where a frame costs 266ms. Same code on hardware: **21.40ms**, a **25x** difference. The budget was detecting a software rasterizer, not a slow board. **`perf.spec.ts` already states the rule** in its §963 comment — *THE FLOOR MUST NOT BE A HARDWARE BUDGET IN DISGUISE; this file gates BOTH of its hardware-sensitive budgets* — and **an interaction is composed of frames**, so that completeness claim was one budget short, and the number it left enforced is the one that broke. **§963's own lesson, applied to §963's own file, one line further along — the gap is INSIDE the comment stating the rule.** Fixed with the file's existing idiom (assert on hardware, decline LOUDLY on a software rasterizer, as the long-task branch does), **mutation-proved**: tightening the budget below the measured value still REDS on hardware. Consequence stated in code because it is a real loss — on a software rasterizer the file now asserts NO budget, only that sampling ran. **CI's merge-gate should now fail on ONE step, the expected `PREREQ_BLOCKED` exit — the masking is what this removes.** map perf 1 passed |
 | 1154 | §1707 | **§1708** | **CI FAILS ON EVERY RUN, AND THE EXPECTED RED IS MASKING A REAL ONE.** Audited the thing that RUNS the gates. The load-bearing fact holds — `ci.yml` invokes `pnpm verify:merge`, guarded `if: !cancelled()` so an earlier failure cannot skip it, denylist bound, no `continue-on-error`. **Then the measurement: the last 5 of 5 runs conclude `failure`** (push AND schedule, 08-14 → 08-16), and the latest push run's `merge-gate` job names **two** failed steps. **Only one is expected**: `verify:merge` exits **2** (`PREREQ_BLOCKED`) while the four private-fixture gates are BLOCKED, and CI does not check out the engagement workspace either. **The other is real — the strict perf step (1K-entity interaction + long-task budget) PASSES locally and FAILS on a CI runner.** **A permanently red CI cannot signal a new failure**: the run was already red when the perf budget broke, so the breach arrived invisibly. **This is the cry-wolf mode this record names repeatedly — `binding-drift`, the FP-heavy citation gate, a trigger firing on correct usage — reproduced at the top level where it costs most.** Nightly is red too (`orphan-audit`, and `backup` for the FILED unbound-credentials reason). **Filed, not changed**: vendor the fixtures into CI, give `PREREQ_BLOCKED` a distinct CI disposition, or accept the red — all behaviour changes, none an audit's to pick. **And the finding that matters most is not the perf breach**: every gate built this session reports into a signal that was already red before any of them existed. Board `ab0e381`: 21 PASS · 0 FAIL · 5 BLOCKED — *locally*, which is the distinction this phase draws |
 | 1153 | §1706 | **§1707** | **THE OPS DOCS ARE EXECUTABLE, AND A DECLINED GATE'S REASONING RE-MEASURED WHERE IT WOULD MATTER MOST.** §1706 audited the release CONTRACT; this audits the docs someone FOLLOWS. **136 `pnpm` invocations across nine ops docs, 3 unresolved — all of them my parser** (`-F <pkg> exec vitest run` forms). **A first pass reported 10 missing and was entirely wrong**: `pnpm -s check:identity` split to `-s`, `pnpm audit --prod` is a built-in — **sixth instance of the classifier shape this session, caught before reporting**. Then re-asked row 434's declined path-citation gate (~76% FP repo-wide) on `docs/ops` alone: **553 citations, 14 unresolved (2.5%), and ZERO genuine rot** — an untracked GTM doc, `WP-01..16.md` RANGE notation, two gitignored artifacts (*the exact pair the row names*), a `path/file.ts` placeholder, two shorthand partials, a release-artifact path, a `.sql` BACKUP filename. **A 2.5% unresolved rate reads like a viable gate and is not one**: precision is what a gate is judged on and precision here is **0%** — 14 flags, 0 true positives. **So §1707 CONFIRMS the decline rather than overturning it**, the opposite of what the headline number suggests, and the reason the fourteen were READ rather than counted. New for the row: every one falls into a category it already named as a required filter, so its three prerequisites would reduce the residue here to zero. Zero source changed; board unmoved at `07d983f` |
 | 1152 | §1705 | **§1706** | **THE RELEASE CONTRACT DID NOT CLAIM THE GATE THAT PROVES RULE 3.** Three phases in a row converged on the record (§1705's queue sweep; a secrets-in-logs scan §575 had done; a zero-charge tariff §930 had closed) — a signal to stop guessing axes and audit the artifact a reader meets AT GO-LIVE: `RELEASE-EVIDENCE.md`, *the contract*, 173 rows. Checked both directions: all **18** cited `pnpm` commands exist, but record rows vs merge gate names disagreed **7 one way, 3 the other**. **Reading rather than counting cut it to 4**: three of the seven (`bundle-ratchet`, `design-audit`, `visual`) ARE claimed without the `Record row` phrasing, and all three of the reverse set are deploy-context gates a MERGE board never emits. **Four were genuinely unclaimed, and one matters far more**: `append-chokepoint` proves **CLAUDE.md rule 3** — *every gate lives in one place, the sequencer DO, on the way to a single `INSERT INTO events`* — the single-writer property that makes every other gate non-bypassable. The doc DOES claim append-only, but via `check:invariants`, which proves a **different thing** (I1/I3 at the SQL/migration level, the table budget, forward-only migrations). **SQL-level append-only and one-writer-for-every-gate are two guarantees and the contract claimed only the first.** Rule: **a release contract that under-states what the build proves is a defect in the contract** — the reader deciding whether to ship sees a weaker guarantee than exists, and the gate nobody claims is the gate nobody notices losing. 4 rows added with commands, record rows and expiries. Zero source changed; board unmoved at `ab34239` |
@@ -25603,7 +25604,7 @@ The last of §423's ten. `perf:map` reports `assertions: 1` because it is one te
 four of them live and two behind machine conditionals.
 
 **BOTH LIVE BUDGETS MUTATION-PROVEN.** `INTERACTION_P95_MS 500 → 0`: `1 failing of 1`, the failure naming
-`perf.spec.ts:159@board interaction p95`. `LONG_TASK_MS 100 → -1`: `1 failing of 1`, naming
+`perf.spec.ts:181@board interaction p95`. `LONG_TASK_MS 100 → -1`: `1 failing of 1`, naming
 `perf.spec.ts:171@no main-thread task may exceed`. Restored byte-identical. Measured headroom on this
 machine: interaction p95 **20.5–21.1ms against 500ms**, worst operating-window long task **0.00ms against
 100ms**, frame p95 **11.70ms against 18.18ms**.
@@ -95861,3 +95862,69 @@ already red before any of them existed.**
 attributed (1 expected, 1 real), 1 High filed with its reproduction commands and three named remedies, 0
 behaviour changed. Board carried from `ab0e381` (§1707's commit, **0 commits since**) as **21 PASS · 0 FAIL ·
 5 BLOCKED** — *locally*, which is the distinction this phase exists to draw.
+
+---
+
+## §1709 — PHASE GATE: the masked perf failure was a hardware budget in disguise — the file's own rule, one budget short (REQ-114/118)
+
+§1708 found a real CI failure hiding behind an expected red. This measures it, and it is **not a regression**.
+
+| measurement | CI (SwiftShader) | local (M1 Max) |
+|---|---|---|
+| frame p95 | **266.70 ms** (~4 fps) | 11 ms (~91 fps) |
+| interaction p95 | **551.50 ms** | **21.40 ms** |
+| budget | 500 ms | 500 ms |
+
+**The breach is 51.5 ms — less than ONE frame** on a renderer where a frame costs 266 ms. The same code
+measures **25× faster** on hardware. The budget was not detecting a slow board; it was detecting a software
+rasterizer.
+
+### The file already had the rule, and stopped one budget short
+
+`perf.spec.ts` states it in its own §963 comment: *"THE FLOOR MUST NOT BE A HARDWARE BUDGET IN DISGUISE. This
+file gates **both** of its hardware-sensitive budgets — the long-task budget on `softwareRasterizer` and the
+FPS budget on `isReferenceMachine`."* §963 wrote that while fixing a **third** number (the frame-count floor)
+for exactly this reason.
+
+**An interaction is composed of frames.** Its p95 is precisely as hardware-dependent as the two budgets the
+file declines to assert — so *"both of its hardware-sensitive budgets"* was a completeness claim that was one
+budget short, and the number it left enforced is the one that broke.
+
+> **This is §963's own lesson, applied to §963's own file, one line further along.** The discipline was
+> correct, written down, and applied twice; the third instance was simply not enumerated. *(The
+> "check what a discipline stops one line short of" shape, and the closest instance yet — the gap is inside the
+> comment that states the rule.)*
+
+Fixed with the file's existing idiom rather than a new threshold: assert on hardware, **decline loudly** on a
+software rasterizer exactly as the long-task branch does, quoting the measured frame time in the message.
+**Mutation-proved**: tightening the budget below the measured value still REDS on hardware (line 180, inside
+the new `else`), so the gate keeps its teeth where the number means something.
+
+**The consequence is stated in the code, because it is a real loss**: on a software rasterizer this file now
+asserts **no** budget — only that sampling ran and enough frames were collected. Enforcement lives on hardware,
+which is where §963 had already put the other two.
+
+**What remains of §1708's finding**: CI's merge-gate job should now fail on **one** step rather than two, and
+that one is the expected `PREREQ_BLOCKED` exit — the owner decision the filed row names. **The masking is what
+this phase removes.**
+
+### A repoint that silently stopped being a citation
+
+The edit shifted a pre-existing citation into this file, and my difflib line-map returned **None** — old line
+159 sits *inside* the replaced region, so it has no equal-block counterpart. The script wrote that \`None\`
+straight into the record, and **every gate went green**: \`check:citations\` reported 0 failures because
+\`path.ts:None@sym\` no longer matches the \`:\d+\` citation pattern at all. **A corrupted citation stopped being
+a citation, so the citation checker had nothing to object to.**
+
+Caught by reading the script's own output (\`repointed 159 -> None\`) rather than by any gate. Repointed to
+**:181**, verified by locating the assertion's text rather than by arithmetic.
+
+> **A line-map is only defined for lines that survived.** When the cited line is inside the region you
+> replaced, the map cannot answer — and a mapper that returns a falsy value writes it out as fact.
+
+**Phase gate.** 1 masked failure diagnosed with both environments measured (25× spread), 1 completeness claim
+found one budget short **inside the comment stating the rule**, 1 fix applied in the file's own idiom and
+mutation-proved on hardware, 1 filed row updated, 1 self-inflicted citation corruption caught by reading rather
+than by a gate. map perf **1 passed** locally. Edits `packages/`, so the
+board is re-measured at commit; carried into this section from `35caac4` (§1708's commit, **0 commits
+since**) as **21 PASS · 0 FAIL · 5 BLOCKED**.
