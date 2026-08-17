@@ -89,8 +89,11 @@ class SpoofedRecipientParser implements ConciergeParser {
 
 // ── append an inbound message.received THROUGH the real DO (its `messages` row projects) ──────────────
 // A fresh quote email lands on a non-shipment intake stream (`q:…`) — no shipment exists yet.
-async function appendInbound(payload: Record<string, unknown>, streamSuffix: string): Promise<string> {
-  const id = crypto.randomUUID();
+// §1732: `eventId` is optional and defaults to a random uuid, exactly as before. A caller may pass a FIXED id
+// when it needs the ids DERIVED from this one to be assertable as literals — the Concierge seeds the shipment
+// id off this event id, and a random driver makes that derivation unpinnable by construction.
+async function appendInbound(payload: Record<string, unknown>, streamSuffix: string, eventId?: string): Promise<string> {
+  const id = eventId ?? crypto.randomUUID();
   const appended = await seqStub.append({
     tenant: TENANT,
     streamId: `q:concierge-${streamSuffix}`,
@@ -870,5 +873,68 @@ describe("§1501 — a header-injection recipient HOLDS send-pending (never a re
     // …and the ledger facts still stand: the quote was priced and the reply recorded before the hold.
     expect(outcome.quote_priced_event_id).toBeTruthy();
     expect(outcome.message_sent_event_id).toBeTruthy();
+  });
+});
+
+// §1732 (REQ-118/119) — THE CONCIERGE SHIPMENT ID, THE LAST MEMBER OF THE SEVEN-DERIVATION ROW.
+//
+// `shipmentIdFor(messageEventId)` seeds `shp_` off the inbound message's event id, so a re-drive of the same
+// message re-derives the same shipment instead of creating a second one. Every case in this file reads the id
+// back out of `outcome.shipment_id` and then uses it to look up rows — so all of them compare the id TO
+// ITSELF, and a derivation that moved wholesale would leave the file green. Measured across the owner AND this
+// worker at §1729: `workers/agents` 151/151 and `workers/api` 898/898, both GREEN.
+//
+// What made this one last is that its driver was random by construction: `appendInbound` minted
+// `crypto.randomUUID()`, so the seed differed every run and no literal was possible. That is the whole
+// obstacle — not privacy of the function (§1726's false premise), not the suite it lives in (§1727's), not an
+// ambiguous subject (§1728's). One optional parameter removes it, and the golden is then COMPUTED from a seed
+// this test owns end-to-end rather than captured (§1730's distinction).
+//
+// The consequence if it moves: a redelivered `message.received` — Cloudflare Queues are at-least-once — mints
+// a SECOND shipment for one email, with its own quote and its own reply to the customer.
+describe("§1732 the Concierge shipment id is byte-stable (REQ-035/118)", () => {
+  const FIXED_MSG_ID = "00000000-0000-4000-8000-000000001732";
+
+  it("a known message event id derives exactly this shipment id", async () => {
+    await seedRateConfig(env.TENANT_A_DB, TEST_RATE_CONFIG);
+    const msgId = await appendInbound(
+      quoteEmail("golden1732@shipper.example.com", "Please quote a shipment from 97201 to 80012, 1000 lbs, 48x40x48, 2 pallets."),
+      "golden1732",
+      FIXED_MSG_ID,
+    );
+    expect(msgId, "the fixed driver id must actually reach the ledger, or the golden below proves nothing").toBe(FIXED_MSG_ID);
+
+    const outcome = await handleMessageReceived(
+      { kind: "message.received", tenant: TENANT, event_id: msgId },
+      depsWith(new RecordingSender(), new DeterministicParser()),
+    );
+    expect(outcome.status, JSON.stringify(outcome)).toBe("issued_replied");
+    if (outcome.status !== "issued_replied") throw new Error("unreachable");
+
+    expect(
+      outcome.shipment_id,
+      "the Concierge shipment id moved. It is seeded off the inbound message's event id so that a REDELIVERED " +
+        "message.received — Queues are at-least-once — re-derives the same shipment. A changed seed mints a " +
+        "SECOND shipment for one email, with its own quote and its own reply to the customer.",
+    ).toBe("shp_8369f96b893e2768");
+
+    // The row really exists under that id — the derivation is what CREATED it, not just what was reported.
+    const row = await env.TENANT_A_DB.prepare("SELECT id FROM shipments WHERE id = ?").bind("shp_8369f96b893e2768").first<{ id: string }>();
+    expect(row?.id).toBe("shp_8369f96b893e2768");
+  });
+
+  it("a different message event id derives a different shipment id (the golden pins the seed, not a constant)", async () => {
+    await seedRateConfig(env.TENANT_A_DB, TEST_RATE_CONFIG);
+    const msgId = await appendInbound(
+      quoteEmail("golden1732b@shipper.example.com", "Please quote a shipment from 97201 to 80012, 1000 lbs, 48x40x48, 2 pallets."),
+      "golden1732b",
+      "00000000-0000-4000-8000-000000001733",
+    );
+    const outcome = await handleMessageReceived(
+      { kind: "message.received", tenant: TENANT, event_id: msgId },
+      depsWith(new RecordingSender(), new DeterministicParser()),
+    );
+    if (outcome.status !== "issued_replied") throw new Error(`unexpected: ${JSON.stringify(outcome)}`);
+    expect(outcome.shipment_id).not.toBe("shp_8369f96b893e2768");
   });
 });
