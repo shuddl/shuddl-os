@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1172 | §1725 | **§1726** | **THE REASON A PHASE DECLINED THE WORK WAS ITSELF UNTESTED.** §1717 filed seven persisted-id derivations rather than fixing them, on the ground that they are private and *"exporting seven production functions purely to assert them"* was a poor trade. Sound reasoning — but **its premise, that an export is the only route, was never checked, and it is false**: `emitCreditPurchase` RETURNS the credit invoice id and `POST /v1/shipments` RETURNS the shipment id, and both seeds' inputs (a Stripe payment-intent; a tenant + `Idempotency-Key`) are under the test's control. Two of the seven closed at **zero production change**. What was undefended is what each comment names: `credit_…` is `invoices.id` and the settlement keys off it; `shp_…` is `shipments.id` and the route's own comment says the determinism exists so a retry reproduces the SAME id — a changed derivation makes that retry create a SECOND shipment. Neither suite could see it: every assertion compared an id **to itself**, so a wholesale move stayed internally consistent. Landed: 4 literal goldens with 2 different-input controls (three hardcoded strings would otherwise pass against a derivation that ignores its seed); mutation-proved 0→2 RED and 0→1 RED. **It also moved a sibling row**: the two credit EVENT ids route through the shared `deterministicUuid`, so billing now reds under §1716's mutation (was 0/76) while agents is still 148/148 — that row narrows from two workers to one, by re-measurement rather than inference. The five remaining are unchanged and §1717's blanket "needs an export" is explicitly NOT inherited for them. billing 76→78, api 891→898 |
 | 1171 | §1724 | **§1725** | **SEGMENT STOPPING POINT — §1714–§1724 closed.** Eleven phases: marker permanence pinned; the caps meter's client-discipline dependence characterized; **14 copies** of one id derivation consolidated (a name sweep had found 43%); 9 persisted-id seeds probed with **8 unpinned** and a stated byte law defended by nothing across 1,388 tests; a cross-tenant DELETE boundary held by one trailing slash, plus two more copies of the same guard including one on an unauthenticated route; the class closed as ONE property and shown **structurally bounded to a single member**; the highest-severity row re-measured (**CI's red is stale** — 154 commits unpushed, the fix never run) and its condition made reproducible; the CI perf enforcement count corrected ONE→**ZERO**; my own gate comment corrected against a number its method cannot produce; and 3 doc/gate number pairs bound. **Board 21 PASS · 0 FAIL · 5 BLOCKED**, zero production behaviour changed in nine of eleven. **The ledger counted by the document's own headings: 166 filed / 120 open / 46 closed** — and the two earlier attempts (142/106, 209/162) were both wrong the same way, scanning the whole file and sweeping the provisioning task list into the ledger; the hypothesis that followed (*"two genres, no column separates them"*) is **FALSE** and retracted — the headings have always separated them. Limit stated: "open" is a heuristic over prose, a magnitude and not a verdict. 6 reopen triggers, each with a verify-before-striking recipe |
 | 1170 | §1723 | **§1724** | **WHICH FILED COUNTS ROT, AND THE THREE THAT COULD.** Rather than re-measure ninety-odd count-bearing rows, asked what HOLDS each count. Four re-measured by their own definitions and **all four STAND** (rows 422, 423, 458, 210 — a clean negative result). The discriminator: a gate that reads the DOC's number cannot rot (row 210); prose asserting an ABSENCE rots only by a deliberate act; **prose over a conditional or a derived subset is what rotted at §1722 and §1723**; and a `FROZEN_*` constant beside a prose count is TWO numbers with nothing joining them. `unbounded-reads-roster.test.ts:86@ROSTER` learned that at §823/§1019 — its row read "7 sites" while the roster held 8, green for two audits, because the agreement test matched the HEADING. **The pattern was never carried forward**: of five `FROZEN_*` ratchets, three have a checklist row stating the same figure and NONE reads the doc — `json-scan-ratchet` (21), `unbounded-event-scans` (11), `error-code-producers` (2), all written after the precedent, two by me this session. All three now bound; the ErrorCode one binds on **identity** rather than count because its row says "**Two**" as a word (and naming the members fails on removal, addition, or a rewrite about different codes — none of which a `2` notices). Mutation-proved by name, and **one probe had to be redone**: renaming the doc's `FLOOR_APPROVAL_REQUIRED` to `…_REQUIRED_X` left it GREEN because `toContain` takes a substring — the first probe's non-zero output was §1724 in PASSING test names. 0 behaviour changed, tools 1511→1514 |
 | 1169 | §1722 | **§1723** | **MY OWN GATE COMMENT STATED A NUMBER ITS METHOD CANNOT PRODUCE.** §1722 found a filed count invalidated by a later fix; the first candidate for the same shape elsewhere was **this session's own work**. Two record sources count producerless members of the 35-kind taxonomy and disagree: row 208 says SEVEN and names them; §1695's comment in `error-code-producers.test.ts` says FOUR. **Running §1695's OWN method over `EVENT_KINDS` returns ZERO** — every kind is credited, because the taxonomy is WALKED (`visibility.ts`, `lens.ts`, the three projections name every member). §1695 stated a number **as if this file's scan had produced it**; it had not — the four were quoted from row 208's list. **Row 208 is right**, and for the reason worth preserving: its seven come from the APPEND-SEAM corpus, not text, precisely because text cannot answer this for a walked vocabulary. **The correction makes §1695's argument STRONGER** — the walk crediting all 35 is the sharpest evidence that a walked vocabulary hides nothing from a scan and needs a different instrument. Landed: the comment corrected at the source; the ZERO asserted (meaningful in the direction it can break — a kind added to the taxonomy but not to the projections would be the first uncredited member, a real defect), mutation-proved by renaming one kind; and **row 208 inoculated** against the text-scan probe that would falsely retire it. 0 behaviour changed, tools 1510→1511 |
@@ -96826,3 +96827,59 @@ than restatements.
 class bounded structurally, 4 record counts corrected and 4 confirmed, 3 doc/gate bindings added, 2 of my own
 probe results and 2 of my own claims corrected before publication, and 1 false hypothesis about the record's
 structure retracted in the same phase it was formed.
+
+---
+
+## §1726 — PHASE GATE: the reason a phase declined the work was itself untested (REQ-118/119/123/195)
+
+§1717 filed seven persisted-id derivations as unpinned rather than fixing them, and gave a reason:
+
+> *"Each needs its own golden in its own worker, and several of the functions are private — exporting seven
+> production functions purely to assert them is a change to seven production files for zero behaviour, which is
+> a larger and lower-value edit than the measurement that motivates it."*
+
+The reasoning is sound. **Its premise — that an export is the only route — was never checked**, and it is
+false for at least two of the seven.
+
+| derivation | how the id reaches a test | production change needed |
+|---|---|---|
+| billing credit-doc (`billing:credit-doc:`) | `emitCreditPurchase` **returns** `invoiceId`; the two event ids are on the recorded appends | **none** |
+| api intake shipment (`intake:shipment:`) | `POST /v1/shipments` **returns** `shipment_id` | **none** |
+
+Both seeds' inputs are under the test's control — a Stripe payment-intent, and a tenant plus an
+`Idempotency-Key` — so each id is a literal a test can assert through the public surface.
+
+### What was actually undefended
+
+The consequence is the one each derivation's own comment names. `credit_…` is `invoices.id` on the platform
+ledger, and the settlement that flips the invoice to paid keys off that exact string. `shp_…` is
+`shipments.id` and the root of every `s:<id>` stream, and the route's comment says the determinism exists so
+that *"a retry beyond the HTTP replay window reproduces the SAME id."* A changed derivation does not rename
+old rows — it makes that retry create a **second** shipment, which is the precise failure the determinism was
+for.
+
+Neither suite could see it. Every assertion in both compared an id **to itself** — `refs["credit_invoice"]`
+against the returned `invoiceId`, the two redelivery appends against each other, `/^shp_/` against a shape —
+so a derivation that moved wholesale stayed internally consistent and every case passed. §1716's rule, twice
+more.
+
+### What landed
+
+Three literal goldens in billing (invoice id + both event ids) and one in api, each paired with a
+**different-input control**, because three hardcoded strings would otherwise pass against a derivation that
+ignored its seed entirely. Mutation-proved: the credit-doc seed **0 → 2 RED**, the intake seed **0 → 1 RED**.
+
+**And it moved a second row.** The two credit *event* ids route through the shared `deterministicUuid`, so
+pinning them binds `workers/billing` to it: re-measured under §1716's slice-offset mutation, billing now reds
+(was 0 of 76). `workers/agents` re-measured under the same mutation is still **148/148 green**, so that row
+narrows from two workers to one rather than closing — stated as a halving, not a fix.
+
+**The five that remain** — Biller invoice, Concierge shipment, mirror-sweep quarantine, api migrate shipment,
+translator EDI shipment — are unchanged, and §1717's blanket *"needs an export"* is explicitly **not**
+inherited for them: whether the same public-output route exists has not been checked for any of them, and the
+row now says so rather than carrying a premise this phase just falsified.
+
+**Phase gate.** 1 filed row's REASON tested and found false, 2 of 7 derivations closed at **zero production
+change**, 4 literal goldens with 2 different-input controls, 3 mutation directions proved (0→2, 0→1, and the
+shared builder 0→1 in billing), 1 sibling row narrowed by re-measurement rather than by inference, 1 unchecked
+premise explicitly quarantined instead of inherited. billing **76→78**, api **891→898** (this arc).

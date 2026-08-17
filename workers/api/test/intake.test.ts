@@ -54,7 +54,10 @@ async function createParty(body: unknown, tok: string, key = crypto.randomUUID()
   });
   return { status: res.status, json: (await res.json().catch(() => null)) as Record<string, unknown> | null };
 }
-async function createShipment(body: unknown, tok: string, key = crypto.randomUUID()): Promise<Res> {
+// §1726: `key` is annotated `string` rather than left to infer from `crypto.randomUUID()`, whose return is a
+// UUID TEMPLATE type. An `Idempotency-Key` is an arbitrary header value, not a uuid, and a helper that can
+// only accept uuids cannot express a FIXED key — which is what a byte-stability golden needs.
+async function createShipment(body: unknown, tok: string, key: string = crypto.randomUUID()): Promise<Res> {
   const res = await SELF.fetch("https://api.local/v1/shipments", {
     method: "POST",
     headers: { Authorization: `Bearer ${tok}`, "Idempotency-Key": key, "content-type": "application/json" },
@@ -336,5 +339,53 @@ describe("CSR net-new intake composes: parties → shipment → rate → accept 
     // The gate aborted the append: NO booking.created, the shipment never went `booked`. No bypass.
     expect(await bookingEvents(shp)).toHaveLength(0);
     expect(await shipmentState(shp)).toBeUndefined();
+  });
+});
+
+// §1726 (REQ-118/119/195) — THE SHIPMENT ID'S BYTES, WHICH NOTHING HERE COULD SEE MOVE.
+//
+// The id is `shp_` + the first 16 hex of sha-256(`intake:shipment:<tenant>:<Idempotency-Key>`), and the route
+// comment says why it is derived rather than random: *"a retry beyond the HTTP replay window reproduces the
+// SAME id → INSERT OR IGNORE is a no-op."* That property is tested. Its BYTES were not.
+//
+// §1717 measured the difference: changing the seed to `intake:shipmen:` left `workers/api` at **891/891
+// GREEN**. Every case in this file compares the id to itself or to a shape (`/^shp_/`), so a derivation that
+// moved WHOLESALE stays internally consistent — the §1716 shape, where an in-process test cannot see the one
+// thing that matters, namely agreement with rows a PREVIOUS deploy wrote.
+//
+// It matters here in the direction the route's own comment names: `shipments.id` is persisted and referenced
+// by every event stream (`s:<id>`), so a changed derivation makes the retry it exists to collapse create a
+// SECOND shipment instead — the exact failure the determinism was for.
+//
+// §1717 filed this as needing an export. It does not: the route RETURNS the id, and the two seed inputs
+// (tenant and Idempotency-Key) are both under the test's control, so a literal is assertable through the
+// public surface with no production change.
+describe("§1726 the intake shipment id is byte-stable (REQ-025/195)", () => {
+  it("a fixed tenant + Idempotency-Key derives exactly this id", async () => {
+    const p = await threeParties("g1726", await opsTok());
+    const r = await createShipment(
+      { shipper_party_id: p.shipper, consignee_party_id: p.consignee, bill_to_party_id: p.billTo },
+      await opsTok(),
+      "1726-intake-golden",
+    );
+    expect(r.status, JSON.stringify(r.json)).toBe(201);
+    expect(
+      r.json?.shipment_id,
+      "the intake shipment id moved. It is `shipments.id` and the root of every `s:<id>` event stream, and it " +
+        "is already persisted: a changed derivation does not rename old rows, it makes the retry this " +
+        "determinism exists to collapse create a SECOND shipment. Not a snapshot to regenerate.",
+    ).toBe("shp_92a669ca681eb352");
+  });
+
+  it("a DIFFERENT Idempotency-Key derives a different id (so the golden pins the seed, not a constant)", async () => {
+    // Without this, a hardcoded string would pass against a derivation that ignored its inputs entirely.
+    const p = await threeParties("g1726b", await opsTok());
+    const r = await createShipment(
+      { shipper_party_id: p.shipper, consignee_party_id: p.consignee, bill_to_party_id: p.billTo },
+      await opsTok(),
+      "1726-intake-golden-2",
+    );
+    expect(r.status, JSON.stringify(r.json)).toBe(201);
+    expect(r.json?.shipment_id).not.toBe("shp_92a669ca681eb352");
   });
 });

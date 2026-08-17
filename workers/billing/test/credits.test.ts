@@ -268,3 +268,59 @@ describe("§922: a checkout session with NO payment_intent is refused, never sol
     expect(led.count("invoice.issued"), "an unlinkable sale was appended — the settlement can never find it").toBe(0);
   });
 });
+
+// §1726 (REQ-118/119/123) — THE BYTES OF THE THREE CREDIT IDS, WHICH NOTHING IN THIS SUITE COULD SEE MOVE.
+//
+// §1717 probed nine persisted-id derivations by mutating each seed and running the owning suite: eight changed
+// every id they produce with NOTHING noticing, and `billing:credit-doc:` was one of them — `workers/billing`
+// stayed 76/76 GREEN. §1716 found the same for the shared `deterministicUuid`, which the two event ids below
+// route through: mutating it left this suite green as well.
+//
+// The reason is structural, not an oversight in these tests. Every assertion here compares an id to ITSELF —
+// `refs["credit_invoice"]` against the returned `invoiceId`, the two appends against each other for dedupe —
+// so a derivation that changed WHOLESALE stays internally consistent and every case passes. That is exactly
+// the §1716 shape: an in-process test proves same-input-same-output within one run, never that the output
+// matches what a previous deploy persisted. These ids ARE persisted — `invoices.id` on the platform ledger and
+// two `events.id` — so a moved byte does not correct anything; it makes the next redelivery append a DUPLICATE
+// of an event that cannot be deleted (I3/I7), and orphans the AR row the settlement is supposed to flip.
+//
+// §1717 filed this rather than fixing it, on the stated ground that the derivations are private and
+// "exporting seven production functions purely to assert them" was a poor trade. That reasoning assumed
+// EXPORT was the only route. It is not: all three ids are observable in the emitter's public output, so this
+// costs no production change at all.
+//
+// The correlation id is the Stripe payment_intent, so these three values are fixed by `pi_sale_1` alone.
+describe("§1726 the credit ids are byte-stable — computed from the correlation id, asserted as literals", () => {
+  it("a purchase on `pi_sale_1` derives exactly these three ids", async () => {
+    const led = new RecordingLedger();
+    const event = parse(checkoutEventBody({ eventId: "evt_sale_g1", tenant: "tenant-a", amountCents: 500_00, pi: "pi_sale_1", createdSec: CREATED }));
+    const { invoiceId } = await emitCreditPurchase(led, env.CONTROL_DB, event);
+
+    expect(
+      invoiceId,
+      "the credit INVOICE id moved. It is `invoices.id` on the platform ledger and it is already persisted: a " +
+        "changed derivation orphans every prior row rather than renaming it, and the settlement that flips the " +
+        "invoice to paid keys off this exact string. Not a snapshot to regenerate.",
+    ).toBe("credit_f68381cf32ed1c13");
+
+    const issued = led.appendCalls.find((c) => c.input.kind === "invoice.issued");
+    const paid = led.appendCalls.find((c) => c.input.kind === "payment.received");
+    expect(issued, "the sale appended no invoice.issued — this case is about its ID, so it must exist first").toBeDefined();
+    expect(paid, "the prepaid sale appended no payment.received").toBeDefined();
+    expect(
+      issued!.input.id,
+      "the invoice EVENT id moved. This is the id the sequencer dedupes on, so a redelivery after the change " +
+        "appends a SECOND invoice.issued for one payment — on an append-only table.",
+    ).toBe("ae1e4908-eb2f-435a-87f7-8785dfaf8c52");
+    expect(paid!.input.id, "the payment EVENT id moved — same consequence, on the settlement half").toBe("8c62e127-5038-4c82-914f-2175fb3bbdbd");
+  });
+
+  it("a DIFFERENT correlation id derives different ids (so the goldens pin the seed, not a constant)", async () => {
+    // Without this, three hardcoded strings would pass against a derivation that ignored its input entirely.
+    const led = new RecordingLedger();
+    const event = parse(checkoutEventBody({ eventId: "evt_sale_g2", tenant: "tenant-a", amountCents: 250_00, pi: "pi_sale_2", createdSec: CREATED }));
+    const { invoiceId } = await emitCreditPurchase(led, env.CONTROL_DB, event);
+    expect(invoiceId).toBe("credit_56feb5ae20b3af18");
+    expect(invoiceId).not.toBe("credit_f68381cf32ed1c13");
+  });
+});
