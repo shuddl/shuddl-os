@@ -6,7 +6,7 @@ vi.mock("../lib/api.js", async () => {
   return { ...actual, get: vi.fn(), post: vi.fn() };
 });
 import { ParityDashboard } from "./ParityDashboard.js";
-import { get } from "../lib/api.js";
+import { ApiError, get } from "../lib/api.js";
 
 const mockGet = get as unknown as ReturnType<typeof vi.fn>;
 
@@ -115,5 +115,30 @@ describe("ParityDashboard (REQ-152/153)", () => {
     expect(await screen.findByText(/shp-legacy/)).toBeTruthy();
     fireEvent.click(await screen.findByRole("button", { name: /open shp-native/i }));
     expect(onOpenShipment).toHaveBeenCalledWith("shp-native");
+  });
+
+  it("§1690 a FAILED parity read shows the error — never 'NO OVERLAY MODULES', which hides the safety net", async () => {
+    // This view IS the overlay safety net: parity_drift is what auto-falls-back a promoted module to legacy.
+    // Its arms are loading → error → empty → list, and the empty text asserts that there ARE no overlay
+    // modules. A failed read falling through to it reports the net as absent rather than unreadable — and the
+    // component's OWN header already states the rule it was not holding: "never a fabricated set of green
+    // rows". Measured first: making `error !== null` unreachable left command 104/104 GREEN.
+    mockGet.mockRejectedValueOnce(new ApiError("INTERNAL", 500, "PARITY READ FAILED"));
+    render(<ParityDashboard onOpenShipment={vi.fn()} onClose={vi.fn()} onAuthError={vi.fn()} />);
+
+    await screen.findByText("PARITY READ FAILED");
+    expect(
+      screen.queryByText("NO OVERLAY MODULES"),
+      "an unreadable parity table is not an empty one — the safety net must not report itself absent",
+    ).toBeNull();
+  });
+
+  it("§1690 a 401 on the parity read DELEGATES to onAuthError and paints no local error", async () => {
+    mockGet.mockRejectedValueOnce(new ApiError("UNAUTHORIZED", 401, "NO SESSION"));
+    const onAuthError = vi.fn();
+    render(<ParityDashboard onOpenShipment={vi.fn()} onClose={vi.fn()} onAuthError={onAuthError} />);
+
+    await waitFor(() => expect(onAuthError).toHaveBeenCalled());
+    expect(screen.queryByText("NO SESSION"), "re-auth belongs to the shell").toBeNull();
   });
 });
