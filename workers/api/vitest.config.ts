@@ -18,7 +18,18 @@ export default defineWorkersConfig({
         // isolatedStorage snapshots each test's storage by copying the backing SQLite files;
         // pool-workers 0.9.x asserts every file ends in `.sqlite`, but a SQLite-backed Durable
         // Object (ShipmentSequencer, new_sqlite_classes) leaves a `.sqlite-shm` WAL sidecar and
-        // the snapshot aborts. We don't rely on per-test rollback here — every ledger test scopes
+        // the snapshot aborts.
+        //
+        // §1733 — WHAT THAT ASSERT ACTUALLY IS, re-read in the installed copy rather than inferred.
+        // `dist/pool/index.mjs` carries it TWICE, on the push (`:644`, before `copyFile`) and on the
+        // pop (`:660`, before `unlink`). Both loops already skip one non-`.sqlite` entry BY NAME
+        // (`if (name === BLOBS_DIR_NAME) break;`), and the SAME module at `:793` iterates a Durable
+        // Object directory and FILTERS with `if (name.endsWith(".sqlite"))` instead of asserting.
+        // So the assert is not an invariant upstream holds about that directory — it is an
+        // incomplete allowlist that upstream's own neighbouring code contradicts. That matters for
+        // whoever picks this up: the fix shape is upstream and small, and the local constraint is
+        // version-pinned (installed 0.9.14; see GO-LIVE-CHECKLIST's pool-binding row for the
+        // seven-manifest upgrade this would take). We don't rely on per-test rollback here — every ledger test scopes
         // its assertions to a distinct (tenant|stream) DO + stream id, and the WP-01 suites use
         // unique idempotency keys / self-cleaning markers — so storage isolation is off for the
         // whole package instead. Cross-tenant isolation is proven by REQ-025 (id-derived DO + D1
