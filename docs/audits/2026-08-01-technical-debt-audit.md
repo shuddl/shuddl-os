@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1158 | §1711 | **§1712** | **SESSION STOPPING POINT — WHAT THIS LOOP PRODUCED, AND WHY AXIS-GUESSING IS FINISHED.** Four consecutive phases converged on the record (§1705 queue, §575 secrets-in-logs, §930 zero-charge tariff, and a time axis §588/§1013/§186/§1595 covered four ways — §1013's claim **re-measured at HEAD**: 0 local-time getters, control-verified, holds). **That convergence rate IS the finding**: the productive move stopped being *pick an axis* and became working the FILED debt (§1698–§1704) and the ARTIFACTS carrying the verdict (§1705–§1711). **Produced: 85 commits (8 fix · 28 test · 49 docs), 112 audit sections.** Production defects fixed, each mutation-proved: a **200 claiming stored evidence that was not stored**; a **dispatch gate accepting a retention-DELETED rate-con**; a refusal log claiming a preservation it had failed; **REQ-035's 0.8 floor defended by nothing**; an anomaly cap seam documented as config-fed with nothing feeding it; **two empty-state and five error arms unreachable in the suite**; a **perf budget measuring a software rasterizer**. 7 gates added, **4 declined on measured evidence** (incl. one that failed calibration at 2 of 6, and one refuted by four of this session's own commits). **The finding that outranks the rest: every gate above reports into a signal that was already red** — CI fails 5 of 5, filed with three owner remedies. **A gate is worth what its signal is worth.** Method: five classifier errors of one shape (one under-counted debt **4 vs 29**), the fixed point as counter-measure, cry-wolf at every level, and 8 gates firing on the record's description of their subject. Local board `f452ec1`: 21 PASS · 0 FAIL · 5 BLOCKED, unmoved across four segments; nothing pushed |
 | 1157 | §1710 | **§1711** | **SEGMENT STOPPING POINT — THE SIGNAL THE GATES REPORT INTO.** §1704 closed the register; the six phases since worked outward to the machinery carrying its verdict, and found the verdict was not being carried. §1705 queue poison handling (clean negative, `max_retries=5` + DLQ verified PER SCOPE); §1706 the release CONTRACT missing 4 claim rows including `append-chokepoint`, **which proves rule 3**; §1707 the ops docs executable (136 commands) and row 434's decline **confirmed** at 0% precision; §1708 **CI fails 5 of 5 runs**, two failed steps and only one expected; §1709 the masked one was **not a regression** but a hardware budget in disguise (**25x** spread, fixed in the file's own §963 idiom); §1710 the hazard that fix created is **not a class**, and its ratchet is **refuted by four of this session's own commits**. **The finding subsumes the rest: every gate this session built reports into a signal that was already red.** Two causes now separated — the EXPECTED `PREREQ_BLOCKED` exit (filed, three remedies, owner's call) and the REAL perf step (removed). **Prediction left deliberately unverified**: CI should now fail on ONE step; this session does not push, so the next run is the first evidence, and the row's expiry names it. Method: two declines on EVIDENCE not judgement, and one self-inflicted defect caught by reading a script's output rather than trusting a green suite. Local board `7ed3c70`: 21 PASS · 0 FAIL · 5 BLOCKED — **the distinction between that and CI is the segment's subject** |
 | 1156 | §1709 | **§1710** | **THE DEFECT I CREATED IS NOT A CLASS, AND THE RATCHET THAT WOULD CATCH IT IS REFUTED BY THIS SESSION'S OWN EDITS.** §1709's hazard — *a corrupted citation stops being a citation, so the checker has nothing to object to* — measured for prevalence: scanning every tracked file for a citation SHAPE with a non-numeric line part gives **2 hits, both deliberate prose placeholders**, **0 real**. The existing floor (`citation-links.test.ts`, **500** against a live **2,099**) is a TRIPWIRE for a broken scan, not a ratchet — correctly, per §1650 — so a 2,099→2,098 corruption sails through, and that is the gap. **The ratchet that would close it is refuted by this session's own history**: a may-only-rise floor would have caught §1709 exactly, and also fired on **four deliberate reductions** (§1677, §1680, §1693, §1707), each of which REMOVED citations on purpose — rewording prose that quoted a bad citation so the record would stop asserting it, which is the correct response to a gate firing on the record's description of its subject. **A gate that would have blocked four correct edits to catch one defect is a gate that gets switched off**, and the FP evidence is not estimated — it is four commits in this session's own history, the strongest form this record has used for a decline. No gate; the residual protection is §1709's recorded discipline and the practice that actually caught it (reading the script's output, not trusting a green suite). Zero source changed; board unmoved at `f0c966c` |
 | 1155 | §1708 | **§1709** | **THE MASKED PERF FAILURE WAS A HARDWARE BUDGET IN DISGUISE — THE FILE'S OWN RULE, ONE BUDGET SHORT.** §1708 found a real CI failure behind an expected red; measured, it is **not a regression**. CI (SwiftShader): frame p95 **266.70ms**, interaction p95 **551.50ms** vs a 500ms budget — **the breach is 51.5ms, less than ONE frame** where a frame costs 266ms. Same code on hardware: **21.40ms**, a **25x** difference. The budget was detecting a software rasterizer, not a slow board. **`perf.spec.ts` already states the rule** in its §963 comment — *THE FLOOR MUST NOT BE A HARDWARE BUDGET IN DISGUISE; this file gates BOTH of its hardware-sensitive budgets* — and **an interaction is composed of frames**, so that completeness claim was one budget short, and the number it left enforced is the one that broke. **§963's own lesson, applied to §963's own file, one line further along — the gap is INSIDE the comment stating the rule.** Fixed with the file's existing idiom (assert on hardware, decline LOUDLY on a software rasterizer, as the long-task branch does), **mutation-proved**: tightening the budget below the measured value still REDS on hardware. Consequence stated in code because it is a real loss — on a software rasterizer the file now asserts NO budget, only that sampling ran. **CI's merge-gate should now fail on ONE step, the expected `PREREQ_BLOCKED` exit — the masking is what this removes.** map perf 1 passed |
@@ -96025,3 +96026,69 @@ session's work; nothing pushed.
 **Phase gate.** Segment closed: 6 phases, 1 High filed (CI red, with reproduction commands and three remedies),
 1 production fix (the perf budget), 4 release-contract claims added, 2 gates declined on measured evidence,
 0 owner decisions taken. Board re-measured at `7ed3c70`, **0 commits since**.
+
+---
+
+## §1712 — PHASE GATE (SESSION STOPPING POINT): what this loop produced, and why axis-guessing is finished (REQ-118/119)
+
+Four consecutive phases now have converged on the record — §1705's queue sweep, a secrets-in-logs scan §575
+had done, a zero-charge-tariff question §930 had closed, and a time-zone axis §588/§1013/§186/§1595 had
+covered from four directions. §1013's central claim was **re-measured at HEAD rather than inherited**: **0
+local-time getters in product code**, with a control proving the grep reaches real code. It holds.
+
+**That convergence rate is the finding.** When four independent guesses in a row land on ground the record
+already holds, the productive move is no longer "pick an axis" — it is to work the *filed* debt (done, §1698–
+§1704) and the *artifacts that carry the verdict* (done, §1705–§1711).
+
+### What the loop produced
+
+**85 commits — 8 `fix`, 28 `test`, 49 `docs` — and 112 audit sections.**
+
+**Production defects found and fixed** (each mutation-proved, each with the mechanism recorded at the line):
+
+- a **200 claiming stored evidence that was not stored** (§1672) — the sweep deletes R2 bytes before tombstoning, and an ordinary tick exposes the window
+- a **dispatch gate accepting a retention-DELETED rate-con** (§1674) — a tombstone kept as the audit record satisfied *"the paperwork exists"*
+- a **refusal log claiming it preserved a tender it had failed to store** (§1676)
+- **REQ-035's 0.8 confidence floor defended by nothing** (§1677) — every case varied the other conjunct
+- the **anomaly cap seam documented as config-fed with nothing feeding it** (§1678)
+- **two empty-state arms and five error arms unreachable in the suite** (§1687–§1691) — where the wrong arm says the opposite of what happened
+- a **perf budget measuring a software rasterizer** (§1709), masked behind an already-red CI
+
+**Gates added**: the JSON blast-radius ratchet, anchor specificity, the audit-record floor, the error-code walk
+(generalised to every unwalked vocabulary), unfed-optional-params, per-file assertion-hollowing, and a
+board-citation SHA check. **Gates declined on measured evidence**: the comment-anchor detector (FP-dominated,
+re-confirmed twice), a path-citation gate (0% precision on 14 flags), a per-row-subrequest ratchet (**failed
+calibration at 2 of 6**), and a citation-count floor (**refuted by four of this session's own commits**).
+
+### The one finding that outranks the rest
+
+**Every gate above reports into a signal that was already red.** CI has concluded `failure` on 5 of 5 recent
+runs; one cause is the expected `PREREQ_BLOCKED` exit while private fixtures are absent, and it is filed with
+three remedies that are the owner's to choose. **A gate is worth what its signal is worth**, and that is now
+the highest-leverage open item in the build — above any individual defect this loop closed.
+
+### Method, earned repeatedly
+
+- **Five classifier errors, one shape** — a pattern written from *how I would have named something*. One
+  under-counted open debt **4 versus 29** and shipped as a segment conclusion before the next phase caught it.
+- **The counter-measure is a fixed point**, and it worked every time it was applied: a ratchet discarded for
+  reproducing 2 of 6 known sites; a parse caught by returning 0 kinds; a count caught because 235 > 134 is
+  impossible.
+- **Cry-wolf appears at every level** — a noisy trigger, an FP-heavy detector, and finally a permanently red
+  CI. Each teaches a reader to stop looking.
+- **Eight times a gate fired on the record's description of the thing it gates.** The fix is always to name
+  without quoting.
+
+### State at `f452ec1`
+
+`pnpm verify:merge` **locally**: **21 PASS · 0 FAIL · 5 BLOCKED** — unmoved across four segments; the five are
+the standing owner-held holds. tools **1,504 / 151 files** · api **891** · ledger **755** · contracts **340** ·
+agents **237** · rater **171** · translator **134** · portal **112** · command **109** · driver **103** · map
+**90**. Working tree clean of this session's work. **Nothing pushed** — 134 commits ahead of `origin/main`, 98
+of them this loop's, and pushing is the owner's call.
+
+**Open and genuinely blocked**: 29 repo-owned rows (17 behind a required register amendment), 6 External, and
+the CI disposition. **Every one now carries a verified holding pattern or an explicit statement that it has
+none.**
+
+**Phase gate.** Session closed at `f452ec1`, **0 commits since**.
