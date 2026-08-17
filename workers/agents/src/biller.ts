@@ -23,6 +23,25 @@
 // LLM-free and pure-composition at the core (composeInvoice); this consumer only loads records,
 // derives ids, appends through the DO, and sends. It runs in workers/agents (REQ-024: agents may call
 // LLMs, the ledger may not — this one happens to need none).
+//
+// ── §1740 — RUN `workers/api`, NOT ONLY THE SUITE THAT OWNS THIS FILE ─────────────────────────────────────
+//
+// Everything above is proven where the REAL sequencer DO runs, which is `workers/api`. Measured by starving
+// each evidence loader this module reads through and counting what notices:
+//
+//   loader starved → null        workers/agents      workers/api
+//   loadAcceptedQuote                     1                26
+//   resolveRecipient                      6                18
+//   loadBookingQuoteRef                   0                 2
+//
+// `loadBookingQuoteRef` is the one to remember: break it and the suite that OWNS this file stays **green**.
+// An engineer editing here, running `workers/agents`, and seeing 152/152 would ship it. The same asymmetry
+// already bit the invoice-id derivation (§1727), which was filed as unpinned on an agents-only measurement
+// and turned out to be covered by `workers/api`'s heartbeat all along.
+//
+// The reason is structural, not an oversight in either suite: this module's guarantees are DELEGATED — the
+// sequencer dedupes the append, the money projection runs in its batch — so the outcome can only be asserted
+// where that DO exists. Run both.
 
 import { z, deterministicUuid } from "@shuddl/contracts";
 import type { GeoStamp, InvoiceIssuedPayload, LedgerEvent, QuotePricedPayload } from "@shuddl/contracts";
