@@ -207,6 +207,18 @@ async function runCapsCheck(ctx: ToolCtx, tool: ToolDef, args: unknown): Promise
     // the meter counted one, clearing unlimited further bookings under a velocity cap of 1. Composing the
     // target into the marker restores parity: the same-shipment retry still replays (identical composite),
     // a different shipment cannot.
+    //
+    // THE RESIDUAL, STATED (§1715, measured — caps.test.ts "two DIFFERENT idempotency_keys on the SAME quote").
+    // The composite is bound to the target but still LED by the derived key, so the replay only fires when the
+    // client sends the SAME `idempotency_key` (or none — identical args canonicalize identically). Vary that one
+    // string across two accepts of the SAME quote and the meter reserves TWICE for a booking the api collapses
+    // to ONE event. The api does not depend on client discipline for this: workers/api/src/routes/portal-actions.ts:149@deterministicUuid derives the
+    // quote.accepted id DETERMINISTICALLY from the quote id, so a second accept is one event even past the
+    // HTTP idempotency window (proved with two RANDOM keys — see workers/api/test/portal-actions.test.ts:236@pa-shp-idem — and this is proved, not asserted. The meter's scope is
+    // the derived key; the api's is the quote — narrower scope, higher count. Direction: OVER-count ⇒ fails
+    // CLOSED, never a bypass, which is why this is FILED (GO-LIVE-CHECKLIST, "Caps reserve-at-check
+    // over-counts") rather than re-scoped here: narrowing a money gate's counter to the target alone is an
+    // owner decision, and the characterization test fails loudly the moment anyone takes it.
     const idemKey = `${ctx.idempotencyKey}:${shipmentId}:${quoteEventId}`;
     result = await stub.checkAndReserve({ period, spendCents, capSpendCents: caps.spendCents, capVelocity: caps.velocity, idemKey });
   } catch {

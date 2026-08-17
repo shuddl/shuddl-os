@@ -34,6 +34,7 @@ const P = {
   CONFIRMFIRST: "prn-caps-cf", // [F1a] generous caps: a confirm-fail must NOT reserve a slot
   IDEM: "prn-caps-idem", // [F1b] generous caps: a retried key counts once
   IDEM2: "prn-caps-idem2", // 2026-08-01: the same key on a DIFFERENT shipment must NOT replay
+  VARYKEY: "prn-caps-varykey", // §1715: DIFFERENT keys on the SAME quote — the inverse, and it over-counts
   BADLANES: "prn-caps-badlanes", // [F2] caps carry a MALFORMED non-array `lanes`
 } as const;
 const TOK = (p: string): string => `mcpt_${p}`;
@@ -152,6 +153,7 @@ beforeAll(async () => {
     [P.CONFIRMFIRST]: JSON.stringify({ spend: BIG, velocity: BIG }),
     [P.IDEM]: JSON.stringify({ spend: BIG, velocity: BIG }),
     [P.IDEM2]: JSON.stringify({ spend: BIG, velocity: BIG }),
+    [P.VARYKEY]: JSON.stringify({ spend: BIG, velocity: BIG }),
     [P.BADLANES]: JSON.stringify({ spend: BIG, velocity: BIG, lanes: "ATL" }), // MALFORMED: lanes is a string, not an array
   };
   for (const [id, c] of Object.entries(caps)) {
@@ -160,7 +162,7 @@ beforeAll(async () => {
   // KV token grants for the dispatch-driven pairings (+ a GHOST grant whose pairing row is deliberately absent).
   const exp = Math.floor(Date.now() / 1000) + 3600;
   const grant = (p: string): string => JSON.stringify({ pairingId: p, scope: "mcp", exp });
-  for (const p of [P.SPEND, P.VEL, P.LANE, P.NOCAPS, P.QUOTEFAIL, P.ATTR_A, P.ATTR_B, P.GHOST, P.LOW, P.CONFIRMFIRST, P.IDEM, P.IDEM2, P.BADLANES]) {
+  for (const p of [P.SPEND, P.VEL, P.LANE, P.NOCAPS, P.QUOTEFAIL, P.ATTR_A, P.ATTR_B, P.GHOST, P.LOW, P.CONFIRMFIRST, P.IDEM, P.IDEM2, P.VARYKEY, P.BADLANES]) {
     await env.GRANTS.put(`token:${TOK(p)}`, grant(p));
   }
 });
@@ -362,6 +364,39 @@ describe("[F1b] the caps reserve is idempotency-aware — a retried booking coun
     await runTool(TOK(P.IDEM2), "book_shipment", b, bookApi("shp_bind_b", "q_bind_b", { sell: 5_000 }));
     // BOTH are counted: two distinct targets are two bookings, whatever the client called its key.
     expect(await peekTally(P.IDEM2)).toEqual({ spend: 10_000, count: 2 });
+  });
+
+  // §1715 (REQ-105/106) — THE INVERSE OF THE CASE ABOVE, and it is a CHARACTERIZATION, not an endorsement.
+  //
+  // That case pins one key across two targets ⇒ two reserves (correct: two real bookings). This one is one
+  // TARGET across two keys, and the answer is the same arithmetic from the other side: the reserve marker is
+  // `<derivedIdempotencyKey>:<shipment>:<quote>`, and `deriveIdempotencyKey` uses a CLIENT-supplied
+  // `idempotency_key` as its ENTIRE material — so varying that one string varies the marker, and the meter
+  // reserves again for a booking the api has already collapsed.
+  //
+  // The api collapses it for a reason that has nothing to do with the header: `portal-actions.ts:149` derives
+  // the quote.accepted event id DETERMINISTICALLY from the quote id, so a second accept of the same quote is
+  // ONE event "even via two Idempotency-Keys, past the HTTP idempotency window". The meter's scope is the
+  // derived key; the api's scope is the quote. The meter's is NARROWER, so it counts more.
+  //
+  // DIRECTION: over-count ⇒ fails CLOSED (it can only refuse a LATER booking), never a cap bypass. That is why
+  // this is filed rather than changed: re-scoping a money gate's counter is an owner decision, and the record
+  // (GO-LIVE-CHECKLIST, "Caps reserve-at-check over-counts") now names this facet alongside the api-failure one.
+  //
+  // WHY IT IS NOT THEORETICAL: a retrying agent that mints a FRESH uuid per attempt — the ordinary reflex —
+  // burns one velocity slot per attempt on a single shipment, and the tally only resets at UTC-month rollover.
+  //
+  // This assertion states the ACCEPTED-BUT-UNDESIRED behaviour on purpose: if the scope is ever narrowed to the
+  // target alone, this test FAILS LOUDLY and is the place to record that the owner decided it.
+  it("§1715 two DIFFERENT idempotency_keys on the SAME quote reserve TWICE, though the api appends ONE quote.accepted", async () => {
+    const base = { shipment_id: "shp_vk", quote_event_id: "q_vk", confirm: { intent: "book", amount_cents: 9_000 } };
+    const one = await runTool(TOK(P.VARYKEY), "book_shipment", { ...base, idempotency_key: "attempt-1" }, bookApi("shp_vk", "q_vk", { sell: 9_000 }));
+    const two = await runTool(TOK(P.VARYKEY), "book_shipment", { ...base, idempotency_key: "attempt-2" }, bookApi("shp_vk", "q_vk", { sell: 9_000 }));
+    // ONE booking in the ledger: both accepts resolve to the same deterministic quote.accepted id.
+    expect(one.body.result?.structuredContent?.accepted_event_id, "the first accept").toBe("acc-q_vk");
+    expect(two.body.result?.structuredContent?.accepted_event_id, "the SAME event — the api collapsed it").toBe("acc-q_vk");
+    // TWO slots consumed for it. Over-count = fail-closed; recorded here so a re-scope cannot land silently.
+    expect(await peekTally(P.VARYKEY), "characterized over-count — see the comment above before 'fixing' this").toEqual({ spend: 18_000, count: 2 });
   });
 });
 
