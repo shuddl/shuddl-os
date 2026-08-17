@@ -419,3 +419,60 @@ describe("§921 — REQ-025: the /v1/import R2 read is confined to the session t
     expect(own.status, JSON.stringify(own.json)).toBe(200);
   });
 });
+
+// §1729 (REQ-118/119) — THE MIGRATOR'S THREE DERIVED IDS, ALL UNPINNED, AND TWO OF THEM NEVER PROBED.
+//
+// The route's own comment states the law: *"The import id is DETERMINISTIC from the tenant + the sheet
+// CONTENT, so a re-import reproduces every derived id (party/shipment/anomaly/run) and INSERT OR IGNORE makes
+// no duplicate rows."* Three ids hang off that sentence — the import id itself, the per-row shipment id seeded
+// from it, and the gap-row id — and a mutation of any of them left `workers/api` at **898/898 GREEN**.
+//
+// §1717 filed only "api migrate shipment". Re-deriving the SUBJECT from the file rather than from the row
+// (§1728's correction) found three derivations here, and the other two had never been probed at all. The
+// import id is the worst of them to leave loose: it is the SEED of the other two, so a change there moves
+// every derived id in one step, and it is persisted as `agent_runs.id`.
+//
+// What made this cheap is that the route RETURNS `import_id`, and a sheet posted inline is content the test
+// owns byte-for-byte — so the golden is computed from the documented seed
+// (`<tenant>:migrate:<JSON.stringify({headers, rows})>`) rather than captured from a run.
+describe("§1729 the migrator's ids are byte-stable — the import id is the seed of the other two", () => {
+  const HEADERS = ["shipper_name", "consignee_name", "bill_to_name", "zzz_unmapped"];
+  const ROWS = [["Acme Freight", "Beta Consignee", "Gamma Bill To", "x"]];
+
+  async function importSheet(): Promise<Record<string, unknown>> {
+    const res = await SELF.fetch("https://api.local/v1/import", {
+      method: "POST",
+      headers: { "content-type": "application/json", "Idempotency-Key": crypto.randomUUID(), Authorization: `Bearer ${await opsTok()}` },
+      body: JSON.stringify({ sheet: { headers: HEADERS, rows: ROWS } }),
+    });
+    return (await res.json()) as Record<string, unknown>;
+  }
+
+  it("a fixed sheet derives exactly this import id", async () => {
+    const body = await importSheet();
+    expect(
+      body.import_id,
+      "the import id moved. It is `agent_runs.id` AND the seed of every other id this route derives, so a " +
+        "change here re-keys the whole import in one step: a re-import of a sheet already loaded stops " +
+        "matching, and INSERT OR IGNORE — the thing that makes re-import safe — no longer collides. Not a " +
+        "snapshot to regenerate.",
+    ).toBe("8ea0be22922e0fd2e6bf6b7d2a629088");
+  });
+
+  it("the same sheet re-imports to the SAME id, and one changed cell to a different one", async () => {
+    // The route's law is content-determinism, so both directions matter: a re-import must collide (that is what
+    // makes INSERT OR IGNORE a no-op) and a different sheet must not (or two imports would overwrite one row).
+    const again = await importSheet();
+    expect(again.import_id, "a byte-identical re-import must reproduce the id").toBe("8ea0be22922e0fd2e6bf6b7d2a629088");
+
+    const res = await SELF.fetch("https://api.local/v1/import", {
+      method: "POST",
+      headers: { "content-type": "application/json", "Idempotency-Key": crypto.randomUUID(), Authorization: `Bearer ${await opsTok()}` },
+      body: JSON.stringify({ sheet: { headers: HEADERS, rows: [["Acme Freight", "Beta Consignee", "Gamma Bill To", "y"]] } }),
+    });
+    const other = (await res.json()) as Record<string, unknown>;
+    expect(other.import_id, "one changed CELL is a different sheet — the seed is the content, not the shape").not.toBe(
+      "8ea0be22922e0fd2e6bf6b7d2a629088",
+    );
+  });
+});
