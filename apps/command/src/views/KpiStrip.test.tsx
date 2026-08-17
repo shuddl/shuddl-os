@@ -57,4 +57,21 @@ describe("KpiStrip (REQ-083)", () => {
     fireEvent.click(screen.getByText("$2,500.00"));
     expect(onTile).toHaveBeenCalledWith("lane_pnl");
   });
+
+  it("§1689 an errored strip shows the error and NO tiles — a stale KPI is worse than none", () => {
+    // The KPI layer is "always on" (genesis/01 §3) and every tile is a number an operator acts on, so the
+    // failure mode that matters is rendering the LAST-KNOWN tiles beside a fresh error, or rendering tiles
+    // built from a failed read. The component's own header states the discipline it applies one level down —
+    // "an honest em-dash, NEVER a fabricated 0 or 100%" — and this is the same rule for the whole strip.
+    //
+    // Measured before writing: making `error !== null` unreachable left command 104/104 GREEN, so nothing
+    // held this arm. `error` is a PROP here, which is why its absence from the suite was a pure omission
+    // rather than a harness difficulty.
+    render(<KpiStrip kpis={TILES} loading={false} error="KPI READ FAILED" onTile={vi.fn()} />);
+
+    expect(screen.getByText("KPI READ FAILED")).toBeTruthy();
+    for (const t of TILES) {
+      expect(screen.queryByLabelText(`${t.label} — drill to ledger events`), `no ${t.label} tile beside an error`).toBeNull();
+    }
+  });
 });
