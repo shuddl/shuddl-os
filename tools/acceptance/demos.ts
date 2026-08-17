@@ -44,7 +44,7 @@ export const DEMOS: readonly Demo[] = [
       "fabricate a latency number (heartbeat.test.ts HONESTY NOTE). " +
       "CONSTRAINT (audit §178): CLAUDE.md phrases this demo as 'invoice + PHOTOS in the client's inbox', " +
       "and REQ-087's DoD names 'sig/pallet photos' — but the email ships with `photos: {}` today " +
-      "(workers/agents/src/biller.ts:588@photos; the R2 signed-URL resolver is unwired, GO-LIVE-CHECKLIST " +
+      "(workers/agents/src/biller.ts:600@photos; the R2 signed-URL resolver is unwired, GO-LIVE-CHECKLIST " +
       "§'Photos absent from evidence email'). The view renders real <img> when given URLs and a " +
       "documentary placeholder when not, so the film will show PLACEHOLDER SLOTS, not photographs. " +
       "Film it as 'invoice + evidence email' — or land the resolver first. Do not stage photos into the " +
