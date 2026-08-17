@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1206 | §1759 | **§1760** | **THE MASKED RED, FOUND — AND THREE OF MY OWN CLAIMS CORRECTED.** §1758 said *"no gate reading the working tree can detect this"* — true, and it overlooked the gate that does NOT read the working tree: **CI checks out a clean clone**. **(1)** §1721's *"154 commits unpushed"* is superseded — `origin/main` is **`562bbd7`** (2026-08-17), only **4** unpushed; the owner has been pushing and CI runs current code. **(2)** The perf fix landed: the newest run's ONLY failed step is *merge evidence gate (REQ-288)*, so §1721's two-reds-to-one prediction held in CI. **(3)** But that step failed for a **COMPOUND** reason and its name hides which — the CI log at `562bbd7` contains the four rotted citations verbatim. **So CI carried a real, unattributed FAILURE beside the expected BLOCKED — exactly what row 461's headline says, still true AFTER §1721 declared the unexpected half fixed.** The masking is structural: one aggregate step runs all 26 gates, so its name and conclusion are identical whether one gate failed or five are blocked. **Three instruments, three blind spots, one defect surviving four days in the intersection**: the working copy passes, the local board reads the working copy, and CI reports the real failure under the expected step's name. §1759's fix removes it; the next run failing on BLOCKED alone is the check that closes it. 0 code changed |
 | 1205 | §1758 | **§1759** | **"NO SAFE UNILATERAL FIX" WAS WRONG, AND HALF THE DEFECT IS NOW CLOSED.** §1758 ruled out repairing the four HEAD-rotting citations: the anchor tolerates ±2, the drift is 8, and repointing fixes the committed tree while breaking the working copy. Both true — and the conclusion still wrong, because it considered exactly one repair, **changing the number**. The gate's own regex REQUIRES a `:` followed by digits, so a path + symbol with **no line** is not a citation at all: naming the file and symbol in prose satisfies **both trees at once** and is permanently immune to this drift. Six live occurrences rewritten (5 audit, 1 checklist), nothing inside a struck span touched. Verified both ways — working copy OK at 2142 citations with the ratchet unmoved, **and a detached worktree at the committed HEAD now passes too**, closing the four-day regression. **Committed-tree board improves 9 PASS / 2 FAIL → 10 PASS / 1 FAIL**, the residue being `check:traceability` on REQ-289, which needs the register row committed and is the author's alone. **A "no safe fix" conclusion is a claim about the SPACE OF FIXES CONSIDERED and reads as a claim about the world** — §1726 caught the identical shape (*"it would need seven exports"*), and both times the unexamined route was cheaper than the one ruled out. 0 code changed |
 | 1204 | §1757 | **§1758** | **BOUNDING THE DAMAGE — ONE SYMBOL, SEVEN CITATIONS, SIX DAYS.** §1757's upward correction (1 → 4 rotted) raises the real worry: how much of the record is written against a working copy nobody else has? **Measured, the answer is narrow.** Of the twelve uncommitted files exactly ONE carries anchored citations — `tools/traceability/coverage.ts`, with **7** — and the other eleven carry **zero**, including all five `apps/**`. All seven point at the SAME symbol and all seven use the DIRTY line number; it has sat eight lines earlier in the committed file since **2026-08-11**, so the encoding is six days old across two documents (5 audit, 2 checklist). Four rot at HEAD; three sit in struck spans the gate skips by design. So: **not a compromised record — one symbol whose every citation was written against a line only one person can see.** **Still no safe unilateral fix**: the anchor form tolerates ±2 and the drift is **8**, so repointing to `:201` fixes HEAD and breaks the working copy that everyone, including the merge gate, actually reads. The general defence is committing more often — no gate reading the working tree can detect this, by construction. 0 files of another author's touched, 0 code changed |
 | 1203 | §1756 | **§1757** | **THE COMMITTED-TREE BOARD, AS FAR AS IT CAN HONESTLY BE MEASURED.** Two gates is not a board, so the whole tsx gate set was run in a detached worktree: **9 PASS / 2 FAIL** at HEAD — passing are `runtime`, `invariants`, `rater-purity`, `chokepoint`, `authority-coverage`, `coverage`, `seed`, `tables`, `section-refs`; failing are `traceability` and `citations`, both §1756's. **One is larger than §1756 reported**: the citation count is **4 rotted of 2146**, not 1 — all four the SAME anchor (``tools/traceability/coverage.ts`'s `scanRecordedHomes``, three written with the bare basename), against a symbol at `:201` in the committed file. Not a new defect but a bigger instance of the filed one: **one uncommitted eight-line insertion has invalidated four citations**, each reading as correct in the working copy. How the undercount happened: §1756 quoted a `head`-truncated listing beside the summary line and the two disagreed — a count line is the authority, the §1676 lesson again. **Limit stated**: the vitest gates cannot run in a detached worktree (workspace symlinks absent — *Cannot find package '@shuddl/rater'*), so this is the committed-tree verdict for the tsx gates ONLY and the row says so. 0 files of another author's touched, 0 code changed |
@@ -98493,3 +98494,52 @@ rewriting makes committed annotations consistent with a register that lacks the 
 citations rewritten into a form that cannot rot from this cause, 2 trees verified green on the gate that was
 failing, 1 four-day regression closed, 1 filed row moved from open to half-closed with the residue attributed
 to its owner, 0 files of another author's touched, 0 code changed.
+
+---
+
+## §1760 — PHASE GATE: the masked red, found — and three of my own claims corrected (REQ-288/118/119)
+
+§1758 asserted that *"no gate reading the working tree can detect this, by construction."* True — and it
+overlooked the gate that does **not** read the working tree. **CI checks out a clean clone.** So the question
+is whether CI has been seeing the committed-tree failure all along.
+
+It has, and the evidence is in its log.
+
+### Three corrections, in order of how wrong I was
+
+**(1) `origin/main` has moved.** §1721 measured *"154 commits unpushed"* and built a conclusion on it. At HEAD
+that is superseded: `origin/main` is **`562bbd7`**, dated **2026-08-17**, and only **4** commits are unpushed.
+The owner has been pushing; CI now runs current code. *(The §1721 lesson eating itself — a board fact restated
+from an earlier measurement is exactly what that phase warned about.)*
+
+**(2) The perf fix landed, and §1721's prediction held.** The newest run's only failed step is *"merge evidence
+gate (REQ-288)"* — the two-expected-reds-to-one change actually happened in CI, not just locally.
+
+**(3) That one step was failing for a compound reason, and its name hides which.** The CI log at `562bbd7`
+contains, verbatim:
+
+```
+docs/audits/…:850      → coverage.ts:209@scanRecordedHomes
+docs/audits/…:51346    → tools/traceability/coverage.ts:209@…
+docs/audits/…:98324    → coverage.ts:209@…
+docs/ops/GO-LIVE-CHECKLIST.md:469 → coverage.ts:209@…
+```
+
+So CI has been carrying a **real, unattributed FAILURE** next to the expected BLOCKED — which is precisely what
+row 461's headline says (*"an expected red is masking a real one"*) and which remained true **after** §1721
+declared the unexpected half fixed. The masking mechanism is structural: one aggregate step runs all 26 gates,
+so its name and its conclusion are the same whether one gate failed or five are blocked.
+
+### Why nothing else could have found it
+
+- The working copy passes — the citation is correct there (§1756).
+- The local merge gate reads the working copy — so 30 green boards, all honest, all blind.
+- CI reads a clean clone and *did* fail — but reported it as the same step that fails for the expected reason.
+
+Three instruments, three different blind spots, one defect surviving four days in the intersection. §1759's fix
+removes it; the next CI run should fail on BLOCKED alone, and **that is the check that closes this**.
+
+**Phase gate.** 1 claim of mine (*"no gate can detect this"*) overturned by naming the gate that can, 3 prior
+statements corrected against fresh measurement (the unpushed count, the perf prediction's outcome, the nature
+of the remaining red), 1 four-day-old masked failure attributed with primary evidence from the CI log, 1 filed
+row's headline confirmed literally true rather than rhetorical, 0 code changed.
