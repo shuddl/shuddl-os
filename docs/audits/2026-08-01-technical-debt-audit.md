@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1171 | §1724 | **§1725** | **SEGMENT STOPPING POINT — §1714–§1724 closed.** Eleven phases: marker permanence pinned; the caps meter's client-discipline dependence characterized; **14 copies** of one id derivation consolidated (a name sweep had found 43%); 9 persisted-id seeds probed with **8 unpinned** and a stated byte law defended by nothing across 1,388 tests; a cross-tenant DELETE boundary held by one trailing slash, plus two more copies of the same guard including one on an unauthenticated route; the class closed as ONE property and shown **structurally bounded to a single member**; the highest-severity row re-measured (**CI's red is stale** — 154 commits unpushed, the fix never run) and its condition made reproducible; the CI perf enforcement count corrected ONE→**ZERO**; my own gate comment corrected against a number its method cannot produce; and 3 doc/gate number pairs bound. **Board 21 PASS · 0 FAIL · 5 BLOCKED**, zero production behaviour changed in nine of eleven. **The ledger counted by the document's own headings: 166 filed / 120 open / 46 closed** — and the two earlier attempts (142/106, 209/162) were both wrong the same way, scanning the whole file and sweeping the provisioning task list into the ledger; the hypothesis that followed (*"two genres, no column separates them"*) is **FALSE** and retracted — the headings have always separated them. Limit stated: "open" is a heuristic over prose, a magnitude and not a verdict. 6 reopen triggers, each with a verify-before-striking recipe |
 | 1170 | §1723 | **§1724** | **WHICH FILED COUNTS ROT, AND THE THREE THAT COULD.** Rather than re-measure ninety-odd count-bearing rows, asked what HOLDS each count. Four re-measured by their own definitions and **all four STAND** (rows 422, 423, 458, 210 — a clean negative result). The discriminator: a gate that reads the DOC's number cannot rot (row 210); prose asserting an ABSENCE rots only by a deliberate act; **prose over a conditional or a derived subset is what rotted at §1722 and §1723**; and a `FROZEN_*` constant beside a prose count is TWO numbers with nothing joining them. `unbounded-reads-roster.test.ts:86@ROSTER` learned that at §823/§1019 — its row read "7 sites" while the roster held 8, green for two audits, because the agreement test matched the HEADING. **The pattern was never carried forward**: of five `FROZEN_*` ratchets, three have a checklist row stating the same figure and NONE reads the doc — `json-scan-ratchet` (21), `unbounded-event-scans` (11), `error-code-producers` (2), all written after the precedent, two by me this session. All three now bound; the ErrorCode one binds on **identity** rather than count because its row says "**Two**" as a word (and naming the members fails on removal, addition, or a rewrite about different codes — none of which a `2` notices). Mutation-proved by name, and **one probe had to be redone**: renaming the doc's `FLOOR_APPROVAL_REQUIRED` to `…_REQUIRED_X` left it GREEN because `toContain` takes a substring — the first probe's non-zero output was §1724 in PASSING test names. 0 behaviour changed, tools 1511→1514 |
 | 1169 | §1722 | **§1723** | **MY OWN GATE COMMENT STATED A NUMBER ITS METHOD CANNOT PRODUCE.** §1722 found a filed count invalidated by a later fix; the first candidate for the same shape elsewhere was **this session's own work**. Two record sources count producerless members of the 35-kind taxonomy and disagree: row 208 says SEVEN and names them; §1695's comment in `error-code-producers.test.ts` says FOUR. **Running §1695's OWN method over `EVENT_KINDS` returns ZERO** — every kind is credited, because the taxonomy is WALKED (`visibility.ts`, `lens.ts`, the three projections name every member). §1695 stated a number **as if this file's scan had produced it**; it had not — the four were quoted from row 208's list. **Row 208 is right**, and for the reason worth preserving: its seven come from the APPEND-SEAM corpus, not text, precisely because text cannot answer this for a walked vocabulary. **The correction makes §1695's argument STRONGER** — the walk crediting all 35 is the sharpest evidence that a walked vocabulary hides nothing from a scan and needs a different instrument. Landed: the comment corrected at the source; the ZERO asserted (meaningful in the direction it can break — a kind added to the taxonomy but not to the projections would be the first uncredited member, a real defect), mutation-proved by renaming one kind; and **row 208 inoculated** against the text-scan probe that would falsely retire it. 0 behaviour changed, tools 1510→1511 |
 | 1168 | §1721 | **§1722** | **A FIX IN ONE FILE INVALIDATED A FILED COUNT IN ANOTHER.** §1721 showed CI's perf step now passes; this asks what a pass there is worth. Row 205 already answered — *"in CI the perf gate enforces ONE of the three budgets its step name advertises"* — so this re-COUNTED rather than re-derived. **The number is ZERO.** The spec has five `expect()` sites: two UNCONDITIONAL vacuity guards (`frames.length`, `interactions.length`) and three budgets, **all three conditional** — interaction and long-task on a hardware rasterizer, FPS on `PERF_REFERENCE_MACHINE=1`, which nothing in the repo sets. The row was **correct when written and invalidated by a later fix nobody re-read it against**: §1709 moved interaction behind the rasterizer guard (right, and necessary — the breach was 51.5ms where one frame costs 266ms) and thereby removed the last budget CI enforced. Measured both ways with §1721's knob: CI's condition prints `BUDGETS ENFORCED 0/3`, this machine `2/3`. **So on CI this blocking merge gate can only ever fail on a vacuity guard** — it proves the harness sampled 1,000 entities and nothing about how fast the board is. Landed: one `BUDGETS ENFORCED n/3` line stating the TOTAL, which the three honest NOT ASSERTED lines never did — printed, never asserted, because a zero is a true statement about the RUNNER and failing on it would make an honest environment look like a regression. 0 assertions added or removed, 0 behaviour changed. Third consecutive phase whose finding is a record claim rather than code |
@@ -96752,3 +96753,76 @@ substring. The first probe's non-zero output was §1724 appearing in *passing* t
 discriminator derived for which counts can rot at all, 3 doc/gate number pairs bound where a 6-audit-old
 precedent had not been carried forward, 3 bindings mutation-proved by name, 1 hollow proof caught and redone,
 0 behaviour changed. tools **1511→1514**.
+
+---
+
+## §1725 — PHASE GATE: the segment stopping point for §1714–§1724, and what is measurably left (REQ-118/119)
+
+Eleven phases, closed at `e8d1d7a`. Recorded here as a stopping point because the arc they form is finished: it
+began with one filed row about idempotency markers and ended by binding the record's own counts to the gates
+that hold them.
+
+| § | subject | outcome |
+|---|---|---|
+| 1714 | idempotency marker permanence | 3 siblings pin that they EXPIRE; the one that must not was prose-held. Pinned |
+| 1715 | the caps meter vs the api dedupe | the api's guarantee is structural, the meter's depends on client discipline. **Characterized**, not fixed — re-scoping a money gate is the owner's |
+| 1716 | deterministic event ids | **14 copies** across 4 workers; a name sweep found 43%. Consolidated, goldens added. Mutating the derivation had left api 891/891 and agents 148/148 GREEN |
+| 1717 | persisted-id seeds | 9 probed, **8 unpinned**; `partyIdForName`'s stated byte law was defended by nothing across 1,388 tests. Fixed; the other 7 filed with verdicts |
+| 1718 | the tenant evidence prefix | a cross-tenant **DELETE** boundary held by one trailing slash, with the probe beside it rather than on it |
+| 1719 | two more copies of that guard | including an authorization check on an unauthenticated route. A registry ACCOUNTED for both — accounting is not eliminating |
+| 1720 | the class, closed | one property over 10 builders; the class is **structurally bounded to one member**. Two of the phase's own probe results corrected before becoming findings |
+| 1721 | the highest-severity row | CI's red is **stale, not diagnostic** — 154 commits unpushed, the fix never run. Made the failing condition reproducible in one line |
+| 1722 | what a CI perf pass is worth | the filed count said ONE budget enforced; it is **ZERO**, invalidated by a correct fix three sections away |
+| 1723 | my own gate comment | stated a number **its own method cannot produce** (four, vs a measured zero, vs the row's seven). Corrected, asserted, and the right row inoculated |
+| 1724 | which counts rot | 4 re-measured, **4 stand**; the discriminator derived; 3 doc/gate number pairs bound where a precedent had not been carried forward |
+
+**Board at `e8d1d7a`: 21 PASS · 0 FAIL · 5 BLOCKED** (the five are absent private fixtures — the fail-closed
+contract, unchanged all arc). Zero production behaviour changed in nine of the eleven; the two that touched
+source (§1716's consolidation, §1719's rewiring) are behaviour-preserving and every suite is green.
+
+### The ledger, counted — and the two wrong counts that came first
+
+| section (the document's own headings) | filed | open | closed |
+|---|---|---|---|
+| 3. Technical debt & known limitations | 91 | 71 | 20 |
+| External holds — named owners | 15 | 14 | 1 |
+| Repository-owned failures & debt | 60 | 35 | 25 |
+| **total** | **166** | **120** | **46** |
+
+Two earlier attempts at this number — **142/106** and **209/162** — were both wrong, and wrong the same way:
+each scanned the **whole file**, sweeping the go-live provisioning task list (secrets to bind, resources to
+provision) into the debt ledger. A hypothesis followed from that — *"the document interleaves two genres and no
+column separates them"* — and it is **false**: the operator/deploy requirements and the technical-debt ledger
+are separate top-level headings, and have been all along. The document was right; the probe was not scoped to
+it. Recorded because it is the third time this arc that my own instrument, not the subject, was the defect.
+
+> Stated as a limit, not a result: "open" here is a **heuristic over prose** — strike-spans removed with the
+> repo's own stripper, then a live-OPEN / absent-closure test. It is a magnitude, not a verdict, and no
+> decision should rest on the exact figure.
+
+### What is left, by who can move it
+
+Of the open rows, the ones an audit can close **alone** are a minority: most carry an explicit owner decision
+(vendor the private fixtures, the CI disposition, a register amendment for a new REQ row, the KPI time-window
+meaning) or an external dependency (a TSA authority, a GPU runner, the denylist secret). The arc above closed
+what was closable without those, and filed the rest with **measured** verdicts and re-measure recipes rather
+than restatements.
+
+### Reopen triggers for this segment
+
+- **§1715** — if the meter's counter is ever re-scoped to the target alone, its characterization test fails
+  loudly; that is the moment to record the owner's decision, not to update the number.
+- **§1716/§1717** — `workers/agents` and `workers/billing` still do not notice a derivation change. The trigger
+  is any assertion of a literal derived id in either; **verify by mutating the slice offset before striking**.
+- **§1720** — the property holds for ten builders; an eleventh, or a namespace shortened to end at the tenant
+  segment, reds it. That is the whole class.
+- **§1721** — the first step is a **push**; after it, CI should fail exactly one step, and that step's cause is
+  documented. If it fails two, the second is new.
+- **§1722** — a GPU runner, or the reference-machine variable, turns `BUDGETS ENFORCED 0/3` into a real number.
+- **§1724** — three ratchets now read the checklist. A fourth ratchet added without that binding re-opens the
+  drift this phase closed.
+
+**Phase gate.** 11 phases closed, 0 production defects introduced, 14 duplicate definitions collapsed to 1, 1
+class bounded structurally, 4 record counts corrected and 4 confirmed, 3 doc/gate bindings added, 2 of my own
+probe results and 2 of my own claims corrected before publication, and 1 false hypothesis about the record's
+structure retracted in the same phase it was formed.
