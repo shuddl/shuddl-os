@@ -198,4 +198,40 @@ test(`${ENTITIES} entities hold the interaction and long-task budgets`, async ({
   if (isReferenceMachine) {
     expect(fp95, `p95 frame time must hold ${MIN_FPS}fps on the reference machine`).toBeLessThanOrEqual(FRAME_BUDGET_MS);
   }
+
+  // §1722 — SAY, IN ONE LINE, HOW MANY BUDGETS ACTUALLY RAN.
+  //
+  // Each of the three budgets already prints its own NOT ASSERTED line with a reason, and each of those is
+  // honest. What no line said is the TOTAL — and the total is the thing a reader needs, because it is the
+  // difference between "this gate checked performance" and "this gate checked that sampling happened".
+  //
+  // On CI that total is ZERO. `ubuntu-latest` has no GPU, so both rasterizer-gated budgets decline, and
+  // nothing in this repo sets `PERF_REFERENCE_MACHINE=1`, so the FPS budget declines too. What survives is
+  // the two vacuity guards above (`frames.length`, `interactions.length`) — real assertions, but assertions
+  // that the HARNESS ran, not that the product is fast. The gate's machine-readable result carries only
+  // Playwright's pass count, so a bare `PASS` is all a consumer sees; this line is what a reader of the log
+  // has instead.
+  //
+  // Recorded in GO-LIVE-CHECKLIST ("In CI the perf gate enforces one of the three budgets its step name
+  // advertises" — a row that said ONE until §1722 re-counted it; §1709 had moved interaction behind the
+  // rasterizer guard and nothing re-read the row). Printed rather than asserted deliberately: a zero here is
+  // a true statement about the RUNNER, and failing on it would make an honest environment look like a
+  // regression.
+  const budgets = [
+    { name: "interaction", enforced: !softwareRasterizer, why: "software rasterizer" },
+    { name: "long-task", enforced: !softwareRasterizer, why: "software rasterizer" },
+    { name: "fps", enforced: isReferenceMachine, why: "not the declared reference machine (PERF_REFERENCE_MACHINE=1)" },
+  ];
+  const enforced = budgets.filter((b) => b.enforced).length;
+  console.log(
+    `perf: BUDGETS ENFORCED ${enforced}/${budgets.length} — ` +
+      budgets.map((b) => `${b.name}: ${b.enforced ? "yes" : `NO (${b.why})`}`).join("; "),
+  );
+  if (enforced === 0) {
+    console.log(
+      "perf: ZERO budgets were enforced on this runner. This run proves the harness sampled 1,000 entities " +
+        "and nothing about how fast the board is. Enforcement needs a hardware rasterizer (and " +
+        "PERF_REFERENCE_MACHINE=1 for FPS).",
+    );
+  }
 });
