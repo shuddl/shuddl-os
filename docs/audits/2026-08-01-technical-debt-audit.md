@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1197 | §1750 | **§1751** | **I2 AND I6 RE-PROBED, AND A SECURITY GAP THAT WAS NOT ONE.** I2 — neutering the `pod.signed` precondition so an invoice can issue without proof of delivery — reds **5 ledger + 4 api**. I6-a — widening one kind's default from `internal` to `counterparty` — reds **8 + 5**. **I6-b** — replacing `resolveVisibility`'s fallback with a wider constant — is **silent, 762/762 and 903/903**, which reads as a widening path on the redaction boundary. Two discriminators agreed: making the fallback THROW stayed green, and ignoring policy entirely red 2+1, both consistent with *the fallback is unobserved*. **It is not a gap.** Three lines below the mutation point sits REQ-180's NEVER-WIDEN FLOOR — `if (INTERNAL_FLOOR.has(kind)) return "internal";` — and `INTERNAL_FLOOR` is **derived from the same table**, so the fallback's value cannot widen an internal kind and the same derivation explains why I6-a reds 13 (widening the table removes the kind from the floor AND changes the default at once). **When a mutation is silent, read the path DOWNSTREAM of the mutation point before concluding anything about the tests** — no amount of further probing from outside would have found a clamp three lines below. Sixth near-miss this session, second that would have published a security claim: §1750's was a missing protection that existed, this is an ineffective one that was superseded. 0 defects, 0 code changed |
 | 1196 | §1749 | **§1750** | **THE SCHEMA'S DEEPEST LAWS, AND THE GUARD THAT SITS ABOVE THEM.** `genesis/10`'s eight invariants carry mutation proofs dated 2026-08-05, ~1,100 commits back; the two with the largest blast radius re-run. Deleting `events_guard_upd` reds **`I3 VIOLATION: missing guard trigger`**, named by invariant. Dropping `money_lines.event_id REFERENCES events(id)` also reds — **but by a DIFFERENT rule**: *"migration … was EDITED after it was committed to the lock — migrations are forward-only"*. So a committed migration cannot be edited AT ALL, whatever the edit: I1's FK is defended not by a rule that understands foreign keys but by one that refuses to let the file change. **The discrimination that kept this honest**: the I3 probe edited `0001_ledger_core.sql` and showed the invariant violation with NO lock message — which reads as *"0001 is not in the lock"*, a finding about the most important file in the schema. **False.** The lock holds **11 entries including 0001**, and a WHITESPACE-ONLY edit to 0001 — nothing for any invariant to catch — fires it exactly as for 0002 and 0007. Two failing checks in one run tell you nothing about which WOULD have fired; the discriminator is an edit only one can see, here a newline. Fifth instrument-shaped near-miss this session, and the first whose wrong conclusion would have been a SECURITY claim. 3 migrations restored `cmp`-identical, `git status db` 0 changes, 0 defects, 0 code changed |
 | 1195 | §1748 | **§1749** | **THE INFERENCE I ENDED §1748 WITH, TESTED — AND IT WAS UNDERSTATED.** §1748 closed by asserting the three parity gates *"share the fixtures gate's input and its manifest, so the same evidence covers their premise"* — an inference, and this record is full of tidy inferences that died to one probe. All three do stop identically and honestly (BLOCKED, naming absent paths that really are absent), but the inference **understated** them. **Three layers, and a false green needs all three defeated**: dropping unpinned files at the exact expected paths while the manifest says `pending` stays **BLOCKED (exit 2)** — the manifest is the authority, disk cannot green it; flipping the manifest rows to `"vendored"` with `sha256` null turns it into a **hard FAIL (exit 1)** — *"A vendored claim must be honorable … No silent dormancy"*; and (read in code, unreachable without real files) present-but-unpinned is a hard FAIL because *"a present-but-unpinned set is a real discrepancy, never a pass"*. **The exit codes carry the distinction and it is the right one**: BLOCKED=2 is *waiting for an input*, FAIL=1 is *you claimed something untrue* — a gate collapsing both would lose exactly the difference that matters when someone is trying to push a board past a hold. Manifest restored `cmp`-identical, probe dirs removed, `git status fixtures` 0 changes. 0 code changed |
 | 1194 | §1747 | **§1748** | **THE FIVE BLOCKED GATES, TESTED FOR WHETHER THEY ARE BLOCKED OR BROKEN.** Five gates have reported BLOCKED on every board this session and the board has been quoted twenty times on that basis — but nothing had checked they are WAITING for an input rather than **broken behind an absent-input excuse**. `identity-leak`: with no denylist it skips (fail-closed in CI); with a non-occurring term it prints `clean (1 terms checked)`; with three, `clean (3 terms checked)` — the count is REAL; with a term that DOES occur it **FAILs naming three files**, and it **redacts the matched term** so it does not leak the identity it protects. Supplied by env var for one command — no `.identity-denylist.local` created, no engagement data invented. `fixtures`: the manifest holds **17** entries, **7 vendored** and 10 pending, and the BLOCKED run prints *"fixture registry verified"*; **positive control** — one byte appended to a vendored fixture flips it to `FAIL … hash mismatch` — so it is **not inert while blocked**. **One finding**: in the BLOCKED run it emits `executed:false, assertions:0` while having verified seven hashes (the control emits `executed:true, assertions:8`). The verdict is right and fail-closed; the EVIDENCE FIELDS under-claim. Filed not changed — the merge-evidence surface consumes those fields — with the misreading it invites recorded. 0 code changed |
@@ -98051,3 +98052,55 @@ have been a *security* claim about the most important file in the schema.
 them (forward-only migrations, verified general across three files), 1 apparent gap in that guarantee
 discriminated to a reporting order rather than a hole, 3 migrations restored `cmp`-identical with
 `git status db` reporting 0 changes, 0 defects found, 0 code changed.
+
+---
+
+## §1751 — PHASE GATE: I2 and I6 re-probed, and a security gap that was not one (REQ-118/119/180, I2/I6)
+
+Continuing §1750 through the invariant set. Two more, both with the largest consequence if wrong.
+
+| probe | `packages/ledger` | `workers/api` |
+|---|---|---|
+| **I2** — neuter the `pod.signed` precondition (invoice without proof of delivery) | **5 RED** | **4 RED** |
+| **I6-a** — widen one kind's default from `internal` to `counterparty` | **8 RED** | **5 RED** |
+| **I6-b** — replace `resolveVisibility`'s fallback with a wider constant | 762/762 **green** | 903/903 **green** |
+
+### The one that looked like a security gap
+
+I6-b reads as a hole: replace `policy?.[kind] ?? KIND_VISIBILITY_DEFAULTS[kind]` with
+`policy?.[kind] ?? "counterparty"` and every unpolicied kind widens — silently. Two discriminators agreed with
+that reading:
+
+- make the fallback **throw** → still green, so the arm is never the failing one
+- **ignore policy entirely** → 2 + 1 RED, so policy *is* consulted and does matter
+
+Both consistent with *"the resolver's fallback is unobserved"*, which would be a real widening path on the
+redaction boundary. It was written up in my head as a finding.
+
+**It is not one.** Three lines below the mutation point:
+
+```
+// REQ-180 NEVER-WIDEN FLOOR: an inherently-internal kind is clamped to `internal` no matter what a policy
+// or requested_visibility resolved above
+if (INTERNAL_FLOOR.has(kind)) return "internal";
+```
+
+and `INTERNAL_FLOOR` is **derived from the same table** — *"DERIVED from KIND_VISIBILITY_DEFAULTS, not
+re-typed (§267) … a NEW kind whose default is `internal` is clamped the moment it is added, instead of on the
+day someone remembers this second list."*
+
+So the fallback's value cannot widen an internal kind: the clamp overrides it. The silence is a **redundant
+path**, not a blind test — and the same derivation explains why I6-a reds 13, because widening the table
+removes the kind from the floor *and* changes the default at once.
+
+> Two discriminators pointed at a gap and the code said otherwise. **When a mutation is silent, read the path
+> downstream of the mutation point before concluding anything about the tests** — the clamp was three lines
+> below, and no amount of further probing from outside would have found it.
+
+Sixth instrument-shaped near-miss this session, second one that would have published a security claim. The
+first (§1750) was a *missing* protection that turned out to exist; this is an *ineffective* protection that
+turned out to be superseded.
+
+**Phase gate.** 2 more invariants re-probed at HEAD (I2, I6) and both held across 22 red assertions, 1 silent
+mutation resolved to a redundant path by reading rather than by more probing, 1 derived-set design confirmed
+as the reason both results are what they are, 0 defects found, 0 code changed.
