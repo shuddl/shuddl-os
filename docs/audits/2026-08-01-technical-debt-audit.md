@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1190 | §1743 | **§1744** | **SEGMENT STOPPING POINT — §1726–§1743, AND WHY THE LEDGER COUNT CANNOT SHOW IT.** Eighteen phases in two arcs. **Arc 1** closed the seven-derivation row: 11 derivations reached (7 filed + 4 found by re-deriving the subject), **8 pinned, 2 already covered, 1 mis-classified**, at ZERO production files changed, plus two sibling rows. **Arc 2**: a blocker's dependency premise re-measured to a named upstream defect (§1733); **7 rows closed in evidence and open in headline** with a gate declined at 8-FP-in-15 (§1734); the register's drift metric's tidy dismissal killed by one sample (§1735); the cwd assumption found BACKWARDS (§1736); Law 5's caller opting out by omission, pinned (§1737); Law 3 and five DO loaders starved, **all fail closed** (§1738–§1739); the delegated-guarantee hazard measured, enumerated at 9, and a proxy discarded (§1740–§1742); the concurrency table re-verified in all three directions (§1743). Board **21 PASS · 0 FAIL · 5 BLOCKED** at `f2d254c`, 0 source commits since, unchanged throughout. **The count cannot express it**: 166/120/46 → **167/121/46**, because §1734's seven strikes moved nothing — this counter reads the WHOLE ROW and those rows already carried FIXED/TRIPWIRED in evidence. The machine was right all along; §1734 fixed the HEADLINE, the only cell a human reads. So progress here is reportable **by name, not by number**. **Two instrument errors inside this very section**, caught before publication: a spot-check matched a METADATA line rather than a table row and produced the plausible, tidy, **false** hypothesis that the classifier is defeated by a live OPEN — making four discarded instruments this session, each caught by checking one member it claimed. 5 reopen triggers with recipes |
 | 1189 | §1742 | **§1743** | **THE CONCURRENCY GUARANTEE RE-VERIFIED IN ALL THREE DIRECTIONS.** Nine phases of starvation probing found no defects, so this moves to the highest-risk untouched axis. `do-mutex-preconditions.test.ts` already states the picture in a table — three DOs serialize behind a `this.lock` chain, one mutex load-bearing and two redundant TODAY — and every number in it is a measurement someone took once. All three re-taken at HEAD: deleting **`ShipmentSequencer`**'s mutex reds **1** (*"assigns dense, gapless seqs under 100 concurrent appends"*); deleting **`CapsMeter`**'s is **211/211 GREEN and silent**; adding a **non-storage await** to `CapsMeter`'s locked method **reds the precondition gate**. The third row is the one that matters — a redundant mutex is untestable by construction and §319 would leave it as *"a hope"*, so the gate pins the CONDITION instead of the guard and fires the moment that condition stops holding, rather than after a cap bypass. The file's own sentence — *"a guard nobody can test and a precondition anybody can check are the same guarantee from two sides"* — is true at HEAD in both directions, and the redundancy claim it rests on is still accurate. 0 defects, 0 code changed |
 | 1188 | §1741 | **§1742** | **THE CLASS ENUMERATED, AND A CHEAP PROXY DISCARDED BEFORE IT MANUFACTURED WORK.** §1740 and §1741 found the same shape in two modules — a guarantee DELEGATED to the sequencer DO, invisible to the worker that owns the file — so this asks how large the class is. **Nine**: `biller`, `booking`, `concierge`, `sla-sweep`, `interline-split`, `watchtower`, `mirror-sweep`, `inbound`, `platform-ledger`. Two are measured by the only instrument that works (starve a loader, count what reds per suite): both **0** in the owning suite, 2 and 3 in `workers/api`. **The shortcut was built and thrown away**: *"is the module referenced by any `workers/api` test file?"* reported three with zero — and one of them, `platform-ledger`, is demonstrably exercised against the real DO by `platform-credit.test.ts` through the ROUTE surface, never importing the module. A proxy blind to behavioural coverage over-reports in the direction that invents work. So the filed row says the other seven are **UNMEASURED, not uncovered**, and carries the two-command recipe instead of a suspect list — because "seven modules lack coverage" starts seven investigations and "seven are unmeasured, here is how" starts one. **Third discarded instrument this session** (a regex missing an options object, a cwd assumption, now a reference proxy), each caught by checking one member it claimed. 0 defects, 0 code changed |
 | 1187 | §1740 | **§1741** | **A GUARD WHOSE REMOVAL IS SILENT, AND THE PROBE THAT SAYS WHICH KIND.** The Booking agent on §1738's axis: prior-event load starved reds **1 agents / 12 api**; the **"already booked?" pre-check** starved reds **0 / 0**; the booking event id made non-deterministic reds **0 / 3**. The middle row is the ambiguity this audit has a rule for — a silent mutation means EITHER a redundant guard OR vacuous tests, and the second would mean nothing asserts that a redelivered `quote.accepted` produces one booking. **One probe separates them**: breaking what the guarantee actually rests on (the deterministic event id) reds three api cases, one named *"double-book impossible"*. So the pre-check is an OPTIMISATION and the guarantee is the deterministic id plus the DO's dedupe — redundant guard, not vacuous test. **The same asymmetry as §1740, in a second module**: the central idempotency guarantee is asserted ZERO times in the worker that owns the file and three times in `workers/api`, because it is delegated to a DO that only exists there — the trap that caused one wrong filing at §1727. Recorded in `booking.ts`'s header, and **the §1740 citation cost was checked FIRST this time** (four inbound citations, none anchored on a symbol the note names, so it rots nothing). 0 defects, 0 behaviour changed |
@@ -97704,3 +97705,84 @@ from two sides"* — is true at HEAD, in both directions, and the redundancy cla
 load-bearing mutex confirmed testable and still red on deletion, 1 redundant mutex confirmed still silent (so
 the precondition gate is still necessary), 1 precondition gate confirmed to fire on the condition it guards, 0
 defects found, 0 code changed.
+
+---
+
+## §1744 — PHASE GATE: segment stopping point for §1726–§1743, and why the ledger count cannot show it (REQ-118/119)
+
+Eighteen phases since §1725's stopping point, in two arcs.
+
+**Arc 1 — the seven-derivation row (§1726–§1732).** Closed it. Eleven derivations reached (the 7 filed plus 4
+found by re-deriving the subject from code): **8 pinned, 2 found already covered, 1 removed as
+mis-classified**, at **zero production files changed** — the closing act of a premise that said it would take
+seven exports. Two sibling rows closed alongside. Four distinct obstacle-shapes recorded so the next filed
+batch is measured against them rather than one assumption.
+
+**Arc 2 — records, then behaviour (§1733–§1743).**
+
+| § | what it found |
+|---|---|
+| 1733 | a blocker's dependency premise re-measured; the upstream assert is an **incomplete allowlist its own module contradicts** |
+| 1734 | **7 rows closed in their evidence and open in their headline**; a gate declined at a measured 8-FP-in-15 |
+| 1735 | the register's drift list grew 11 → 12; the tidy "the metric is broken" explanation **formed and killed by one sample** |
+| 1736 | the cwd assumption **backwards** (vitest does not chdir); the first sweep a matcher artefact |
+| 1737 | Law 5 solid; its translator caller opts out **by omission** — now pinned |
+| 1738–1739 | Law 3 and five DO evidence loaders starved — **all fail closed**, including a gate handed nothing |
+| 1740–1742 | the **delegated-guarantee** hazard: measured in 2 modules, class enumerated at 9, a cheap proxy discarded |
+| 1743 | the concurrency table re-verified in all three directions, including the precondition that keeps a redundant mutex honest |
+
+**Board: 21 PASS · 0 FAIL · 5 BLOCKED**, measured at `f2d254c` (§1743's commit) with **0 source commits
+since** — this section adds documentation only. Unchanged across all eighteen phases; the five are the absent
+private fixtures. *(Named rather than restated: `board-citation-ratchet` reded this very paragraph for citing
+a verdict with no commit attached, which is §1451's defect — twenty-two phases restating a board that was 23
+commits stale, invisible because nobody named the commit.)*
+
+### The ledger count cannot express this arc, and that is worth knowing
+
+| | §1725 | now |
+|---|---|---|
+| filed | 166 | **167** |
+| open | 120 | **121** |
+| closed | 46 | **46** |
+
+An arc that closed a seven-member row, struck seven mislabelled headlines and filed one new row moves this
+count by **+1 filed, +1 open, 0 closed**. The reconciliation is exact and it is the interesting part: the +1/+1
+is §1742's new row, and **§1734's seven strikes moved nothing because this counter reads the whole row** — and
+those rows already carried `FIXED`/`TRIPWIRED` in their evidence cells. The machine had them right all along.
+What §1734 fixed was the **headline**, which is the only cell a human reads.
+
+So: the count and the headline measure different things, the count was never wrong, and **progress in this
+ledger has to be reported by name, not by number** — which is what every phase record above does.
+
+**Two instrument errors inside this section**, both caught before publication and both worth the warning. A
+spot-check of row 407 matched a **metadata line** containing the phrase rather than the table row, and
+returned `OPEN`. From that I formed the hypothesis *"the classifier is defeated by a live OPEN anywhere in a
+2,000-character row"* — plausible, tidy, and **false**. Re-run against rows only (`l.startsWith("|")`), 407
+classifies closed, as do the other two sampled. That makes **four** instruments this session that would have
+published a wrong finding, every one caught by checking a single member it claimed.
+
+### What remains, by who can move it
+
+Unchanged in shape from §1725 and now better characterised: most open rows carry an explicit owner decision
+(vendor the private fixtures, the CI disposition, a register amendment — 12 status-drift rows now adjudicated
+row by row at §1735) or an external dependency (a TSA authority, a GPU runner, the denylist secret, a
+seven-manifest pool upgrade whose upstream defect §1733 named). The arcs above closed what was closable
+without either.
+
+### Reopen triggers
+
+- **§1732** — the derivation row is empty; a new persisted-id derivation re-opens it. The recipe: mutate the
+  seed, run the owning suite **and** `workers/api`.
+- **§1734** — the eight semantic false positives are named; a ninth headline/evidence mismatch is a new
+  instance, not a re-run of the declined gate.
+- **§1737** — if a 204-created shipment ever carries a revenue split, `inbound.ts`'s `{}` breaks Law 5.
+- **§1742** — seven of the nine delegated modules are **unmeasured, not uncovered**; measuring one is two
+  commands.
+- **§1743** — the precondition gate fires the day a non-storage await enters a meter's locked method; that is
+  the moment its mutex stops being redundant.
+
+**One more instrument error, and this one was caught by a GATE rather than by me.** The paragraph above originally read *"Board at HEAD: 21 PASS…"* — a board verdict with no commit attached — and `board-citation-ratchet` reded it. That gate exists because §1451 measured the cost: twenty-two phases restated a board that was 23 commits stale, and the staleness was invisible *precisely because* no commit was named. Writing a stopping point is exactly when that shortcut is most tempting, and the gate was faster than the habit.
+
+**Phase gate.** 18 phases closed across 2 arcs, 1 filed row emptied, 2 sibling rows closed, 7 mislabelled
+headlines corrected, 16 behaviour probe points measured with **0 defects found**, 4 instruments discarded before publication and a 5th slip caught by a gate, 1 ledger metric shown to be incapable of expressing the work and the reason reconciled
+exactly, 5 reopen triggers each with a recipe.
