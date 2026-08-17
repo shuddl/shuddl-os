@@ -2,7 +2,7 @@ import { env } from "cloudflare:test";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { build214, DEFAULT_004010 } from "@shuddl/edi";
 import worker from "../src/index.js";
-import { run214Sweep, tenderKey, sent214Key } from "../src/sweep-214.js";
+import { run214Sweep, tenderKey, tenderPrefix, sent214Key, quarantineKey, unresolvableKey } from "../src/sweep-214.js";
 import { certifyPartner } from "../src/partners.js";
 import { RecordingTransport } from "../src/transport.js";
 import { buildStatusView, type StatusEventRow } from "../src/core/build-214.js";
@@ -418,5 +418,51 @@ describe("REQ-200/204 — outbound 214 sweep with allocated control numbers", ()
         "double dedupes, so it would report success whether or not the race is fixed.",
     ).toBe(2);
     expect(transport.sent, "the double collapses the duplicate — this is the masking, pinned").toHaveLength(1);
+  });
+});
+
+// §1720 (REQ-025) — THE SAME PROPERTY, OVER THE TRANSLATOR'S OWN R2 NAMESPACES.
+//
+// §1718 found a tenant boundary held by one trailing slash: `evidence/<tenant>/` ends AT the tenant, so
+// removing that character let `tenant-a` reach `tenant-a-legacy`. Every key below is safe from that today —
+// but by COINCIDENCE OF NAMING, because each happens to put a literal component (`/tender/`, `/214/`,
+// `/quarantine/`, `/unresolvable/`) after the tenant segment. Nobody decided that; it is simply how they were
+// written, and a future layout shortened to `edi/<tenant>/` would re-open the hole in silence.
+//
+// So the property is asserted rather than assumed:
+//
+//     for any tenant-scoped key builder P:  P("t") must NOT be a prefix of P("t-legacy")
+//
+// It is exactly the sentence that was false for `evidenceTenantPrefix` and is true here, and it is the whole
+// class in one line — cheaper and more complete than a boundary case per builder.
+describe("§1720 no translator R2 namespace lets a SLUG-EXTENDING sibling collide (REQ-025)", () => {
+  const T = "acme";
+  const SIBLING = "acme-legacy";
+
+  const BUILDERS: ReadonlyArray<{ name: string; of: (t: string) => string }> = [
+    { name: "tenderPrefix (the sweep's LIST prefix)", of: (t) => tenderPrefix(t) },
+    { name: "tenderKey", of: (t) => tenderKey(t, "shp-1") },
+    { name: "sent214Key as a LIST prefix", of: (t) => sent214Key(t, "") },
+    { name: "sent214Key", of: (t) => sent214Key(t, "dedupe-1") },
+    { name: "quarantineKey", of: (t) => quarantineKey(t, "partner-1", "disc") },
+    { name: "unresolvableKey", of: (t) => unresolvableKey(t, "partner-1", "disc") },
+  ];
+
+  it.each(BUILDERS)("$name: the shorter tenant's key is not a prefix of the longer's", ({ name, of }) => {
+    const mine = of(T);
+    const theirs = of(SIBLING);
+    expect(mine, `${name} produced the same key for two tenants`).not.toBe(theirs);
+    expect(
+      theirs.startsWith(mine),
+      `${name}("${T}") is a PREFIX of ${name}("${SIBLING}"). The 214 sweep LISTS two of these namespaces, so ` +
+        "a collision means transmitting a sibling tenant's tenders, or reading its sent-markers and " +
+        "SUPPRESSING a legitimate 214. Keep a literal path component after the tenant segment.",
+    ).toBe(false);
+    expect(mine.startsWith(theirs), `${name}: the longer tenant's key must not contain the shorter's either`).toBe(false);
+  });
+
+  it("the property is FALSIFIABLE — a namespace that ends at the tenant fails it (positive control)", () => {
+    const broken = (t: string): string => `edi/${t}`;
+    expect(broken(SIBLING).startsWith(broken(T)), "the control: a tenant-terminated prefix DOES collide").toBe(true);
   });
 });

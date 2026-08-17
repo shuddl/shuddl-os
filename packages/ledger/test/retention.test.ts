@@ -14,6 +14,8 @@ import {
   sweepTenantExpiredDocuments,
   tenantStorageReading,
 } from "../src/documents/retention.js";
+import { anchorManifestKey, anchorReceiptKey } from "../src/anchor.js";
+import { snapshotKey } from "../src/watchtower-snapshot.js";
 import ledgerCore from "../../../db/tenant/migrations/0001_ledger_core.sql?raw";
 import domain from "../../../db/tenant/migrations/0002_domain.sql?raw";
 import insertGuards from "../../../db/tenant/migrations/0003_insert_guards.sql?raw";
@@ -135,6 +137,54 @@ describe("REQ-116 — the kind → retention-class map (durations)", () => {
   });
 });
 
+// §1720 (REQ-025) — THE UNIVERSAL PROPERTY BEHIND §1718, APPLIED TO EVERY TENANT-SCOPED KEY THIS PACKAGE OWNS.
+//
+// §1718 and §1719 each found the same bug in a different guard: a prefix comparison whose trailing separator
+// was the only thing keeping `tenant-a` out of `tenant-a-legacy`. Rather than write a third boundary case, the
+// property itself is stated once and applied to every builder:
+//
+//     for any tenant-scoped key builder P:  P("t") must NOT be a prefix of P("t-legacy")
+//
+// That single sentence catches the whole class. It is FALSE exactly when the tenant segment ends the string
+// with no separator — which was `evidenceTenantPrefix` without its slash — and TRUE for every layout that
+// puts a literal component after the tenant (`/tender/`, `/214/`, `/990/`) or addresses by full key.
+//
+// Stating it as a property rather than as cases matters because the safety of the OTHER builders is currently
+// a coincidence of naming, not a decision anyone recorded. A future key shortened to `anchors/<tenant>/`
+// re-opens the hole silently; this test is what makes that a red.
+describe("§1720 no tenant-scoped key builder lets a SLUG-EXTENDING sibling collide (REQ-025)", () => {
+  const T = "acme";
+  const SIBLING = "acme-legacy"; // a real shape: a migrated tenant beside its predecessor
+
+  const BUILDERS: ReadonlyArray<{ name: string; of: (tenant: string) => string }> = [
+    { name: "evidenceTenantPrefix", of: (t) => evidenceTenantPrefix(t) },
+    { name: "anchorManifestKey", of: (t) => anchorManifestKey(t, "2026-07-09") },
+    { name: "anchorReceiptKey", of: (t) => anchorReceiptKey(t, "2026-07-09") },
+    { name: "snapshotKey", of: (t) => snapshotKey(t, "2026-W29") },
+  ];
+
+  it.each(BUILDERS)("$name: the shorter tenant's key is not a prefix of the longer's", ({ name, of }) => {
+    const mine = of(T);
+    const theirs = of(SIBLING);
+    expect(mine, `${name} produced the same key for two tenants`).not.toBe(theirs);
+    expect(
+      theirs.startsWith(mine),
+      `${name}("${T}") is a PREFIX of ${name}("${SIBLING}"). Every prefix comparison and every r2.list over ` +
+        "this namespace then reaches the sibling tenant — the REQ-025 boundary, and the exact shape §1718 " +
+        "found in evidenceTenantPrefix. Put a literal path component after the tenant segment, or end the " +
+        "prefix with a separator.",
+    ).toBe(false);
+    // ...and the reverse, so "make the longer one win" is not a fix either.
+    expect(mine.startsWith(theirs), `${name}: the longer tenant's key must not contain the shorter's either`).toBe(false);
+  });
+
+  it("the property is FALSIFIABLE — a builder that ends at the tenant fails it (positive control)", () => {
+    // Without this, a property that always held (because the assertion was mis-stated) would read as coverage.
+    const broken = (t: string): string => `evidence/${t}`;
+    expect(broken(SIBLING).startsWith(broken(T)), "the control: a tenant-terminated prefix DOES collide").toBe(true);
+  });
+});
+
 describe("REQ-116 — the retention sweep deletes expired non-POD bytes + tombstones the row", () => {
   it("an EXPIRED photo → bytes DELETED, row TOMBSTONED ('expired'), NOT hard-deleted (audit trail kept)", async () => {
     const key = await seedDoc({
@@ -247,6 +297,42 @@ describe("REQ-116 — the storage-cost metric (a metric, NOT a money_line)", () 
     expect(reading.bytes).toBe(350);
     expect(Number.isInteger(reading.cost_cents)).toBe(true);
     expect(reading.cost_cents).toBeGreaterThanOrEqual(0);
+  });
+
+  // §1720 (REQ-025) — THE LIST PREFIX IS A SECOND, INDEPENDENT PLACE THE BOUNDARY CAN BE WIDENED.
+  //
+  // §1718 pinned the trailing slash inside `evidenceTenantPrefix`. This function READS that prefix and hands
+  // it to `r2.list`, so the widening can also happen at the call site — and there it is silent: dropping one
+  // character from the prefix passed to `list` (writers untouched, so every literal key assertion still
+  // holds) left `packages/ledger` at **756/756 GREEN**.
+  //
+  // The case above cannot see it, for the same reason §921 could not see §1718's: `tenant-a` and `tenant-b`
+  // are equal length and neither is a prefix of the other, so the SLUG comparison alone separates them. Only a
+  // sibling whose slug EXTENDS this one's reaches the character that does the work.
+  //
+  // The consequence is not a crash. It is a tenant's storage READING — the Watchtower metric and the cost
+  // estimate derived from it — silently summing a sibling's bytes. A number that is merely wrong, in the
+  // direction of over-reporting someone else's data.
+  it("§1720 a SLUG-EXTENDING sibling's objects are not summed into this tenant's reading", async () => {
+    // vitest-pool-workers rolls back storage per test, so this case seeds its own tenant-a objects.
+    await seedDoc({ db: A, tenant: "tenant-a", id: "sib-a1", kind: "photo", shipment: "sib-shp", hash: "20".padEnd(64, "0"), lifecycleClass: RETENTION_CLASS_DEFAULT, createdTs: NOW, size: 100 });
+    await seedDoc({ db: A, tenant: "tenant-a", id: "sib-a2", kind: "photo", shipment: "sib-shp", hash: "21".padEnd(64, "0"), lifecycleClass: RETENTION_CLASS_DEFAULT, createdTs: NOW, size: 250 });
+    // Not a configured tenant — just objects in the shared bucket under an adjacent prefix, which is exactly
+    // what R2 is: one bucket partitioned by a string.
+    await R2.put("evidence/tenant-a-legacy/sib-shp/aaa", bytesOf(4096));
+    await R2.put("evidence/tenant-a-legacy/sib-shp/bbb", bytesOf(4096));
+
+    // CONTROL: the bytes exist and ARE summed for the namespace they live in. Without this, an unchanged
+    // tenant-a total below would be satisfied by objects that were never written.
+    expect(await computeTenantStorageBytes(R2, "tenant-a-legacy"), "the control: the sibling's own reading sees them").toBe(8192);
+
+    const bytes = await computeTenantStorageBytes(R2, "tenant-a");
+    expect(
+      bytes,
+      "a sibling namespace whose slug EXTENDS tenant-a's was summed into tenant-a's storage reading. The " +
+        "separation is the trailing slash in evidenceTenantPrefix, and it is applied HERE, at the list call — " +
+        "widening it here is invisible to every key-literal assertion in this file.",
+    ).toBe(350);
   });
 
   it("estimateStorageCostCents scales with bytes at the documented rate (integer cents, never negative)", () => {
