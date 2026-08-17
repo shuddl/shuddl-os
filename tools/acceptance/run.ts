@@ -45,6 +45,20 @@ function ensureMcpApiBundle(): void {
  * packages from a subdirectory, and `missingSpineFiles` would then report every spine package as
  * *"no workspace package declares this name"* — a true statement about the wrong directory.
  */
+// ── §1753 — THIS RUNNER IS A REPORTER, NOT A RATCHET (run `test:tools` too) ────────────────────────────────
+//
+// Measured: emptying demo 1's `spine` array in `demos.ts` makes this runner print
+// `ACCEPTANCE SPINE: GREEN — all 6 spine FILES pass` — a true sentence about a spine that just lost a file,
+// and the command named for the job is the one that cannot see it. Three gates in `demos.test.ts` catch it,
+// including *"all five doc-00 demos are declared, each with AT LEAST ONE spine test"*.
+//
+// So the division is deliberate and worth knowing: this file EXECUTES the declared spine, and the ratchet on
+// WHAT IS DECLARED lives next door. The merge gate runs both, so the board is protected; the exposure is the
+// inner loop, where someone runs `pnpm test:acceptance` alone and reads GREEN.
+//
+// Third measured instance of that shape in this audit — `biller.ts` (§1740) and `booking.ts` (§1741) carry
+// the same note for the same reason: the suite named after the subject is not always the one that can see it.
+
 export function packageDirs(cwd: string = repoRoot()): Map<string, string> {
   const out = new Map<string, string>();
   for (const p of globSync("{apps,workers,packages}/*/package.json", { cwd })) {
