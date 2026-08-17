@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 vi.mock("../lib/api.js", async () => {
   const actual = await vi.importActual<typeof import("../lib/api.js")>("../lib/api.js");
   return { ...actual, get: vi.fn(), post: vi.fn() };
 });
 import { GuestQuote } from "./GuestQuote.js";
-import { post } from "../lib/api.js";
+import { ApiError, post } from "../lib/api.js";
 
 const mockPost = post as unknown as ReturnType<typeof vi.fn>;
 
@@ -76,5 +76,43 @@ describe("GuestQuote public page (REQ-051)", () => {
     expect(window.localStorage.getItem("shuddl.portal.token")).toBeNull();
     render(<GuestQuote />);
     expect(screen.getByPlaceholderText("Origin ZIP")).toBeTruthy();
+  });
+
+  it("§1691 a FAILED quote shows the reason — the public page never goes quiet on a stranger", async () => {
+    // The one surface with no session and no operator: acceptance demo 2's stranger. If the request fails and
+    // nothing renders, the page simply stops responding to the button — indistinguishable from a broken app.
+    // Measured before writing: making `error !== null` unreachable left portal 110/110 GREEN.
+    mockPost.mockRejectedValueOnce(new ApiError("INTERNAL", 500, "QUOTE SERVICE UNAVAILABLE"));
+    render(<GuestQuote />);
+    fillLane();
+    clickGetQuote();
+
+    await screen.findByText("QUOTE SERVICE UNAVAILABLE");
+    expect(screen.queryByTestId("guest-sell"), "no price may render beside a failure").toBeNull();
+  });
+
+  it("§1691 a failing SECOND quote clears the first price — no stranded number the system no longer stands behind", async () => {
+    // The sharper case, and the reason the handler calls setQuote(null) BEFORE awaiting: a guest quotes, gets
+    // $1,480.00, changes the lane, and the re-quote fails. If the old sell survives, the page shows a price
+    // for a lane it was not quoted on — a price on air (REQ-004) produced by the UI rather than the rater.
+    mockPost.mockResolvedValueOnce({
+      status: "PRICED",
+      sell_cents: 148000,
+      lines: [{ kind: "freight", code: "freight", amount_cents: 140000 }],
+      transit: { status: "known", business_days: 5 },
+    });
+    render(<GuestQuote />);
+    fillLane();
+    clickGetQuote();
+    expect((await screen.findByTestId("guest-sell")).textContent).toBe("$1,480.00");
+
+    mockPost.mockRejectedValueOnce(new ApiError("INTERNAL", 500, "RATER DOWN"));
+    fireEvent.change(screen.getByPlaceholderText("Destination ZIP"), { target: { value: "97203" } });
+    clickGetQuote();
+
+    await screen.findByText("RATER DOWN");
+    await waitFor(() =>
+      expect(screen.queryByTestId("guest-sell"), "the previous lane's price must not survive a failed re-quote").toBeNull(),
+    );
   });
 });
