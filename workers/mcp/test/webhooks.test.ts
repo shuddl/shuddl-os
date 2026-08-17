@@ -5,6 +5,7 @@ import {
   buildWebhookPayload,
   deliverWebhook,
   deliveryMarkerKey,
+  KvDeliveryMarkers,
   NotConfiguredEventSource,
   NotConfiguredWebhookTransport,
   resolveWebhookSubscription,
@@ -263,5 +264,39 @@ describe("tenant parity — a webhook row under another tenant cannot claim an o
       caps: JSON.stringify({ url: "http://hooks.example/inbound" }),
     });
     expect(await resolveWebhookSubscription(env.CONTROL_DB, plain)).toBeNull();
+  });
+});
+
+describe("§1714 REQ-118: a delivery marker is PERMANENT — the one store whose TTL must stay absent", () => {
+  it("mark() writes with NO expiry, so a delivered webhook can never re-fire", async () => {
+    // THE ASYMMETRY THIS PINS. Three KV/R2 stores in this build carry a deliberate TTL and each is asserted:
+    // the api's idempotency record (§789, via KV's own `expiration` metadata) and the OAuth code
+    // (`oauth.test.ts`). This store is the one where a TTL would be a DEFECT — the marker's presence IS the
+    // "already delivered" record, so an evicted marker re-delivers a webhook to a partner, with whatever
+    // side effects that partner attaches to it. The filed row states permanence is CORRECT; nothing asserted
+    // it, so "tidying up" by adding an expirationTtl here — the idiom used two files away — would look like
+    // hygiene and cause duplicate delivery.
+    //
+    // Asserted on the OPTIONS ARGUMENT rather than by advancing a clock: the property is that the write
+    // carries no expiry at all, and a bare `put` passes `undefined`.
+    const calls: Array<{ key: string; value: unknown; options: unknown }> = [];
+    const fakeKv = {
+      put: (key: string, value: unknown, options?: unknown): Promise<void> => {
+        calls.push({ key, value, options });
+        return Promise.resolve();
+      },
+      get: (): Promise<string | null> => Promise.resolve(null),
+    } as unknown as KVNamespace;
+
+    await new KvDeliveryMarkers(fakeKv).mark("wh:prn-x:evt-1");
+
+    expect(calls, "mark() must write exactly once").toHaveLength(1);
+    expect(calls[0]?.key).toBe("wh:prn-x:evt-1");
+    expect(
+      calls[0]?.options,
+      "a delivery marker must carry NO expiry — an evicted marker re-delivers the webhook (filed row: " +
+        "'Idempotency MARKERS are permanent'). If a TTL is ever wanted here, it is a behaviour change: the " +
+        "marker's presence is the delivered record.",
+    ).toBeUndefined();
   });
 });
