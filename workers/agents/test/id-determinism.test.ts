@@ -75,3 +75,42 @@ describe("REQ-039 — the id law is deterministic (the half testable inside this
     expect(await uuidFromSeed("x")).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
   });
 });
+
+// §1727 (REQ-039/118/119) — THE FILE THAT EXISTS TO PIN THE ID LAW CONTAINS ONLY SELF-COMPARISONS.
+//
+// Every assertion above compares a derivation TO ITSELF: same seed twice, same seed across a stubbed clock and
+// a stubbed random. Each closes a real hazard (§218's randomness, §1460's clock) and each is correct. But all
+// of them survive a change that moves EVERY output byte at once, because both sides move together.
+//
+// Measured at §1716: mutating the shared `deterministicUuid` (slice offset 13→14) left `workers/agents` at
+// **148/148 GREEN**, this file included. And that is the direction that matters here — the header above says
+// the guarantee is DELEGATED to the sequencer's dedupe on the far side of a worker seam, which means the id
+// must match what a PREVIOUS deploy wrote. A redelivery arriving after a derivation change re-derives a
+// different id, the DO sees a new event, and one POD becomes TWO invoices on an append-only ledger.
+//
+// A literal is the only assertion that can see that, because it is the only one whose other side does not
+// move. These four values were computed from the derivation as shipped; if you are here because one failed,
+// the question is not "what is the new value" but "which persisted ids did this change orphan".
+describe("§1727 the id law's BYTES — the half a same-seed comparison cannot reach", () => {
+  it("uuidFromSeed maps a known seed to exactly this uuid", async () => {
+    expect(
+      await uuidFromSeed("biller:invoice-event:ev-1"),
+      "the shared uuid derivation moved. Redelivered work re-derives ids that no longer match the events " +
+        "already in the ledger, so the sequencer's dedupe stops collapsing them — one POD becomes two " +
+        "invoices. Not a snapshot to regenerate.",
+    ).toBe("eff2407e-0903-43f6-9caa-d82b5684973d");
+  });
+
+  it("invoiceEventIdFor maps a known POD event id to exactly this invoice event id", async () => {
+    expect(await invoiceEventIdFor("pod-evt-42")).toBe("1e9cdc82-5eb0-4e93-9edc-70a9bf92ed15");
+    // A different POD, so the golden pins the SEED and not a constant: without this, a derivation that
+    // ignored its argument entirely would satisfy the assertion above.
+    expect(await invoiceEventIdFor("pod-evt-43")).toBe("282ef334-41f0-465b-811c-477187899762");
+  });
+
+  it("the domain tag is load-bearing — the same input under a different tag is a different id", async () => {
+    // `uuidFromSeed` is shared by the Biller and the interline-split producer, so the tag is what keeps two
+    // agents' ids apart on one POD. A tag dropped from either seed collides them silently.
+    expect(await uuidFromSeed("pod-evt-42")).not.toBe(await invoiceEventIdFor("pod-evt-42"));
+  });
+});
