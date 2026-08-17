@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1208 | §1761 | **§1762** | **A GUARD NO MUTATION CAN JUSTIFY, AND ONLY THE ARITHMETIC CAN.** The rater's money chain has a derived overflow ceiling a test recomputes; the ledger's money core has the same exposure and had **none**. Building it inverted my conclusion twice. **(1)** The planned mutation — rewrite the BigInt Hamilton core in floating point — **passed all fifteen tests**, so the claim written before measuring was false. **(2)** Brute force: **0 disagreements in 400,000 random allocations across the whole admissible range, and 0 in 40,000,000 ADVERSARIAL cases** shaped to maximise the widest product; the first appear one decade up (8/50,000 at 1e13, ~27% by 1e17). The obvious reading — *the BigInt is unnecessary* — is ALSO wrong, and the test written to confirm it is what caught that: **the widest intermediate at the contract bound is 9.99999999999e15, past 2^53**, so the products truly are unrepresentable and the assertion first written here failed pointing the wrong way. Both hold because a ≤1 error in a ~1e16 product only moves `floor(product/10000)` when it crosses a multiple of the divisor — which never happened in 40.4M trials. **The class**: deleting this guard looks exactly like deleting dead weight, stays green forever on every admissible input, and corrupts money RARELY rather than never — the worse failure mode. Its mirror, the rater's ceiling, got algebra written for it only because its failure was a loud HTTP 500; **the louder failure got the proof, the silent one got nothing.** 6 tests added, asserting the ALGEBRA and reading the bound off the schema rather than restating it, pinned bidirectionally so a LOWERED bound also fails here. 768 ledger tests green, 0 production code changed |
 | 1207 | §1760 | **§1761** | **DOES THE COMMITTED REPOSITORY PASS? EVERY STATIC GATE, SWEPT.** §1756 found one gate red on the committed tree and green in the working copy; §1759 fixed half. Both were spot checks of gates already suspected. Asked generally with a **detached worktree at HEAD**: **20 gates, 16 agree, 4 differ, 1 real.** The real one is `check:traceability` on the REQ-289 annotation (the owner's uncommitted register row). The other three announce themselves in their own output — two `ERR_MODULE_NOT_FOUND` on a workspace package, and the bundle ratchet refusing to report clean with no built bundles, **which is the §481 hardening proving itself in a tree nobody built**. **The harness bug is the lesson**: run through `pnpm` inside such a worktree and it exits **1 with ZERO output**, reporting all eighteen as committed-FAIL — caught only because one gate had been hand-run minutes earlier and printed a real verdict. A probe reporting *everything is broken* is more likely broken itself. **Closes**: §1759 verified against the committed tree (citations OK at HEAD, ratchet at baseline), so §1760's prediction is measured rather than awaited; and the committed tree's sole failure is a swept conclusion, not a guess. **Declines in writing** the obvious §1759-style fix (scrub the `REQ-289` token from comments): the reference is TRUE not rotted, two of seven files are another author's so it cannot flip the verdict, and the token is how the next reader finds the explanation. 0 code changed |
 | 1206 | §1759 | **§1760** | **THE MASKED RED, FOUND — AND THREE OF MY OWN CLAIMS CORRECTED.** §1758 said *"no gate reading the working tree can detect this"* — true, and it overlooked the gate that does NOT read the working tree: **CI checks out a clean clone**. **(1)** §1721's *"154 commits unpushed"* is superseded — `origin/main` is **`562bbd7`** (2026-08-17), only **4** unpushed; the owner has been pushing and CI runs current code. **(2)** The perf fix landed: the newest run's ONLY failed step is *merge evidence gate (REQ-288)*, so §1721's two-reds-to-one prediction held in CI. **(3)** But that step failed for a **COMPOUND** reason and its name hides which — the CI log at `562bbd7` contains the four rotted citations verbatim. **So CI carried a real, unattributed FAILURE beside the expected BLOCKED — exactly what row 461's headline says, still true AFTER §1721 declared the unexpected half fixed.** The masking is structural: one aggregate step runs all 26 gates, so its name and conclusion are identical whether one gate failed or five are blocked. **Three instruments, three blind spots, one defect surviving four days in the intersection**: the working copy passes, the local board reads the working copy, and CI reports the real failure under the expected step's name. §1759's fix removes it; the next run failing on BLOCKED alone is the check that closes it. 0 code changed |
 | 1205 | §1758 | **§1759** | **"NO SAFE UNILATERAL FIX" WAS WRONG, AND HALF THE DEFECT IS NOW CLOSED.** §1758 ruled out repairing the four HEAD-rotting citations: the anchor tolerates ±2, the drift is 8, and repointing fixes the committed tree while breaking the working copy. Both true — and the conclusion still wrong, because it considered exactly one repair, **changing the number**. The gate's own regex REQUIRES a `:` followed by digits, so a path + symbol with **no line** is not a citation at all: naming the file and symbol in prose satisfies **both trees at once** and is permanently immune to this drift. Six live occurrences rewritten (5 audit, 1 checklist), nothing inside a struck span touched. Verified both ways — working copy OK at 2142 citations with the ratchet unmoved, **and a detached worktree at the committed HEAD now passes too**, closing the four-day regression. **Committed-tree board improves 9 PASS / 2 FAIL → 10 PASS / 1 FAIL**, the residue being `check:traceability` on REQ-289, which needs the register row committed and is the author's alone. **A "no safe fix" conclusion is a claim about the SPACE OF FIXES CONSIDERED and reads as a claim about the world** — §1726 caught the identical shape (*"it would need seven exports"*), and both times the unexamined route was cheaper than the one ruled out. 0 code changed |
@@ -98618,3 +98619,69 @@ Written down because the mechanical fix is obvious and someone will otherwise ap
 spot check; 16 identical, 3 differences attributed to the instrument by their own output, **1 real and already
 owner-held**; 1 harness bug caught by a pre-existing fixed point before it could report eighteen false
 failures; 1 obvious fix declined in writing with its reasons; 0 code changed.
+
+---
+
+## §1762 — PHASE GATE: a guard no mutation can justify, and only the arithmetic can (REQ-003/019/112)
+
+The rater's money chain carries a **derived** overflow ceiling whose algebra a test recomputes, so raising any
+input fails in CI rather than in production. The ledger's money core — `allocateCents` / `apportion`, the
+interline split projection — carries the *same* exposure and had **no equivalent**. This phase built it, and
+the measurement inverted the conclusion twice on the way.
+
+### What I expected, and what the numbers said
+
+The plan was ordinary: the shipped property draws totals from `1..1e7`, the `Cents` contract admits
+`±999,999,999,999`, so extend the property to the domain edge and mutation-prove it by rewriting the BigInt
+Hamilton core in ordinary floating point.
+
+**The mutation passed all fifteen tests, including the new ones.** So the first claim written here — *"that
+mutation leaves the old property green and reds these"* — was false, and was written before it was measured.
+
+Brute force, two implementations run against each other:
+
+| corpus | disagreements |
+|---|---|
+| 400,000 random allocations across `1..1e12` (the whole admissible range) | **0** |
+| 40,000,000 **adversarial** cases — one leg's bps driven to 9999, total pinned at the bound, the shape that maximises the single widest product | **0** |
+| one decade up, `1e13` | 8 / 50,000 |
+| `1e17` | ~27% |
+
+The obvious reading is *the BigInt is unnecessary at today's bound*. That reading is also wrong, and the test
+that was supposed to confirm it is what caught it: **the widest intermediate at the contract bound is
+`999,999,999,999 × 10,000 = 9.99999999999e15`, past 2^53 (9.007e15).** The products genuinely are
+unrepresentable as doubles. The assertion first written here — *"stays inside MAX_SAFE_INTEGER"* — failed, and
+the correct assertion points the other way.
+
+Both are true at once because the rounding error in a ~1e16 product is at most 1, and `floor(product / 10000)`
+only moves when that error crosses a multiple of the divisor. In 40.4 million trials it never did.
+
+### The class this belongs to
+
+**A guard whose necessity no mutation can demonstrate, and only the arithmetic can.**
+
+Deleting it looks exactly like deleting dead weight: every test stays green, forever, on every input the
+contract admits. And the failure it prevents is not *loud and rare* but *silent and rare* — a wrong cent in an
+interline split, in the one place nobody reconciles. That is the worse half of
+`a-redundant-guard-mutates-green`: the guard is not redundant, it merely cannot be *shown* non-redundant by
+the method that normally settles the question.
+
+The rater's ceilings are the mirror image — the same overflow, but its failure mode is an HTTP 500 on the
+anonymous quote route, so it announced itself and got algebra written for it. **The louder failure got the
+proof; the silent one got nothing.** That ordering is backwards and is worth watching for elsewhere.
+
+### What landed
+
+Six tests. The load-bearing ones assert the **algebra**, not a behaviour: `Cents.max × Bps.max` exceeds
+`MAX_SAFE_INTEGER` (so the BigInt is required *today*), bidirectionally pinned so that *lowering* the bound
+under ~9.007e11 also fails here rather than quietly outdating the rationale. The bound is **read off the
+schema** (probe `safeParse` at the edge and one past it) rather than restated, so moving it in the contracts
+package fails this test instead of silently invalidating the measurement. Plus the property across the full
+domain and both signs, the exact extremes, a witness one decade up where a float core does misallocate, and
+the `apportion` case where the wide operand is the weight rather than the total.
+
+**Phase gate.** 2 of my own claims measured false before they could be committed — the mutation prediction and
+the direction of the ceiling inequality, the second by the very test written to confirm the first; 40.4M
+adversarial cases establishing that the guard is unobservable by testing; 1 arithmetic relationship that
+governs money correctness and was asserted nowhere, now asserted bidirectionally and derived from the schema;
+6 tests added; 768 ledger tests green; 0 production code changed.
