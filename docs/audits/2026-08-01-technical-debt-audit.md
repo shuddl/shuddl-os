@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1201 | §1754 | **§1755** | **EVERY BOARD IN THIS SESSION WAS MEASURED AGAINST A TREE I DO NOT FULLY OWN.** Thirty-odd phase gates end with the same one-line verdict, and `verify:merge` reads the WORKING TREE — which has carried another author's uncommitted work throughout. Measured: **12 files, 266 insertions / 34 deletions**, none mine — `genesis/09` (feeding `coverage`, `traceability`), all four `tools/traceability/*` files (**the gate code AND its roster**), `tools/seed/load.ts` + its test (`seed`, `unit-tests`), and five `apps/**` files (`unit-tests`, `bundle-ratchet`, `visual`, `a11y`, `e2e`). So **at least 7 of the 21 passing gates** in every board I reported were computed over source I did not write and cannot commit. All three directly-affected gates re-run and pass on the worktree, so nothing is hidden — but that is a measurement now, not a guarantee that held at each earlier run. **Measuring the worktree is CORRECT** (a merge verdict is about the tree that would merge); the cost is **reproducibility** — none of the thirty boards can be re-derived from any commit. `board-citation-ratchet` forces a board to NAME its commit and reded §1744 for omitting one; naming is necessary and here **not sufficient**, because the commit does not determine the tree. The register detail matters most: coverage reports **292** rows while HEAD holds **288**. Nothing of the twelve was stashed, reverted or touched. 0 code changed |
 | 1200 | §1753 | **§1754** | **THE RUNNER/ROSTER SPLIT, ENUMERATED — INCLUDING THE BOARD ITSELF.** §1753 was the third instance of one shape, which is past where finding a fourth beats counting the class: **a runner that executes a declared roster, whose green means *what was declared, ran*, with the roster's integrity held elsewhere.** The highest-stakes member had never been probed — `verify:merge`, whose board this record has quoted 20+ times. Deleting `append-chokepoint` from the merge profile is refused by **three** assertions: *"the merge roster is exactly this set of gates, BY NAME"*, *"profile sizes match the docs that quote them"*, and dev-loop-parity's *"no dev step is absent from the merge roster"* — plus one COLLATERAL (a citation landing on a blank line), named and excluded from the count. **The class**: `verify:merge`/`gatesFor` held by `gate-wiring` + `dev-loop-parity`; `test:acceptance`/`DEMOS` held by `demos.test.ts`; `check:fixtures`/manifest held by hash pins where a `vendored` claim without files is a FAIL; the four playwright gates held by `MIN_ASSERTIONS` floors. **Every runner has both halves and none has them in the same place** — the split is not an accident repeated four times, it is how the repo is built (execution reports, declaration ratchets), and the consistency is what makes it trustworthy rather than lucky. Consequence, already recorded in three files: the command named for a job cannot see its own roster shrink; `pnpm test` catches all four. 0 defects, 0 code changed |
 | 1199 | §1752 | **§1753** | **THE ACCEPTANCE SPINE CANNOT SHRINK, AND THE COMMAND NAMED FOR IT CANNOT TELL.** With the constitutional layer re-verified, the remaining unprobed thing that decides *done enough to show* is the five-demo spine. Emptying demo 1's `spine` array — the demo defining *signature at a door → invoice + evidence email* — is refused by **three** assertions, the right one explicit: *"all five doc-00 demos are declared, each with AT LEAST ONE spine test"*. **But the runner printed `ACCEPTANCE SPINE: GREEN — all 6 spine FILES pass`** — a TRUE sentence about a spine that had just lost a file, because execution and declaration are different concerns and the ratchet lives next door in `demos.test.ts`. So `pnpm test:acceptance`, the command named for this job, greens on a shrunken spine; the merge gate runs both, so the board is protected and the exposure is the INNER LOOP. **Third measured instance of one shape** — `biller.ts` (§1740) and `booking.ts` (§1741) carry the same note: the artefact named after the subject is not the one that can see the regression. Recorded in `run.ts` alongside the other two. Also one probe correction: the first mutation regex matched nothing and its "restored" was a no-op — caught by the traceback, not by the result. 0 defects, 0 behaviour changed |
 | 1198 | §1751 | **§1752** | **THE INVARIANT SET COMPLETED — ALL EIGHT RE-PROBED AT HEAD.** The remaining three: **I4** (make the `unwitnessed` test always true so an unsigned custody event passes) reds **2**; **I5** (drop `.min(1)` so a quote can pin NO config version) reds **1**; **I7** (flip a reversal's sign so a correction no longer offsets its original) reds **6**, one named *"the I7 identity: reversed originals + credits sum to exactly zero"*. **Where each is defended is the finding**: I4 and I5 red ONLY in `packages/contracts` — not thin coverage but the right shape, because both are CONSTRUCTION invariants and such events cannot be built; the Zod boundary is where that is stopped and nothing downstream need re-check what cannot exist. That also explains the standing note *"I4's `unwitnessed` waiver has no downstream reader"* — correct, not a gap: the waiver's job ends at construction. I7 is the opposite shape and reds in the PROJECTION, since it is an arithmetic property of derived rows. **Eight of eight hold** against proofs dated ~1,100 commits earlier: I1 (refused by the forward-only lock), I2 5+4, I3 named, I4 2, I5 1, I6 8+5, I7 6, I8 3 refusals. Three phases, eleven mutations, **zero defects**, and two near-misses that would have published wrong security claims, both resolved by READING rather than probing harder. 0 code changed |
@@ -98246,3 +98247,61 @@ merge gate runs — so the board is protected and the exposure is the inner loop
 1 highest-stakes member (the board itself) probed for the first time and refused by 3 assertions, 1 collateral
 refusal identified and excluded from the count, 1 design property named (execution reports, declaration
 ratchets — uniformly), 0 defects found, 0 code changed.
+
+---
+
+## §1755 — PHASE GATE: every board in this session was measured against a tree I do not fully own (REQ-118/119)
+
+Thirty-odd phase gates in this session end with the same one-line verdict, and `verify:merge` reads the
+**working tree**. (This section's own re-run is at `5de7740`: 21 PASS · 0 FAIL · 5 BLOCKED — named, because the
+ratchet below is exactly the rule being discussed.) This working copy has carried another author's
+uncommitted work throughout. That is a caveat on every one of those numbers, and it had never been stated.
+
+**Measured, not estimated.** Twelve files are modified and uncommitted, none of them mine, totalling **266
+insertions / 34 deletions**:
+
+| files | gates that consume them |
+|---|---|
+| `genesis/09-REQUIREMENTS-REGISTER.csv` | `coverage`, `traceability` |
+| `tools/traceability/{coverage.ts, coverage.test.ts, coverage-manifest.json, traceability.test.ts}` | `coverage`, `traceability` — the gate code **and** its roster |
+| `tools/seed/load.ts`, `packages/ledger/test/seed-load.test.ts` | `seed`, `unit-tests` |
+| `apps/{command,driver}/src/**` (5 files) | `unit-tests`, `bundle-ratchet`, `visual`, `a11y`, `e2e` |
+
+So **at least seven of the twenty-one PASSes** in every board I reported were computed over source I did not
+write and cannot commit. All three directly-affected gates pass on the worktree today (`coverage`,
+`traceability`, `seed` — re-run for this section), so nothing is hidden — but that is a measurement, not a
+guarantee that held at each of the thirty earlier runs.
+
+### Why this is the right tree to measure, and still worth stating
+
+A merge verdict is *about the tree that would merge*, so measuring the worktree is correct — a board computed
+from `HEAD` alone would answer a question nobody is asking. The problem is **reproducibility**: none of the
+thirty boards can be re-derived from any commit, because their inputs include work that has never been
+committed. Anyone re-running `verify:merge` at any of those SHAs gets a different tree than I had.
+
+That is exactly the failure `board-citation-ratchet` exists to prevent one level up — it forces a board to
+**name the commit** it was measured at, and §1744 was reded by it for omitting one. Naming a commit is
+necessary and, here, not sufficient: the commit does not determine the tree.
+
+**The genesis/09 detail matters most.** The register is source-of-truth #1, and its four uncommitted rows are
+why `check:coverage` reports **292** rows while `git show HEAD:genesis/09…` holds **288** (§1735). Every
+coverage figure quoted this session is a figure about 292.
+
+### What I did not do
+
+I did not stash, revert, commit, or otherwise touch any of the twelve. A concurrent author's uncommitted work
+is theirs; measuring around it and disclosing the measurement is the whole of the correct response. The one
+thing that *would* have been wrong is what I nearly did several times — treating a gate verdict as a property
+of my own commits.
+
+### The gate caught this section, too
+
+The first draft quoted the verdict twice with no commit attached and `board-citation-ratchet` reded it — a
+section *about* boards needing their commit named, failing for not naming one. Second time this session
+(§1744 was the first), and both times while writing a summary, which is precisely when the shortcut is
+most tempting and the reader least able to check.
+
+**Phase gate.** 1 unstated caveat on ~30 previously-reported boards identified and quantified (12 files, 266
+insertions, ≥7 of 21 passing gates affected), 3 directly-affected gates re-run and confirmed passing on the tree as
+measured, 1 reproducibility limit stated precisely (naming a commit is necessary and not sufficient when the
+tree is shared), 0 files of another author's touched, 0 code changed.
