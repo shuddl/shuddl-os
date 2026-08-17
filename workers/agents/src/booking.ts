@@ -26,6 +26,27 @@
 // Concierge shipment those FKs all equal the requester (who has an email contact), so the T6 evidence-
 // recipient gate passes. LLM-free (REQ-024): this consumer only loads records, derives an id, and appends.
 
+// ── §1741 — WHERE THIS MODULE'S IDEMPOTENCY IS ACTUALLY PROVEN (run `workers/api`, not only this worker) ───
+//
+// Measured by starving each read and counting what notices:
+//
+//   starved                                    workers/agents   workers/api
+//   the prior-event load → null                        1             12
+//   the "already booked?" pre-check → null              0              0
+//   the booking event id made NON-deterministic         0              3
+//
+// The middle row is the interesting one and it is NOT a coverage hole. Blinding the pre-check leaves BOTH
+// suites green because that check is an OPTIMISATION — it skips work on a redelivery. The GUARANTEE is the
+// deterministic event id plus the sequencer DO's dedupe: a redelivered trigger derives the same id and the DO
+// returns the original append. The separating probe is the third row — make the id random and three api cases
+// red, one of them named "double-book impossible". Redundant guard, not vacuous test; the two look identical
+// until you break the thing that actually matters (§1460's rule).
+//
+// The third row is also the §1740 asymmetry in a second module: this module's central idempotency guarantee
+// is asserted **zero** times in the worker that owns the file and three times in `workers/api`, because the
+// guarantee is DELEGATED to a DO that only exists there. Editing here and running `workers/agents` alone
+// proves the preconditions and nothing about the outcome.
+
 import { z, GATE_BLOCKED_PREFIX, deterministicUuid } from "@shuddl/contracts";
 import type { BookingCreatedPayload, LedgerEvent } from "@shuddl/contracts";
 import { rowToEvent } from "@shuddl/ledger/lens";
