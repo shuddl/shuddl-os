@@ -129,6 +129,17 @@ async function sha256Hex(s: string): Promise<string> {
 // A domain-separated SHA-256 of the message event id, shaped into a v4-variant UUID so it satisfies
 // EventInput's z.string().uuid() — the same shaping rate.ts/biller.ts use. The sequencer dedupes by this
 // id, so a redelivered message returns the ORIGINAL event, never a second.
+//
+// MEASURED (§1787), because this guarantee is DELEGATED and this package cannot observe it. Making this id
+// non-deterministic (append `:${crypto.randomUUID()}`) reds:
+//
+//     workers/agents  0 of 155     ← the owning suite sees NOTHING
+//     workers/api     6 of 908     ← where the sequencer DO actually dedupes
+//
+// The six are the redelivery cases by name: IDEMPOTENCY (auto-reply) and (queued), both SEND-FAILURE cases,
+// and the two REQ-059/178 fast-path re-render pins. The dedupe is the DO's, so only a suite with the DO can
+// assert the outcome — the third measurement of that class after biller (0/2, §1740) and booking (0/3,
+// §1741), and the largest. Do not read a green `workers/agents` as coverage of this line.
 async function conciergeEventId(domain: string, messageEventId: string): Promise<string> {
   return deterministicUuid(`concierge:${domain}:${messageEventId}`);
 }

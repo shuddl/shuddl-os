@@ -24,7 +24,7 @@ Cloudflare Queues is **at-least-once**: a message redelivers whenever the consum
 
 **1. Twice-in → once-out.** Layer every defense; any one alone is insufficient:
 - Deterministic ids (below) — the sequencer DO dedupes by event id.
-- `INSERT OR IGNORE` on every read-model row (`workers/agents/src/concierge.ts:254@parties`, `:751@messages`).
+- `INSERT OR IGNORE` on every read-model row (`workers/agents/src/concierge.ts:265@parties`, `:751@messages`).
   *(Both citations read `:201`/`:555` until 2026-08-04 — audit §192. Neither landed on an `INSERT OR IGNORE`
   even before this file shifted; they were among §175's deferred candidates and are now anchored, so the
   next shift fails the gate instead of drifting silently.)*
