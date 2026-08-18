@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1239 | §1792 | **§1793** | **THE RESTATED-KEY HAZARD IS A SINGLETON, AND THE REASON IS A DISTINCTION WORTH KEEPING.** §1792's test passed with the producer starved because its FIXTURE typed the key the production query looks for. Swept: **6 test files type a derived key prefix, and reading all six, NONE is the hazard** — one is an ASSERTION (`expect(body_ref).toBe(...)`), one a log line, one an object key, one a comment plus a different prefix, two are URL paths (`/v1/dunning/{id}/send`). The detector matched substrings without role, predictably: **a key prefix and a URL segment are the same characters.** **The distinction that makes the negative meaningful**: typing a derived key in an ASSERTION is correct — it characterizes the producer and drift reds there; typing it in a FIXTURE the production code must then FIND is the hazard — it fakes the producer and drift goes unnoticed. Same literal, opposite value, decided by which side of the test it sits on. That also explains the singleton: the hazard needs a ROUND-TRIP, and round-trips are rare because most tests assert an output rather than seed an input the code must recognise |
 | 1238 | §1791 | **§1792** | **THE SECOND-CHEAPEST CLOSURE — AND A TEST THAT ASSERTED NOTHING UNTIL REWRITTEN.** `sla-sweep`'s load-bearing seam is its note's **body_ref** (§1788), the key `OVERDUE_SQL`'s anti-join uses — pure SQL, no DO needed, exactly like §1791's watchtower. **Closed: starving it now reds `workers/agents` 1 of 159 where it red 0 of 155.** **But the first version passed with the producer starved**: it seeded the note with a HAND-WRITTEN key and asserted the sweep appended nothing — asserting that *the query works against a key I typed*, not that producer and query AGREE. Rewritten as a **round-trip** (capture what the sweep writes, seed THAT, re-sweep with a double that throws), which reds under the exact mutation the first version survived. **A fixture that restates the value under test cannot detect the drift it exists to detect — never type the key, make the producer hand it to you.** Two diagnostics earned their cost: an `INSERT OR IGNORE` silently wrote nothing (`NOT NULL … prev_hash`) until OR IGNORE was dropped, and a direct `COUNT(*)` on the join located the failure in one step. **2 of 6 closed, both D1-enforced**; the other four dedupe at the sequencer this package only stubs |
 | 1237 | §1790 | **§1791** | **THE CHEAPEST OF THE SIX, CLOSED — 0 of 155 BECOMES 2 of 157.** §1790 sorted the six blind modules by what their blindness COSTS to fix and named the cheapest: watchtower does not append through the sequencer at all, its dedupe is a plain D1 `ON CONFLICT(id)` upsert, and four of its five rules never touch `seq` — so asserting it needs **no Durable Object**. Two cases added to the owning package: the **key's determinism** (same inputs ⇒ same id; different scope/rule/tenant ⇒ different — if this stops holding every alarm row multiplies per tick) and **three sweeps leave the same row count as one**, with a non-vacuity floor ahead of it so a sweep that raises nothing cannot pass. Mutation-proved: starving the key now reds **2 of 157 in `workers/agents`** where it red **0 of 155**, `workers/api` unchanged at 21. **Sorting a backlog by what the fix COSTS beats sorting by severity** — all six read identically in the filed row, and only opening each harness showed five need a DO they lack while one needed ten lines and a `COUNT(*)` |
 | 1236 | §1789 | **§1790** | **THE REMEDY WAS RIGHT AND THE MECHANISM WAS WRONG.** §1789 explained the delegated split as *whether the owning suite drives a real append or a recording fake*. Going to write the missing test proved that false: **`workers/agents` AND `workers/translator` both bind `SHIPMENT_SEQ` to a STUB**, each saying so in its own config header — so translator's 4 reds cannot come from a real DO either. **The actual discriminator is a TEN-LINE double**: `mirror-sweep`'s `RecordingSeq` collapses on `input.id` — modelling the DO's dedupe — and its test runs the sweep twice and asserts the count does not grow. That pattern is already REGULATED by §1376's collapsing-doubles gate. The six blind ones split by reason: four have no owning-suite test of the append path (workers/api is their owning suite in practice, as `watchtower-cron.test.ts`'s header says outright), and **watchtower needs no DO at all** — its dedupe is a D1 `ON CONFLICT(id)` upsert, making it the cheapest and the one worth writing. **A remedy sentence carries a mechanism whether you write one or not**: *needs a real DO* and *its double needs to model the dedupe* are the same words about WHAT to do and opposite about what it COSTS. Third time this session a strong remedial claim was refuted by reading its own subject |
@@ -100581,3 +100582,48 @@ than estimate — the D1-enforced ones are cheap, the DO-enforced ones are not; 
 and rewritten as a producer→query round-trip**, re-proved to red under the mutation that the first version
 survived; 2 fixture faults located by diagnostics rather than guesses, one of them an `OR IGNORE` swallowing
 its own constraint failure; agents suite 155 → 159 cases; 0 behaviour changed.
+
+---
+
+## §1793 — PHASE GATE: the restated-key hazard is a singleton, and the reason is a distinction worth keeping (REQ-118/912)
+
+§1792 found a test of mine that passed with the producer starved, because its fixture **typed** the key the
+production query looks for. That is a class, so: does it exist elsewhere?
+
+### Swept, and every hit examined rather than counted
+
+Six test files type a production-derived key prefix (`concierge-send-hold/`, `watchtower:`, `dunning/`). Read
+individually, **none is the hazard**:
+
+| site | what the string actually is |
+|---|---|
+| `concierge.test.ts` | an **assertion**: `expect(hold.payload.body_ref).toBe(\`concierge-send-hold/${id}\`)` |
+| `sweep-containment.test.ts` | a **log line** — `"watchtower: tenant tenant-b"` |
+| `metering.test.ts` | an **object key** — `{ rater: 1, watchtower: 4 }` |
+| `isolation.test.ts` | a comment, and a different prefix (`collector-dunning/`) |
+| `id-length-guards` · `dunning.test.ts` | **URL paths** — `/v1/dunning/{id}/send` |
+
+The detector matched substrings without knowing their role, which was predictable: a key prefix and a URL
+segment are the same characters. Sixth over-reporting pattern this session, and the cheapest correction each
+time is to read the six hits rather than trust the six.
+
+### The distinction that makes the negative meaningful
+
+> **Typing a derived key in an ASSERTION is correct — it characterizes the producer, and a producer change
+> reds. Typing it in a FIXTURE that production code must then find is the hazard — it fakes the producer, and
+> a producer change goes unnoticed.**
+
+Same literal, opposite value, decided entirely by which side of the test it sits on. `concierge.test.ts`'s
+typed string is the good kind: it is the expected output, so drift fails there by construction.
+
+That also explains why §1792's instance was the only one: the hazard needs a **round-trip** — a fixture the
+production query must match — and round-trips are rare because most tests assert an output rather than seed an
+input the code must recognise. The one place the repo does this at scale (`recon-sweep`'s terminal-hold
+marker) derives its fixture from the exported `terminalHoldBodyRef`, which is the shape §1792 had to be
+rewritten into.
+
+**Phase gate.** 1 class swept from a real instance rather than an intuition; 6 candidates found and **all 6
+read individually**, 0 hazards; the over-reporting cause named (a key prefix and a URL segment are
+indistinguishable as substrings); 1 durable distinction recorded — assertion-side typing is characterization,
+fixture-side typing is faking — which is what makes this negative re-derivable instead of a shrug; 0 code
+changed.
