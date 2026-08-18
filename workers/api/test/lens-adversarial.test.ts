@@ -367,7 +367,17 @@ beforeAll(async () => {
   for (const shp of [FIRE_1, FIRE_2]) {
     for (let i = 0; i < 3; i++) await append(shp, buildInput(shp, "quote.requested"), ops);
   }
-});
+  // §1777 — AN EXPLICIT BOUND, because vitest's DEFAULT 10s is a fixed window this hook only fits on an idle
+  // machine. Measured: 45/45 pass when this file runs alone, and the SAME hook timed out at 10,000ms inside a
+  // full `pnpm test` whose collect phase alone took 78s — one merge-gate FAIL, 45 tests skipped, from a
+  // fixture that is 139 lines and 24 awaits of real DO appends. The failure mode is the worst kind: the suite
+  // does not fail an assertion, it never runs, and the aggregate line says only `unit-tests — exited 1`.
+  //
+  // Bounded HERE rather than by raising `hookTimeout` globally: a global bump would hide every slow hook in
+  // the package, and this one is slow for a stated reason (it builds the whole adversarial lens corpus once
+  // so 45 cases can share it). 60s is 6x the observed isolated cost and still fails loudly if the fixture
+  // grows into something that should be split.
+}, 60_000);
 
 // 1 — a portal party never sees internal-visibility kinds on a shipment it IS party to.
 describe("case 1: portal P1 sees zero internal kinds", () => {
