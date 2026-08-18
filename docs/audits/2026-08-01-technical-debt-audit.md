@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1216 | §1769 | **§1770** | **THE §1769 CLASS, SWEPT — ONE MEMBER, AND THE PROPERTY THAT MAKES IT ONE.** §1769's hazard was a COMPOSITION (free-text column + exact-match gate + permissive no-match), so this counted the class: every TEXT column with no CHECK against every production comparison gating on it. **15 columns carry a CHECK**; the rest are free text. A free-text decision column bites only when BOTH hold — **the value is INPUT-FED** and **the reader's no-match direction is PERMISSIVE**. Measured: **`tenants.plan` is the ONLY one fed by a request input**; every other is written by projections/sweeps from code literals, where a typo is a compile-visible constant. `pairings.status` fails DENY at all three readers; the status columns have no caller-derived writers (`assets`/`pairings` have no production writer at all). **§1769 is a singleton and the class is now closed with its bound stated.** **The lead that looked like a second member**: oauth.ts selects `secret_ref` with NO status column — but `authenticateClient` calls `resolveActiveMcpPairing` FIRST, so an absent column in a SELECT does not prove an absent check. **Discipline note**: the NEWEST status column (`documents.retention_status`, 0007) has a CHECK and the five originals do not — safe only because their writers are literals; recorded, not acted on. **Probe fault**: five columns reported byte-identical 34-site hit lists — when N subjects report identical evidence the probe is keyed on what they SHARE, and identical counts are the cheapest tell. 0 code changed |
 | 1215 | §1768 | **§1769** | **THE UNAUDITED-FILE LIST, EXHAUSTED — AND THE METHOD CORRECTED.** §1765's list was too generous: re-measuring the 28 unnamed files by whether ANY test references them gives **22 covered, 6 real residue** — two are §1766's migrations, three are non-production, one was worth a full read. **Unnamed means the audit never needed a section, not that nobody looked**; rank by unnamed AND unexercised. **The one worth reading** — `0002_platform_tenant.sql` — makes three "by construction" claims and **all three are real code with tests on them** (`assertNotPlatformTenant`; a Zod DNS-label regex that rejects `_pool_0N`; RESERVED_PLANS), a clean negative. **What it surfaced**: `tenants.plan` is unconstrained TEXT while the SAME migration gives `users.role` and `pairings.kind` CHECKs — the third constraint-stops-one-column-short instance this session. `ProvisionInput.plan` takes any 40-char string; `resolveSparkPlan` matches `'spark'` exactly and its no-match direction is UNCAPPED **by design**. Neither half is a defect; **the composition means a provisioning typo ('Spark', 'spark ') silently un-meters AI credits forever with nothing logged** — revenue, never truth, and operator-only reachable. **Pinned, not fixed** (which plans exist is a pricing decision): a case variant, a padded variant, and a byte-exact positive control on the identical fixture, plus a checklist row with three ways out. 0 behaviour changed |
 | 1214 | §1767 | **§1768** | **WHAT THE WORKERS WRITE TO STDOUT — THE SURFACE THE IDENTITY LINT CANNOT SEE.** `workers/api/src/log.ts` off §1765's unaudited list, five lines, leading to the better question: **REQ-167's lint scans repo artifacts and cannot see runtime output**, which crosses the trust boundary. Measured before building: **97 console sites — 19 static, 77 ids/slugs only, 1 keyword hit that is a SWEEP name**. Zero logs carry a value identifying anyone, and the discipline is visible: the Biller logs *"bill-to party <id> has no contact email"* — the gap and the id, never the address. Two adjacent surfaces clean too: of **115** ApiError sites exactly one interpolates, echoing the CALLER'S OWN input, and `translateAppendError` maps the DO's code to a FIXED message, discarding its `reason` detail. **The ratchet's term list is the lesson**: `name` was in the first draft, produced exactly one hit, and that hit was a FALSE POSITIVE — removed, so the gate's first real firing is not a false alarm. Built from the corpus, not from vocabulary. Four assertions: the rule, a corpus floor, a TWO-SIDED positive control (fires on a synthetic leak, silent on the id-only shape the code uses), and a pin that `logEvent` still has exactly ONE caller — "acceptable because it is a single site of known shape" stops being true at two. Mutation-proved by name. 0 behaviour changed |
 | 1213 | §1766 | **§1767** | **WAS THE DEFAULT-0 BUG AN EPIDEMIC? 47 COLUMNS, SWEPT.** One instance is a bug, two is a class — so this counted: every `NOT NULL DEFAULT` against every production INSERT. **47 defaulted columns, 19 tables, ZERO further live instances**, and the two reasons are the useful part. **(1)** Most defaults are COLLECTIONS (`'[]'`/`'{}'`), where omitting means exactly what the default says — noise, filtered by construction. **(2)** The scalar ones are all written, and the events path binds `?? null` into NOT NULL columns so an absent value is a **loud abort**, never a silent default. **Surfaced 5 implicit choices**, now written down: `shipments.mode`/`division` are omitted by the booking projection, Concierge, seed and smoke — none a defect (BookingCreatedPayload makes `mode` an OPTIONAL refinement; an inbound email states neither; and `division` reaches the journal only via money_lines, which resolve the SAME `?? "main"` fallback). **The distinction the gate is built around: does the default DESCRIBE or DECIDE?** Landed a ratchet with a corpus floor and a staleness check (an exemption that stops exempting is deleted), mutation-proved by name. **Two instrument faults**: the first probe called the ledger's central write path five-columns-short (it read `${EVENT_COLUMNS.join(",")}` as a literal list) — now resolved through the array, with an **unresolvable list treated as FAILURE, not skip**; and the gate flagged a GATE, since `append-chokepoint.ts` quotes SQL in a detection pattern — excluded by directory, premise verified (nothing there holds a D1 handle). 0 behaviour changed |
@@ -99144,21 +99145,116 @@ asserts *why* the allotment is zero (the row was never treated as Spark, rather 
 because those two failure modes are indistinguishable from the return value alone. Filed on the checklist with
 its three ways out, all of which change what provisioning accepts.
 
-### One thing that is NOT a finding about the code, and is reported anyway
+### ~~One thing that is NOT a finding about the code~~ — CORRECTED at §1770: it was mine, and it was not a flake
 
-The merge gate **FAILED once** on this phase's tree — `unit-tests — command exited 1`, 20 PASS — and passed on
-an immediate re-run with **no source change** (21 PASS · 0 FAIL · 5 BLOCKED). `pnpm test` standalone exits 0,
-and every owning suite is green individually (agents 155, ledger 773, tools 1,525).
+~~The merge gate FAILED once on this phase's tree — `unit-tests — command exited 1` — and passed on an
+immediate re-run with no source change. So the board's verdict is not perfectly reproducible… No cause
+established: this repo already carries a known `vitest-pool-workers` instability… What would make it
+actionable is a second occurrence with the same gate and a captured suite name.~~
 
-So the board's verdict is **not perfectly reproducible**, and that is worth a line even though the phase's own
-work is unaffected. Recorded rather than re-run-until-green because the alternative — quietly taking the second
-answer — is how a real intermittent failure becomes invisible. No cause established: this repo already carries
-a known `vitest-pool-workers` instability, and a single non-reproducing failure is not enough to name it. What
-would make it actionable is a second occurrence with the same gate and a captured suite name; this note exists
-so the next one is recognised as the second rather than the first.
+**The second occurrence arrived one phase later, and the captured suite name settles it: `board-citation-
+ratchet.test.ts > the historical count does not GROW`, naming §1769 as the offender.** Not a flake, not
+pool-workers — **this section cited a board verdict without naming the commit it was measured at**, which is
+precisely what that ratchet exists to catch, and what §1451 established the cost of. Fixed here.
+
+Two things worth keeping from having been wrong:
+
+- **"No cause established" was a conclusion, not an observation.** The gate had printed the suite and the test
+  name into its own log; the failure was fully diagnosed on screen and went unread because the aggregate line
+  (`unit-tests — command exited 1`) was treated as the whole answer. **Read the gate's log before calling
+  anything intermittent** — §1760's masked-red lesson, re-learned on the same aggregate step.
+- **A non-reproducing failure is a claim about the TREE, not about the runner.** It "passed on re-run with no
+  source change" because the note being written *was* the source change — this very paragraph moved the
+  offender count across the ratchet's frozen baseline. A verdict measured while the tree is being edited is
+  not a re-run ([[measure-against-a-known-tree-state]] is about a second author; this is the same fault with
+  only one).
 
 **Phase gate.** 28 unnamed files re-measured by test-reference down to a 6-file residue, and the method
 corrected in the record; 1 control-plane migration read in full, all 3 of its "by construction" claims found
 to be real code with tests on them; 1 composition hazard found between two individually-correct halves, pinned
 with a two-sided control and filed as an owner decision; 3 cases added; 21 spark tests green; 0 behaviour
 changed. **§1765's list is exhausted.**
+
+---
+
+## §1770 — PHASE GATE: the §1769 class, swept — one member, and the property that makes it one (REQ-105/122/025)
+
+§1769 found a hazard in a *composition*: an unconstrained free-text column plus a gate that matches it exactly,
+whose no-match direction is permissive. Two halves each correct; the join silently loses revenue on a typo.
+That is a class, so this phase counted it: **every TEXT column with no `CHECK`, against every production
+comparison that gates on its value.**
+
+### The schema, split
+
+**15 TEXT columns carry a `CHECK`** — `users.role`, `pairings.kind`, `events.source`, `money_lines.direction`,
+`messages.channel`, `shipments.mode`, `documents.{kind,visibility,retention_status}`, and the rest. Everything
+else is free text.
+
+### The two properties that decide whether a free-text column is dangerous
+
+A free-text decision column only bites when **both** hold:
+
+1. **the value is INPUT-FED** — it can arrive as a request field rather than a code literal, and
+2. **the reader's no-match direction is PERMISSIVE** — an unrecognised value grants rather than denies.
+
+Measured against every free-text column that gates something:
+
+| column | input-fed? | no-match direction | verdict |
+|---|---|---|---|
+| `tenants.plan` | **yes** — `ProvisionInput.plan` → `parsed.data` | **permissive** (uncapped) | **the §1769 member** |
+| `pairings.status` | no — no production writer at all | **deny** (`!== "active"` → null) | safe both ways |
+| `invoices.status` · `approvals.status` · `anomalies.status` | no — written by projections/sweeps from literals | n/a | safe |
+| `messages.direction` | no — three code-literal writers (§1765) | filters a query | gated by §1765's roster |
+| `integrations.cert_status` · `messages.drafted_by_agent` | no — code literals | deny | safe |
+
+**`tenants.plan` is the only free-text decision column fed by a request input.** Everywhere else a typo would
+be a compile-visible constant, not a runtime value. §1769's finding is a **singleton**, and this states the
+property that makes it one so the sweep does not have to be repeated.
+
+### The lead that looked like a second member, and was not
+
+`workers/mcp/src/oauth.ts` reads `SELECT secret_ref FROM pairings WHERE id = ?1 AND kind = 'mcp'` — **no
+`status` column, no status check**, on the path that authenticates an MCP client. That reads as an incomplete
+revocation: a suspended pairing still yielding its secret.
+
+It is not. `authenticateClient` calls `resolveActiveMcpPairing` **first** (which returns null on
+`status !== "active"`, denied) and only then reads the secret; `pairingSecretRef` is a deliberately narrow
+helper called *after* the gate, and its docstring says so. All three production readers of `pairings.status`
+fail **closed**.
+
+> An absent column in a `SELECT` does not prove an absent check — the same asymmetry as *a grep proves
+> presence, never absence*, pointed at SQL. Read the caller before filing the finding.
+
+### A discipline observation, recorded rather than acted on
+
+`documents.retention_status` — added in migration `0007`, the newest — **has** a `CHECK`. The five original
+status columns in `0001`/`0002` do not. The constraint discipline improved over time and was never
+backfilled. That is safe today precisely because of property (1): their writers are code literals. Backfilling
+would mean table recreates for no measurable risk reduction, so it stays a note.
+
+### The probe was wrong first, and the tell was in the output
+
+The first sweep reported five different columns — `invoices.status`, `approvals.status`, `assets.status`,
+`anomalies.status`, `pairings.status` — with **byte-identical hit lists of 34 sites each**. The regex keyed on
+the bare column NAME, so every `status == '…'` in the tree matched every table's `status`.
+
+> **When N different subjects report identical evidence, the probe is keyed on something they SHARE rather
+> than on the subject.** Identical counts across independent subjects are the cheapest available tell, and it
+> costs nothing to look for — real findings cluster unevenly.
+
+### And the phase's own gate caught the phase before it
+
+Running the merge gate on this tree failed `unit-tests`, and reading the log — rather than the aggregate line —
+named the suite outright: `board-citation-ratchet.test.ts`, offender **§1769**. That correction is written back
+into §1769 above, where a "non-reproducing flake, no cause established" note had stood for one phase.
+
+The ratchet did exactly its job: §1769 quoted a board verdict without naming the commit it was measured at,
+which is the drift §1451 measured the cost of (twenty-two phases restating a board that was 23 commits stale).
+**It is the third time this session the same reflex has fired — always while writing a summary**, never while
+writing code. Summaries are where a number gets restated instead of measured.
+
+**Phase gate.** 1 class swept rather than a second instance fixed; 15 CHECK-constrained columns separated from
+the free-text ones; every free-text decision column classified on 2 stated properties; **1 member confirmed,
+already filed at §1769**, so the class is closed with its bound written down; 1 strong lead (an OAuth path
+selecting no `status`) chased and found **safe at the caller**; 1 discipline gap recorded and deliberately not
+acted on; 1 probe fault caught by identical hit lists; 0 code changed.
