@@ -2,7 +2,7 @@ import { SELF, env, runInDurableObject } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 import type { LedgerEvent } from "@shuddl/contracts";
 import type { AppendedEvent } from "../src/do/sequencer.js";
-import { conciergeTriggerFor } from "../src/do/sequencer.js";
+import { conciergeTriggerFor, isPlatformCreditInvoiceIssued } from "../src/do/sequencer.js";
 import { hashEvent, verifyChain } from "@shuddl/ledger/chain";
 import { rowToEvent } from "@shuddl/ledger/lens";
 import { signEvent, verifyEventSig } from "@shuddl/ledger/sign";
@@ -479,5 +479,51 @@ describe("conciergeTriggerFor — the committed-message enqueue gate (REQ-095/02
   });
   it("a non-message kind never enqueues", () => {
     expect(conciergeTriggerFor({ kind: "pod.signed", visibility: "counterparty", shipment_id: "shp-1", id: "evt-p" }, TENANT)).toBeNull();
+  });
+});
+
+// ── §1781 — THE EXEMPTION FROM THE POD-BEFORE-INVOICE LAW, AND ITS NON-EMPTY GUARD ──────────────────────
+//
+// `isPlatformCreditInvoiceIssued` decides whether `assertPodSigned` runs. That is CLAUDE.md's physical
+// precondition — SHUDDL will not create an invoice without a signed POD on its ledger — and the exemption
+// exists so the PLATFORM's own credit-purchase invoices, which have no freight and no POD, can be issued.
+//
+// The predicate is `Array.isArray(lines) && lines.length > 0 && lines.every(<is credit_purchase>)`, and the
+// middle clause is the whole reason `every` is safe here: **`[].every(p)` is vacuously TRUE**, so without it
+// an `invoice.issued` on the platform tenant carrying an EMPTY lines array would be exempted from the POD
+// requirement by an empty proof.
+//
+// MEASURED (§1781): deleting `lines.length > 0` leaves all 903 tests in this package GREEN. Two other
+// barriers make it unreachable today — `InvoiceIssuedPayload.lines` is `.min(1)`, and the platform tenant is
+// unreachable from every customer path — but this is the third barrier, it sits INSIDE the DO where the
+// payload arrives already parsed, and a guard whose removal is silent is one that eventually gets removed.
+describe("§1781 isPlatformCreditInvoiceIssued — an empty proof exempts nothing (REQ-123/031)", () => {
+  const PLATFORM = "_platform";
+  const credit = { kind: "credit_purchase" };
+  const freight = { kind: "freight" };
+
+  it("EMPTY lines are NOT exempt — `[].every()` is vacuously true and this is what stops it", () => {
+    expect(isPlatformCreditInvoiceIssued(PLATFORM, "invoice.issued", { lines: [] })).toBe(false);
+  });
+
+  it("a pure credit-purchase invoice on the platform tenant IS exempt (the case the carve-out exists for)", () => {
+    expect(isPlatformCreditInvoiceIssued(PLATFORM, "invoice.issued", { lines: [credit] })).toBe(true);
+    expect(isPlatformCreditInvoiceIssued(PLATFORM, "invoice.issued", { lines: [credit, credit] })).toBe(true);
+  });
+
+  it("ONE non-credit line removes the exemption — only the exact shape is carved out", () => {
+    expect(isPlatformCreditInvoiceIssued(PLATFORM, "invoice.issued", { lines: [credit, freight] })).toBe(false);
+    expect(isPlatformCreditInvoiceIssued(PLATFORM, "invoice.issued", { lines: [freight] })).toBe(false);
+  });
+
+  it("a CUSTOMER tenant is never exempt, whatever its lines say (REQ-025)", () => {
+    expect(isPlatformCreditInvoiceIssued(TENANT_SLUG, "invoice.issued", { lines: [credit] })).toBe(false);
+  });
+
+  it("a non-invoice kind is never exempt, and a malformed payload is refused rather than assumed", () => {
+    expect(isPlatformCreditInvoiceIssued(PLATFORM, "pod.signed", { lines: [credit] })).toBe(false);
+    for (const payload of [null, undefined, {}, { lines: "credit_purchase" }, { lines: [null] }, { lines: [1] }]) {
+      expect(isPlatformCreditInvoiceIssued(PLATFORM, "invoice.issued", payload), String(payload)).toBe(false);
+    }
   });
 });

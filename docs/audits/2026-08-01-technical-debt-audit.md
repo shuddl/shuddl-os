@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1227 | §1780 | **§1781** | **AN EMPTY PROOF, AND THE GUARD THAT STOPS IT EXEMPTING THE POD LAW.** §1780 ended on empty-is-restrictive-when-looking-up, permissive-when-checking-a-policy; this swept the permissive side, with every detector **positive-controlled against planted violations before its zeros were believed**. The one regex hit was FALSE (a `.length ===` inside a `.some()` comparing OID bytes, where empty makes `.some()` false and it THROWS), so the 4 real `.every(` sites and 22 `.length === 0` sites were read directly: the copilot ABSTAINS, validation returns `{ok:false}`, metrics return UNKNOWN, and an empty trust-anchor list yields **not verified, never trusted**. **The one that mattered was unpinned.** `isPlatformCreditInvoiceIssued` decides whether `assertPodSigned` runs — CLAUDE.md's physical precondition — and its predicate is `Array.isArray && length > 0 && every(is credit_purchase)`. **`[].every(p)` is vacuously TRUE**, so the middle clause is the whole guard: without it a platform invoice with an EMPTY lines array is exempted from the POD requirement **by an empty proof**. **Deleting it left all 903 package tests GREEN.** Two other barriers make it unreachable (`lines` is `.min(1)`; the platform tenant is unreachable from customer paths) but this is the third, inside the DO, past parsing. 6 cases added, mutation-proved by name. **Where `every` decides an exemption, the non-empty clause IS the guard** |
 | 1226 | §1779 | **§1780** | **EVERY CATCH IN PRODUCTION SOURCE, AND WHAT ITS FALLBACK VALUE DECIDES.** §1777 gave the rule for GATES; this is the runtime counterpart, and the class has bitten this repo before — a `{}` policy fallback that silently opened three of four gate knobs. **72 catches: 35 rethrow, 2 log, 25 return a fallback, 10 assign one. Zero fail-open.** The value-returning ones are refusals (`deny()`, `null`, `rpcError`) or `{}`/`[]` on a stored-JSON parse **where empty is the restrictive value** — a malformed `status_cache` renders as NO status (and is unreachable anyway: the projection writes via SQLite `json_set`, valid by construction), a malformed `device_keys` yields `[]` so **no device verifies**. **Two the classifier flagged are correct**: `biller/sender.ts` has an EMPTY catch body — which reads as the worst possible swallow until you see the `return` sits AFTER the try/catch, so a classifier looking only INSIDE cannot see the fallback; and watchtower assigns the raw string for an unparseable `detail`, typed `unknown`, so no caller is told an object is an object. **The historical defect re-checked, not assumed**: the sequencer now REFUSES every append on an unusable policy and the log states the counterfactual outright. **A catch is a decision about a VALUE, not about an error** — follow the value to its consumer |
 | 1225 | §1778 | **§1779** | **THE TIMEOUT EXPOSURE IS ONE PACKAGE, AND HERE IS WHY.** §1778 measured only `workers/api` — the package the merge log happened to print per-test durations for — so this measured the rest. **agents 1,983ms / billing 644ms / mcp 1,756ms / translator 1,913ms / ledger 45,912ms**, and nothing outside `workers/api` is near the 10s hook default: the ledger's total is large because it has **773 tests**, not because any fixture is heavy (its slowest file spreads 3.3s over 40 cases). Where api had a SINGLE hook consuming 9.4s and 14.4s, no other package concentrates time in setup at all. **The structural reason, recorded so the bound survives**: `workers/api` is the only package whose fixtures drive **real DO appends through the sequencer** — gates, projections and hash chain — while everywhere else setup seeds D1 rows or fakes directly. That also settles §1778's discarded proxy from the other side: the two hooks with the MOST awaits (41 and 25) live in mcp and billing and finish in **188ms and 370ms**. **What a hook awaits decides its cost; how many times it awaits decides nothing.** So the 4 hooks bounded across §1777–§1778 are the whole surface, not a sample. **Third parser in two phases written from a remembered format** — the verbose reporter is FLAT with no file summary line, so it returned zero rows across five packages; print ten lines of the real output before writing the pattern that consumes it |
 | 1224 | §1777 | **§1778** | **THE TENANT-ISOLATION SUITE WAS ~600ms FROM NOT RUNNING.** §1777 bounded one hook that timed out; this asks how many others sit near the same default — and **two proxies were wrong first**. The log's *slowest tests* list was actually FILE lines (caught because every entry read *(45 tests)*); and **awaits-per-hook is meaningless** — the two largest (41 and 25 awaits) run in **188ms and 370ms**, because they await in-memory fakes while §1777's 24 awaits were real DO appends. The right metric was already in the merge log: **file total minus the sum of per-test durations = setup time**. Result: `lens-adversarial` 14.4s (bounded), **`isolation.test.ts` 9,401ms = 94% of the 10s default**, `portal-actions` 5.4s, `pub-status` 3.8s. **The isolation suite is REQ-025 / CLAUDE.md rule 8 — the one whose failure IS a build failure — and its failure mode is not a red assertion but 69 tests SKIPPED behind `unit-tests — command exited 1`.** The suite that proves the strongest law, failing in the one way that names nothing. All three bounded at the hook with their measured numbers rather than raising `hookTimeout` package-wide. **A default is not a decision** — it is a number nobody chose, sized for a machine nobody is using |
@@ -99888,3 +99889,59 @@ including *"deleting the tenants row makes the append refuse, where it used to w
 fail-open**; 2 flagged by the classifier and cleared by reading the code around them, one because the return
 lives outside the catch; 1 historical defect of exactly this class re-verified as closed with its
 counterfactual still written at the site; 0 code changed.
+
+---
+
+## §1781 — PHASE GATE: an empty proof, and the guard that stops it exempting the POD law (REQ-123/031/030)
+
+§1780 ended on a distinction: an empty collection is **restrictive** when the consumer is looking something
+up, and **permissive** when the consumer is checking a policy. This phase swept the permissive side.
+
+### Three shapes, and a probe proved able to fire before its zeros were believed
+
+| shape | hits |
+|---|---|
+| an emptiness check that SKIPS a membership test | 1, and **false** — the `.length ===` sits inside a `.some()` comparing OID byte lengths, where an empty list makes `.some()` false and the code **throws** |
+| an empty collection returning an ALLOW verdict | 0 |
+| `.every(` in a decision position (vacuously true on empty) | 0 by regex — so the **4** real `.every(` sites and the **22** `.length === 0` sites were read directly instead |
+
+Each detector was **positive-controlled against planted violations first**; a zero from an untested probe is
+not a measurement.
+
+Read directly, every `.length === 0` return is closed: the copilot **abstains** (×3), polygon validation
+returns `{ok:false}` (×3), metrics and KPIs return **UNKNOWN** rather than a number (×3), and — the sharpest —
+an empty trust-anchor list yields `{verified:false, reason:"chain-not-configured"}`, so **no anchors means not
+verified, never trusted.**
+
+### The one that mattered, and it was unpinned
+
+`isPlatformCreditInvoiceIssued` decides whether `assertPodSigned` runs — **CLAUDE.md's physical precondition**,
+*SHUDDL will not create an invoice without a signed POD*. The carve-out exists so the platform's own
+credit-purchase invoices, which have no freight and no POD, can be issued.
+
+```
+Array.isArray(lines) && lines.length > 0 && lines.every(<is credit_purchase>)
+```
+
+The middle clause is the entire reason `every` is safe here: **`[].every(p)` is vacuously true**, so without it
+an `invoice.issued` on the platform tenant carrying an **empty lines array** would be exempted from the POD
+requirement **by an empty proof**.
+
+**Measured: deleting `lines.length > 0` leaves all 903 tests in the package GREEN.** Two other barriers make
+it unreachable today — `InvoiceIssuedPayload.lines` is `.min(1)`, and the platform tenant is unreachable from
+every customer path — but this is the third barrier, it sits **inside the DO** where the payload arrives
+already parsed, and a guard whose removal is silent is one that eventually gets removed.
+
+Six cases now pin it: empty is not exempt; a pure credit invoice is; one non-credit line removes the
+exemption; a customer tenant is never exempt; a non-invoice kind is never exempt; and six malformed payload
+shapes are refused rather than assumed. Mutation-proved — dropping the clause REDs the empty-lines case **by
+name** and nothing else.
+
+> A predicate built from `every` is an assertion about members. **On an empty set it asserts nothing and
+> returns true** — so wherever `every` decides an exemption, the non-empty clause *is* the guard, and it
+> deserves the test, not the `every`.
+
+**Phase gate.** 3 fail-open-by-emptiness shapes swept with detectors positive-controlled before their zeros
+were believed; 1 regex hit read and dismissed as false; 26 real sites read directly rather than through a
+pattern; **1 unpinned guard found on the POD-before-invoice law** — silent under 903 tests — and pinned with 6
+cases, mutation-proved by name; 0 behaviour changed.
