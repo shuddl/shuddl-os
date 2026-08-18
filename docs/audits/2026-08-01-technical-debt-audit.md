@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1236 | §1789 | **§1790** | **THE REMEDY WAS RIGHT AND THE MECHANISM WAS WRONG.** §1789 explained the delegated split as *whether the owning suite drives a real append or a recording fake*. Going to write the missing test proved that false: **`workers/agents` AND `workers/translator` both bind `SHIPMENT_SEQ` to a STUB**, each saying so in its own config header — so translator's 4 reds cannot come from a real DO either. **The actual discriminator is a TEN-LINE double**: `mirror-sweep`'s `RecordingSeq` collapses on `input.id` — modelling the DO's dedupe — and its test runs the sweep twice and asserts the count does not grow. That pattern is already REGULATED by §1376's collapsing-doubles gate. The six blind ones split by reason: four have no owning-suite test of the append path (workers/api is their owning suite in practice, as `watchtower-cron.test.ts`'s header says outright), and **watchtower needs no DO at all** — its dedupe is a D1 `ON CONFLICT(id)` upsert, making it the cheapest and the one worth writing. **A remedy sentence carries a mechanism whether you write one or not**: *needs a real DO* and *its double needs to model the dedupe* are the same words about WHAT to do and opposite about what it COSTS. Third time this session a strong remedial claim was refuted by reading its own subject |
 | 1235 | §1788 | **§1789** | **ALL NINE MEASURED — AND THE ROW'S POPULATION WAS OVER-BROAD BY THREE.** The last four measured, closing the filed row at **9 of 9**. **Delegated (own suite blind):** biller 0·2, booking 0·3, concierge 0·6, interline-split 0·2, sla-sweep 0·1, **watchtower 0·21 — the largest**. **NOT delegated:** mirror-sweep **1·0**, translator inbound **4·0**, billing credits **4·0** — each with a case named for the property (*deterministic ids dedupe at the DO*; *a REDELIVERED 204 … DO dedupe-by-id*; *the ledger dedups by the deterministic event id*). **The row says their own suite CANNOT see them; for three of nine that is false** — and the difference is not capability but whether the owning suite drives a real append or a recording fake, which changes the remedy: the six blind ones need the test the other three already wrote, not a different architecture. **The largest case is an alarm key, not an event id**: watchtower's `ON CONFLICT(id)` key reds 21 in `workers/api` (escalation by count and by age, orphan-POD surfacing, re-raise/self-clear) because alarms are asserted where they are READ — §1788's wrong-seam lesson holding on the last module |
 | 1234 | §1787 | **§1788** | **TWO MORE DELEGATED GUARANTEES — AND THE PROCEDURE MEASURES NOTHING IF YOU STARVE THE WRONG SEAM.** `interline-split`: **0 of 155 · 2 of 908** (the split append and its redelivery idempotence — money outcomes inside the DO's batch). Fourth measurement, same direction: **0/2, 0/3, 0/6, 0/2**. **`sla-sweep` measured TWICE**, and the contrast corrects the row's own procedure: starving the note's EVENT ID reds **0 · 0** — which reads as *uncovered* and is not, because re-append is prevented by `OVERDUE_SQL`'s anti-join on the **body_ref**, making the id redundant here. Starving the body_ref reds **0 · 1** (*IDEMPOTENT + SELF-CLEARING — a second run appends ZERO*). **A 0/0 means the WRONG SEAM was starved, not that the behaviour is uncovered, and the two are indistinguishable from the number alone.** Had I stopped at the first result this phase would have published a module as unmeasured-with-zero-coverage — the phantom work the row's own header warns about. Row moves **3 of 9 → 5 of 9**, procedure refined in place; four remain (watchtower, mirror-sweep, translator inbound, platform-ledger) |
 | 1233 | §1786 | **§1787** | **THE CONCIERGE'S GUARANTEE IS DELEGATED, AND ITS OWN SUITE SEES NONE OF IT.** §1786 found the residue of the 38 is where actionable work lives, and one row is **assurance-owned with its procedure written out**: *starve one of its loaders, run the owning suite AND workers/api, record both numbers*. Nine modules append through the sequencer DO from outside `workers/api`; two were measured (`biller` 0/2, `booking` 0/3). **Third measured**: starving `conciergeEventId`'s determinism reds **0 of 155 in `workers/agents` and 6 of 908 in `workers/api`** — the largest split in the class. The six name themselves: IDEMPOTENCY (auto-reply), IDEMPOTENCY (queued), both SEND-FAILURE cases, and the two REQ-059/178 fast-path re-render pins — **every one a redelivery property, and redelivery dedupe belongs to the DO.** Three measurements, one direction: **0/2, 0/3, 0/6** — the owning suite has never seen one of these guarantees. Recorded at the point of use as the row requires, with *do not read a green `workers/agents` as coverage of this line*; the row moves 2 of 9 → 3 of 9. **Tax, third phase running**: an 11-line insert rotted **7 citations** across 4 files, repointed by a uniform +11 — an ANCHORED citation survives being wrong long enough to be fixed mechanically |
@@ -100392,10 +100393,16 @@ are DELEGATED and **their own suite cannot see them**."*
 204 (same ISA) → still one shipment … DO dedupe-by-id"*, *"a re-emitted sale commits NOTHING more (the ledger
 dedups by the deterministic event id)"*.
 
-> **The difference is not capability — it is whether the owning suite drives a real append or a recording
-> fake.** "Cannot see" reads as structural and is actually a testing choice, which matters because it changes
-> the remedy: the six blind ones do not need a different architecture, they need the test the other three
-> already wrote.
+> **The difference is not capability — it is a testing choice.** "Cannot see" reads as structural and is not,
+> which matters because it changes the remedy: the six blind ones do not need a different architecture, they
+> need the test the other three already wrote.
+
+**MECHANISM CORRECTED AT §1790.** The sentence above first read *"whether the owning suite drives a real
+append or a **recording fake**"* — measured false: **`workers/agents` and `workers/translator` BOTH bind
+`SHIPMENT_SEQ` to a stub**, so translator's four reds cannot come from a real DO either. The actual
+discriminator is narrower and more useful: **does the suite's double model the DO's dedupe (collapse on
+`input.id`), and does a test assert that a second run appends nothing?** `mirror-sweep`'s `RecordingSeq` does
+exactly that, in ten lines. See §1790.
 
 ### The largest case is an alarm key, not an event id
 
@@ -100414,3 +100421,67 @@ use, including `mirror-sweep`'s, which says outright that the row's wording is f
 called nine modules blind and **three of them are not**, with the named cases quoted as evidence; 1 remedy
 reframed from architecture to testing choice; the largest split in the class found at **0 vs 21**, on an
 `ON CONFLICT` key rather than an event id; 2 headers corrected at the point of use; 0 behaviour changed.
+
+---
+
+## §1790 — PHASE GATE: the remedy was right and the mechanism was wrong (REQ-118/119/025)
+
+§1789 closed the delegated-guarantee row at 9 of 9 and explained the split as *"whether the owning suite
+drives a real append or a recording fake."* Going to write the missing test proved that sentence false — by
+reading the harness that would have to change.
+
+### Both harnesses stub the DO
+
+`workers/agents/vitest.config.ts`, in its own words: *"wrangler.toml binds `SHIPMENT_SEQ` cross-script to the
+api worker … miniflare refuses to start if that service does not exist in the test runtime, so a **STUB**
+auxiliary worker satisfies the binding here."* `workers/translator/vitest.config.ts` says the same thing,
+nearly verbatim.
+
+So translator's **4 reds cannot come from a real DO** — neither package has one. The explanation was wrong.
+
+### What actually separates the three that see from the six that do not
+
+`mirror-sweep`'s test double, in full:
+
+```ts
+class RecordingSeq implements SeqStubLike {
+  private readonly seen = new Set<string>();
+  async append(req) {
+    this.calls += 1;                                  // §1373 — calls, not rows
+    if (this.seen.has(input.id)) return { id: input.id };   // ← the DO's dedupe, MODELLED
+    this.seen.add(input.id); this.appended.push(...);
+  }
+}
+```
+
+**Ten lines that model the DO's dedupe, plus a test that runs the sweep twice and asserts the count does not
+grow.** That is the entire difference. It is also already governed: §1376's `collapsing-doubles` gate requires
+*every test double that collapses repeats to be declared, with the key it collapses on* — so the pattern is
+not only available, it is regulated.
+
+The six that are blind are blind for two different reasons, and the distinction decides the work:
+
+- **biller, booking, concierge, interline-split** — no owning-suite test of the append path at all; `workers/api`
+  is their owning suite in practice, and the header of `watchtower-cron.test.ts` says so explicitly for its own
+  module: *"the per-module BEHAVIOR is proven in `workers/api/test/watchtower.test.ts` … This file pins the
+  WIRING."*
+- **watchtower** — does not append through the seq at all. Its dedupe is a D1 `ON CONFLICT(id)` upsert, which
+  needs **no** DO to assert; that one is a plainly missing test, and the cheapest of the six.
+
+### The correction, and what survives it
+
+§1789's **remedy** stands and is strengthened: a test, not an architecture. Its **mechanism** was wrong, and
+the wrong mechanism pointed at the expensive fix (give the package a real DO — which the harness header says
+breaks isolated-storage rollback) instead of the ten-line one.
+
+> **A remedy sentence carries a mechanism whether you write one or not.** "They need a real DO" and "their
+> double needs to model the dedupe" are the same words at the level of *what to do* and opposite at the level
+> of *what it costs* — and the second is only visible if you open the file you are proposing to change.
+
+Third time this session a strong remedial claim of mine has been refuted by reading its own subject.
+
+**Phase gate.** 1 mechanism claim from the previous phase measured **false** against the two harness configs
+that both say STUB in their own headers; §1789 corrected in place; the real discriminator identified as a
+**ten-line collapsing double plus one assertion**, already regulated by an existing gate; the six blind
+modules split into *no owning-suite test* (4) and *needs no DO at all* (1 — watchtower's `ON CONFLICT`), which
+is the one worth writing; 0 behaviour changed.
