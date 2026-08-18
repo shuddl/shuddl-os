@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1229 | §1782 | **§1783** | **THE FALLBACK-VALUE LAW, SWEPT ACROSS EVERY FORM IT TAKES.** `??` is the largest syntax for *what value survives when the expected one does not* — **125 occurrences**, of which **19** reach a decision. All nineteen read directly, **0 fail-open**: `match ?? FAIL_CLOSED_STATE` (the sentinel is NAMED for it), `?? NO_ENTITLEMENTS` (grants nothing), `row[c] ?? null` into NOT NULL columns (a LOUD abort, §1767), `(meta.changes ?? 0) === 1` (absent ⇒ 0 ⇒ not updated), `citations ?? []` → abstain, `?? 0` on split weights (a party with no weight gets nothing). **One polarity worth a sentence**: the watchtower sorts an unknown severity **last** (least alarming) — the open direction for an alerting surface, unreachable only because `anomalies.severity` carries a DB CHECK; recorded, not changed, since it is a sort order and the constraint was NAMED rather than assumed. **THE LAW IS NOW CLOSED ACROSS 5 FORMS AND 92 SITES**: 35 catch fallbacks, 22 `length === 0` returns, 4 `every`, 12 `some`, 19 `??` — **one finding, and it was a missing TEST rather than a missing guard.** The law is not *handle the error*; it is **choose the value that survives and check which way it pushes the next comparison** |
 | 1228 | §1781 | **§1782** | **THE DUAL: `[].some()` IS FALSE, AND EVERY USE IS IN THE SAFE POLARITY.** §1781 closed `every` (empty ⇒ TRUE, dangerous deciding an EXEMPTION); its dual is `some` (empty ⇒ FALSE, dangerous deciding a DENIAL — `if (list.some(isBad)) reject()` lets an empty list mean nothing to reject). **All 12 production sites read directly**: 9 are `!prior.some(kind) → missing.push` (no evidence ⇒ BLOCKED), 2 assign a positive fact then throw on its absence, 2 are membership checks where empty ⇒ not-verified. **Zero in the denial polarity** — structural, not lucky: this repo writes gates as lists of REQUIRED EVIDENCE, so `some` is almost always under a `!` feeding `missing`. **The safe polarity is the idiom.** One site had already BEEN the instance: the appointment gate's `?? []` + `some` + `if (!open) throw` carries a FALSIFY recipe naming the mutation, the test it reds, and *"Before that test: 23/23 green."* **The class is now closed across 73 sites in 4 forms** — 35 catch-fallbacks, 22 `length === 0` returns, 4 `every`, 12 `some` — with **one** finding total, and it was a missing TEST rather than a missing guard. Polarity is decided by the verb the collection answers: a list of REQUIREMENTS is safe under `some`, a list of PROHIBITIONS is not |
 | 1227 | §1780 | **§1781** | **AN EMPTY PROOF, AND THE GUARD THAT STOPS IT EXEMPTING THE POD LAW.** §1780 ended on empty-is-restrictive-when-looking-up, permissive-when-checking-a-policy; this swept the permissive side, with every detector **positive-controlled against planted violations before its zeros were believed**. The one regex hit was FALSE (a `.length ===` inside a `.some()` comparing OID bytes, where empty makes `.some()` false and it THROWS), so the 4 real `.every(` sites and 22 `.length === 0` sites were read directly: the copilot ABSTAINS, validation returns `{ok:false}`, metrics return UNKNOWN, and an empty trust-anchor list yields **not verified, never trusted**. **The one that mattered was unpinned.** `isPlatformCreditInvoiceIssued` decides whether `assertPodSigned` runs — CLAUDE.md's physical precondition — and its predicate is `Array.isArray && length > 0 && every(is credit_purchase)`. **`[].every(p)` is vacuously TRUE**, so the middle clause is the whole guard: without it a platform invoice with an EMPTY lines array is exempted from the POD requirement **by an empty proof**. **Deleting it left all 903 package tests GREEN.** Two other barriers make it unreachable (`lines` is `.min(1)`; the platform tenant is unreachable from customer paths) but this is the third, inside the DO, past parsing. 6 cases added, mutation-proved by name. **Where `every` decides an exemption, the non-empty clause IS the guard** |
 | 1226 | §1779 | **§1780** | **EVERY CATCH IN PRODUCTION SOURCE, AND WHAT ITS FALLBACK VALUE DECIDES.** §1777 gave the rule for GATES; this is the runtime counterpart, and the class has bitten this repo before — a `{}` policy fallback that silently opened three of four gate knobs. **72 catches: 35 rethrow, 2 log, 25 return a fallback, 10 assign one. Zero fail-open.** The value-returning ones are refusals (`deny()`, `null`, `rpcError`) or `{}`/`[]` on a stored-JSON parse **where empty is the restrictive value** — a malformed `status_cache` renders as NO status (and is unreachable anyway: the projection writes via SQLite `json_set`, valid by construction), a malformed `device_keys` yields `[]` so **no device verifies**. **Two the classifier flagged are correct**: `biller/sender.ts` has an EMPTY catch body — which reads as the worst possible swallow until you see the `return` sits AFTER the try/catch, so a classifier looking only INSIDE cannot see the fallback; and watchtower assigns the raw string for an unparseable `detail`, typed `unknown`, so no caller is told an object is an object. **The historical defect re-checked, not assumed**: the sequencer now REFUSES every append on an unusable policy and the log states the counterfactual outright. **A catch is a decision about a VALUE, not about an error** — follow the value to its consumer |
@@ -100003,3 +100004,57 @@ One defect-shaped finding in 73 sites, and it was a *missing test* rather than a
 the structural reason recorded so the negative is re-derivable; 1 site found already carrying its own FALSIFY
 recipe and the "23/23 green before" measurement; the empty-collection class closed across 73 sites in 4 forms
 with a single finding, already fixed; 0 code changed.
+
+---
+
+## §1783 — PHASE GATE: the fallback-value law, swept across every form it takes (REQ-030/118)
+
+`catch` was one syntax for "what value survives when the expected one does not." `??` is another, and it is
+the largest: **125 occurrences** in production source. Nineteen sit on a line that also branches or compares —
+the ones whose fallback reaches a decision.
+
+**All nineteen read directly. Every one is fail-closed or neutral:**
+
+| fallback | sites | why it is the closed direction |
+|---|---|---|
+| `match ?? FAIL_CLOSED_STATE` | 1 | the sentinel is *named* for it — an unresolvable jurisdiction is `XX` |
+| `?? NO_ENTITLEMENTS` | 1 | an unread entitlement cache grants **nothing** |
+| `row[c] ?? null` into `NOT NULL` columns | 1 | an absent value becomes a **loud abort**, never a silent default (§1767) |
+| `(res.meta.changes ?? 0) === 1` / `> 0` | 2 | an absent row count is **0**, so "updated" is false and `settled` reports honestly |
+| `citations ?? []` → `length === 0 → abstain()` | 1 | no grounding ⇒ the copilot **refuses to answer** |
+| `?? 0` on split weights and shares | 3 | a party with no recorded weight receives **nothing** |
+| accumulator/index/nullish plumbing | 10 | no decision rides on them |
+
+### The one whose polarity is worth a sentence
+
+`watchtower.ts` sorts alarms by `SEVERITY_RANK[a.severity] ?? 9` — an **unknown severity sorts last**, i.e.
+least alarming. That is the open direction for an alerting surface. It is unreachable today: `anomalies.severity`
+carries a DB `CHECK (severity IN ('info','warn','critical'))`, so an unknown value cannot be stored. **Recorded
+rather than changed** — it is a sort order, not a gate, and its safety rests on a constraint that
+§1770 already enumerated as present.
+
+### The law, and its bound
+
+Across §1780–§1783 the fallback-value question has now been asked in every syntactic form it takes here:
+
+| form | sites | fail-open |
+|---|---|---|
+| `catch` returning or assigning | 35 | 0 |
+| `.length === 0 → return` | 22 | 0 |
+| `.every(` deciding | 4 | **1** — a missing test, pinned §1781 |
+| `.some(` deciding | 12 | 0 |
+| `??` reaching a decision | 19 | 0 |
+| **total** | **92** | **1** |
+
+**One finding in ninety-two sites, and it was a missing test rather than a missing guard.** That is a
+measured statement about a constitutional property, not an impression — and it is worth writing down at this
+size precisely so the next loop does not re-derive it.
+
+> The law is not *"handle the error"* — it is **"choose the value that survives, and check which way it pushes
+> the next comparison."** Every one of these 92 sites is a place someone had to make that choice; 91 of them
+> record it in the value itself, and the 92nd recorded it in a clause that nothing tested.
+
+**Phase gate.** 125 `??` occurrences narrowed to the 19 that reach a decision and all read directly; **0
+fail-open**; 1 polarity noted as open-direction-but-unreachable, with the constraint that makes it unreachable
+named rather than assumed; the fallback-value law closed across **5 forms and 92 sites with a single
+finding**; 0 code changed.
