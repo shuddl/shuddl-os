@@ -176,7 +176,9 @@ describe("REQ-116/I8 §1767: no production INSERT silently takes a scalar column
     const grep = execSync(
       "git grep -n -E 'INSERT( OR (IGNORE|ABORT|FAIL))? INTO ' -- " +
         "'packages/**/*.ts' 'workers/**/*.ts' 'tools/**/*.ts' " +
-        // `tools/checks/**` is EXCLUDED because those files QUOTE SQL rather than execute it — the
+        // `tools/checks/**` is EXCLUDED because those files QUOTE SQL rather than execute it. KEPT after
+        // §1774 generalised the rule to "no `.prepare(`, no execution", which subsumes it — a gate that
+        // both quotes SQL and holds a D1 handle would otherwise be judged on its detection patterns. The
         // append-chokepoint scanner carries `INSERT INTO events` inside a detection pattern. Scanning a
         // scanner is the classic semantic false positive, and it has a permanent floor: any gate that reads
         // SQL will contain SQL. The exclusion is by DIRECTORY, which is exactly the set that never holds a
@@ -191,6 +193,16 @@ describe("REQ-116/I8 §1767: no production INSERT silently takes a scalar column
       const stmt = line.slice(line.indexOf(":", at + 1) + 1);
       const table = /INSERT(?: OR \w+)? INTO (\w+)/.exec(stmt)?.[1];
       if (table === undefined) continue;
+      // A FILE THAT CANNOT PREPARE A STATEMENT CANNOT EXECUTE ONE (§1774). The first version of this gate
+      // excluded `tools/checks/**` by directory, on the true-but-narrow premise that scanners quote SQL. The
+      // class is larger than that directory: `tools/acceptance/demos.ts` names an INSERT INTO the pairings
+      // table in a PROSE field explaining that nothing performs it, and this gate read the sentence as the
+      // deed. The discriminator is not where the file lives but whether it can run SQL at all — no
+      // `.prepare(`, no execution, so INSERT-shaped text in it is prose. Checked per FILE, not per line,
+      // because the statement and its prepare are routinely far apart (the Collector hoists its SQL to
+      // module scope).
+      const body = readFileSync(`${root}/${file}`, "utf8");
+      if (!body.includes(".prepare(")) continue;
       const wanted = defaulted.filter((d) => d.table === table);
       if (wanted.length === 0) continue;
       const cols = insertColumns(readFileSync(`${root}/${file}`, "utf8"), stmt);

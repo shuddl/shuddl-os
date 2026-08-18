@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1220 | §1773 | **§1774** | **THREE DEMOS DISCLOSED THEIR BLOCKERS, TWO DID NOT.** `demos.ts` and `acceptance-demos.md` are what someone reads BEFORE filming, and both carry a hard-won discipline: demo 1 warns the *+ photos* half does not ship (§178), demo 2 that there is **no signup surface** (§237), demo 3 that there is **no driver login** (§196) — each ending *do not stage the missing thing to make the film match the sentence.* **Demos 4 and 5 carry no such note in either file, and both have blockers.** Demo 4: §1773's finding — nothing creates the `pairings` row it authenticates against, and the manifest's *"per-pairing caps provisioned"* bullet reads as a CONFIGURATION step, hiding that the row has no shipped provisioner (the sharpest form of the gap: a line that mentions the thing while implying it exists). Demo 5: REQ-075's self-hosted tiles have not landed, filed on the checklist as BLOCKS GO-LIVE — **the dim behaviour is ours and is asserted; the basemap under it is rented** — and nothing a reader of the demo files could learn. **Same shape §237 named for demo 2**, one demo over, surviving because the checklist row is true and the demo file is silent rather than wrong. Both notes added to BOTH files in the idiom they already establish. **A disclosure discipline applied to three of five will be trusted on all five** — silence reads as *nothing to declare*, not *not checked*. 0 behaviour changed |
 | 1219 | §1772 | **§1773** | **THE PROVISIONER MINTS THREE OF FOUR CONTROL-PLANE TABLES.** §1770 noted in passing that `pairings` has zero production writers. Pulled on: the control plane has FOUR tables and `provisionTenant` mints **three** in one atomic batch — `tenants` (claiming a pool slot), the admin `users` row, `usage_credits` — and **stops one table short**. The only `INSERT INTO pairings` in the tree are TEST FIXTURES. MCP `/register` does not fill the gap: a client registers **against an existing active pairing**, and `authenticateClient` refuses an absent or non-active row — correctly fail-closed, which is exactly why the row must already be there. **Consequence: acceptance demo 4 (*a booking placed from Claude via MCP*) cannot be performed on a freshly-provisioned tenant**, and no runbook documents the manual INSERT — while the checklist's own caps row tells an operator to set `caps` on every mcp pairing, presupposing they exist. Wider than MCP: `webhook` and `edi` pairings sit in the same table and the EDI 204 seam authenticates off `secret_ref`. **Blocks the demo, not the build** — nothing is broken, a step is unwritten. Filed with two exits (document the INSERT, or build a provisioning path — the latter is NEW SCOPE needing a REQ row) and neither taken. **The new doc loop caught this phase's own two mistakes in seconds** — a §1773 reference before the section existed, and a 10-cell row under a 5-column header |
 | 1218 | §1771 | **§1772** | **THE DOC LOOP, COMPLETED — 3 SUITES BECAME 10, AND ONE PROBE THAT LIED.** §1771's rule applied to the whole corpus: **128 suites** classified by which fast loop should own them. A textual classifier returned 26 candidates and was **wrong on its face** — it listed `repo-root` and `money-halfup-parity` as documentation gates, because the "names source" pattern missed their backtick-template reads. Re-asked behaviourally (what does each actually READ?), **7 doc-subject suites added**: checklist-symbols, cited-scripts-exist, wp-blocker-staleness, wp-exit-audit, phase-index, ledger-status-vocabulary, absolute-paths. **The inclusion rule is not "reads a doc" but "the violation is AUTHORED in a document"** — so checklist-symbols qualifies despite reading source (it reads one side and COMPUTES the other), while `evidence-expiry` is excluded because it can red for a SOURCE reason during a docs-only edit, which is the noise failure that gets a loop ignored. **The probe that lied**: planting `thisSymbolDoesNotExistAnywhere()` returned exit 0 — read straight, "the new gate does not work". False: the detector matches a backticked **camelCase identifier** and the trailing parens put the probe outside its shape. **Read the detector's pattern before believing its silence.** Re-planted correctly → exit 1, and a broken phase-index pointer → exit 1, both through the COMPOSED command. Doc loop now ~4.5s |
 | 1217 | §1770 | **§1771** | **THE FAST LOOP FOR DOCS COULD NOT SEE THE DOC GATES.** §1770 ended on a discipline observation — the board-citation ratchet fired **3× this session, always while writing a summary**, always surfacing late inside a ten-minute merge run. It is a **wiring** problem, and it is measurable: `verify:docs` runs four SCRIPTS, while the doc-scoped gates that live as vitest SUITES under `tools/checks/` are reachable only through the full `test:tools`. Planted the exact violation that caught §1769 — **verify:docs exit 0, the ratchet exit 1**. The gate that keeps catching my docs was structurally unreachable from the command I run on my docs, which is how one firing got mis-filed for a whole phase as a runner flake. **Why it was invisible**: §838's dev-loop-parity accounts for pnpm SCRIPTS, and every tools suite sits inside the single `unit-tests` merge gate — fully accounted for at merge time, absent from every loop that would catch it in time. **Coverage of a gate is not reachability of a gate at the moment the mistake is made.** Fixed: `check:doc-suites` (board-citation-ratchet + audit-record-floor + citation-blank-line) wired into `verify:docs` for **271ms**, mutation-proved BOTH ways through the composed command. **The general rule**: ask of every gate not only whether it is in the merge roster but **which fast loop it is in, and whether that is the loop someone runs while making the mistake it catches** |
@@ -99448,3 +99449,70 @@ enumerated and 3 found provisioned by one atomic batch that stops one short; the
 across three source trees with test fixtures excluded; 1 acceptance demo's unwritten prerequisite named, with
 the two adjacent seams (`webhook`, `edi`) included; filed with both exits and neither taken; 2 gates caught
 this phase's own mistakes in seconds rather than at merge.
+
+---
+
+## §1774 — PHASE GATE: three demos disclosed their blockers, two did not (REQ-119/075/105)
+
+`tools/acceptance/demos.ts` and `docs/wp/acceptance-demos.md` are the two places someone reads **before
+filming an acceptance demo**. Both carry a hard-won discipline: demo 1 warns that the "+ photos" half does not
+ship (§178), demo 2 that there is no signup surface (§237), demo 3 that there is no driver login and no real
+custody pair (§196). Each note ends the same way — *do not stage the missing thing to make the film match the
+sentence.*
+
+**Demos 4 and 5 carry no such note in either file.** Both have blockers.
+
+### Demo 4 — the blocker §1773 measured
+
+Nothing in the shipped code creates the `pairings` row the MCP demo authenticates against. The manifest's
+filmed-delta bullet says *"per-pairing caps provisioned"*, which reads as a **configuration** step and hides
+that **the row itself has no shipped provisioner**. That is the sharpest form of this disclosure gap: a line
+that mentions the thing while implying it exists.
+
+### Demo 5 — a blocker filed on the checklist and nowhere near the demo
+
+REQ-075's self-hosted Protomaps vectors have not landed; the style points at a third-party endpoint, filed in
+the checklist as **blocks go-live** with the stand-in recorded beside it. **The dim behaviour is ours and is
+asserted; the basemap under it is rented.** Nothing a reader of the demo files could learn.
+
+That is exactly the shape §237 named for demo 2 — *"the absence is disclosed elsewhere ONLY as a browser-test
+gap, which is why it reads as a coverage limitation rather than the filming blocker it is."* Same fault, one
+demo over, and it survived because the checklist row is true and the demo file is silent rather than wrong.
+
+### What landed
+
+The two prerequisite notes, written in the file's own established idiom (`⚠ PREREQUISITE — … (audit §NNN)`,
+the consequence, and what may not be staged), added to **both** the module and the manifest so the two cannot
+disagree. No behaviour changed and no demo status changed: what changed is that a reader of either file now
+learns the blocker from the file they are actually reading.
+
+> **A disclosure discipline applied to three of five is a discipline that will be trusted on all five.** The
+> silent entries are read as *nothing to declare*, not as *not checked* — which is why the gap is worse than
+> having no notes at all.
+
+### The phase's own note tripped the gate the phase before last built
+
+Writing *"the only `INSERT INTO pairings` statements in the tree are test fixtures"* into `demos.ts` made
+§1767's defaulted-column gate red: it read the **sentence** as the **deed**. §1767 had already met this shape
+once and excluded `tools/checks/**` by directory, on the true-but-narrow premise that *scanners quote SQL*.
+The class is larger than that directory — a prose field in an acceptance manifest quotes SQL too.
+
+Generalised rather than exempted: **a file with no `.prepare(` cannot execute a statement**, so INSERT-shaped
+text in it is prose. Checked per FILE (not per line — the Collector hoists its SQL far from its prepare), and
+the directory exclusion is kept, now subsumed, so a gate that both quotes SQL *and* holds a D1 handle is not
+judged on its own detection patterns.
+
+Re-proved in both directions, which is the part that matters when loosening a gate: a planted **executing**
+INSERT omitting `created_ts` still fails by name, and the prose mention no longer does.
+
+> **Exempting the instance you have is how a gate narrows to nothing.** The second false positive is the
+> signal to ask what the two share — here, *quotes SQL without running it* — and key the rule on that.
+
+A second, smaller repeat: the edit was first attempted with a `re.subn` whose replacement contained `\w`,
+which Python parses as an escape **in the replacement**. It threw before the write, so the file was untouched
+and the failing test stayed failing — a loud no-op rather than a silent one.
+
+**Phase gate.** 2 of 5 acceptance demos found undisclosed in both the module and the manifest; 1 blocker
+supplied from §1773's own measurement, 1 traced to a checklist row that never reached the demo files; 2 notes
+added in each of 2 files, following the idiom the file already established rather than inventing one; 11
+acceptance-manifest tests green; 0 behaviour changed, 0 demo status changed.

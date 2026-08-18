@@ -101,7 +101,18 @@ export const DEMOS: readonly Demo[] = [
     spine: [{ pkg: "@shuddl/mcp", file: "test/quote-book.test.ts" }],
     filmed:
       "the REAL Claude-via-MCP booking against the full DO-backed api (a deferred STAGING smoke). The spine " +
-      "proves the exact verb set + the no-bypass invariant over a recording-fake api seam.",
+      "proves the exact verb set + the no-bypass invariant over a recording-fake api seam. " +
+      "PREREQUISITE (audit §1773): NOTHING IN THE SHIPPED CODE CREATES THE `pairings` ROW THIS DEMO " +
+      "AUTHENTICATES AGAINST. The control plane has four tables and `provisionTenant` mints THREE in one " +
+      "atomic batch (tenants / users / usage_credits) — it stops one table short, and the only " +
+      "`INSERT INTO pairings` statements in the tree are test fixtures. MCP `/register` does not fill the " +
+      "gap: a client registers AGAINST an existing active `mcp` pairing, and authenticateClient refuses an " +
+      "absent or non-active row (correctly fail-closed — which is exactly why the row must already exist). " +
+      "No runbook documents the manual control-plane INSERT, while GO-LIVE-CHECKLIST's `Per-pairing caps " +
+      "provisioning` row instructs an operator to set caps on every mcp pairing, presupposing they exist. " +
+      "So this demo cannot be run on a freshly-provisioned tenant. Film it only after the pairing (and its " +
+      "REQ-105 caps) is provisioned, and say in the record that provisioning was manual — an operator " +
+      "hand-inserting a control-plane row off camera is the same fault as staging photos into demo 1.",
     browser: null, // full-DO cross-worker booking is not in-repo browser-drivable — integration spine + filmed.
   },
   {
@@ -115,7 +126,14 @@ export const DEMOS: readonly Demo[] = [
     filmed:
       "the VISUAL capture: the greige world dropping to 35% around the one pulsing coral mark. The spine " +
       "proves the real exception→board status AND the world-dim wiring; the browser layer proves the " +
-      "world-dim FIRES/LIFTS in a real browser (the behavioral half the screenshot diff doesn't cover).",
+      "world-dim FIRES/LIFTS in a real browser (the behavioral half the screenshot diff doesn't cover). " +
+      "PREREQUISITE (audit §1773): THE GREIGE WORLD IS NOT OURS YET. REQ-075's self-hosted Protomaps " +
+      "vectors on R2 have not landed, and the style currently points at a third-party endpoint " +
+      "(GO-LIVE-CHECKLIST §2, `Self-hosted Protomaps vectors on R2` — filed as BLOCKS GO-LIVE, with the " +
+      "third-party stand-in recorded beside it). The dim behaviour is ours and is asserted; the basemap " +
+      "under it is rented. Film this demo knowing the ground is a stand-in — or land the R2 self-host " +
+      "first. This note exists because the blocker is filed on the checklist and NOWHERE in this file, " +
+      "which is the same disclosure gap §237 named for demo 2.",
     browser: null, // deferred: the real-browser world-dim on/off spec (the behavioral half the screenshot diff misses) is the documented next in-repo increment (manifest §Browser layer).
   },
 ];
