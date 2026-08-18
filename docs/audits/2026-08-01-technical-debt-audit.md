@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1238 | §1791 | **§1792** | **THE SECOND-CHEAPEST CLOSURE — AND A TEST THAT ASSERTED NOTHING UNTIL REWRITTEN.** `sla-sweep`'s load-bearing seam is its note's **body_ref** (§1788), the key `OVERDUE_SQL`'s anti-join uses — pure SQL, no DO needed, exactly like §1791's watchtower. **Closed: starving it now reds `workers/agents` 1 of 159 where it red 0 of 155.** **But the first version passed with the producer starved**: it seeded the note with a HAND-WRITTEN key and asserted the sweep appended nothing — asserting that *the query works against a key I typed*, not that producer and query AGREE. Rewritten as a **round-trip** (capture what the sweep writes, seed THAT, re-sweep with a double that throws), which reds under the exact mutation the first version survived. **A fixture that restates the value under test cannot detect the drift it exists to detect — never type the key, make the producer hand it to you.** Two diagnostics earned their cost: an `INSERT OR IGNORE` silently wrote nothing (`NOT NULL … prev_hash`) until OR IGNORE was dropped, and a direct `COUNT(*)` on the join located the failure in one step. **2 of 6 closed, both D1-enforced**; the other four dedupe at the sequencer this package only stubs |
 | 1237 | §1790 | **§1791** | **THE CHEAPEST OF THE SIX, CLOSED — 0 of 155 BECOMES 2 of 157.** §1790 sorted the six blind modules by what their blindness COSTS to fix and named the cheapest: watchtower does not append through the sequencer at all, its dedupe is a plain D1 `ON CONFLICT(id)` upsert, and four of its five rules never touch `seq` — so asserting it needs **no Durable Object**. Two cases added to the owning package: the **key's determinism** (same inputs ⇒ same id; different scope/rule/tenant ⇒ different — if this stops holding every alarm row multiplies per tick) and **three sweeps leave the same row count as one**, with a non-vacuity floor ahead of it so a sweep that raises nothing cannot pass. Mutation-proved: starving the key now reds **2 of 157 in `workers/agents`** where it red **0 of 155**, `workers/api` unchanged at 21. **Sorting a backlog by what the fix COSTS beats sorting by severity** — all six read identically in the filed row, and only opening each harness showed five need a DO they lack while one needed ten lines and a `COUNT(*)` |
 | 1236 | §1789 | **§1790** | **THE REMEDY WAS RIGHT AND THE MECHANISM WAS WRONG.** §1789 explained the delegated split as *whether the owning suite drives a real append or a recording fake*. Going to write the missing test proved that false: **`workers/agents` AND `workers/translator` both bind `SHIPMENT_SEQ` to a STUB**, each saying so in its own config header — so translator's 4 reds cannot come from a real DO either. **The actual discriminator is a TEN-LINE double**: `mirror-sweep`'s `RecordingSeq` collapses on `input.id` — modelling the DO's dedupe — and its test runs the sweep twice and asserts the count does not grow. That pattern is already REGULATED by §1376's collapsing-doubles gate. The six blind ones split by reason: four have no owning-suite test of the append path (workers/api is their owning suite in practice, as `watchtower-cron.test.ts`'s header says outright), and **watchtower needs no DO at all** — its dedupe is a D1 `ON CONFLICT(id)` upsert, making it the cheapest and the one worth writing. **A remedy sentence carries a mechanism whether you write one or not**: *needs a real DO* and *its double needs to model the dedupe* are the same words about WHAT to do and opposite about what it COSTS. Third time this session a strong remedial claim was refuted by reading its own subject |
 | 1235 | §1788 | **§1789** | **ALL NINE MEASURED — AND THE ROW'S POPULATION WAS OVER-BROAD BY THREE.** The last four measured, closing the filed row at **9 of 9**. **Delegated (own suite blind):** biller 0·2, booking 0·3, concierge 0·6, interline-split 0·2, sla-sweep 0·1, **watchtower 0·21 — the largest**. **NOT delegated:** mirror-sweep **1·0**, translator inbound **4·0**, billing credits **4·0** — each with a case named for the property (*deterministic ids dedupe at the DO*; *a REDELIVERED 204 … DO dedupe-by-id*; *the ledger dedups by the deterministic event id*). **The row says their own suite CANNOT see them; for three of nine that is false** — and the difference is not capability but whether the owning suite drives a real append or a recording fake, which changes the remedy: the six blind ones need the test the other three already wrote, not a different architecture. **The largest case is an alarm key, not an event id**: watchtower's `ON CONFLICT(id)` key reds 21 in `workers/api` (escalation by count and by age, orphan-POD surfacing, re-raise/self-clear) because alarms are asserted where they are READ — §1788's wrong-seam lesson holding on the last module |
@@ -100533,3 +100534,50 @@ than the loudest; 2 cases added — one pinning the key's determinism directly, 
 non-vacuity floor ahead of it; mutation-proved **0 of 155 → 2 of 157** in the owning package, with the api
 count unchanged; the header updated at the point of use so the next reader finds the number beside the code;
 0 behaviour changed.
+
+---
+
+## §1792 — PHASE GATE: the second-cheapest closure, and a test that asserted nothing until it was rewritten (REQ-095/118)
+
+§1791 closed the watchtower on the grounds that its dedupe is D1-only. `sla-sweep` is the same shape:
+§1788 measured its load-bearing seam as the note's **body_ref** — the key `OVERDUE_SQL`'s `NOT EXISTS`
+anti-join uses — which is pure SQL and needs no Durable Object either.
+
+**Closed: starving the body_ref now reds `workers/agents` 1 of 159, where it red 0 of 155.**
+
+### The first version passed with the producer starved
+
+The first test seeded the note row with a **hand-written** `concierge-sla-overdue/<id>` string and asserted
+the sweep then appended nothing. It passed — and it **still passed with the producer mutated**, because
+nothing in it connected the string the producer writes to the string the query looks for. It asserted that
+*the query works against a key I typed*, which is not the property.
+
+Rewritten as a **round-trip**: run the sweep with a capturing double, take the `body_ref` it actually wrote,
+seed *that* as the note, re-sweep with a double that throws if called. Now a producer/query drift appends on
+the second sweep and fails by name.
+
+> **A fixture that restates the value under test cannot detect the drift it exists to detect.** §912 states
+> this as a rule for a value written twice; the practical form is: *never type the key — make the code that
+> produces it hand it to you.*
+
+### Two diagnostics that were worth their cost
+
+- The fixture's `INSERT OR IGNORE INTO events` **silently wrote nothing** (`NOT NULL constraint failed:
+  events.prev_hash`). Dropping `OR IGNORE` surfaced it in one run. A fixture that swallows its own write
+  failure produces a test that measures the empty set — the same asymmetry as a gate reporting clean on an
+  empty corpus.
+- Before that, a direct `COUNT(*)` on the join answered *"is the fixture even joined?"* — `{"m":1,"e":0}`
+  located the failure at the event insert rather than in the anti-join, in one step instead of three guesses.
+
+### Where the six now stand
+
+Two of six closed on the cheap side (watchtower `ON CONFLICT`, sla-sweep anti-join) — both because their
+guarantee is enforced in **D1**, not in the DO. The remaining four (biller, booking, concierge,
+interline-split) all dedupe **at the sequencer**, which this package only stubs; `workers/api` is their owning
+suite in practice.
+
+**Phase gate.** 1 more of the six closed, and the cost ordering §1790 proposed confirmed by execution rather
+than estimate — the D1-enforced ones are cheap, the DO-enforced ones are not; **1 test found asserting nothing
+and rewritten as a producer→query round-trip**, re-proved to red under the mutation that the first version
+survived; 2 fixture faults located by diagnostics rather than guesses, one of them an `OR IGNORE` swallowing
+its own constraint failure; agents suite 155 → 159 cases; 0 behaviour changed.

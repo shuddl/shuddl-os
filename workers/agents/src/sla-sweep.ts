@@ -132,7 +132,9 @@ async function overdueSignalId(inboundEventId: string): Promise<string> {
 // The overdue note's DETERMINISTIC body_ref — the SELF-CLEARING key (OVERDUE_SQL excludes an inbound once a
 // note with this body_ref is on its stream). One canonical shape, referenced by both the append and the SQL.
 function overdueBodyRef(inboundEventId: string): string {
-  // MEASURED (§1788), AND THE CONTRAST IS THE POINT. Two seams were starved:
+  // MEASURED (§1788), AND THE CONTRAST IS THE POINT. §1792 then closed the agents-side gap with a
+  // PRODUCER→QUERY ROUND-TRIP (capture what the sweep writes, seed it, re-sweep): starving this now reds
+  // `workers/agents` 1 of 159 as well. Two seams were starved:
   //
   //   the note's EVENT ID  → workers/agents 0 of 155 · workers/api 0 of 908   ← redundant here
   //   this BODY_REF        → workers/agents 0 of 155 · workers/api 1 of 908   ← the load-bearing seam
