@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1217 | §1770 | **§1771** | **THE FAST LOOP FOR DOCS COULD NOT SEE THE DOC GATES.** §1770 ended on a discipline observation — the board-citation ratchet fired **3× this session, always while writing a summary**, always surfacing late inside a ten-minute merge run. It is a **wiring** problem, and it is measurable: `verify:docs` runs four SCRIPTS, while the doc-scoped gates that live as vitest SUITES under `tools/checks/` are reachable only through the full `test:tools`. Planted the exact violation that caught §1769 — **verify:docs exit 0, the ratchet exit 1**. The gate that keeps catching my docs was structurally unreachable from the command I run on my docs, which is how one firing got mis-filed for a whole phase as a runner flake. **Why it was invisible**: §838's dev-loop-parity accounts for pnpm SCRIPTS, and every tools suite sits inside the single `unit-tests` merge gate — fully accounted for at merge time, absent from every loop that would catch it in time. **Coverage of a gate is not reachability of a gate at the moment the mistake is made.** Fixed: `check:doc-suites` (board-citation-ratchet + audit-record-floor + citation-blank-line) wired into `verify:docs` for **271ms**, mutation-proved BOTH ways through the composed command. **The general rule**: ask of every gate not only whether it is in the merge roster but **which fast loop it is in, and whether that is the loop someone runs while making the mistake it catches** |
 | 1216 | §1769 | **§1770** | **THE §1769 CLASS, SWEPT — ONE MEMBER, AND THE PROPERTY THAT MAKES IT ONE.** §1769's hazard was a COMPOSITION (free-text column + exact-match gate + permissive no-match), so this counted the class: every TEXT column with no CHECK against every production comparison gating on it. **15 columns carry a CHECK**; the rest are free text. A free-text decision column bites only when BOTH hold — **the value is INPUT-FED** and **the reader's no-match direction is PERMISSIVE**. Measured: **`tenants.plan` is the ONLY one fed by a request input**; every other is written by projections/sweeps from code literals, where a typo is a compile-visible constant. `pairings.status` fails DENY at all three readers; the status columns have no caller-derived writers (`assets`/`pairings` have no production writer at all). **§1769 is a singleton and the class is now closed with its bound stated.** **The lead that looked like a second member**: oauth.ts selects `secret_ref` with NO status column — but `authenticateClient` calls `resolveActiveMcpPairing` FIRST, so an absent column in a SELECT does not prove an absent check. **Discipline note**: the NEWEST status column (`documents.retention_status`, 0007) has a CHECK and the five originals do not — safe only because their writers are literals; recorded, not acted on. **Probe fault**: five columns reported byte-identical 34-site hit lists — when N subjects report identical evidence the probe is keyed on what they SHARE, and identical counts are the cheapest tell. 0 code changed |
 | 1215 | §1768 | **§1769** | **THE UNAUDITED-FILE LIST, EXHAUSTED — AND THE METHOD CORRECTED.** §1765's list was too generous: re-measuring the 28 unnamed files by whether ANY test references them gives **22 covered, 6 real residue** — two are §1766's migrations, three are non-production, one was worth a full read. **Unnamed means the audit never needed a section, not that nobody looked**; rank by unnamed AND unexercised. **The one worth reading** — `0002_platform_tenant.sql` — makes three "by construction" claims and **all three are real code with tests on them** (`assertNotPlatformTenant`; a Zod DNS-label regex that rejects `_pool_0N`; RESERVED_PLANS), a clean negative. **What it surfaced**: `tenants.plan` is unconstrained TEXT while the SAME migration gives `users.role` and `pairings.kind` CHECKs — the third constraint-stops-one-column-short instance this session. `ProvisionInput.plan` takes any 40-char string; `resolveSparkPlan` matches `'spark'` exactly and its no-match direction is UNCAPPED **by design**. Neither half is a defect; **the composition means a provisioning typo ('Spark', 'spark ') silently un-meters AI credits forever with nothing logged** — revenue, never truth, and operator-only reachable. **Pinned, not fixed** (which plans exist is a pricing decision): a case variant, a padded variant, and a byte-exact positive control on the identical fixture, plus a checklist row with three ways out. 0 behaviour changed |
 | 1214 | §1767 | **§1768** | **WHAT THE WORKERS WRITE TO STDOUT — THE SURFACE THE IDENTITY LINT CANNOT SEE.** `workers/api/src/log.ts` off §1765's unaudited list, five lines, leading to the better question: **REQ-167's lint scans repo artifacts and cannot see runtime output**, which crosses the trust boundary. Measured before building: **97 console sites — 19 static, 77 ids/slugs only, 1 keyword hit that is a SWEEP name**. Zero logs carry a value identifying anyone, and the discipline is visible: the Biller logs *"bill-to party <id> has no contact email"* — the gap and the id, never the address. Two adjacent surfaces clean too: of **115** ApiError sites exactly one interpolates, echoing the CALLER'S OWN input, and `translateAppendError` maps the DO's code to a FIXED message, discarding its `reason` detail. **The ratchet's term list is the lesson**: `name` was in the first draft, produced exactly one hit, and that hit was a FALSE POSITIVE — removed, so the gate's first real firing is not a false alarm. Built from the corpus, not from vocabulary. Four assertions: the rule, a corpus floor, a TWO-SIDED positive control (fires on a synthetic leak, silent on the id-only shape the code uses), and a pin that `logEvent` still has exactly ONE caller — "acceptable because it is a single site of known shape" stops being true at two. Mutation-proved by name. 0 behaviour changed |
@@ -99258,3 +99259,65 @@ the free-text ones; every free-text decision column classified on 2 stated prope
 already filed at §1769**, so the class is closed with its bound written down; 1 strong lead (an OAuth path
 selecting no `status`) chased and found **safe at the caller**; 1 discipline gap recorded and deliberately not
 acted on; 1 probe fault caught by identical hit lists; 0 code changed.
+
+---
+
+## §1771 — PHASE GATE: the fast loop for docs could not see the doc gates (REQ-118/119)
+
+§1770 ended on an observation about myself: the board-citation ratchet has fired **three times this session,
+always while writing a summary**, and each time it surfaced late — inside a ten-minute `verify:merge`, never
+inside the check actually run before a docs commit. That reads like a discipline problem. It is a **wiring**
+problem, and it is measurable.
+
+### The measurement
+
+`verify:docs` runs four scripts: `check:citations`, `check:section-refs`, `check:traceability`,
+`check:tables`. The doc-scoped gates that live as **vitest suites** under `tools/checks/` are in none of them —
+they are reachable only through `test:tools`, i.e. through the full merge run.
+
+Planted the exact violation that caught §1769 (a board verdict quoted with no commit named):
+
+```
+verify:docs                  exit 0     ← blind
+board-citation-ratchet       exit 1     ← catches it
+```
+
+**The gate that keeps catching my docs was structurally unreachable from the command I run on my docs.** Three
+firings, all late, one of them mis-filed for a whole phase as a runner flake (§1769 → §1770).
+
+### Why this was invisible
+
+`dev-loop-parity.test.ts` (§838) already exists to stop exactly this — it compares `gatesFor("merge")` against
+the `verify:dev` chain and demands a written reason for every absence. It accounts for **pnpm scripts**. Every
+tools *suite* sits inside the single `unit-tests` merge gate, so from that gate's point of view all of them are
+covered — and they are, for merge. What no accounting covered is whether a **fast loop is complete for its own
+subject**.
+
+> A gate can be fully accounted for at merge time and still be absent from every loop that would catch it in
+> time to matter. Coverage of a gate is not the same question as **reachability of a gate at the moment the
+> mistake is made.**
+
+### The fix
+
+`check:doc-suites` — the three suites whose subject is a document — wired into `verify:docs`:
+
+| suite | what it holds |
+|---|---|
+| `board-citation-ratchet` | a cited board verdict names the commit it was measured at (§1452) |
+| `audit-record-floor` | the record cannot shrink (§1635) |
+| `citation-blank-line` | a `path:line` citation that lands on a blank line has moved (§886) |
+
+**Cost: 271ms.** Mutation-proved both ways through `verify:docs` itself, not through the suites: a
+commit-less board citation → exit 1; a truncated audit record → exit 1; the clean tree → exit 0.
+
+### The general shape, for the next gate
+
+Ask of every gate not just *is it in the merge roster* but **which fast loop is it in, and is that the loop
+someone runs while making the mistake it catches?** A doc gate belongs in the doc loop; a chokepoint gate
+belongs in the dev loop (which is what §837 found the hard way). Merge-only reachability turns a gate from a
+guardrail into a post-mortem.
+
+**Phase gate.** 1 recurring failure re-read as a wiring defect rather than a discipline one, after 3 firings
+and 1 mis-diagnosis; the blindness demonstrated by planting the exact violation (verify:docs 0, the gate 1); 3
+doc-subject suites wired into the doc loop for 271ms; 2 mutations REDing through the composed command; 1,525
+tools tests green; the fast loop for documents is now complete for its own subject.
