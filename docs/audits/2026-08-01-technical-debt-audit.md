@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1230 | §1783 | **§1784** | **STOPPING POINT — §1760–§1783 in one place.** 24 phases, **25 commits**, ending at `bed7af7`; the tree holds 12 modified files, **none of them mine** (all the concurrent workstream's). **Board: 21 PASS · 0 FAIL · 5 BLOCKED at `bed7af7`, 5,181 tests**; the five BLOCKED are unchanged and all external. **Verified with populations, not impressions**: the COMMITTED tree passes 12 of 13 static gates twice over (the 1 divergence is the owner's register row, unchanged across 15 commits); **0 of 15** external-tool gates can report clean on a dead tool; the fallback-value law is **1 finding in 92 sites across 5 forms**; runtime logs leak **0** across 97 console + 115 ApiError sites; 47 defaulted columns yielded 1 real hazard, floored; free-text decision columns yielded **1 member**, filed; and §1507's class, declared closed at **3**, was really **15**. **Changed**: 4 hooks bounded (incl. the tenant-isolation suite at **94%** of its default), a fail-closed retention floor, 3 new ratchets, and a doc loop that grew 4 scripts → 4 + 10 suites and has since caught 4 of this loop's own mistakes in seconds. **Open is owner-held only** — REQ-289, the private fixtures, the CI disposition, `tenants.plan` (a PRICING decision), and pairing provisioning (demo 4 cannot run on a fresh tenant). **Nothing repo-owned is open.** 5 reopen triggers written as conditions a gate will ANNOUNCE rather than things someone must remember |
 | 1229 | §1782 | **§1783** | **THE FALLBACK-VALUE LAW, SWEPT ACROSS EVERY FORM IT TAKES.** `??` is the largest syntax for *what value survives when the expected one does not* — **125 occurrences**, of which **19** reach a decision. All nineteen read directly, **0 fail-open**: `match ?? FAIL_CLOSED_STATE` (the sentinel is NAMED for it), `?? NO_ENTITLEMENTS` (grants nothing), `row[c] ?? null` into NOT NULL columns (a LOUD abort, §1767), `(meta.changes ?? 0) === 1` (absent ⇒ 0 ⇒ not updated), `citations ?? []` → abstain, `?? 0` on split weights (a party with no weight gets nothing). **One polarity worth a sentence**: the watchtower sorts an unknown severity **last** (least alarming) — the open direction for an alerting surface, unreachable only because `anomalies.severity` carries a DB CHECK; recorded, not changed, since it is a sort order and the constraint was NAMED rather than assumed. **THE LAW IS NOW CLOSED ACROSS 5 FORMS AND 92 SITES**: 35 catch fallbacks, 22 `length === 0` returns, 4 `every`, 12 `some`, 19 `??` — **one finding, and it was a missing TEST rather than a missing guard.** The law is not *handle the error*; it is **choose the value that survives and check which way it pushes the next comparison** |
 | 1228 | §1781 | **§1782** | **THE DUAL: `[].some()` IS FALSE, AND EVERY USE IS IN THE SAFE POLARITY.** §1781 closed `every` (empty ⇒ TRUE, dangerous deciding an EXEMPTION); its dual is `some` (empty ⇒ FALSE, dangerous deciding a DENIAL — `if (list.some(isBad)) reject()` lets an empty list mean nothing to reject). **All 12 production sites read directly**: 9 are `!prior.some(kind) → missing.push` (no evidence ⇒ BLOCKED), 2 assign a positive fact then throw on its absence, 2 are membership checks where empty ⇒ not-verified. **Zero in the denial polarity** — structural, not lucky: this repo writes gates as lists of REQUIRED EVIDENCE, so `some` is almost always under a `!` feeding `missing`. **The safe polarity is the idiom.** One site had already BEEN the instance: the appointment gate's `?? []` + `some` + `if (!open) throw` carries a FALSIFY recipe naming the mutation, the test it reds, and *"Before that test: 23/23 green."* **The class is now closed across 73 sites in 4 forms** — 35 catch-fallbacks, 22 `length === 0` returns, 4 `every`, 12 `some` — with **one** finding total, and it was a missing TEST rather than a missing guard. Polarity is decided by the verb the collection answers: a list of REQUIREMENTS is safe under `some`, a list of PROHIBITIONS is not |
 | 1227 | §1780 | **§1781** | **AN EMPTY PROOF, AND THE GUARD THAT STOPS IT EXEMPTING THE POD LAW.** §1780 ended on empty-is-restrictive-when-looking-up, permissive-when-checking-a-policy; this swept the permissive side, with every detector **positive-controlled against planted violations before its zeros were believed**. The one regex hit was FALSE (a `.length ===` inside a `.some()` comparing OID bytes, where empty makes `.some()` false and it THROWS), so the 4 real `.every(` sites and 22 `.length === 0` sites were read directly: the copilot ABSTAINS, validation returns `{ok:false}`, metrics return UNKNOWN, and an empty trust-anchor list yields **not verified, never trusted**. **The one that mattered was unpinned.** `isPlatformCreditInvoiceIssued` decides whether `assertPodSigned` runs — CLAUDE.md's physical precondition — and its predicate is `Array.isArray && length > 0 && every(is credit_purchase)`. **`[].every(p)` is vacuously TRUE**, so the middle clause is the whole guard: without it a platform invoice with an EMPTY lines array is exempted from the POD requirement **by an empty proof**. **Deleting it left all 903 package tests GREEN.** Two other barriers make it unreachable (`lines` is `.min(1)`; the platform tenant is unreachable from customer paths) but this is the third, inside the DO, past parsing. 6 cases added, mutation-proved by name. **Where `every` decides an exemption, the non-empty clause IS the guard** |
@@ -100058,3 +100059,69 @@ size precisely so the next loop does not re-derive it.
 fail-open**; 1 polarity noted as open-direction-but-unreachable, with the constraint that makes it unreachable
 named rather than assumed; the fallback-value law closed across **5 forms and 92 sites with a single
 finding**; 0 code changed.
+
+---
+
+## §1784 — PHASE GATE / STOPPING POINT: what §1760–§1783 verified, changed, and left open
+
+Twenty-four phases, **25 commits**, ending at `bed7af7`. The working tree holds **12 modified files, none of
+them mine** — every one belongs to the concurrent GTM/driver workstream (`apps/**`, `genesis/09`,
+`tools/seed/load.ts`, `tools/traceability/*`), untouched throughout by the standing rule to stage by explicit
+path only.
+
+### The board
+
+**21 PASS · 0 FAIL · 5 BLOCKED at `bed7af7`**, `5,181` passing tests. The five BLOCKED are unchanged and all
+external: the identity denylist (a secret), and four gates on engagement-workspace fixtures that this repo
+does not check out.
+
+### What was verified — with the numbers, because a verification without one is an impression
+
+| property | scope measured | result |
+|---|---|---|
+| does the **committed** tree pass? | 13 static gates, twice (§1761, §1776) | 12 agree; the 1 divergence is the owner's uncommitted register row, unchanged across 15 commits |
+| can a broken tool make a gate report clean? | 134 spawners → 15 external-tool | **0 fail-open**; 3 distinct fail-closed mechanisms named |
+| the **fallback-value law** | 92 sites across 5 syntactic forms | **1 finding**, and it was a missing *test* |
+| runtime logs vs REQ-167 | 97 `console.*` + 115 `ApiError` sites | **0 leaks**; the property now held by a gate |
+| column DEFAULTs that decide | 47 defaulted columns × every production INSERT | 1 real (`created_ts`), floored; 5 implicit choices written down |
+| free-text columns compared exactly | every `TEXT` column with no `CHECK` | **1 member** (`tenants.plan`), filed; the property that bounds it stated |
+| `.ts`-only gate corpora | the class §1507 declared closed at 3 | **15**, all widened |
+
+### What changed in the product
+
+Four hooks bounded (§1777/§1778) — including the **tenant-isolation suite at 94% of its default timeout**; a
+fail-closed floor on the retention sweep's unknown clock (§1766); the `messages.direction` and
+defaulted-column ratchets (§1765/§1767); the log-PII ratchet (§1768); and the doc loop, which went from 4
+scripts to 4 scripts + 10 suites (§1771/§1772) and has since caught four of this loop's own mistakes in
+seconds rather than at merge.
+
+### What is open, and whose it is
+
+**Owner-held, unchanged:** the REQ-289 register row (the sole committed-tree gate divergence); the five
+private fixtures; the CI disposition for `PREREQ_BLOCKED`; `tenants.plan`'s missing constraint (a **pricing**
+decision, §1769); and pairing provisioning — **acceptance demo 4 cannot run on a freshly-provisioned tenant**
+and no runbook documents the manual INSERT (§1773), now disclosed in both demo files (§1774).
+
+**Nothing repo-owned is open.** Every finding this stretch produced was either fixed in the same phase or
+filed with both exits and the reason an audit may not pick between them.
+
+### Reopen triggers
+
+- a `unit-tests` failure whose log names a suite **other than** a citation ratchet or a hook timeout — the
+  three seen this stretch all had those two causes
+- any new gate whose corpus is built with a call other than `git ls-files`, `globSync` or `git grep` — the
+  §1507 detector enumerates those three by name
+- a second arbitrary-text logger (the `logEvent` caller-count pin fails, §1768)
+- `anomalies.severity` losing its `CHECK` — the watchtower's unknown-severity sort would become reachable
+  (§1783)
+- a fourth writer of `messages`, or a new INSERT omitting a scalar defaulted column — both ratchets fail by
+  name
+
+*(And the doc loop caught this section too: it was first headed `STOPPING POINT`, and `phase-index` failed
+because the index may only point at sections headed `PHASE GATE`. A fifth catch, in seconds — the wiring from
+§1771 continuing to pay.)*
+
+**Phase gate.** 25 commits; 1 board measured at its commit; 7 properties verified with their populations
+stated; 4 product hooks bounded and 3 ratchets added; 5 owner-held items enumerated with the reason each is
+not an audit's to close; 5 reopen triggers written as conditions a gate or a log line will announce, not as
+things someone must remember to check.
