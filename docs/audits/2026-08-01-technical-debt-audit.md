@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1252 | §1805 | **§1806** | **THE EDGE RULE'S PATHSPEC IS A GATE, AND IT NAMES TWO OF THE THREE UNAUTHENTICATED PREFIXES.** The record carries two per-IP edge-rate-limit rows — REQ-193 on `/pub/*`, REQ-125 on `/pub/signup`. Enumerating all 46 api route literals against the only auth middleware (`app.use("/v1/*", auth)`) gives **three** unauthenticated prefixes: the four `/pub/*` routes, and **`/internal/platform/*`**, which appears in neither row and returns ZERO hits across `docs/ops/`. It is internet-reachable — prod is `pattern = "api.shuddl.tech/*"`, every path on the hostname. **The in-Worker gate is good** (fail-closed 503 when unbound, 403 with no dark-vs-mismatch oracle, length-checked XOR accumulation, 2-kind allowlist, fixed tenant sentinel) — but constant-time comparison defeats TIMING, never GUESSES, and bounding attempts is the one thing no Worker gate can do. **The fix is stronger and free**: the sole legitimate caller is the billing worker over a SERVICE BINDING (`platform-ledger.ts:83@fetch`, synthetic `.internal` origin), which never traverses an edge route — so nothing legitimate arrives via the public hostname and the rule is **BLOCK, not throttle**. **A pathspec is a gate written by hand in another system**: enumerate the prefixes from the router and diff, because the gap is invisible in either artifact read alone. Also the 5th time this loop a "finding" was already in the record — the rate limiter itself is REQ-193/125 and `PROJECT-STATE.md:379`. 1 deploy-note row filed, 0 code changed |
 | 1251 | §1804 | **§1805** | **TWO DISCIPLINES FOR TENANT-SCOPED BYTES, AND EACH IS CORRECT FOR ITS OWN CASE.** §1804's asymmetry probe pointed at R2 access: do all four paths touching a tenant's objects use the shared `isTenantEvidenceKey` guard? **Three do** — the cap-gated public serve, the Biller's POD proof, and the retention delete sweep all VALIDATE a key that already exists. **`import.ts` does not, and is right**: it CONSTRUCTS the key from the session tenant, so an answer other than this tenant's namespace is unrepresentable. **The distinction is the INPUT, not the endpoint** — the first three receive a key (from a signed cap claim or a documents row) and must ask whether it belongs; the fourth receives a client FRAGMENT and never asks. Construct-from-session is the stronger discipline wherever available, because validation can be forgotten at a new call site and construction cannot. **The traversal question asked and answered**: R2 keys are a flat namespace with no path resolution, so `tenant-a/imports/../tenant-b/x` is a literal key matching nothing — and the fragment is bounded by `.max(MAX_R2_KEY)` anyway. **Two correct answers to one problem is not drift**: ask whether the INPUTS differ before asking why the code does |
 | 1250 | §1803 | **§1804** | **TWO ENDPOINTS, ONE CONSTRAINT, ONE SOLUTION — USED ONCE.** §1803's rule applied to the other external ingress points: **4 of 5 bounded in both senses** (EDI 204; `/pub/quote` with every field `.max()`-bounded and 32 accessorials; `/v1/evidence` with a 10 MiB declared-size fast 413 then a capped read; `/pub/signup`), and **the Stripe webhook bounded in NEITHER by the app**. **The finding is an asymmetry, not an absence**: the webhook and the 204 endpoint face the SAME constraint — the HMAC is over the exact raw bytes, so the body must be read before the signature can be checked, and reading-before-verifying is correct in both. The translator solved the consequence (refuse a declared Content-Length over 1 MiB **without reading the stream**, re-check byteLength after as the belt, 413 with nothing written); the webhook does `await request.text()` with **no app-level cap**, on a route unauthenticated by construction. **One solution to one constraint exists in this repo and the sibling endpoint does not use it** — so the fix is a paste, not a design, which is why the absence is worth filing. Filed with both exits and neither taken: an audit may not pick on a money path, where a wrongly-sized cap drops a real Stripe event |
 | 1249 | §1802 | **§1803** | **THE EDI INGRESS IS BOUNDED THREE TIMES, AND ONLY THE THIRD BOUND LIMITS WORK.** A product surface untouched this session: `packages/edi`, the one place partner-supplied bytes enter. Record checked first — the filed per-row-subrequest rows name the delivery sweep, the collector, the import route and the KPI reads, **not the 204 path** — so this is new coverage. **Three bounds, two kinds**: the HTTP ingress caps the body at **1 MiB** (413, and the declared Content-Length is checked before the body is read); the EDI envelope caps at 5 MB with a 200-char ISA scan limit and a literal-separator `split` (*linear… bounded against a hostile/huge/looping document* — no regex backtracking); and **the consumer reduces the stops array with two `.find()` calls**. The first two bound BYTES. **Only the third bounds WORK** — a 1 MiB tender can carry ~25,000 stop segments and the mapper turns all of them into exactly TWO address entries, so there is no per-stop row, no per-stop subrequest, and no input that reaches the ceiling the import route and the sweeps are filed against. Outbound inverts safely: `build-214.ts` DOES iterate stops, but that array is our own status view built from our own legs. **A byte cap is not a work cap** — follow the input to the thing that SCALES with it |
@@ -101252,3 +101253,72 @@ and the divergence is correct** — the input differs, a key versus a client fra
 raised and closed on R2's flat namespace rather than assumed away, with the fragment's length bound named; 1
 distinction recorded so the next reader does not "fix" the exception into a weaker uniformity; 0 findings, 0
 code changed.
+
+---
+
+## §1806 — PHASE GATE: the edge rule's pathspec is a gate, and it names two of the three unauthenticated prefixes (REQ-123/125/193)
+
+§1805 asked whether four R2 paths shared a discipline. The same question, asked of the *perimeter*: the record
+carries two per-IP edge-rate-limit rows — REQ-193 on `/pub/*` and REQ-125 on `/pub/signup`. **Is `/pub/*` the
+whole unauthenticated surface?**
+
+### First: the rate-limit question itself is already filed, and I nearly re-derived it
+
+`grep` for a rate limiter in `workers/*/src` returns nothing, which reads as an unfiled launch gap. It is not:
+REQ-193 and REQ-125 are register rows, both appear in `GO-LIVE-CHECKLIST.md`, and `PROJECT-STATE.md:379` names
+them as unprovisioned. *Search the record before the code* — the fifth time this loop that a "finding" was a
+verdict the record already held. What follows is the part it did **not** hold.
+
+### The measured surface
+
+Every path literal in the api worker, by prefix — `app.use("/v1/*", auth)` is the only auth middleware, so
+anything outside `/v1/*` is unauthenticated in the JWT sense:
+
+| prefix | count | covered by the planned rules? |
+|---|---|---|
+| `/v1/*` | 40 | n/a — authenticated |
+| `/pub/*` (`status/:cap`, `signup`, `quote`, `documents/:cap`) | 4 | **yes** |
+| **`/internal/platform/*`** (`credit-append`, `credit-settle`) | **2** | **no — named in neither row** |
+
+`grep` for `/internal/` across `docs/ops/` returns **zero**. The third prefix is absent from the perimeter
+plan entirely.
+
+### Is it reachable from the internet? Yes
+
+`workers/api/wrangler.toml` prod: `pattern = "api.shuddl.tech/*"` — every path on that hostname, `/internal/`
+included. The service binding is *a* caller, not a *restriction*.
+
+### The in-Worker gate is not the problem — it is good
+
+`internalGate` (`internal-platform.ts:41@internalGate`) is fail-closed in every direction: 503 when the secret
+is unbound (DARK by default), 403 on missing-or-mismatched with no oracle separating the two, a
+length-checked XOR accumulation rather than an early-returning compare, an allowlist of exactly two event
+kinds, and a fixed tenant sentinel that is never client-supplied.
+
+**But constant-time comparison defeats timing analysis; it does not bound GUESSES.** Nothing in the Worker
+can — bounding attempts is what an edge rule is for, and this path has none planned.
+
+### The fix is stronger than the one the other two rows ask for, and free
+
+The seam's only legitimate caller is the billing worker, and it calls **over a service binding**:
+
+```ts
+const API_ORIGIN = "https://shuddl-api.internal";   // platform-ledger.ts:33
+const res = await this.api.fetch(new Request(new URL(path, API_ORIGIN), { … }));   // :83
+```
+
+A service-binding dispatch does not traverse an edge route. **No legitimate request to `/internal/platform/*`
+ever arrives via the public hostname** — so the right rule is **BLOCK**, not throttle. A throttle would leave
+a permitted trickle at a path where the correct volume is zero.
+
+> **A pathspec is a gate, and it is written by hand in a different system.** The two existing rows are correct
+> about what they name; the defect is the *set*. When a perimeter control is specified as a prefix, enumerate
+> the prefixes from the router and diff — the mistake is invisible in both artifacts read alone, and it will be
+> made by whoever provisions the rule from the checklist, not by anyone reading the code.
+
+**Phase gate.** 46 api route literals enumerated and classified against the only auth middleware; **3
+unauthenticated prefixes found where the perimeter plan names 2**; internet-reachability confirmed from the
+prod route pattern rather than assumed; the in-Worker gate read and found correct in 5 respects, with the
+precise thing it *cannot* do named (bound attempts); the sole legitimate caller traced to a service binding,
+which is what makes BLOCK available instead of throttle; **1 finding filed** as a GO-LIVE deploy-note row
+beside the two rows it completes. 0 code changed — the gap is in a deploy artifact, not in the Worker.
