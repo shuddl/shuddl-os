@@ -2,6 +2,7 @@ import { env } from "cloudflare:test";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import type { LedgerEvent } from "@shuddl/contracts";
 import worker, { runWatchtower } from "../src/index.js";
+import { runWatchtowerSweep, watchtowerAlarmId } from "../src/watchtower.js";
 import { applyAll, seedEvent } from "./helpers.js";
 
 // WP-15 Task 8 (REQ-008) — the parity_drift auto-fallback CRON WRAPPER contract. The per-module BEHAVIOR is proven
@@ -114,5 +115,51 @@ describe("REQ-008 — parity_drift auto-fallback cron wrapper", () => {
       getSpy.mockRestore();
       errSpy.mockRestore();
     }
+  });
+});
+
+// ── §1791 — THE UPSERT DEDUPE, ASSERTED WHERE IT COSTS NOTHING TO ASSERT ────────────────────────────────
+//
+// §1789 measured this module as the LARGEST delegated split in its class: starving `watchtowerAlarmId` reds
+// **0 of 155 here** and **21 of 908 in `workers/api`**. §1790 then found why that framing was only half
+// right — four of the six blind modules append through a DO this package only STUBS, but the watchtower is
+// different: **its dedupe is a plain D1 `ON CONFLICT(id)` upsert, and needs no Durable Object at all.**
+//
+// So this was a missing test rather than a structural limit, and it is the cheapest of the six. The rule
+// under test is the one the sweep's own docstring states: *"Idempotent + SELF-CLEARING: safe to call every
+// cron tick — a re-sweep of the same state upserts the same rows."* Four of the five rules never touch the
+// sequencer (only `parity_drift` does), so the whole property is reachable from this harness.
+describe("§1791 REQ-035/008 — a re-sweep upserts, it does not accumulate (the ON CONFLICT key, in this package)", () => {
+  const countAlarms = async (): Promise<number> => {
+    const r = await env.TENANT_A_DB.prepare("SELECT COUNT(*) AS n FROM anomalies").first<{ n: number }>();
+    return r?.n ?? -1;
+  };
+
+  it("the alarm id is deterministic in its inputs — the property the upsert key rests on", () => {
+    // Cheap, and it is the half a behavioural test cannot localise: same inputs ⇒ same key, different scope
+    // or object ⇒ different key. If this ever stops holding, every alarm row multiplies per tick.
+    expect(watchtowerAlarmId("t", "unbilled")).toBe(watchtowerAlarmId("t", "unbilled"));
+    expect(watchtowerAlarmId("t", "unbilled", { scope: "a" })).not.toBe(watchtowerAlarmId("t", "unbilled", { scope: "b" }));
+    expect(watchtowerAlarmId("t", "unbilled")).not.toBe(watchtowerAlarmId("t", "floor_breach"));
+    expect(watchtowerAlarmId("t1", "unbilled")).not.toBe(watchtowerAlarmId("t2", "unbilled"));
+  });
+
+  it("THREE sweeps of the same state leave the SAME number of anomalies rows as one", async () => {
+    // Seed a condition the upsert-only rules will raise on: a native/legacy divergence is parity_drift's,
+    // so use a plain unbilled/pricing shape that needs no seq at all.
+    await seedRating("native", 900_000);
+    await seedRating("legacy", 100_000);
+
+    await runWatchtowerSweep(env.TENANT_A_DB, "tenant-a", 1_000, {});
+    const afterOne = await countAlarms();
+    expect(afterOne, "the sweep must RAISE something, or this test proves nothing (non-vacuity)").toBeGreaterThan(0);
+
+    await runWatchtowerSweep(env.TENANT_A_DB, "tenant-a", 2_000, {});
+    await runWatchtowerSweep(env.TENANT_A_DB, "tenant-a", 3_000, {});
+    expect(
+      await countAlarms(),
+      "a re-sweep of the SAME state must UPSERT, not accumulate — a non-deterministic alarm id makes every " +
+        "cron tick add a row, and this package is where that regression is cheapest to catch",
+    ).toBe(afterOne);
   });
 });

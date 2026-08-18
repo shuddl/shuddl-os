@@ -143,8 +143,8 @@ export function watchtowerAlarmId(tenant: string, rule: string, opts?: { scope?:
   const objectTag = opts?.object !== undefined ? `:${opts.object}` : "";
   // MEASURED (§1789) — the LARGEST delegated split in the class. Making this id non-deterministic (it is the
   // `ON CONFLICT(id)` key that keeps exactly one alarm row per rule+scope) reds `workers/agents` **0 of 155**
-  // and `workers/api` **21 of 908`. The re-raise/self-clear behaviour is asserted where the alarms are read,
-  // not where they are written, so a green owning suite is not coverage of this line.
+  // and `workers/api` **21 of 908`. §1791 closed that gap where it was cheapest: this dedupe is a plain D1
+  // upsert and needs no DO, so `watchtower-cron.test.ts` now asserts it in THIS package too.
   return `watchtower:${rule}:${tenant}${scopeTag}${objectTag}`;
 }
 
