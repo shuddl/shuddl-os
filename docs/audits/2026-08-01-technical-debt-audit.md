@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1219 | §1772 | **§1773** | **THE PROVISIONER MINTS THREE OF FOUR CONTROL-PLANE TABLES.** §1770 noted in passing that `pairings` has zero production writers. Pulled on: the control plane has FOUR tables and `provisionTenant` mints **three** in one atomic batch — `tenants` (claiming a pool slot), the admin `users` row, `usage_credits` — and **stops one table short**. The only `INSERT INTO pairings` in the tree are TEST FIXTURES. MCP `/register` does not fill the gap: a client registers **against an existing active pairing**, and `authenticateClient` refuses an absent or non-active row — correctly fail-closed, which is exactly why the row must already be there. **Consequence: acceptance demo 4 (*a booking placed from Claude via MCP*) cannot be performed on a freshly-provisioned tenant**, and no runbook documents the manual INSERT — while the checklist's own caps row tells an operator to set `caps` on every mcp pairing, presupposing they exist. Wider than MCP: `webhook` and `edi` pairings sit in the same table and the EDI 204 seam authenticates off `secret_ref`. **Blocks the demo, not the build** — nothing is broken, a step is unwritten. Filed with two exits (document the INSERT, or build a provisioning path — the latter is NEW SCOPE needing a REQ row) and neither taken. **The new doc loop caught this phase's own two mistakes in seconds** — a §1773 reference before the section existed, and a 10-cell row under a 5-column header |
 | 1218 | §1771 | **§1772** | **THE DOC LOOP, COMPLETED — 3 SUITES BECAME 10, AND ONE PROBE THAT LIED.** §1771's rule applied to the whole corpus: **128 suites** classified by which fast loop should own them. A textual classifier returned 26 candidates and was **wrong on its face** — it listed `repo-root` and `money-halfup-parity` as documentation gates, because the "names source" pattern missed their backtick-template reads. Re-asked behaviourally (what does each actually READ?), **7 doc-subject suites added**: checklist-symbols, cited-scripts-exist, wp-blocker-staleness, wp-exit-audit, phase-index, ledger-status-vocabulary, absolute-paths. **The inclusion rule is not "reads a doc" but "the violation is AUTHORED in a document"** — so checklist-symbols qualifies despite reading source (it reads one side and COMPUTES the other), while `evidence-expiry` is excluded because it can red for a SOURCE reason during a docs-only edit, which is the noise failure that gets a loop ignored. **The probe that lied**: planting `thisSymbolDoesNotExistAnywhere()` returned exit 0 — read straight, "the new gate does not work". False: the detector matches a backticked **camelCase identifier** and the trailing parens put the probe outside its shape. **Read the detector's pattern before believing its silence.** Re-planted correctly → exit 1, and a broken phase-index pointer → exit 1, both through the COMPOSED command. Doc loop now ~4.5s |
 | 1217 | §1770 | **§1771** | **THE FAST LOOP FOR DOCS COULD NOT SEE THE DOC GATES.** §1770 ended on a discipline observation — the board-citation ratchet fired **3× this session, always while writing a summary**, always surfacing late inside a ten-minute merge run. It is a **wiring** problem, and it is measurable: `verify:docs` runs four SCRIPTS, while the doc-scoped gates that live as vitest SUITES under `tools/checks/` are reachable only through the full `test:tools`. Planted the exact violation that caught §1769 — **verify:docs exit 0, the ratchet exit 1**. The gate that keeps catching my docs was structurally unreachable from the command I run on my docs, which is how one firing got mis-filed for a whole phase as a runner flake. **Why it was invisible**: §838's dev-loop-parity accounts for pnpm SCRIPTS, and every tools suite sits inside the single `unit-tests` merge gate — fully accounted for at merge time, absent from every loop that would catch it in time. **Coverage of a gate is not reachability of a gate at the moment the mistake is made.** Fixed: `check:doc-suites` (board-citation-ratchet + audit-record-floor + citation-blank-line) wired into `verify:docs` for **271ms**, mutation-proved BOTH ways through the composed command. **The general rule**: ask of every gate not only whether it is in the merge roster but **which fast loop it is in, and whether that is the loop someone runs while making the mistake it catches** |
 | 1216 | §1769 | **§1770** | **THE §1769 CLASS, SWEPT — ONE MEMBER, AND THE PROPERTY THAT MAKES IT ONE.** §1769's hazard was a COMPOSITION (free-text column + exact-match gate + permissive no-match), so this counted the class: every TEXT column with no CHECK against every production comparison gating on it. **15 columns carry a CHECK**; the rest are free text. A free-text decision column bites only when BOTH hold — **the value is INPUT-FED** and **the reader's no-match direction is PERMISSIVE**. Measured: **`tenants.plan` is the ONLY one fed by a request input**; every other is written by projections/sweeps from code literals, where a typo is a compile-visible constant. `pairings.status` fails DENY at all three readers; the status columns have no caller-derived writers (`assets`/`pairings` have no production writer at all). **§1769 is a singleton and the class is now closed with its bound stated.** **The lead that looked like a second member**: oauth.ts selects `secret_ref` with NO status column — but `authenticateClient` calls `resolveActiveMcpPairing` FIRST, so an absent column in a SELECT does not prove an absent check. **Discipline note**: the NEWEST status column (`documents.retention_status`, 0007) has a CHECK and the five originals do not — safe only because their writers are literals; recorded, not acted on. **Probe fault**: five columns reported byte-identical 34-site hit lists — when N subjects report identical evidence the probe is keyed on what they SHARE, and identical counts are the cheapest tell. 0 code changed |
@@ -99385,3 +99386,65 @@ documentation gate, and re-asked behaviourally; 7 doc-subject suites added to th
 excluded with its reason; 2 mutations REDing through the composed command; **1 probe found malformed rather
 than a gate found broken** — the failure that would have produced a false "this wiring does not work"; doc
 loop 4 scripts → 4 scripts + 10 suites at ~4.5s.
+
+---
+
+## §1773 — PHASE GATE: the provisioner mints three of four control-plane tables (REQ-101/105/107)
+
+§1770 recorded in passing that `assets` and `pairings` have **zero production writers** — noted as a reason
+their free-text `status` columns are safe. Pulled on, the `pairings` half is not a curiosity. It is an
+undocumented manual prerequisite standing in front of one of the five acceptance demos.
+
+### The measurement, with its own contrast
+
+The control plane has four tables. `provisionTenant` mints **three** of them in one atomic batch:
+
+| table | provisioned by shipped code? |
+|---|---|
+| `tenants` | yes — an `UPDATE` claiming an unclaimed pool slot |
+| `users` | yes — `INSERT INTO users`, the admin row |
+| `usage_credits` | yes — `INSERT INTO usage_credits` |
+| **`pairings`** | **no — nowhere in `packages/`, `workers/` or `tools/`** |
+
+The only `INSERT INTO pairings` statements in the tree are **test fixtures**. The contrast is what makes this
+sharp: it is not that the control plane is provisioned out of band — three quarters of it is provisioned in
+one batch, and that batch **stops one table short**. The same shape as §1765's constraint stopping one column
+short, one level up.
+
+MCP `/register` does not fill the gap: a client registers **against an existing active `mcp` pairing**, and
+`authenticateClient` refuses when the row is absent or not `active`. That is correct and fail-closed — and it
+means the row must already be there.
+
+### Why it matters, stated exactly
+
+Acceptance demo 4 is *a booking placed from Claude via MCP*. On a freshly-provisioned tenant it cannot be
+performed, because the OAuth flow it starts with authenticates against a pairing that nothing creates.
+`DEPLOYMENT.md` covers migrations and bindings; `LAUNCH-RUNBOOK.md` covers neither pairings nor users; and the
+checklist's own *Per-pairing caps provisioning* row instructs an operator to set `caps` **on every `kind='mcp'`
+pairing** — an instruction that presupposes pairings exist.
+
+The gap is wider than MCP: `kind='webhook'` and `kind='edi'` sit in the same table, and the EDI 204 seam
+authenticates off `pairings.secret_ref`.
+
+**This blocks the demo, not the build.** Nothing is broken; a step is unwritten.
+
+### Recorded, not built
+
+Two ways out, and an audit may pick neither: **(a)** document the manual control-plane `INSERT` in the launch
+runbook beside the caps step — costs nothing, reversible; **(b)** build a pairing-provisioning path, which is
+**new scope** and needs a register row first (CLAUDE.md: no build without a REQ). Filed on the checklist with
+its evidence and both exits.
+
+### The doc loop earned its keep in the same phase that filed the row
+
+Filing it referenced `§1773` before this section existed, and `verify:docs` failed in about two seconds with
+`section-refs — 1 §N reference(s) point at a section that does not exist`. Two phases ago that same mistake
+would have surfaced only inside a ten-minute merge run — §1771/§1772's wiring, catching its author on its
+first working day. The row also went in at 10 cells against a 5-column header and `check:tables` said so
+immediately; both were fixed before a commit existed.
+
+**Phase gate.** 1 aside from §1770 pulled on and found to be a launch-relevant gap; 4 control-plane tables
+enumerated and 3 found provisioned by one atomic batch that stops one short; the shipped-code absence verified
+across three source trees with test fixtures excluded; 1 acceptance demo's unwritten prerequisite named, with
+the two adjacent seams (`webhook`, `edi`) included; filed with both exits and neither taken; 2 gates caught
+this phase's own mistakes in seconds rather than at merge.
