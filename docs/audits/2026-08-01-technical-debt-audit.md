@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1241 | §1794 | **§1795** | **THE NEVER-EXECUTES SET IS EXACTLY FOUR, AND THE ACCEPTANCE SPINE RUNS.** §1794 asked whether the five BLOCKED gates would work if their inputs arrived; the wider question is whether those five are the WHOLE population that never executes. They are: `cwd-parity.test.ts` carries a roster of **four** (`fixtures`, `rater-parity`, `invoice-parity`, `concierge-parity`), each with its absent input named, **asserted in both directions** — a new skipping gate must be declared AND a gate that starts executing must be removed, *so the exemption cannot outlive its reason*. `check:identity` is deliberately absent because it DOES execute (it runs and reports a skip). One documented exception: `check:invariants` runs bare CWD-relative globs on purpose — rooting it *was measured, not assumed: both attempts turned its three CLI tests red* — so it is asserted to FAIL CLOSED off-root, watched rather than waived. **The acceptance spine run directly**: GREEN, 7 files, 43 assertions across api/driver/mcp/map. It is also a merge gate, so this **confirms one of the 21 rather than discovering anything** — said plainly. A confirmation is worth RUNNING when the subject is a backbone and the cost is small; it is not worth dressing up as a finding |
 | 1240 | §1793 | **§1794** | **THE FIVE BLOCKED GATES ARE BLOCKED ON INPUTS, NOT BROKEN.** The same five gates have been described as *external, waiting on inputs* for weeks — a claim about WHY they do not run. The adjacent question was never asked: **if the inputs arrived tomorrow, would they work?** A gate that has never executed its real path has its first execution on the day the owner vendors the fixtures. **identity-leak: exercised end to end** with a SYNTHETIC denylist (three invented terms, nothing from any engagement) — clean tree → *clean (3 terms checked)*, exit 0; planted term → **exit 1** naming the file. And a fourth thing nobody had recorded: **its failure message MASKS the term to its first character** — a leak detector that printed the leak into CI logs would be its own defect. **The four fixture gates floor their input**: `existsSync(dir) && readdirSync(dir).some(f => f.endsWith('.json'))`, so a directory that exists but holds nothing is NOT vendored, and the message distinguishes *path MISSING* from *path exists but the expected files are missing*. **BLOCKED now says "waiting on an input", with evidence, rather than "unknown"** — a blocked gate is the easiest place in a build for a defect to sleep |
 | 1239 | §1792 | **§1793** | **THE RESTATED-KEY HAZARD IS A SINGLETON, AND THE REASON IS A DISTINCTION WORTH KEEPING.** §1792's test passed with the producer starved because its FIXTURE typed the key the production query looks for. Swept: **6 test files type a derived key prefix, and reading all six, NONE is the hazard** — one is an ASSERTION (`expect(body_ref).toBe(...)`), one a log line, one an object key, one a comment plus a different prefix, two are URL paths (`/v1/dunning/{id}/send`). The detector matched substrings without role, predictably: **a key prefix and a URL segment are the same characters.** **The distinction that makes the negative meaningful**: typing a derived key in an ASSERTION is correct — it characterizes the producer and drift reds there; typing it in a FIXTURE the production code must then FIND is the hazard — it fakes the producer and drift goes unnoticed. Same literal, opposite value, decided by which side of the test it sits on. That also explains the singleton: the hazard needs a ROUND-TRIP, and round-trips are rare because most tests assert an output rather than seed an input the code must recognise |
 | 1238 | §1791 | **§1792** | **THE SECOND-CHEAPEST CLOSURE — AND A TEST THAT ASSERTED NOTHING UNTIL REWRITTEN.** `sla-sweep`'s load-bearing seam is its note's **body_ref** (§1788), the key `OVERDUE_SQL`'s anti-join uses — pure SQL, no DO needed, exactly like §1791's watchtower. **Closed: starving it now reds `workers/agents` 1 of 159 where it red 0 of 155.** **But the first version passed with the producer starved**: it seeded the note with a HAND-WRITTEN key and asserted the sweep appended nothing — asserting that *the query works against a key I typed*, not that producer and query AGREE. Rewritten as a **round-trip** (capture what the sweep writes, seed THAT, re-sweep with a double that throws), which reds under the exact mutation the first version survived. **A fixture that restates the value under test cannot detect the drift it exists to detect — never type the key, make the producer hand it to you.** Two diagnostics earned their cost: an `INSERT OR IGNORE` silently wrote nothing (`NOT NULL … prev_hash`) until OR IGNORE was dropped, and a direct `COUNT(*)` on the join located the failure in one step. **2 of 6 closed, both D1-enforced**; the other four dedupe at the sequencer this package only stubs |
@@ -100689,3 +100690,64 @@ commit existed. The reflex is now measurable: it fires while writing summaries, 
 against a synthetic denylist — clean pass, planted-term catch, **and a masked failure message** nobody had
 recorded; 4 confirmed to floor their input so an empty fixture directory cannot make them green, with their
 two distinct absence messages named; 0 engagement data fabricated; 0 code changed.
+
+---
+
+## §1795 — PHASE GATE: the never-executes set is exactly four, and the acceptance spine runs (REQ-119/118)
+
+§1794 asked whether the five BLOCKED gates would work if their inputs arrived. The wider question it implies:
+**is that set of five the whole population of gates that never execute?**
+
+### It is, and it is governed both ways
+
+`cwd-parity.test.ts` carries the roster:
+
+```ts
+const NOT_EXECUTED_WITHOUT_INPUT = ["check:fixtures", "check:rater-parity",
+                                    "check:invoice-parity", "check:concierge-parity"];
+```
+
+Four, each with the input it lacks named beside it — and the file asserts the roster **in both directions**: a
+new skipping gate must be declared, *and* a gate that starts executing must be removed, *"so the exemption
+cannot outlive its reason."* `check:identity` is deliberately absent from it because it **does** execute (it
+runs and reports a skip, which is a verdict from either directory).
+
+One documented exception sits beside the roster: `check:invariants` runs ~15 bare CWD-relative globs on
+purpose, because its own end-to-end tests spawn the CLI inside temp repos, and rooting it *"was measured, not
+assumed: both attempts turned its three CLI tests red."* It is asserted to **fail closed** off-root instead —
+the property watched rather than waived.
+
+So §1794's hazard class is fully enumerated: **four gates never run locally, all four for a named absent
+input, and both the roster's growth and its shrinkage fail loudly.**
+
+### The acceptance spine, run directly
+
+The five acceptance demos' in-repo backbone, run on its own rather than read off the board:
+
+| package | spine files | assertions |
+|---|---|---|
+| `@shuddl/api` | heartbeat · signup-to-quote.e2e · airplane-soak · command-heartbeat | 6 |
+| `@shuddl/driver` | stop-flow | 11 |
+| `@shuddl/mcp` | quote-book | 12 |
+| `@shuddl/map` | MapCanvas | 14 |
+
+`ACCEPTANCE SPINE: GREEN — all 7 spine FILES pass.` It is also a merge gate
+(`{ gate: "acceptance", script: "test:acceptance" }`), so this confirms one of the 21 rather than discovering
+anything — which is the honest description of this phase.
+
+> A confirmation is worth running when the thing confirmed is a **backbone** and the confirmation is cheap.
+> It is not worth writing up as a finding, which is why this section says plainly that it found nothing.
+
+### One measurement trap worth recording
+
+The merge gate was launched in the background and its completion notification reported **exit code 0** — while
+its log ended mid-run, at `── gate: unit-tests ──`. The notification reports the **launcher's** exit, not the
+gate's. Re-run and waited for the aggregate line itself, which is the only thing that means the run finished.
+
+> A background job's completion signal and its subject's verdict are different facts. **Wait for the artifact
+> the job was launched to produce**, not for the signal that the job was launched.
+
+**Phase gate.** 1 population question closed — the never-executes set is exactly **4**, each with its absent
+input named, the roster asserted both ways, and the single deliberate exception documented as fail-closed
+rather than waived; 1 acceptance spine run directly and green across 4 packages and 43 assertions; **0
+findings**, stated as such rather than dressed up; 0 code changed.
