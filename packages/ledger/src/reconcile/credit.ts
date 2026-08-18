@@ -29,8 +29,15 @@ export interface CreditReconResult {
 /**
  * Reconcile ONE party's credit projection gap. If the party now EXISTS and a credit.checked decision is on the
  * ledger, apply the LATEST valid decision to parties.credit_status AND mark every OPEN credit_projection_gap
- * anomaly for that party 'resolved' — in ONE idempotent D1 batch. Otherwise do nothing (fail closed). Re-running
- * is a no-op (re-applying the same decision + re-resolving an already-resolved anomaly both land the same state).
+ * anomaly for that party 'resolved' — in ONE idempotent D1 batch. Otherwise do nothing (fail closed).
+ *
+ * RE-RUNNING IS A NO-OP FOR TWO DIFFERENT REASONS, and it is worth separating them (audit §1764). An IMMEDIATE
+ * re-run never reaches the writes at all: the batch below resolved the gap, so the gap gate at the top returns
+ * first — that gate is the mechanism, and it is pinned (disabling it REDs exactly one test, `recon-sweep.test.ts`'s
+ * "NO open gap → reconcile never touches credit_status", and nothing else in 903). The idempotence of the writes
+ * themselves is what covers the OTHER case: a LATER import surfaces a fresh gap for the same party, the gate
+ * opens again, and re-applying the same status plus re-resolving an already-resolved anomaly lands the same
+ * state. Stating only the second reason reads as though the gate were redundant, which inverts why it exists.
  */
 export async function reconcileCreditForParty(db: D1Database, partyId: string): Promise<CreditReconResult> {
   // GAP-GATED: reconcile ACTS only when an OPEN credit_projection_gap for this party actually exists. With no gap

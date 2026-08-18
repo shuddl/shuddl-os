@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1210 | §1763 | **§1764** | **THREE HYPOTHESES, THREE ALREADY CLOSED — AND THE PROBE IS THE PATTERN.** Opened on queue-consumer idempotence (at-least-once delivery; double-billing is the silent-expensive failure). **(1)** *"The biller has no redelivery test"* — FALSE; `workers/agents/test/` has no biller file, but the api suite holds *the same message twice → ONE invoice, ONE money projection, ONE email*. Ownership follows the CONSUMER, not the module. **(2)** *"Four cron sweeps drive off unbounded reads and only `watchtower` is on the roster"* — true, and **§1580 had already swept all 183 production SELECTs** from the code side and found nothing left over. **(3)** *"The credit reconciler's `seq` tiebreak is meaningless across streams"* — true (the events PK is stream_id+seq, and a credit.checked rides whatever shipment stream it was posted to), **and §1261 framed it better**: arbitrary is FINE, unstable is not — a flapping pick moves a party between hold and clear while the REQ-042 booking gate reads that value; it pinned the winner AND re-asserted it after a second run, which is also the sweep idempotency case this probe called missing. **The one change**: the reconciler's docstring gave the WRONG mechanism for re-run safety — an immediate re-run never reaches the idempotent writes because the **gap gate** returns first, and that gate is pinned by **exactly one test of 903**. Both reasons now written with the mutation separating them. **Every miss came from a probe narrower than the record's, and the record's version was SHARPER, not merely earlier.** 0 behaviour changed |
 | 1209 | §1762 | **§1763** | **THE EXACTNESS-GUARD CLASS, SWEPT — AND THE RULE THAT DECIDES WHICH ONES MATTER.** Two instances is a class, so this counted instead of fixing: **every `BigInt(` in non-test source**, 7 files. **The geo resolver was unpinned** — rewriting both cross-product predicates in float left all **38** tests in the owning suite green, and **3,000,000 random (edge, point) triples found ZERO disagreements** (a disagreement needs the exact cross to land within ~16 of zero; a random one is ~1e16). So the witness was **CONSTRUCTED**: pick an edge with **coprime** deltas so a cross product of exactly 1 is reachable, solve with extended Euclid — exact says off-edge (interior, the state code), float says collinear (**boundary → "XX"**). 3 tests added; under the mutation **exactly 1 of 41 fails**, and it is the witness. The mild direction is a fail-closed jurisdiction; the same rounding decides `eastOfPoint`, which returns a **confident wrong state**. **THE RULE**: an exactness guard is load-bearing exactly when the result's ROUNDING GRANULARITY is comparable to the error — money rounds to the cent (the error IS a cent), geo compares against ZERO (any error flips it), and **DSO rounds to DAYS while its error is sub-millisecond: 0 / 200,000 answers differ, so that BigInt is genuinely unnecessary**. Cheaper than mutating everything. **And the §1762 asymmetry is now 2 of 2**: the rater's monetary product is pinned by a test named for it, both ledger guards were not — the louder failure attracts the proof. 0 production code changed |
 | 1208 | §1761 | **§1762** | **A GUARD NO MUTATION CAN JUSTIFY, AND ONLY THE ARITHMETIC CAN.** The rater's money chain has a derived overflow ceiling a test recomputes; the ledger's money core has the same exposure and had **none**. Building it inverted my conclusion twice. **(1)** The planned mutation — rewrite the BigInt Hamilton core in floating point — **passed all fifteen tests**, so the claim written before measuring was false. **(2)** Brute force: **0 disagreements in 400,000 random allocations across the whole admissible range, and 0 in 40,000,000 ADVERSARIAL cases** shaped to maximise the widest product; the first appear one decade up (8/50,000 at 1e13, ~27% by 1e17). The obvious reading — *the BigInt is unnecessary* — is ALSO wrong, and the test written to confirm it is what caught that: **the widest intermediate at the contract bound is 9.99999999999e15, past 2^53**, so the products truly are unrepresentable and the assertion first written here failed pointing the wrong way. Both hold because a ≤1 error in a ~1e16 product only moves `floor(product/10000)` when it crosses a multiple of the divisor — which never happened in 40.4M trials. **The class**: deleting this guard looks exactly like deleting dead weight, stays green forever on every admissible input, and corrupts money RARELY rather than never — the worse failure mode. Its mirror, the rater's ceiling, got algebra written for it only because its failure was a loud HTTP 500; **the louder failure got the proof, the silent one got nothing.** 6 tests added, asserting the ALGEBRA and reading the bound off the schema rather than restating it, pinned bidirectionally so a LOWERED bound also fails here. 768 ledger tests green, 0 production code changed |
 | 1207 | §1760 | **§1761** | **DOES THE COMMITTED REPOSITORY PASS? EVERY STATIC GATE, SWEPT.** §1756 found one gate red on the committed tree and green in the working copy; §1759 fixed half. Both were spot checks of gates already suspected. Asked generally with a **detached worktree at HEAD**: **20 gates, 16 agree, 4 differ, 1 real.** The real one is `check:traceability` on the REQ-289 annotation (the owner's uncommitted register row). The other three announce themselves in their own output — two `ERR_MODULE_NOT_FOUND` on a workspace package, and the bundle ratchet refusing to report clean with no built bundles, **which is the §481 hardening proving itself in a tree nobody built**. **The harness bug is the lesson**: run through `pnpm` inside such a worktree and it exits **1 with ZERO output**, reporting all eighteen as committed-FAIL — caught only because one gate had been hand-run minutes earlier and printed a real verdict. A probe reporting *everything is broken* is more likely broken itself. **Closes**: §1759 verified against the committed tree (citations OK at HEAD, ratchet at baseline), so §1760's prediction is measured rather than awaited; and the committed tree's sole failure is a swept conclusion, not a guess. **Declines in writing** the obvious §1759-style fix (scrub the `REQ-289` token from comments): the reference is TRUE not rotted, two of seven files are another author's so it cannot flip the verdict, and the token is how the next reader finds the explanation. 0 code changed |
@@ -98756,3 +98757,70 @@ unpinned and closed with a **constructed** witness after 3M random samples found
 to exactly one failing test out of 41; 1 guard measured **unnecessary** (200,000 cases) rather than assumed
 load-bearing; 1 reusable rule derived — compare the error to the *rounding granularity*, not to 2^53; 171 rater
 + 41 jurisdiction tests green; 0 production code changed.
+
+---
+
+## §1764 — PHASE GATE: three hypotheses, three already closed — and what that says about the probe (REQ-042/183)
+
+This phase opened on the queue consumers: Cloudflare Queues deliver at-least-once, so every consumer must be
+idempotent under redelivery, and double-billing is the silent-and-expensive failure the last two phases were
+about. Three hypotheses followed, each measured. **All three were already closed in the record**, and two of
+them by work strictly better than the probe that proposed them.
+
+### 1. "The biller has no redelivery test" — false, and the grep was the reason
+
+`workers/agents/test/` has no biller file at all, which reads as a gap until you look one directory over:
+`workers/api/test/biller.test.ts` carries *IDEMPOTENCY: the same message twice → ONE invoice event, ONE money
+projection, ONE email*, plus a redelivery fast-path case and a duplicate re-drive case. Ownership follows the
+consumer, not the module — a rule this session has now paid for twice.
+
+### 2. "Five cron sweeps drive off unbounded reads and only one is on the filed roster" — true, and filed
+
+`credit-recon-sweep`, `recon-sweep`, `sla-sweep` and `collector` all drive off table-wide `SELECT`s with no
+LIMIT and no cursor, while the unbounded-read roster lists only `watchtower.ts` among the sweeps. That looks
+like a five-fold undercount — and the roster's own header says *discovery stays the audit's job*, which reads
+as an invitation.
+
+**§1580 had already done it**, from the code side, over **all 183 production `SELECT`s**, and found nothing
+left over: these sweeps fall under the filed rows for whole-history scans and per-row subrequests. Re-deriving
+it would have produced a duplicate row, not a finding.
+
+### 3. "The credit reconciler's `seq` tiebreak is meaningless across streams" — true, known, and better stated
+
+`reconcileCreditForParty` picks the latest decision with `ORDER BY recorded_at DESC, seq DESC`, and `seq` is
+dense **per stream** (the events primary key is `(stream_id, seq)`), while a `credit.checked` rides whatever
+shipment stream it was posted to. So the tiebreak compares two per-stream counters — arbitrary.
+
+**§1261 got there first and framed it better than this probe did:** arbitrary is *fine*; **unstable is not**.
+Without the clause the engine may return either row, and a flapping pick moves a party between `hold` and
+`clear` on successive sweeps while the REQ-042 booking gate reads exactly that value. It added a fixture with
+three decisions at one instant, the winner in the middle of insertion order, asserted the winner **and asserted
+it again after a second run**, and mutation-proved it three ways. That second-run assertion is also the
+sweep-level idempotency case this phase's grep reported missing.
+
+### The one thing that changed
+
+`reconcileCreditForParty`'s docstring said re-running is a no-op *"(re-applying the same decision + re-resolving
+an already-resolved anomaly both land the same state)"*. Measured: an **immediate** re-run never reaches those
+writes — the batch resolves the gap, so the gap gate at the top returns first. That gate is the real mechanism
+and it is pinned: disabling it REDs **exactly one test of 903**, `recon-sweep.test.ts`'s *"NO open gap →
+reconcile never touches credit_status"*.
+
+The old sentence is not false — the idempotent writes are what covers a **later** import re-opening a gap for
+the same party — but stating only that reason reads as though the gate were redundant, which inverts why it
+exists. Both reasons are now written, with the mutation that separates them.
+
+### What the run of negatives means
+
+Three hypotheses, zero new defects, and the pattern in the misses is consistent: **every one came from a probe
+narrower than the record's.** A grep for test files in the wrong directory; a roster read as a work-list rather
+than as the residue of a completed sweep; an ordering concern framed as correctness when the record had already
+established that the right property is stability.
+
+> At this depth, a fresh hypothesis is worth less than five minutes of reading the record — and the way to tell
+> them apart cheaply is that the record's version is usually *sharper*, not merely earlier.
+
+**Phase gate.** 3 hypotheses raised and measured, 3 already closed — 2 by sweeps demonstrably wider than the
+probe that proposed them; 1 false "missing test" traced to ownership-by-directory; 1 stated mechanism corrected
+on the credit path and separated into the two cases that actually hold, each with its own evidence; 1 mutation
+attributing the gap gate to exactly one test out of 903; 903 api tests green; 0 behaviour changed.
