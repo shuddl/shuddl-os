@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1232 | §1785 | **§1786** | **THE 38 OPEN ROWS, CLASSIFIED — AND §945's BUG #1 REPRODUCED BY ME.** A number without a disposition is the next unhelpful thing, so: **why is each still open?** **14 need a REQ row first** (building is new scope), **9 are owner decisions** (API contract, pricing, dependency posture, tooling scope), 15 classified by hand. Three read in full, all correctly NOT mine: `quote.priced`'s one-line fix is still the owner's because the route is **public** and an integrator's ops principal may post it today (§1702 already pinned both directions); line/branch coverage is recorded as *observation, not a defect*; the evidence-email surfacing **needs a REQ row**. **The open set is not neglect** — it is row-by-row work an audit may not do unilaterally, which is what §1784's overstatement was reaching for and got backwards. **The status-vs-prose check**: 9 rows announce a closure while reading OPEN, and **all 9 are legitimate** — five close a SUB-PART, one quotes a test's failure message, one is conditional, and one is `fail CLOSED (CAPTURE_INPUT_MISSING)`, the design term. That last is **§945's catalogued bug #1 verbatim** (*`fail-closed` contains "closed"*) — two phases after recording that a fresh parser re-derives every bug the original fixed, I wrote two more and hit the FIRST item on the list. The 38 is not inflated |
 | 1231 | §1784 | **§1785** | **I WROTE "NOTHING REPO-OWNED IS OPEN" ONE PHASE AFTER QUOTING THE RULE AGAINST IT.** Counted with the ledger gate's OWN extractor: **64 rows, 38 OPEN** (21 FIXED, 2 CLOSED, 1 each TRIPWIRED/RESOLVED/NOT_APPLICABLE). §1784's closing sentence is **false**, and false in the exact way §804 named — *a claim you INHERIT is a claim you are MAKING* — except this one was written FRESH, in a summary, one phase after quoting the discipline about summaries restating instead of measuring. The true, narrower claim beside it: every finding THIS STRETCH produced was fixed or filed. **The 38 are not trivia**: every KPI scans the whole event history per request; **no line/branch coverage is measured anywhere**; a 4-hour SLA is policed by a 24-hour detector; a lost Concierge trigger has no backstop AND THE CODE SAID IT DID; the Collector cannot progress once truncated. **And the first count was the FIFTH ad-hoc parser §945 exists to prevent** — it returned `when=52, evidence=4`, reading a prose column as status. §945 exports `ledgerRows` precisely so nobody writes another; using anything else is not independence, it is a re-derivation with none of the fixes. §1784 corrected in place, struck not deleted |
 | 1230 | §1783 | **§1784** | **STOPPING POINT — §1760–§1783 in one place.** 24 phases, **25 commits**, ending at `bed7af7`; the tree holds 12 modified files, **none of them mine** (all the concurrent workstream's). **Board: 21 PASS · 0 FAIL · 5 BLOCKED at `bed7af7`, 5,181 tests**; the five BLOCKED are unchanged and all external. **Verified with populations, not impressions**: the COMMITTED tree passes 12 of 13 static gates twice over (the 1 divergence is the owner's register row, unchanged across 15 commits); **0 of 15** external-tool gates can report clean on a dead tool; the fallback-value law is **1 finding in 92 sites across 5 forms**; runtime logs leak **0** across 97 console + 115 ApiError sites; 47 defaulted columns yielded 1 real hazard, floored; free-text decision columns yielded **1 member**, filed; and §1507's class, declared closed at **3**, was really **15**. **Changed**: 4 hooks bounded (incl. the tenant-isolation suite at **94%** of its default), a fail-closed retention floor, 3 new ratchets, and a doc loop that grew 4 scripts → 4 + 10 suites and has since caught 4 of this loop's own mistakes in seconds. **Open is owner-held only** — REQ-289, the private fixtures, the CI disposition, `tenants.plan` (a PRICING decision), and pairing provisioning (demo 4 cannot run on a fresh tenant). **Nothing repo-owned is open.** 5 reopen triggers written as conditions a gate will ANNOUNCE rather than things someone must remember |
 | 1229 | §1782 | **§1783** | **THE FALLBACK-VALUE LAW, SWEPT ACROSS EVERY FORM IT TAKES.** `??` is the largest syntax for *what value survives when the expected one does not* — **125 occurrences**, of which **19** reach a decision. All nineteen read directly, **0 fail-open**: `match ?? FAIL_CLOSED_STATE` (the sentinel is NAMED for it), `?? NO_ENTITLEMENTS` (grants nothing), `row[c] ?? null` into NOT NULL columns (a LOUD abort, §1767), `(meta.changes ?? 0) === 1` (absent ⇒ 0 ⇒ not updated), `citations ?? []` → abstain, `?? 0` on split weights (a party with no weight gets nothing). **One polarity worth a sentence**: the watchtower sorts an unknown severity **last** (least alarming) — the open direction for an alerting surface, unreachable only because `anomalies.severity` carries a DB CHECK; recorded, not changed, since it is a sort order and the constraint was NAMED rather than assumed. **THE LAW IS NOW CLOSED ACROSS 5 FORMS AND 92 SITES**: 35 catch fallbacks, 22 `length === 0` returns, 4 `every`, 12 `some`, 19 `??` — **one finding, and it was a missing TEST rather than a missing guard.** The law is not *handle the error*; it is **choose the value that survives and check which way it pushes the next comparison** |
@@ -100184,3 +100185,61 @@ numbers put in its place; the correction made in the section that carried the cl
 a reader of §1784 cannot miss it; 1 ad-hoc parser abandoned for the gate's own exported extractor after
 reproducing exactly the failure that extractor exists to prevent; 38 open repo-owned rows re-surfaced with a
 sample, so the number is not just a digit; 0 code changed.
+
+---
+
+## §1786 — PHASE GATE: the 38 open rows, classified — and §945's bug #1 reproduced by me (REQ-118/119)
+
+§1785 corrected a false "nothing repo-owned is open" with the measured **38**. A number without a disposition
+is the next unhelpful thing, so this phase asks the obvious follow-up: **why is each one still open, and how
+many are mine to close?**
+
+### Who owns the 38
+
+| gate on the fix | rows |
+|---|---|
+| **needs a REQ row first** — building it is new scope (CLAUDE.md: no build without a register row) | 14 |
+| **owner decision** — an API contract, a pricing call, a dependency posture, a tooling scope | 9 |
+| neither keyword present (classified by hand below) | 15 |
+
+**Three read in full, and all three are correctly not mine:**
+
+- **`quote.priced` absent from `SERVER_EMITTED_KINDS`** — the fix is literally one line, and it is *still* the
+  owner's: this is a **public** route, so an integrator's ops principal may be posting that kind today and the
+  change would 403 them silently. §1702 already pinned it in **both** directions, so the day it closes or
+  widens, a test says so by name.
+- **No line/branch coverage anywhere** — recorded explicitly as *"observation, not a defect"*; nothing in
+  CLAUDE.md or genesis asks for it, and `check:coverage` is register↔test traceability, a different thing.
+  Adding instrumentation is new tooling scope.
+- **A permanently-failed evidence email surfaces nowhere** — the Concierge's equivalent is REQ-176; the Biller
+  has no such row, so building the surfacing **needs a REQ row first**.
+
+**The open set is not neglect.** It is, row by row, work that an audit is not permitted to do unilaterally —
+which is what §1784's overstatement was clumsily reaching for and got wrong by saying instead that there was
+nothing there.
+
+### The status-vs-prose check, and the parser that failed exactly as documented
+
+A row whose prose announces a closure while its status token still reads `OPEN` would inflate that 38. Nine
+rows matched. **All nine are legitimate**, and the way they are legitimate is the point:
+
+- five describe a **closed sub-part** of a row that remains open (*"CLOSED (§1331): three instances"*, *"the
+  perf half is FIXED"*, *"the citation half is FIXED; one failure remains"*)
+- one quotes a **test's own failure message** (*"CLOSED — update the GO-LIVE-CHECKLIST row and delete this
+  case"*), which is text the pin prints, not a status
+- one is **conditional** (*"CLOSED in CI, or when REQUIRE_DENYLIST is set"*)
+- and one is not the word at all: **`fail CLOSED (CAPTURE_INPUT_MISSING)`** — the design term.
+
+That last one is **§945's catalogued bug #1**, verbatim: *"keyword-matched the WHOLE ROW: `fail-closed`
+contains 'closed'."* Two phases after §1785 recorded that writing a fresh parser re-derives every bug the
+original author fixed, I wrote two more and the second hit the **first item on that list**.
+
+> The 38 is not inflated by stale statuses. And the reason a leading canonical token exists — rather than
+> "search the row for a status word" — is sitting in these nine rows: a debt ledger's prose is *full* of
+> closure words, because closing things is what it records.
+
+**Phase gate.** 38 open rows classified by what gates their fix — **14 need a REQ row, 9 are owner decisions**
+— so the open set is measured as un-actionable-by-an-audit rather than asserted to be absent; 3 rows read in
+full and each confirmed correctly gated, including one whose one-line fix is still not mine because the route
+is public; 9 status-vs-prose disagreements checked and **all 9 legitimate**, so the count is not inflated; 1
+of my own parsers found reproducing §945's documented bug #1; 0 code changed.
