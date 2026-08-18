@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1231 | §1784 | **§1785** | **I WROTE "NOTHING REPO-OWNED IS OPEN" ONE PHASE AFTER QUOTING THE RULE AGAINST IT.** Counted with the ledger gate's OWN extractor: **64 rows, 38 OPEN** (21 FIXED, 2 CLOSED, 1 each TRIPWIRED/RESOLVED/NOT_APPLICABLE). §1784's closing sentence is **false**, and false in the exact way §804 named — *a claim you INHERIT is a claim you are MAKING* — except this one was written FRESH, in a summary, one phase after quoting the discipline about summaries restating instead of measuring. The true, narrower claim beside it: every finding THIS STRETCH produced was fixed or filed. **The 38 are not trivia**: every KPI scans the whole event history per request; **no line/branch coverage is measured anywhere**; a 4-hour SLA is policed by a 24-hour detector; a lost Concierge trigger has no backstop AND THE CODE SAID IT DID; the Collector cannot progress once truncated. **And the first count was the FIFTH ad-hoc parser §945 exists to prevent** — it returned `when=52, evidence=4`, reading a prose column as status. §945 exports `ledgerRows` precisely so nobody writes another; using anything else is not independence, it is a re-derivation with none of the fixes. §1784 corrected in place, struck not deleted |
 | 1230 | §1783 | **§1784** | **STOPPING POINT — §1760–§1783 in one place.** 24 phases, **25 commits**, ending at `bed7af7`; the tree holds 12 modified files, **none of them mine** (all the concurrent workstream's). **Board: 21 PASS · 0 FAIL · 5 BLOCKED at `bed7af7`, 5,181 tests**; the five BLOCKED are unchanged and all external. **Verified with populations, not impressions**: the COMMITTED tree passes 12 of 13 static gates twice over (the 1 divergence is the owner's register row, unchanged across 15 commits); **0 of 15** external-tool gates can report clean on a dead tool; the fallback-value law is **1 finding in 92 sites across 5 forms**; runtime logs leak **0** across 97 console + 115 ApiError sites; 47 defaulted columns yielded 1 real hazard, floored; free-text decision columns yielded **1 member**, filed; and §1507's class, declared closed at **3**, was really **15**. **Changed**: 4 hooks bounded (incl. the tenant-isolation suite at **94%** of its default), a fail-closed retention floor, 3 new ratchets, and a doc loop that grew 4 scripts → 4 + 10 suites and has since caught 4 of this loop's own mistakes in seconds. **Open is owner-held only** — REQ-289, the private fixtures, the CI disposition, `tenants.plan` (a PRICING decision), and pairing provisioning (demo 4 cannot run on a fresh tenant). **Nothing repo-owned is open.** 5 reopen triggers written as conditions a gate will ANNOUNCE rather than things someone must remember |
 | 1229 | §1782 | **§1783** | **THE FALLBACK-VALUE LAW, SWEPT ACROSS EVERY FORM IT TAKES.** `??` is the largest syntax for *what value survives when the expected one does not* — **125 occurrences**, of which **19** reach a decision. All nineteen read directly, **0 fail-open**: `match ?? FAIL_CLOSED_STATE` (the sentinel is NAMED for it), `?? NO_ENTITLEMENTS` (grants nothing), `row[c] ?? null` into NOT NULL columns (a LOUD abort, §1767), `(meta.changes ?? 0) === 1` (absent ⇒ 0 ⇒ not updated), `citations ?? []` → abstain, `?? 0` on split weights (a party with no weight gets nothing). **One polarity worth a sentence**: the watchtower sorts an unknown severity **last** (least alarming) — the open direction for an alerting surface, unreachable only because `anomalies.severity` carries a DB CHECK; recorded, not changed, since it is a sort order and the constraint was NAMED rather than assumed. **THE LAW IS NOW CLOSED ACROSS 5 FORMS AND 92 SITES**: 35 catch fallbacks, 22 `length === 0` returns, 4 `every`, 12 `some`, 19 `??` — **one finding, and it was a missing TEST rather than a missing guard.** The law is not *handle the error*; it is **choose the value that survives and check which way it pushes the next comparison** |
 | 1228 | §1781 | **§1782** | **THE DUAL: `[].some()` IS FALSE, AND EVERY USE IS IN THE SAFE POLARITY.** §1781 closed `every` (empty ⇒ TRUE, dangerous deciding an EXEMPTION); its dual is `some` (empty ⇒ FALSE, dangerous deciding a DENIAL — `if (list.some(isBad)) reject()` lets an empty list mean nothing to reject). **All 12 production sites read directly**: 9 are `!prior.some(kind) → missing.push` (no evidence ⇒ BLOCKED), 2 assign a positive fact then throw on its absence, 2 are membership checks where empty ⇒ not-verified. **Zero in the denial polarity** — structural, not lucky: this repo writes gates as lists of REQUIRED EVIDENCE, so `some` is almost always under a `!` feeding `missing`. **The safe polarity is the idiom.** One site had already BEEN the instance: the appointment gate's `?? []` + `some` + `if (!open) throw` carries a FALSIFY recipe naming the mutation, the test it reds, and *"Before that test: 23/23 green."* **The class is now closed across 73 sites in 4 forms** — 35 catch-fallbacks, 22 `length === 0` returns, 4 `every`, 12 `some` — with **one** finding total, and it was a missing TEST rather than a missing guard. Polarity is decided by the verb the collection answers: a list of REQUIREMENTS is safe under `some`, a list of PROHIBITIONS is not |
@@ -100102,8 +100103,15 @@ private fixtures; the CI disposition for `PREREQ_BLOCKED`; `tenants.plan`'s miss
 decision, §1769); and pairing provisioning — **acceptance demo 4 cannot run on a freshly-provisioned tenant**
 and no runbook documents the manual INSERT (§1773), now disclosed in both demo files (§1774).
 
-**Nothing repo-owned is open.** Every finding this stretch produced was either fixed in the same phase or
-filed with both exits and the reason an audit may not pick between them.
+~~**Nothing repo-owned is open.** Every finding this stretch produced was either fixed in the same phase or
+filed with both exits and the reason an audit may not pick between them.~~
+
+**CORRECTED AT §1785 — THE FIRST CLAUSE IS FALSE.** Counted with the ledger gate's own extractor: the
+repo-owned debt section holds **64 rows, 38 of them OPEN**. What is true is the *second* clause — every
+finding **this stretch** produced was fixed or filed — and the first sentence overstates it into a claim about
+the whole ledger, which is precisely the error §804 recorded (*"repo-owned ledger is EMPTY" was FALSE — 20
+live rows, 16 OPEN; a claim you INHERIT is a claim you are MAKING*). Struck rather than deleted because the
+overstatement is the instructive part.
 
 ### Reopen triggers
 
@@ -100125,3 +100133,54 @@ because the index may only point at sections headed `PHASE GATE`. A fifth catch,
 stated; 4 product hooks bounded and 3 ratchets added; 5 owner-held items enumerated with the reason each is
 not an audit's to close; 5 reopen triggers written as conditions a gate or a log line will announce, not as
 things someone must remember to check.
+
+---
+
+## §1785 — PHASE GATE: I wrote "nothing repo-owned is open" one phase after quoting the rule against it (REQ-118/119)
+
+§1784 closed with *"Nothing repo-owned is open."* Measured with the ledger gate's own extractor:
+
+```
+repo-owned ledger rows: 64
+  OPEN            38
+  FIXED           21
+  CLOSED           2
+  TRIPWIRED        1 · RESOLVED 1 · NOT_APPLICABLE 1
+```
+
+**Thirty-eight open rows.** The sentence is false, and it is false in the exact way §804 already named:
+*"repo-owned ledger is EMPTY" was FALSE — 20 live rows, 16 OPEN; a claim you INHERIT is a claim you are
+MAKING.* This time I did not even inherit it — I wrote it fresh, in a summary, one phase after quoting the
+discipline about summaries restating instead of measuring.
+
+What I meant is the narrower thing beside it: **every finding *this stretch* produced was fixed in the same
+phase or filed with both exits.** That is true and it is checkable. Widening it to the whole ledger cost
+nothing to write and would have cost the next reader a wrong picture of where the build stands.
+
+### The open rows are not trivia
+
+A sample of what "38 OPEN" actually holds — none of it this stretch's work, all of it real: every KPI and
+metric scans the tenant's whole event history per request; **no line or branch coverage is measured anywhere**;
+a 4-hour SLA is policed by a 24-hour detector; a lost Concierge trigger has no backstop *and the code said it
+did*; the Collector sweep cannot make progress once truncated; six sites make one-or-more subrequests per row
+over an unbounded row set.
+
+A summary that says "nothing is open" over that list is not a rounding error.
+
+### The fifth ad-hoc parser, exactly as §945 predicted
+
+The first attempt to count the ledger was a hand-rolled markdown parser. It returned
+`when=52, evidence=4, the=2` — reading a prose column as the status field. §945 exists **because** four such
+parsers each produced a confident wrong number, and it exports `ledgerRows` so nobody writes a fifth. I wrote
+the fifth, then used the exported extractor and got a clean tally in one run.
+
+> **When the record has already built the instrument, using anything else is not independence — it is a
+> re-derivation with none of the fixes.** §945's four bugs (keyword-matching whole rows, stripping strike
+> markers instead of struck spans, counting the header, naive `|` splitting) are all still latent in any fresh
+> parser, and mine hit one of them immediately.
+
+**Phase gate.** 1 false claim of my own found and struck **one phase after making it**, with the measured
+numbers put in its place; the correction made in the section that carried the claim rather than only here, so
+a reader of §1784 cannot miss it; 1 ad-hoc parser abandoned for the gate's own exported extractor after
+reproducing exactly the failure that extractor exists to prevent; 38 open repo-owned rows re-surfaced with a
+sample, so the number is not just a digit; 0 code changed.
