@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1226 | §1779 | **§1780** | **EVERY CATCH IN PRODUCTION SOURCE, AND WHAT ITS FALLBACK VALUE DECIDES.** §1777 gave the rule for GATES; this is the runtime counterpart, and the class has bitten this repo before — a `{}` policy fallback that silently opened three of four gate knobs. **72 catches: 35 rethrow, 2 log, 25 return a fallback, 10 assign one. Zero fail-open.** The value-returning ones are refusals (`deny()`, `null`, `rpcError`) or `{}`/`[]` on a stored-JSON parse **where empty is the restrictive value** — a malformed `status_cache` renders as NO status (and is unreachable anyway: the projection writes via SQLite `json_set`, valid by construction), a malformed `device_keys` yields `[]` so **no device verifies**. **Two the classifier flagged are correct**: `biller/sender.ts` has an EMPTY catch body — which reads as the worst possible swallow until you see the `return` sits AFTER the try/catch, so a classifier looking only INSIDE cannot see the fallback; and watchtower assigns the raw string for an unparseable `detail`, typed `unknown`, so no caller is told an object is an object. **The historical defect re-checked, not assumed**: the sequencer now REFUSES every append on an unusable policy and the log states the counterfactual outright. **A catch is a decision about a VALUE, not about an error** — follow the value to its consumer |
 | 1225 | §1778 | **§1779** | **THE TIMEOUT EXPOSURE IS ONE PACKAGE, AND HERE IS WHY.** §1778 measured only `workers/api` — the package the merge log happened to print per-test durations for — so this measured the rest. **agents 1,983ms / billing 644ms / mcp 1,756ms / translator 1,913ms / ledger 45,912ms**, and nothing outside `workers/api` is near the 10s hook default: the ledger's total is large because it has **773 tests**, not because any fixture is heavy (its slowest file spreads 3.3s over 40 cases). Where api had a SINGLE hook consuming 9.4s and 14.4s, no other package concentrates time in setup at all. **The structural reason, recorded so the bound survives**: `workers/api` is the only package whose fixtures drive **real DO appends through the sequencer** — gates, projections and hash chain — while everywhere else setup seeds D1 rows or fakes directly. That also settles §1778's discarded proxy from the other side: the two hooks with the MOST awaits (41 and 25) live in mcp and billing and finish in **188ms and 370ms**. **What a hook awaits decides its cost; how many times it awaits decides nothing.** So the 4 hooks bounded across §1777–§1778 are the whole surface, not a sample. **Third parser in two phases written from a remembered format** — the verbose reporter is FLAT with no file summary line, so it returned zero rows across five packages; print ten lines of the real output before writing the pattern that consumes it |
 | 1224 | §1777 | **§1778** | **THE TENANT-ISOLATION SUITE WAS ~600ms FROM NOT RUNNING.** §1777 bounded one hook that timed out; this asks how many others sit near the same default — and **two proxies were wrong first**. The log's *slowest tests* list was actually FILE lines (caught because every entry read *(45 tests)*); and **awaits-per-hook is meaningless** — the two largest (41 and 25 awaits) run in **188ms and 370ms**, because they await in-memory fakes while §1777's 24 awaits were real DO appends. The right metric was already in the merge log: **file total minus the sum of per-test durations = setup time**. Result: `lens-adversarial` 14.4s (bounded), **`isolation.test.ts` 9,401ms = 94% of the 10s default**, `portal-actions` 5.4s, `pub-status` 3.8s. **The isolation suite is REQ-025 / CLAUDE.md rule 8 — the one whose failure IS a build failure — and its failure mode is not a red assertion but 69 tests SKIPPED behind `unit-tests — command exited 1`.** The suite that proves the strongest law, failing in the one way that names nothing. All three bounded at the hook with their measured numbers rather than raising `hookTimeout` package-wide. **A default is not a decision** — it is a number nobody chose, sized for a machine nobody is using |
 | 1223 | §1776 | **§1777** | **CAN A BROKEN TOOL MAKE A GATE REPORT CLEAN? 15 SPAWNERS, NONE OF THEM.** §1776 accidentally created the environment that answers it — a worktree where pnpm, playwright and eslint all fail, where 4 suites failed and **124 passed**. Were any of those greens VACUOUS? **Three consecutive probes returned ZERO external-tool call sites**, which is plainly false; all three enumerated on the call NAME (`execSync`) while `spec-collection` uses `execFileSync` — **§1775's own lesson re-committed one phase after writing it down**, caught by noticing an impossible zero. Re-asked by BEHAVIOUR: **134 spawners, 15 external-tool**. **Zero fail-open.** And the corpus does not defend with try/catch at all — it defends by making the FALLBACK VALUE fail the comparison (`runtime-contract` returns `"unavailable"`, which then fails the version check), by THROWING with the environment named (`spec-collection`: *its silence would mean nothing*), or by carrying an explicit `executed:false` that a mode-aware grader turns into a BLOCK (`playwright-guard`: an unparseable report is a failure because *we have no proof it ran anything*). **A gate that cannot run its tool has two honest outputs — fail, or PENDING with `executed:false` — and "clean" is not among them.** No fix, because nothing was broken: the product is a BOUND, so §1776's two lucky cases generalise to all 15 |
@@ -99824,3 +99825,66 @@ front of me. The tell each time was an impossible zero or an impossible entry.
 the structural reason recorded (only `workers/api` drives real sequencer appends in setup) so the bound
 survives; the discarded await proxy confirmed from the other side — the two highest-await hooks are among the
 fastest; 1 parser failure noted as the third of its kind with the cheap fix stated; 0 code changed.
+
+---
+
+## §1780 — PHASE GATE: every catch in production source, and what its fallback VALUE decides (REQ-030/118)
+
+§1777 established the rule for **gates**: one that cannot run its tool has two honest outputs — fail, or
+PENDING with `executed:false`. The runtime counterpart is the question this repo has already been bitten by:
+when a dependency fails or a stored value will not parse, **what value reaches the comparison?**
+
+That class has produced a real defect here before — a `{}` policy fallback that silently opened three of four
+gate knobs, widened the geofence and stamped widened visibility onto immutable events. So this is a
+re-verification, not a first look.
+
+### The population
+
+**72 `catch` blocks** across `packages/*/src` and `workers/*/src`:
+
+| shape | count |
+|---|---|
+| rethrow | 35 |
+| log only | 2 |
+| return a fallback value | 25 |
+| assign a fallback and continue | 10 |
+
+**Zero fail-open.** The 25 value-returning catches are `deny()`, `null`, `undefined`, `rpcError(...)`,
+`signupError(...)` — refusals — or `{}`/`[]` on a **parse of a stored JSON column**, where the empty value is
+the restrictive one:
+
+- `pub/status.ts` — a malformed `status_cache` renders as *no status*, never a fabricated one. And it is
+  unreachable through the shipped writers: the projection writes with SQLite `json_set` and a `'{}'` column
+  default, both of which produce valid JSON by construction.
+- `devices.ts` — a malformed `device_keys` yields `[]`, so **no device verifies**. Empty is the closed value
+  for a key list.
+
+The 10 assign-and-continue catches each carry a stated reason at the site — *"unparseable payload — skip,
+never fabricate"*, *"malformed geo → no coordinate (truthful: never fabricate a location)"*, *"degrade to
+deterministic — never fail the import on the LLM"*.
+
+### Two the classifier flagged that are correct
+
+`biller/sender.ts` has a catch with an **empty body**, which reads as the worst possible swallow. It is not:
+the `return` sits *after* the `try/catch`, and the comment says why — *"not JSON — the truncated raw text below
+is the best detail available."* A classifier that only looks **inside** the catch cannot see the fallback.
+
+`watchtower.ts` assigns the **raw string** when a `detail` column will not parse, typed `unknown`, with the
+reason recorded: *"best-effort surface; the alarm's rule/severity still land"* — so the caller is not told an
+object is an object.
+
+### The historical defect, re-checked rather than assumed
+
+The `{}` policy fallback is closed and loudly so: the sequencer **refuses every append** on an unusable policy,
+names the cause, and the log line states the counterfactual outright — *"a `{}` fallback would silently OPEN
+the dims gate, widen the geofence and drop visibility overrides onto immutable events."* Five cases pin it,
+including *"deleting the tenants row makes the append refuse, where it used to widen visibility silently."*
+
+> **A catch is a decision about a value, not about an error.** The question is never *"is it handled"* but
+> *"which way does the value that escapes the catch push the next comparison"* — and the only way to read that
+> is to follow the value to its consumer.
+
+**Phase gate.** 72 production catches enumerated and classified by the direction of their fallback; **0
+fail-open**; 2 flagged by the classifier and cleared by reading the code around them, one because the return
+lives outside the catch; 1 historical defect of exactly this class re-verified as closed with its
+counterfactual still written at the site; 0 code changed.
