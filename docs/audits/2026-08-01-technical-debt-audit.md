@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1211 | §1764 | **§1765** | **THE FILE NOTHING HAD EVER AUDITED, AND THE GUARANTEE THAT DID NOT EXIST.** Target picked FROM the record: of **363** non-test source files, **30** appear nowhere in the audit or checklist. The sharpest is `projection/messages.ts` — a ledger projection whose two siblings are heavily audited (§1763's quiet-sibling heuristic, applied to a directory). **Its stated guarantee is false**: it claims to be the SOLE writer of `messages.direction`, so the TypeScript union constrains the column — but **three** statements write it, and the two agent sites are RAW BINDS the union never reaches. Both write 'out' today, so no bad row exists; nothing would have noticed one. **The shape**: the same DDL line gives `channel` a CHECK and `direction` none — the constraint stopped one column short, on the same line of the same table. **A wrong value is SILENT**: four readers branch on the literal, so the row reads fine and is invisible to the sweep that owed it work. Landed a roster + discovery pair, both mutation-proved by name. **Two instrument faults, both caught by controls**: the parser anchored on a HOISTED SQL constant and read a different prepare's bind list (a false defect), and a naive comma split slid every argument left. The fix worth keeping is the **positive control** — grade a slot whose correct answer you already know (the `channel` literal, which HAS a CHECK) in the same parse, so a mis-parse fails first and names itself. 0 behaviour changed |
 | 1210 | §1763 | **§1764** | **THREE HYPOTHESES, THREE ALREADY CLOSED — AND THE PROBE IS THE PATTERN.** Opened on queue-consumer idempotence (at-least-once delivery; double-billing is the silent-expensive failure). **(1)** *"The biller has no redelivery test"* — FALSE; `workers/agents/test/` has no biller file, but the api suite holds *the same message twice → ONE invoice, ONE money projection, ONE email*. Ownership follows the CONSUMER, not the module. **(2)** *"Four cron sweeps drive off unbounded reads and only `watchtower` is on the roster"* — true, and **§1580 had already swept all 183 production SELECTs** from the code side and found nothing left over. **(3)** *"The credit reconciler's `seq` tiebreak is meaningless across streams"* — true (the events PK is stream_id+seq, and a credit.checked rides whatever shipment stream it was posted to), **and §1261 framed it better**: arbitrary is FINE, unstable is not — a flapping pick moves a party between hold and clear while the REQ-042 booking gate reads that value; it pinned the winner AND re-asserted it after a second run, which is also the sweep idempotency case this probe called missing. **The one change**: the reconciler's docstring gave the WRONG mechanism for re-run safety — an immediate re-run never reaches the idempotent writes because the **gap gate** returns first, and that gate is pinned by **exactly one test of 903**. Both reasons now written with the mutation separating them. **Every miss came from a probe narrower than the record's, and the record's version was SHARPER, not merely earlier.** 0 behaviour changed |
 | 1209 | §1762 | **§1763** | **THE EXACTNESS-GUARD CLASS, SWEPT — AND THE RULE THAT DECIDES WHICH ONES MATTER.** Two instances is a class, so this counted instead of fixing: **every `BigInt(` in non-test source**, 7 files. **The geo resolver was unpinned** — rewriting both cross-product predicates in float left all **38** tests in the owning suite green, and **3,000,000 random (edge, point) triples found ZERO disagreements** (a disagreement needs the exact cross to land within ~16 of zero; a random one is ~1e16). So the witness was **CONSTRUCTED**: pick an edge with **coprime** deltas so a cross product of exactly 1 is reachable, solve with extended Euclid — exact says off-edge (interior, the state code), float says collinear (**boundary → "XX"**). 3 tests added; under the mutation **exactly 1 of 41 fails**, and it is the witness. The mild direction is a fail-closed jurisdiction; the same rounding decides `eastOfPoint`, which returns a **confident wrong state**. **THE RULE**: an exactness guard is load-bearing exactly when the result's ROUNDING GRANULARITY is comparable to the error — money rounds to the cent (the error IS a cent), geo compares against ZERO (any error flips it), and **DSO rounds to DAYS while its error is sub-millisecond: 0 / 200,000 answers differ, so that BigInt is genuinely unnecessary**. Cheaper than mutating everything. **And the §1762 asymmetry is now 2 of 2**: the rater's monetary product is pinned by a test named for it, both ledger guards were not — the louder failure attracts the proof. 0 production code changed |
 | 1208 | §1761 | **§1762** | **A GUARD NO MUTATION CAN JUSTIFY, AND ONLY THE ARITHMETIC CAN.** The rater's money chain has a derived overflow ceiling a test recomputes; the ledger's money core has the same exposure and had **none**. Building it inverted my conclusion twice. **(1)** The planned mutation — rewrite the BigInt Hamilton core in floating point — **passed all fifteen tests**, so the claim written before measuring was false. **(2)** Brute force: **0 disagreements in 400,000 random allocations across the whole admissible range, and 0 in 40,000,000 ADVERSARIAL cases** shaped to maximise the widest product; the first appear one decade up (8/50,000 at 1e13, ~27% by 1e17). The obvious reading — *the BigInt is unnecessary* — is ALSO wrong, and the test written to confirm it is what caught that: **the widest intermediate at the contract bound is 9.99999999999e15, past 2^53**, so the products truly are unrepresentable and the assertion first written here failed pointing the wrong way. Both hold because a ≤1 error in a ~1e16 product only moves `floor(product/10000)` when it crosses a multiple of the divisor — which never happened in 40.4M trials. **The class**: deleting this guard looks exactly like deleting dead weight, stays green forever on every admissible input, and corrupts money RARELY rather than never — the worse failure mode. Its mirror, the rater's ceiling, got algebra written for it only because its failure was a loud HTTP 500; **the louder failure got the proof, the silent one got nothing.** 6 tests added, asserting the ALGEBRA and reading the bound off the schema rather than restating it, pinned bidirectionally so a LOWERED bound also fails here. 768 ledger tests green, 0 production code changed |
@@ -98824,3 +98825,75 @@ established that the right property is stability.
 probe that proposed them; 1 false "missing test" traced to ownership-by-directory; 1 stated mechanism corrected
 on the credit path and separated into the two cases that actually hold, each with its own evidence; 1 mutation
 attributing the gap gate to exactly one test out of 903; 903 api tests green; 0 behaviour changed.
+
+---
+
+## §1765 — PHASE GATE: the file nothing had ever audited, and the guarantee that did not exist (REQ-100/095/032)
+
+§1764 ended on the rule that a fresh hypothesis is worth less than reading the record. So this phase picked its
+target **from** the record rather than against it: which production files has the audit **never named**?
+
+Of **363** non-test source files, **30** appear nowhere in the audit or the checklist. Ranked by what the
+acceptance demos depend on, the sharpest is `packages/ledger/src/projection/messages.ts` — a ledger projection
+whose two siblings (`money.ts`, `status-cache.ts`) are heavily audited. The quiet-sibling heuristic from §1763,
+applied to a directory instead of a guard.
+
+### The claim, and why it is false
+
+The file states its own guarantee:
+
+> `direction` ('in'|'out') is unconstrained at the DB … The guard is instead the TypeScript `MessageDirection`
+> union below PLUS **this projection being the SOLE writer of the column**, so only 'in'/'out' can ever be
+> inserted.
+
+**Three production statements write that column**, not one:
+
+| writer | how | reached by the TS union? |
+|---|---|---|
+| `packages/ledger/src/projection/messages.ts` | typed row → prepared insert | yes |
+| `workers/agents/src/collector.ts` | raw bind, dunning draft | **no** |
+| `workers/agents/src/concierge.ts` | raw bind, draft insert | **no** |
+
+Both agent sites bind the literal `'out'`, so **no bad row exists today**. What was missing is anything that
+would notice if one did — and the omission has a shape worth naming: the same DDL line gives `channel` a
+`CHECK (channel IN (…))` and gives `direction` none. **The constraint discipline stopped one column short, on
+the same line of the same table.**
+
+### Why a wrong value would be silent
+
+Four readers branch on the literal: `sla-sweep`'s overdue scan and the Concierge's `sla_due_ts` update both
+require `direction = 'in'`; two dunning reads require `'out'`. A row with a third value throws nothing, reads
+fine, and is **invisible to exactly the sweep that owed it work** — a dropped SLA obligation with no error
+anywhere.
+
+### What landed
+
+A roster + discovery pair (`tools/checks/messages-direction-writers.test.ts`), the shape this repo already uses
+for unbounded reads: the roster pins the literal each known writer binds; the discovery half fails when a
+**fourth** writer of the table appears. Both halves mutation-proved — changing the Collector's `'out'` to
+`'outbound'` REDs the value assertion by name, and planting a fourth writer REDs the discovery assertion by
+name. A final assertion fails if `direction` ever gains a DB CHECK, so whoever does the better fix deletes this
+gate rather than leaving two mechanisms for one rule.
+
+### Two instrument faults, both caught by controls rather than by luck
+
+1. **The bind parser read the wrong statement.** The Collector's SQL is a hoisted constant, so scanning forward
+   from the statement text found a *different* prepare's `.bind(`. It reported the Collector malformed — a
+   false defect. Fixed by anchoring on the call site.
+2. **A naive `split(",")` slides every argument left**, because `dunningDraftId(inv.id, bucket)` contains a
+   comma. The test now carries a **positive control**: argument 2 must be a legal `channel` literal — a column
+   that *does* have a DB CHECK, so its values are known. If the split ever slides, that fails first and names
+   the parser, instead of the next assertion silently grading the wrong column.
+
+The second fault is the one worth keeping: a scanner that reads a neighbouring column reports a defect that
+does not exist, and the report is indistinguishable from a real one. **Grade a slot whose correct answer you
+already know, in the same parse.**
+
+Also recorded in the gate: `git grep` searches **tracked** files only — the right scope, since an untracked
+file does not ship, but it means the discovery half is blind until the new writer is staged. Verified by
+planting the probe twice, unstaged then staged.
+
+**Phase gate.** 363 source files enumerated against the record, 30 never audited, 1 worked; 1 stated guarantee
+measured **false** (sole-writer, three writers); 0 bad data today and a gate so that stays checkable rather than
+assumed; 2 mutations, each REDing its own half by name; 2 instrument faults caught before they became findings,
+1 of them by a control added for that purpose; 1,518 tools + 771 ledger tests green; 0 behaviour changed.

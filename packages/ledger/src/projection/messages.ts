@@ -27,9 +27,24 @@
 // resolution the Concierge already wrote — the existing row, with its filled-in party/conf, survives.
 //
 // `direction` ('in'|'out') is unconstrained at the DB (the STRICT `messages` table has no CHECK on it,
-// and SQLite cannot ALTER-ADD a CHECK without a full table recreate — not worth it here). The guard is
+// and SQLite cannot ALTER-ADD a CHECK without a full table recreate — not worth it here). ~~The guard is
 // instead the TypeScript `MessageDirection` union below PLUS this projection being the SOLE writer of
-// the column, so only 'in'/'out' can ever be inserted.
+// the column, so only 'in'/'out' can ever be inserted.~~
+//
+// CORRECTED 2026-08-17 (audit §1765) — THE SOLE-WRITER HALF IS FALSE, so the guard it describes did not
+// exist. THREE production statements write this column: this projection, `workers/agents/src/collector.ts`
+// (the dunning draft) and `workers/agents/src/concierge.ts` (the draft insert). The two agent sites are raw
+// SQL binds, and the `MessageDirection` union below does not reach a raw bind — it constrains THIS file only.
+// Both write the literal 'out' today, so no bad row exists; what was missing was anything that would notice
+// if one did. Note the shape: the same DDL line gives `channel` a `CHECK (channel IN (…))` and `direction`
+// none — the constraint stopped one column short, on the same line of the same table.
+//
+// The gap is now covered by `tools/checks/messages-direction-writers.test.ts`, a roster + discovery pair:
+// it pins the literal each known writer binds, and fails when a FOURTH writer of the table appears. A wrong
+// value would be SILENT rather than loud — `sla-sweep` and the Concierge only assign SLAs to
+// direction='in', and the dunning queue only lists direction='out' — so the row would read fine and be
+// invisible to the sweep that owed it work. Struck rather than deleted because the ORIGINAL claim is what a
+// reader would otherwise rely on when adding a fourth writer.
 import type { LedgerEvent, MessageChannel } from "@shuddl/contracts";
 
 export type MessageDirection = "in" | "out";
