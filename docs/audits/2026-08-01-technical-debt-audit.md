@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1213 | §1766 | **§1767** | **WAS THE DEFAULT-0 BUG AN EPIDEMIC? 47 COLUMNS, SWEPT.** One instance is a bug, two is a class — so this counted: every `NOT NULL DEFAULT` against every production INSERT. **47 defaulted columns, 19 tables, ZERO further live instances**, and the two reasons are the useful part. **(1)** Most defaults are COLLECTIONS (`'[]'`/`'{}'`), where omitting means exactly what the default says — noise, filtered by construction. **(2)** The scalar ones are all written, and the events path binds `?? null` into NOT NULL columns so an absent value is a **loud abort**, never a silent default. **Surfaced 5 implicit choices**, now written down: `shipments.mode`/`division` are omitted by the booking projection, Concierge, seed and smoke — none a defect (BookingCreatedPayload makes `mode` an OPTIONAL refinement; an inbound email states neither; and `division` reaches the journal only via money_lines, which resolve the SAME `?? "main"` fallback). **The distinction the gate is built around: does the default DESCRIBE or DECIDE?** Landed a ratchet with a corpus floor and a staleness check (an exemption that stops exempting is deleted), mutation-proved by name. **Two instrument faults**: the first probe called the ledger's central write path five-columns-short (it read `${EVENT_COLUMNS.join(",")}` as a literal list) — now resolved through the array, with an **unresolvable list treated as FAILURE, not skip**; and the gate flagged a GATE, since `append-chokepoint.ts` quotes SQL in a detection pattern — excluded by directory, premise verified (nothing there holds a D1 handle). 0 behaviour changed |
 | 1212 | §1765 | **§1766** | **A DEFAULT THAT MEANS "DELETE ME", AND THE GUARD THAT INVALIDATED A CONTROL.** §1765's method continued into the two unaudited migrations. Both correct — but `0007` gives `documents.created_ts` a **`DEFAULT 0`**, and for a DELETION sweep that is the maximally-expired value: a row written without the column is born expired, its R2 bytes deleted on the next tick and tombstoned as retention-expired, which reads like a correct outcome. **§1536 already closed the live instance** (anchor.ts's tsa_receipt, saved solely by the kind exclusion) — **but that defence is keyed on KIND while the hazard is keyed on a MISSING COLUMN**. Enumerated both writers: no live gap; a third omitting the column under any non-POD kind deletes evidence silently. Added a fail-closed floor (skip `created_ts <= 0`) with its own REPORTED counter, plus a positive control that a real two-year-old clock still deletes — a guard that skipped everything would pass otherwise. **The keeper**: the floor immediately RED-ed a §1536 CONTROL. Its rule was untouched; its control now survived for the FLOOR's reason instead of dying for the EXCLUSION's, so it had stopped testing while staying green. Re-based onto `created_ts = 1` — a KNOWN ancient clock, still born-expired — while the retained-kind case stays at 0, the value anchor.ts actually writes. **A new guard can invalidate an existing test's PREMISE without touching its RULE, and a green control does not self-report.** |
 | 1211 | §1764 | **§1765** | **THE FILE NOTHING HAD EVER AUDITED, AND THE GUARANTEE THAT DID NOT EXIST.** Target picked FROM the record: of **363** non-test source files, **30** appear nowhere in the audit or checklist. The sharpest is `projection/messages.ts` — a ledger projection whose two siblings are heavily audited (§1763's quiet-sibling heuristic, applied to a directory). **Its stated guarantee is false**: it claims to be the SOLE writer of `messages.direction`, so the TypeScript union constrains the column — but **three** statements write it, and the two agent sites are RAW BINDS the union never reaches. Both write 'out' today, so no bad row exists; nothing would have noticed one. **The shape**: the same DDL line gives `channel` a CHECK and `direction` none — the constraint stopped one column short, on the same line of the same table. **A wrong value is SILENT**: four readers branch on the literal, so the row reads fine and is invisible to the sweep that owed it work. Landed a roster + discovery pair, both mutation-proved by name. **Two instrument faults, both caught by controls**: the parser anchored on a HOISTED SQL constant and read a different prepare's bind list (a false defect), and a naive comma split slid every argument left. The fix worth keeping is the **positive control** — grade a slot whose correct answer you already know (the `channel` literal, which HAS a CHECK) in the same parse, so a mis-parse fails first and names itself. 0 behaviour changed |
 | 1210 | §1763 | **§1764** | **THREE HYPOTHESES, THREE ALREADY CLOSED — AND THE PROBE IS THE PATTERN.** Opened on queue-consumer idempotence (at-least-once delivery; double-billing is the silent-expensive failure). **(1)** *"The biller has no redelivery test"* — FALSE; `workers/agents/test/` has no biller file, but the api suite holds *the same message twice → ONE invoice, ONE money projection, ONE email*. Ownership follows the CONSUMER, not the module. **(2)** *"Four cron sweeps drive off unbounded reads and only `watchtower` is on the roster"* — true, and **§1580 had already swept all 183 production SELECTs** from the code side and found nothing left over. **(3)** *"The credit reconciler's `seq` tiebreak is meaningless across streams"* — true (the events PK is stream_id+seq, and a credit.checked rides whatever shipment stream it was posted to), **and §1261 framed it better**: arbitrary is FINE, unstable is not — a flapping pick moves a party between hold and clear while the REQ-042 booking gate reads that value; it pinned the winner AND re-asserted it after a second run, which is also the sweep idempotency case this probe called missing. **The one change**: the reconciler's docstring gave the WRONG mechanism for re-run safety — an immediate re-run never reaches the idempotent writes because the **gap gate** returns first, and that gate is pinned by **exactly one test of 903**. Both reasons now written with the mutation separating them. **Every miss came from a probe narrower than the record's, and the record's version was SHARPER, not merely earlier.** 0 behaviour changed |
@@ -98962,3 +98963,63 @@ only sweep that reads it; 2 writers enumerated (no live gap) and a floor added k
 on the kind; 1 counter added so the skip is visible rather than silent; 1 mutation REDing the floor by name;
 **1 pre-existing control found invalidated by my own guard and re-based so it still proves its claim**; 773
 ledger + 4 cron tests green.
+
+---
+
+## §1767 — PHASE GATE: was the DEFAULT-0 bug an epidemic? 47 columns, swept — and a ratchet (REQ-116/I8)
+
+§1766 found one column DEFAULT that means "delete me" to its reader. One instance is a bug; two is a class. So
+this phase counted rather than hunted: **every `NOT NULL DEFAULT` in the schema, against every production
+`INSERT`.**
+
+**47 defaulted columns across 19 tables. Zero further live instances** — and the two reasons why are the useful
+part, because they are what the new gate protects:
+
+1. **Most defaults are collections.** `'[]'` / `'{}'` on a JSON column means *empty*, which is exactly what an
+   omitting writer means. Omitting them is the intended shape, not a risk — so flagging them would be pure
+   noise, and the gate ignores them by construction.
+2. **The scalar ones are all written.** Every scalar-defaulted column is named by every writer of its table,
+   apart from the `documents` pair. The events path is stronger still: it binds `?? null` into `NOT NULL`
+   columns, so an absent value is a **loud abort**, never a silent default.
+
+### What the sweep did surface: five implicit choices, now written down
+
+`shipments.mode` (DEFAULT `'LTL'`) and `shipments.division` (DEFAULT `'main'`) are omitted by the booking
+projection, the Concierge, the seed loader and the staging smoke. None is a defect — and the reasons are worth
+having on the record rather than inferred:
+
+- `BookingCreatedPayload` requires the four party FKs and `division` but makes `mode` an **optional
+  refinement**, so a booking carrying none must project *something*.
+- An inbound email states neither, and inventing one is worse than a descriptive default.
+- `division` reaches the journal only through `money_lines`, which carry their **own** division and resolve
+  `deps.division ?? "main"` — the same fallback. So the shipments row and the export agree rather than drift.
+
+Unlike `created_ts`, nothing gates, sweeps or bills on either. **The distinction the gate is built around:
+does the default DESCRIBE, or does it DECIDE?**
+
+### The ratchet
+
+`tools/checks/defaulted-column-omissions.test.ts` fails when a *new* INSERT omits a scalar defaulted column,
+unless a reviewer adds an allowlist row saying why the default is right **for every reader of it**. Three
+assertions: the omission rule, a **corpus floor** (the parser must find the `created_ts` column and must have
+filtered `party_refs` out, so a broken glob cannot report a clean sweep), and a **staleness check** that fails
+when an allowlisted writer starts naming its column — an exemption that no longer exempts anything is a claim
+nobody re-checks. Mutation-proved: a planted INSERT omitting `created_ts` fails by name.
+
+### Two instrument faults, both structural rather than typos
+
+1. **The first probe reported the ledger's central write path as omitting five columns**, including `source`
+   and `confidence`. False: `INSERT INTO events (${EVENT_COLUMNS.join(",")})` interpolates an array, and the
+   regex captured the interpolation. The gate now resolves the named array, and — the load-bearing half — an
+   **unresolvable column list is a FAILURE, not a skip**, because an unreadable list is indistinguishable from
+   an omission.
+2. **The gate flagged a gate.** `tools/checks/append-chokepoint.ts` carries `INSERT INTO events` inside a
+   *detection pattern*. Scanning a scanner is a permanent semantic false positive — any gate that reads SQL
+   contains SQL — so `tools/checks/**` is excluded by directory, and the premise was **verified** rather than
+   assumed: nothing there holds a D1 handle.
+
+**Phase gate.** 47 defaulted columns swept against every production INSERT, **0 new live instances**, so
+§1766's finding is a singleton and now says so; 5 implicit defaults converted into written, re-checkable
+claims; 1 ratchet with a corpus floor and a staleness check, mutation-proved by name; 2 instrument faults
+caught before they became findings, one of which had already produced a five-column false alarm on the
+ledger's hottest write; 1,521 tools tests green; 0 behaviour changed.
