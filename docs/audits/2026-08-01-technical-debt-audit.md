@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1247 | §1800 | **§1801** | **EVERY GATE THIS SESSION BUILT, RE-PROVED AS A BATCH.** Each was mutation-proved when it landed; the risk that leaves is **interaction** — a later phase silently disabling an earlier gate (§988's *adding a gate can delete a gate*). Nine phases edited gate files after the first proofs, **two of them WIDENINGS** (`corpus-extension` touched 15 corpora at §1775; `defaulted-column-omissions` changed its own exclusion rule at §1774), and a widening that admits one file too many disables an earlier gate without failing anything. All 9 §-tagged additions confirmed present, and **5 re-run against their ORIGINAL mutations — every one still red by name**: the POD-law non-empty clause (1), the geo BigInt predicates (1), the watchtower ON CONFLICT key (2), the sla body_ref (1), the collector's direction literal (1). All five sources restored byte-identical. **A gate proved in the phase that built it is proved against THAT phase's tree** — after later widenings those proofs are claims about a tree that no longer exists, and re-running the mutation is what converts them back into measurements |
 | 1246 | §1799 | **§1800** | **THE EXPIRY RULE WIDENED TO OPEN ROWS, AFTER MEASURING THE BACKLOG IT WOULD CREATE.** §1799 found by hand that an OPEN row's trigger had fired unstamped and named the gap: §995 evaluates TERMINAL rows only. **Measured before widening**: of 38 OPEN rows, **8 name a repo file and 2 were stale** — L459 against `json-scan-ratchet.test.ts` and L461 against `error-code-producers.test.ts`, both files moved **on 2026-08-17 in THIS session** (§1724's doc-bindings), so the fired triggers are my own edits and neither row was stamped after. Both re-verified in the same phase by running what the trigger points at: the ratchet is **4 of 4 green** (the 21-site count still describes the tree) and both ErrorCodes still appear in exactly **one** production file. Then the terminal-status pattern gained `OPEN` alongside FIXED, RESOLVED and TRIPWIRED — the two questions differ in meaning but **the same staleness test serves both**, because a file that moved after the row's newest date means nobody looked since. Mutation-proved: un-stamping L459 reds with row, date and file. **Measure the backlog before widening the gate** — two stale rows lands green in the same phase; twenty would have been a queue I created and left |
 | 1245 | §1798 | **§1799** | **THE OPEN ROWS' TRIGGERS, EVALUATED — ONE HAD FIRED UNSTAMPED.** §995 evaluates expiry triggers on TERMINAL rows and is green. **OPEN rows are outside its scope**, and their triggers ask a different question — not *is this evidence stale* but *has the condition that would change this verdict happened yet?* Nobody evaluates those, so this phase did for all 5 mechanically-checkable ones. **2 confirmed unfired by command** (`split.computed` still absent from the recovery-query directory; both producerless ErrorCodes still appear only in the enum), **1 fired and already acted on** (the row already reads CLOSED), **1 pending** on the co-author's uncommitted `genesis/09`, and **1 FIRED AND UNSTAMPED**: `identity-leak.ts` last changed `460aafd` (2026-08-08), after the row's evidence note. The claim survives — §1794 ran the gate's real path against a synthetic denylist — and the row is now **stamped with that measurement rather than merely still-written**. **A trigger that fires and is not stamped leaves a row indistinguishable from one whose condition never arrived**; the stamp is the difference between *still true* and *nobody looked* |
 | 1244 | §1797 | **§1798** | **ALL 38 DISPOSITIONS COUNTED — THE OPEN SET IS DECISIONS, NOT NEGLECT.** Reading rows one at a time had returned *correctly held* eighteen times; §1797's lesson says stop inferring and COUNT it, and §945 made the status field canonical so that is possible. **9 need a REQ row · 8 measured, not built · 6 owner decisions named outright · 3 recorded, not changed · 2 pinned, not fixed · 1 fix written and REVERTED · 9 unmatched.** The nine unmatched read the same way once opened: *needs a decision, not a fix*; *mitigated … and not a defect to fix*; *needs a decision before a fix*; *measured twice as not-worth-building without an opt-in marker*; *accepted-for-now, recorded so the pre-GA pen-test row inherits it knowingly*; *fail-closed; needs REQ-069 identity* — and three are rows this session already worked to closure. **Every one of the 38 carries a stated disposition and none is "not yet looked at": the OPEN set is a queue of DECISIONS — register amendments, owner calls, deliberate accepts — not a backlog of neglect.** **When reading N of a set keeps returning the same answer, stop reading and classify the set**: the individual reads establish the categories, the classifier makes the conclusion cover everything |
@@ -101006,3 +101007,56 @@ Mutation-proved: removing L459's fresh stamp reds the gate with the row, the dat
 rows carry file-naming triggers, 2 were stale, **both caused by this session's own edits to the gate files
 those rows name**; both re-verified by running the thing the trigger points at rather than by re-reading the
 row, and stamped; the gate widened and mutation-proved to red by row, date and file; 0 backlog created.
+
+---
+
+## §1801 — PHASE GATE: every gate this session built, re-proved as a batch (REQ-118/119)
+
+Each gate added or widened this session was mutation-proved **at the time it landed**. The risk that leaves is
+**interaction**: a later phase silently disabling an earlier gate — the shape §988 named as *adding a gate can
+delete a gate*. Nine phases changed gate files after the first proofs; nothing had re-checked the earlier ones
+since.
+
+### Present, and still firing
+
+Every §-tagged addition is still in the tree:
+
+| tag | subject | files carrying the tag |
+|---|---|---|
+| §1762 | the money core's algebra + domain-edge property | 2 |
+| §1763 | the geo constructed witness | 1 |
+| §1765 | the `messages.direction` roster | 1 |
+| §1767 | defaulted-column omissions | 1 |
+| §1768 | the log-PII ratchet | 1 |
+| §1781 | the POD-law exemption's non-empty clause | 1 |
+| §1791 | the watchtower `ON CONFLICT` key | 2 |
+| §1792 | the sla-sweep body_ref round-trip | 1 |
+| §1800 | the expiry rule widened to OPEN rows | 1 |
+
+And five re-run against their **original mutations**, each still red by name:
+
+```
+§1781  drop `lines.length > 0`                     → 1 red   (sequencer)
+§1763  BigInt cross products → float               → 1 red   (jurisdiction)
+§1791  watchtower alarm id → non-deterministic     → 2 red   (agents)
+§1792  sla body_ref → non-deterministic            → 1 red   (agents)
+§1765  collector direction 'out' → 'outbound'      → 1 red   (tools)
+```
+
+All five restored byte-identical; the tree carries only the co-author's files.
+
+### Why re-prove rather than trust the first proof
+
+A mutation proof is a statement about a tree, and nine phases have edited gate files since — including two
+that **widened** gates (`corpus-extension` at §1775 touched 15 corpora; `defaulted-column-omissions` at §1774
+changed its own exclusion rule). A widening that accidentally admits a file, or an exclusion that grows one
+term too many, disables an earlier gate without failing anything.
+
+> **A gate proved in the phase that built it is proved against that phase's tree.** When later phases edit the
+> gate corpus — especially to *widen* — the earlier proofs are claims about a tree that no longer exists.
+> Re-running the original mutations is the only thing that converts them back into measurements.
+
+**Phase gate.** 9 session-added gates confirmed present by tag; **5 re-proved against their original
+mutations**, every one still red by name and every source restored byte-identical; the risk named precisely —
+nine phases edited gate files after the first proofs, two of them widenings — so this is a re-measurement
+rather than a formality; 0 code changed.
