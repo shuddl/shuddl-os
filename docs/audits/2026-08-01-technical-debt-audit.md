@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1225 | §1778 | **§1779** | **THE TIMEOUT EXPOSURE IS ONE PACKAGE, AND HERE IS WHY.** §1778 measured only `workers/api` — the package the merge log happened to print per-test durations for — so this measured the rest. **agents 1,983ms / billing 644ms / mcp 1,756ms / translator 1,913ms / ledger 45,912ms**, and nothing outside `workers/api` is near the 10s hook default: the ledger's total is large because it has **773 tests**, not because any fixture is heavy (its slowest file spreads 3.3s over 40 cases). Where api had a SINGLE hook consuming 9.4s and 14.4s, no other package concentrates time in setup at all. **The structural reason, recorded so the bound survives**: `workers/api` is the only package whose fixtures drive **real DO appends through the sequencer** — gates, projections and hash chain — while everywhere else setup seeds D1 rows or fakes directly. That also settles §1778's discarded proxy from the other side: the two hooks with the MOST awaits (41 and 25) live in mcp and billing and finish in **188ms and 370ms**. **What a hook awaits decides its cost; how many times it awaits decides nothing.** So the 4 hooks bounded across §1777–§1778 are the whole surface, not a sample. **Third parser in two phases written from a remembered format** — the verbose reporter is FLAT with no file summary line, so it returned zero rows across five packages; print ten lines of the real output before writing the pattern that consumes it |
 | 1224 | §1777 | **§1778** | **THE TENANT-ISOLATION SUITE WAS ~600ms FROM NOT RUNNING.** §1777 bounded one hook that timed out; this asks how many others sit near the same default — and **two proxies were wrong first**. The log's *slowest tests* list was actually FILE lines (caught because every entry read *(45 tests)*); and **awaits-per-hook is meaningless** — the two largest (41 and 25 awaits) run in **188ms and 370ms**, because they await in-memory fakes while §1777's 24 awaits were real DO appends. The right metric was already in the merge log: **file total minus the sum of per-test durations = setup time**. Result: `lens-adversarial` 14.4s (bounded), **`isolation.test.ts` 9,401ms = 94% of the 10s default**, `portal-actions` 5.4s, `pub-status` 3.8s. **The isolation suite is REQ-025 / CLAUDE.md rule 8 — the one whose failure IS a build failure — and its failure mode is not a red assertion but 69 tests SKIPPED behind `unit-tests — command exited 1`.** The suite that proves the strongest law, failing in the one way that names nothing. All three bounded at the hook with their measured numbers rather than raising `hookTimeout` package-wide. **A default is not a decision** — it is a number nobody chose, sized for a machine nobody is using |
 | 1223 | §1776 | **§1777** | **CAN A BROKEN TOOL MAKE A GATE REPORT CLEAN? 15 SPAWNERS, NONE OF THEM.** §1776 accidentally created the environment that answers it — a worktree where pnpm, playwright and eslint all fail, where 4 suites failed and **124 passed**. Were any of those greens VACUOUS? **Three consecutive probes returned ZERO external-tool call sites**, which is plainly false; all three enumerated on the call NAME (`execSync`) while `spec-collection` uses `execFileSync` — **§1775's own lesson re-committed one phase after writing it down**, caught by noticing an impossible zero. Re-asked by BEHAVIOUR: **134 spawners, 15 external-tool**. **Zero fail-open.** And the corpus does not defend with try/catch at all — it defends by making the FALLBACK VALUE fail the comparison (`runtime-contract` returns `"unavailable"`, which then fails the version check), by THROWING with the environment named (`spec-collection`: *its silence would mean nothing*), or by carrying an explicit `executed:false` that a mode-aware grader turns into a BLOCK (`playwright-guard`: an unparseable report is a failure because *we have no proof it ran anything*). **A gate that cannot run its tool has two honest outputs — fail, or PENDING with `executed:false` — and "clean" is not among them.** No fix, because nothing was broken: the product is a BOUND, so §1776's two lucky cases generalise to all 15 |
 | 1222 | §1775 | **§1776** | **DOES THE COMMITTED TREE STILL PASS, FIFTEEN COMMITS OF GATE SURGERY LATER?** §1761's sweep re-run at `9407c0b`, because almost everything this loop changed lives INSIDE the gates — which makes it the self-consistency question, not a formality. **13 static gates: 12 agree, 1 differs** — `check:traceability` on the REQ-289 annotation, the same owner-held reason as §1761. **Fifteen commits introduced no new committed-vs-working divergence.** Extending to the 128 tools suites produced 4 failures, **all four attributable to the worktree by their own output**: a missing workspace package, `pnpm exec` unusable in a worktree (×3 via playwright), the non-executing-gate set shifting without private fixtures, and eslint invoked through pnpm. **Two are successes**: `spec-collection` and `skill-reference-lints` REFUSE to report on an environment they cannot measure and say so — a green there would certify nothing, which is exactly what §727 and §1051 were built to prevent, demonstrated by accident in an environment neither anticipated. **The useful output of a re-verification is usually an UNCHANGED number** — recording it is what makes the next drift visible. 0 code changed |
@@ -99771,3 +99772,55 @@ two "worst" files and finding them 188ms and 370ms; 1 correct metric derived fro
 (file total − Σ per-test); 144 hooks surveyed, 4 found within 2× of the default, **1 of them the
 constitutional isolation suite at 94% of its budget**; 3 hooks bounded with their measured numbers; 108 tests
 across the three still green; 0 behaviour changed.
+
+---
+
+## §1779 — PHASE GATE: the timeout exposure is one package, and here is why (REQ-118/288)
+
+§1778 measured setup time for `workers/api` — the package the merge log happened to print per-test durations
+for — and bounded three hooks. Fixing only the package you happened to see is how a class gets half-closed, so
+this measures the rest.
+
+### Every pool-workers package, measured
+
+| package | Σ test time | tests | slowest single file |
+|---|---|---|---|
+| `workers/agents` | 1,983ms | 155 | 265ms |
+| `workers/billing` | 644ms | 78 | 202ms |
+| `workers/mcp` | 1,756ms | 211 | 277ms |
+| `workers/translator` | 1,913ms | 143 | 774ms |
+| `packages/ledger` | 45,912ms | 773 | 3,333ms over **40 tests** (~83ms each) |
+
+**Nothing outside `workers/api` is near the 10s hook default.** The ledger's total is large because it has 773
+tests, not because any fixture is heavy — its slowest file spreads 3.3s across 40 cases. Where `workers/api`
+had a **single hook** consuming 9.4s and 14.4s, no other package concentrates time in setup at all.
+
+### Why the exposure is concentrated there, stated so it stays true
+
+`workers/api` is the only package whose fixtures drive **real DO appends through the sequencer** — every
+`beforeAll` there builds its corpus by calling the live append path, with its gates, projections and hash
+chain. Everywhere else the setup seeds D1 rows or in-memory fakes directly.
+
+That is also the answer to §1778's discarded await-count proxy, from the other direction: the two hooks with
+the **most** awaits (41 and 25) live in `mcp` and `billing` and complete in 188ms and 370ms. **What a hook
+awaits decides its cost; how many times it awaits decides nothing.**
+
+So the four hooks bounded across §1777 and §1778 are the whole exposed surface, not a sample.
+
+### The third parser written from an assumed shape
+
+This measurement needed three attempts, again. The verbose reporter is **flat** —
+`✓ test/file.test.ts > describe > case  124ms`, one line per test, **no file summary line** — and the parser
+was written expecting the default reporter's file-line-then-indented-tests layout, so it returned **zero rows
+across five packages**.
+
+Three parsers in two phases, one root cause: written from a remembered format rather than from the output in
+front of me. The tell each time was an impossible zero or an impossible entry.
+
+> **Print ten lines of the real output before writing the pattern that consumes it.** It costs one command,
+> and every one of these failures cost more.
+
+**Phase gate.** 5 packages measured to close the class §1778 opened on one; **0 further hooks at risk**, with
+the structural reason recorded (only `workers/api` drives real sequencer appends in setup) so the bound
+survives; the discarded await proxy confirmed from the other side — the two highest-await hooks are among the
+fastest; 1 parser failure noted as the third of its kind with the cheap fix stated; 0 code changed.
