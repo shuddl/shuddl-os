@@ -132,7 +132,12 @@ beforeAll(async () => {
   if (ar.status !== 201) throw new Error(`seed ${SHP_EVENTS}/approval failed: ${ar.status} ${JSON.stringify(ar.json)}`);
   const cc = await post(SHP_EVENTS, buildEvent(SHP_EVENTS, "credit.checked", { party_id: "party-consignee", status: "clear" }, ["party-consignee"]), await financeTok());
   if (cc.status !== 201) throw new Error(`seed ${SHP_EVENTS}/credit failed: ${cc.status} ${JSON.stringify(cc.json)}`);
-});
+  // §1778 — AN EXPLICIT BOUND. Measured from a full `pnpm test` merge run: this file spends 3.8s
+  // in setup (file total minus the sum of its per-test durations) against vitest's DEFAULT 10s hook
+  // timeout — 38% of the budget, on a machine that was not otherwise loaded. §1777's
+  // `lens-adversarial` proved this is not theoretical: the same default killed a 14.4s-setup hook mid-run,
+  // skipping 45 tests with no assertion failure to point at. Lower than its siblings because its setup is smaller; still 3x the observed cost.
+}, 30_000);
 
 // PS-1 — no existence oracle: a garbage cap, and a VALID cap for a shipment that does not exist, are the
 // SAME 401. A prober who somehow held a valid MAC still cannot tell a real shipment from a phantom.

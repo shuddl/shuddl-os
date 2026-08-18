@@ -53,7 +53,13 @@ beforeAll(async () => {
   // sell_cents reveals WHICH tenant priced it — the URL host must route the tenant, never a header/param.
   await seedRateConfig(env.TENANT_A_DB, TEST_RATE_CONFIG);
   await seedRateConfig(env.TENANT_B_DB, TENANT_B_RATE_CONFIG);
-});
+  // §1778 — AN EXPLICIT BOUND. Measured from a full `pnpm test` merge run: this file spends 9.4s
+  // in setup (file total minus the sum of its per-test durations) against vitest's DEFAULT 10s hook
+  // timeout — 94% of the budget, on a machine that was not otherwise loaded. §1777's
+  // `lens-adversarial` proved this is not theoretical: the same default killed a 14.4s-setup hook mid-run,
+  // skipping 45 tests with no assertion failure to point at. This is the REQ-025 tenant-isolation suite — CLAUDE.md rule 8, a cross-tenant read anywhere is a build
+  // failure — so it silently NOT RUNNING is the worst outcome any suite here has.
+}, 60_000);
 
 describe("positive control", () => {
   it("tenant-a token reads tenant-a marker", async () => {

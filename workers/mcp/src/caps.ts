@@ -214,7 +214,7 @@ async function runCapsCheck(ctx: ToolCtx, tool: ToolDef, args: unknown): Promise
     // string across two accepts of the SAME quote and the meter reserves TWICE for a booking the api collapses
     // to ONE event. The api does not depend on client discipline for this: workers/api/src/routes/portal-actions.ts:146@deterministicUuid derives the
     // quote.accepted id DETERMINISTICALLY from the quote id, so a second accept is one event even past the
-    // HTTP idempotency window (proved with two RANDOM keys — see workers/api/test/portal-actions.test.ts:236@pa-shp-idem — and this is proved, not asserted. The meter's scope is
+    // HTTP idempotency window (proved with two RANDOM keys — see workers/api/test/portal-actions.test.ts:242@pa-shp-idem — and this is proved, not asserted. The meter's scope is
     // the derived key; the api's is the quote — narrower scope, higher count. Direction: OVER-count ⇒ fails
     // CLOSED, never a bypass, which is why this is FILED (GO-LIVE-CHECKLIST, "Caps reserve-at-check
     // over-counts") rather than re-scoped here: narrowing a money gate's counter to the target alone is an

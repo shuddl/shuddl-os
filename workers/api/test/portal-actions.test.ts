@@ -119,7 +119,12 @@ beforeAll(async () => {
     const r = await post(SHP_VIEW, { id: crypto.randomUUID(), shipment_id: SHP_VIEW, ts: 1_720_000_000_000, actor: { party: c.actor }, party_refs: [PORTAL_P], evidence: [], source: "native", confidence: 10_000, kind: c.kind, payload: c.payload }, ops);
     if (r.status !== 201) throw new Error(`seed ${SHP_VIEW}/${c.kind} failed: ${r.status} ${JSON.stringify(r.json)}`);
   }
-});
+  // §1778 — AN EXPLICIT BOUND. Measured from a full `pnpm test` merge run: this file spends 5.4s
+  // in setup (file total minus the sum of its per-test durations) against vitest's DEFAULT 10s hook
+  // timeout — 54% of the budget, on a machine that was not otherwise loaded. §1777's
+  // `lens-adversarial` proved this is not theoretical: the same default killed a 14.4s-setup hook mid-run,
+  // skipping 45 tests with no assertion failure to point at. Bounded at the hook rather than package-wide so a future slowdown here is still visible.
+}, 60_000);
 
 // ---- Piece 1: /v1/rate admits a lens-scoped portal party -------------------------------------------
 describe("Piece 1 — POST /v1/rate lens-gated for portal (REQ-085)", () => {
