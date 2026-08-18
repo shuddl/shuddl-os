@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1251 | §1804 | **§1805** | **TWO DISCIPLINES FOR TENANT-SCOPED BYTES, AND EACH IS CORRECT FOR ITS OWN CASE.** §1804's asymmetry probe pointed at R2 access: do all four paths touching a tenant's objects use the shared `isTenantEvidenceKey` guard? **Three do** — the cap-gated public serve, the Biller's POD proof, and the retention delete sweep all VALIDATE a key that already exists. **`import.ts` does not, and is right**: it CONSTRUCTS the key from the session tenant, so an answer other than this tenant's namespace is unrepresentable. **The distinction is the INPUT, not the endpoint** — the first three receive a key (from a signed cap claim or a documents row) and must ask whether it belongs; the fourth receives a client FRAGMENT and never asks. Construct-from-session is the stronger discipline wherever available, because validation can be forgotten at a new call site and construction cannot. **The traversal question asked and answered**: R2 keys are a flat namespace with no path resolution, so `tenant-a/imports/../tenant-b/x` is a literal key matching nothing — and the fragment is bounded by `.max(MAX_R2_KEY)` anyway. **Two correct answers to one problem is not drift**: ask whether the INPUTS differ before asking why the code does |
 | 1250 | §1803 | **§1804** | **TWO ENDPOINTS, ONE CONSTRAINT, ONE SOLUTION — USED ONCE.** §1803's rule applied to the other external ingress points: **4 of 5 bounded in both senses** (EDI 204; `/pub/quote` with every field `.max()`-bounded and 32 accessorials; `/v1/evidence` with a 10 MiB declared-size fast 413 then a capped read; `/pub/signup`), and **the Stripe webhook bounded in NEITHER by the app**. **The finding is an asymmetry, not an absence**: the webhook and the 204 endpoint face the SAME constraint — the HMAC is over the exact raw bytes, so the body must be read before the signature can be checked, and reading-before-verifying is correct in both. The translator solved the consequence (refuse a declared Content-Length over 1 MiB **without reading the stream**, re-check byteLength after as the belt, 413 with nothing written); the webhook does `await request.text()` with **no app-level cap**, on a route unauthenticated by construction. **One solution to one constraint exists in this repo and the sibling endpoint does not use it** — so the fix is a paste, not a design, which is why the absence is worth filing. Filed with both exits and neither taken: an audit may not pick on a money path, where a wrongly-sized cap drops a real Stripe event |
 | 1249 | §1802 | **§1803** | **THE EDI INGRESS IS BOUNDED THREE TIMES, AND ONLY THE THIRD BOUND LIMITS WORK.** A product surface untouched this session: `packages/edi`, the one place partner-supplied bytes enter. Record checked first — the filed per-row-subrequest rows name the delivery sweep, the collector, the import route and the KPI reads, **not the 204 path** — so this is new coverage. **Three bounds, two kinds**: the HTTP ingress caps the body at **1 MiB** (413, and the declared Content-Length is checked before the body is read); the EDI envelope caps at 5 MB with a 200-char ISA scan limit and a literal-separator `split` (*linear… bounded against a hostile/huge/looping document* — no regex backtracking); and **the consumer reduces the stops array with two `.find()` calls**. The first two bound BYTES. **Only the third bounds WORK** — a 1 MiB tender can carry ~25,000 stop segments and the mapper turns all of them into exactly TWO address entries, so there is no per-stop row, no per-stop subrequest, and no input that reaches the ceiling the import route and the sweeps are filed against. Outbound inverts safely: `build-214.ts` DOES iterate stops, but that array is our own status view built from our own legs. **A byte cap is not a work cap** — follow the input to the thing that SCALES with it |
 | 1248 | §1801 | **§1802** | **A GATE FOR THE FAILURE THAT RECURRED MOST, PROPOSED AND DECLINED WITH ITS NUMBER.** §1797 measured eight wrong or unattributed numbers, all in summaries; the obvious response is a sibling of the board ratchet — *a stated ledger count must match, or name the phase that measured it*. **Measured, and the matching form dies**: the audit states a ledger OPEN count on **17 lines** with values **6·17·29·32·34·38·43·57**, every one true when written, so *matches today* would fire on ~14 correct historical statements to catch 2 wrong ones — **~82% false positives**, the same shape §240 measured (~95%) and declined for the same reason. **A dated audit is SUPPOSED to contain superseded numbers.** The narrower attribution form is well-behaved (**13 of 17 already comply**) but catches only **1 of the 2** instances: §1796's bare *nine rows unread* yes, §1784's *nothing repo-owned is open* no — it states **no number at all**, being a SCOPE claim no count rule reaches. Declined; the covering mechanism is §1797's discipline (a count in a summary comes from a command run in the same phase) and both commands already exist. **A gate proposal deserves the same measurement as a finding** |
@@ -101206,3 +101207,48 @@ bounded in neither by the app**; the finding stated as an **asymmetry between tw
 constraint** rather than as a missing feature, which makes the fix a paste rather than a design; filed with
 both exits and neither taken because the path carries money; 1 table-shape trap caught pre-commit; 0 code
 changed.
+
+---
+
+## §1805 — PHASE GATE: two disciplines for tenant-scoped bytes, and each is correct for its own case (REQ-025/118)
+
+§1804 found a pattern used at one site and not its sibling. The same probe pointed at R2 byte access asked:
+**do all four paths that touch a tenant's objects use the shared `isTenantEvidenceKey` guard?**
+
+They do not — and the exception is right.
+
+| path | discipline |
+|---|---|
+| `routes/documents.ts` (cap-gated public serve) | **validates** `claims.k` with `isTenantEvidenceKey` before `EVIDENCE.get` |
+| `agents/biller.ts` (POD proof) | **validates** the stored `row.r2_key` the same way |
+| `ledger/documents/retention.ts` (the delete sweep) | **validates** before `r2.delete` |
+| **`routes/import.ts`** | **constructs** the key: `` `${session.tenant}/imports/${body.r2_key}` `` |
+
+### The distinction is the input, not the endpoint
+
+The first three receive a key that already exists — from a signed cap claim, or from a `documents` row — and
+must ask *does this key belong to this tenant?* The fourth receives a **client-supplied fragment** and never
+asks: it builds the key from the session tenant, so an answer other than "this tenant's namespace" is
+unrepresentable.
+
+**Construct-from-session is the stronger of the two** wherever it is available, because validation can be
+forgotten at a new call site while construction cannot. It is only unavailable when the key was minted
+earlier by something else — which is exactly the first three.
+
+### The traversal question, asked and answered
+
+A client-supplied fragment interpolated after a prefix invites *"can it escape?"* It cannot: **R2 keys are a
+flat namespace with no path resolution**, so `tenant-a/imports/../tenant-b/x` is a literal key that matches
+nothing rather than a traversal. The fragment is also bounded — `z.string().min(1).max(MAX_R2_KEY)` — so it
+cannot be used to pollute logs or storage keys either.
+
+> **Two correct answers to one problem is not drift.** The question worth asking of a divergence is not *"why
+> aren't these the same"* but *"do their inputs differ"* — here one receives a key and the other receives a
+> fragment, and each discipline is the right one for what it is handed. §1804's asymmetry was a real finding
+> because there the inputs were identical.
+
+**Phase gate.** 4 tenant-scoped R2 paths compared under §1804's asymmetry probe; **3 validate, 1 constructs,
+and the divergence is correct** — the input differs, a key versus a client fragment; the traversal question
+raised and closed on R2's flat namespace rather than assumed away, with the fragment's length bound named; 1
+distinction recorded so the next reader does not "fix" the exception into a weaker uniformity; 0 findings, 0
+code changed.
