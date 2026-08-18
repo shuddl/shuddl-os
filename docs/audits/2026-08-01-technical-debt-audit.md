@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1245 | §1798 | **§1799** | **THE OPEN ROWS' TRIGGERS, EVALUATED — ONE HAD FIRED UNSTAMPED.** §995 evaluates expiry triggers on TERMINAL rows and is green. **OPEN rows are outside its scope**, and their triggers ask a different question — not *is this evidence stale* but *has the condition that would change this verdict happened yet?* Nobody evaluates those, so this phase did for all 5 mechanically-checkable ones. **2 confirmed unfired by command** (`split.computed` still absent from the recovery-query directory; both producerless ErrorCodes still appear only in the enum), **1 fired and already acted on** (the row already reads CLOSED), **1 pending** on the co-author's uncommitted `genesis/09`, and **1 FIRED AND UNSTAMPED**: `identity-leak.ts` last changed `460aafd` (2026-08-08), after the row's evidence note. The claim survives — §1794 ran the gate's real path against a synthetic denylist — and the row is now **stamped with that measurement rather than merely still-written**. **A trigger that fires and is not stamped leaves a row indistinguishable from one whose condition never arrived**; the stamp is the difference between *still true* and *nobody looked* |
 | 1244 | §1797 | **§1798** | **ALL 38 DISPOSITIONS COUNTED — THE OPEN SET IS DECISIONS, NOT NEGLECT.** Reading rows one at a time had returned *correctly held* eighteen times; §1797's lesson says stop inferring and COUNT it, and §945 made the status field canonical so that is possible. **9 need a REQ row · 8 measured, not built · 6 owner decisions named outright · 3 recorded, not changed · 2 pinned, not fixed · 1 fix written and REVERTED · 9 unmatched.** The nine unmatched read the same way once opened: *needs a decision, not a fix*; *mitigated … and not a defect to fix*; *needs a decision before a fix*; *measured twice as not-worth-building without an opt-in marker*; *accepted-for-now, recorded so the pre-GA pen-test row inherits it knowingly*; *fail-closed; needs REQ-069 identity* — and three are rows this session already worked to closure. **Every one of the 38 carries a stated disposition and none is "not yet looked at": the OPEN set is a queue of DECISIONS — register amendments, owner calls, deliberate accepts — not a backlog of neglect.** **When reading N of a set keeps returning the same answer, stop reading and classify the set**: the individual reads establish the categories, the classifier makes the conclusion cover everything |
 | 1243 | §1796 | **§1797** | **THE THIRD WRONG COUNT IN A SUMMARY, AND WHERE THEY ALL LIVE.** §1796 stated its residue as **nine** unread OPEN rows; counted with the ledger gate's extractor it is **26** — arithmetic done in prose, in the section whose subject is that a scope word IS a measurement. **Three wrong counts and five board-ratchet firings, all eight in SUMMARIES, none in code.** That is no longer a slip but a measured property of one activity, and the record already named the mechanism (*a restated number is the one you will never re-derive*) — which is why the ledger gate EXPORTS `ledgerRows` and why the board ratchet exists. **The remedy is not vigilance, which has failed eight times: a count in a summary must come from a command run in the same phase**, and both commands already exist. This phase's numbers came from a throwaway test importing the extractor — `rows=64 open=38 read=14 unread=24` — not from subtracting in a sentence. Two more rows read, both correctly held register decisions: the Collector sweep (no LIMIT, no ORDER BY, and the loop *touches the invoice not at all*, so a processed row never leaves the candidate set) and the IMPORT cap, which already carries the sharpest line in it — *idempotence answers CORRECTNESS, never COST* |
 | 1242 | §1795 | **§1796** | **STOPPING POINT, WITH ITS SCOPE WORDS COUNTED.** §1784 said *nothing repo-owned is open* and §1785 corrected it to **38**; this is the same statement made properly. **37 commits**, ending at `5f8e328`. **Six OPEN rows read in full** and each verified against the code it describes: `quote.priced` (public route — closing it 403s an integrator silently), coverage (*observation, not a defect*), the evidence-email surfacing (**needs a REQ row**), the fixtures gate's understated `executed` (changing a blocking gate's status semantics costs more than it gains), pool-binding exclusivity (**the fix was written and REVERTED** — it failed six tests on a HARNESS ARTIFACT, and a 9-line comment at the call site names the revert, the reason and the structural fix), and the delegated-guarantee row — **not held at all but WORKED**, 2 of 9 → 9 of 9. **Five correctly held, one actionable — and the actionable one was found by EXECUTING the procedure the row itself specified**, not by re-arguing it. **The residue named rather than waved at: nine repo-owned rows have not been read in full this session.** That is the difference between this stopping point and §1784's |
@@ -100910,3 +100911,50 @@ had been read individually to establish the categories; **9 unmatched opened by 
 disposition too** — *needs a decision not a fix*, *mitigated and not a defect*, *accepted-for-now*, *measured
 twice as not worth building*; 3 of the 9 are rows this session already worked to closure; the conclusion
 stated as a count rather than an impression: **0 of 38 are unexamined**; 0 code changed.
+
+---
+
+## §1799 — PHASE GATE: the OPEN rows' triggers, evaluated — one had fired unstamped (REQ-118/119)
+
+§995 built a gate that evaluates expiry triggers on **terminal** rows: a FIXED/RESOLVED/TRIPWIRED row whose
+trigger names a file must carry a date at least as new as that file's last commit. It is green.
+
+**OPEN rows are outside its scope**, and their triggers say something different: not *"is this evidence
+stale"* but *"has the condition that would change this row's verdict happened yet?"* Nobody evaluates those.
+So this phase did, for every OPEN row whose trigger is mechanically checkable.
+
+### Evaluated
+
+| row | trigger | result |
+|---|---|---|
+| no split.computed backstop | *"when `git grep -l "split.computed" -- packages/ledger/src/queries` returns a hit"* | **unfired** — still 0 |
+| two producerless ErrorCodes | *"when anything emits either code"* | **unfired** — both still appear only in `errors.ts` |
+| id-drift blindness | *"when any agents/billing test asserts a literal derived event id"* | **fired, and already acted on** — the row's text already reads CLOSED (§1727) |
+| REQ-167 unverified locally | *"…or when `tools/checks/identity-leak.ts` changes"* | **FIRED, UNSTAMPED** |
+| status-drift rows | *"when `genesis/09` … changes"* | **pending** — modified in the working tree, uncommitted, and the co-author's |
+
+### The one that had fired
+
+`tools/checks/identity-leak.ts` last changed at `460aafd` (2026-08-08) — **after** the row's evidence note.
+The trigger had fired and nobody had stamped it: the row still read as evidence from an earlier state of a
+file that had since moved.
+
+The claim itself survives, and §1794 is why: the gate's **real path** was run against a synthetic denylist —
+clean tree passes, a planted term fails by file, and the failure message masks the term to one character. The
+row is now stamped with that measurement rather than merely still-written.
+
+> A trigger that fires and is not stamped leaves a row indistinguishable from one whose condition never
+> arrived. **The stamp is not bookkeeping — it is the difference between "still true" and "nobody looked",**
+> which is the exact sentence §995 was built around, applied to the half of the ledger it does not cover.
+
+### The gap this names
+
+§995 covers terminal rows. OPEN-row triggers — the conditions that would **close or re-grade** a row — are
+evaluated by nothing, and one of the five checkable ones had fired. The other four were confirmed with
+commands, not read.
+
+**Phase gate.** 38 OPEN triggers dumped, 5 found mechanically checkable and all 5 evaluated by command; **2
+confirmed unfired**, 1 fired-and-already-acted-on, 1 **fired and unstamped**, 1 pending on another author's
+uncommitted work; the fired one re-verified using §1794's execution and the row stamped with it; 1 scope gap
+named — §995 evaluates terminal rows only, and nothing evaluates the conditions that would close an OPEN one;
+0 code changed.
