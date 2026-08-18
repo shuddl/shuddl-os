@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1246 | §1799 | **§1800** | **THE EXPIRY RULE WIDENED TO OPEN ROWS, AFTER MEASURING THE BACKLOG IT WOULD CREATE.** §1799 found by hand that an OPEN row's trigger had fired unstamped and named the gap: §995 evaluates TERMINAL rows only. **Measured before widening**: of 38 OPEN rows, **8 name a repo file and 2 were stale** — L459 against `json-scan-ratchet.test.ts` and L461 against `error-code-producers.test.ts`, both files moved **on 2026-08-17 in THIS session** (§1724's doc-bindings), so the fired triggers are my own edits and neither row was stamped after. Both re-verified in the same phase by running what the trigger points at: the ratchet is **4 of 4 green** (the 21-site count still describes the tree) and both ErrorCodes still appear in exactly **one** production file. Then the terminal-status pattern gained `OPEN` alongside FIXED, RESOLVED and TRIPWIRED — the two questions differ in meaning but **the same staleness test serves both**, because a file that moved after the row's newest date means nobody looked since. Mutation-proved: un-stamping L459 reds with row, date and file. **Measure the backlog before widening the gate** — two stale rows lands green in the same phase; twenty would have been a queue I created and left |
 | 1245 | §1798 | **§1799** | **THE OPEN ROWS' TRIGGERS, EVALUATED — ONE HAD FIRED UNSTAMPED.** §995 evaluates expiry triggers on TERMINAL rows and is green. **OPEN rows are outside its scope**, and their triggers ask a different question — not *is this evidence stale* but *has the condition that would change this verdict happened yet?* Nobody evaluates those, so this phase did for all 5 mechanically-checkable ones. **2 confirmed unfired by command** (`split.computed` still absent from the recovery-query directory; both producerless ErrorCodes still appear only in the enum), **1 fired and already acted on** (the row already reads CLOSED), **1 pending** on the co-author's uncommitted `genesis/09`, and **1 FIRED AND UNSTAMPED**: `identity-leak.ts` last changed `460aafd` (2026-08-08), after the row's evidence note. The claim survives — §1794 ran the gate's real path against a synthetic denylist — and the row is now **stamped with that measurement rather than merely still-written**. **A trigger that fires and is not stamped leaves a row indistinguishable from one whose condition never arrived**; the stamp is the difference between *still true* and *nobody looked* |
 | 1244 | §1797 | **§1798** | **ALL 38 DISPOSITIONS COUNTED — THE OPEN SET IS DECISIONS, NOT NEGLECT.** Reading rows one at a time had returned *correctly held* eighteen times; §1797's lesson says stop inferring and COUNT it, and §945 made the status field canonical so that is possible. **9 need a REQ row · 8 measured, not built · 6 owner decisions named outright · 3 recorded, not changed · 2 pinned, not fixed · 1 fix written and REVERTED · 9 unmatched.** The nine unmatched read the same way once opened: *needs a decision, not a fix*; *mitigated … and not a defect to fix*; *needs a decision before a fix*; *measured twice as not-worth-building without an opt-in marker*; *accepted-for-now, recorded so the pre-GA pen-test row inherits it knowingly*; *fail-closed; needs REQ-069 identity* — and three are rows this session already worked to closure. **Every one of the 38 carries a stated disposition and none is "not yet looked at": the OPEN set is a queue of DECISIONS — register amendments, owner calls, deliberate accepts — not a backlog of neglect.** **When reading N of a set keeps returning the same answer, stop reading and classify the set**: the individual reads establish the categories, the classifier makes the conclusion cover everything |
 | 1243 | §1796 | **§1797** | **THE THIRD WRONG COUNT IN A SUMMARY, AND WHERE THEY ALL LIVE.** §1796 stated its residue as **nine** unread OPEN rows; counted with the ledger gate's extractor it is **26** — arithmetic done in prose, in the section whose subject is that a scope word IS a measurement. **Three wrong counts and five board-ratchet firings, all eight in SUMMARIES, none in code.** That is no longer a slip but a measured property of one activity, and the record already named the mechanism (*a restated number is the one you will never re-derive*) — which is why the ledger gate EXPORTS `ledgerRows` and why the board ratchet exists. **The remedy is not vigilance, which has failed eight times: a count in a summary must come from a command run in the same phase**, and both commands already exist. This phase's numbers came from a throwaway test importing the extractor — `rows=64 open=38 read=14 unread=24` — not from subtracting in a sentence. Two more rows read, both correctly held register decisions: the Collector sweep (no LIMIT, no ORDER BY, and the loop *touches the invoice not at all*, so a processed row never leaves the candidate set) and the IMPORT cap, which already carries the sharpest line in it — *idempotence answers CORRECTNESS, never COST* |
@@ -100958,3 +100959,50 @@ confirmed unfired**, 1 fired-and-already-acted-on, 1 **fired and unstamped**, 1 
 uncommitted work; the fired one re-verified using §1794's execution and the row stamped with it; 1 scope gap
 named — §995 evaluates terminal rows only, and nothing evaluates the conditions that would close an OPEN one;
 0 code changed.
+
+---
+
+## §1800 — PHASE GATE: the expiry rule widened to OPEN rows, after measuring the backlog it would create (REQ-118/119)
+
+§1799 found, by hand, that an OPEN row's trigger had fired and nobody had stamped it — and named the gap:
+§995's gate evaluates **terminal** rows only. Making that mechanical is the fix, but widening a gate without
+first measuring what it will catch is how a ratchet becomes a backlog.
+
+### Measured before widening
+
+Applying §995's rule to the 38 OPEN rows: **8 name a repo file in their trigger, and 2 were stale.**
+
+```
+L459  newest 2026-08-16  <  tools/checks/json-scan-ratchet.test.ts   @ 2026-08-17
+L461  newest 2026-08-16  <  tools/checks/error-code-producers.test.ts @ 2026-08-17
+```
+
+Both gate files moved **on 2026-08-17 — in this session**, when §1724 added doc-bindings to them. So the two
+fired triggers are my own edits, and neither row was stamped afterwards. That is the class exactly: a file
+moves, the row keeps reading as evidence about the state before it moved, and nothing says so.
+
+Both re-verified in the same phase rather than filed:
+
+- **L459** — ran the ratchet its trigger names: **4 of 4 green**, so the blast-radius baseline is unchanged and
+  the row's 21-site count still describes the tree.
+- **L461** — by command: `UNKNOWN_NO_PRICE` and `FLOOR_APPROVAL_REQUIRED` each still appear in exactly **one**
+  production file, the enum declaration, so *zero producers* holds.
+
+### Then widened
+
+`TERMINAL` now reads `(FIXED|RESOLVED|TRIPWIRED|OPEN)`. The two questions differ in meaning — a terminal
+row's trigger says *this evidence goes stale when that file moves*, an OPEN row's says *the verdict changes
+when that file moves* — but **the same staleness test serves both**, because in each case a file that moved
+after the row's newest date means nobody looked since.
+
+Mutation-proved: removing L459's fresh stamp reds the gate with the row, the date, and the file it lost to
+(`row dated 2026-08-16 < json-scan-ratchet.test.ts @ 2026-08-17`), and restoring it goes green.
+
+> **Measure the backlog before widening the gate.** Two stale rows is a ratchet that lands green in the same
+> phase; twenty would have been a queue I created and left for someone else, which is the opposite of closing
+> debt.
+
+**Phase gate.** 1 gap §1799 found by hand made mechanical; the widening's cost measured **first** — 8 OPEN
+rows carry file-naming triggers, 2 were stale, **both caused by this session's own edits to the gate files
+those rows name**; both re-verified by running the thing the trigger points at rather than by re-reading the
+row, and stamped; the gate widened and mutation-proved to red by row, date and file; 0 backlog created.

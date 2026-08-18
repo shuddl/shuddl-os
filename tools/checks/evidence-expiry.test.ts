@@ -33,7 +33,18 @@ import { ledgerRows } from "./ledger-status-vocabulary.test.js";
 // swallowing the whole corpus.
 
 const CHECKLIST = "docs/ops/GO-LIVE-CHECKLIST.md";
-const TERMINAL = /^\**(FIXED|RESOLVED|TRIPWIRED)\b/;
+// §1800 — `OPEN` JOINED THIS SET, and the reason is that its triggers ask a DIFFERENT question that
+// nothing was asking. A terminal row's trigger means "this evidence goes stale when that file moves"; an
+// OPEN row's means "the verdict changes when that file moves" — and the same staleness test serves both,
+// because in each case a file that moved after the row's newest date means NOBODY LOOKED SINCE.
+//
+// MEASURED BEFORE WIDENING (§1800), so this is a ratchet rather than a backlog: of the 38 OPEN rows, **8**
+// name a repo file in their trigger and **2** were stale — both against gate files THIS SESSION moved on
+// 2026-08-17 (`json-scan-ratchet`, `error-code-producers`, doc-bindings added at §1724) while the rows'
+// newest date stayed 2026-08-16. Both were re-verified by command and stamped in the same phase, so the
+// widening lands green. §1799 found the first instance of this class by hand; this is what makes it
+// unrepeatable.
+const TERMINAL = /^\**(FIXED|RESOLVED|TRIPWIRED|OPEN)\b/;
 const ISO_DATE = /\b(20\d{2}-\d{2}-\d{2})\b/g;
 /** A backticked token that looks like a repo path. Extensionless prose in backticks is not a citation. */
 const BACKTICKED_PATH = /`([A-Za-z0-9_./@-]+\.[A-Za-z0-9]{1,5})`/g;
