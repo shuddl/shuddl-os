@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1244 | §1797 | **§1798** | **ALL 38 DISPOSITIONS COUNTED — THE OPEN SET IS DECISIONS, NOT NEGLECT.** Reading rows one at a time had returned *correctly held* eighteen times; §1797's lesson says stop inferring and COUNT it, and §945 made the status field canonical so that is possible. **9 need a REQ row · 8 measured, not built · 6 owner decisions named outright · 3 recorded, not changed · 2 pinned, not fixed · 1 fix written and REVERTED · 9 unmatched.** The nine unmatched read the same way once opened: *needs a decision, not a fix*; *mitigated … and not a defect to fix*; *needs a decision before a fix*; *measured twice as not-worth-building without an opt-in marker*; *accepted-for-now, recorded so the pre-GA pen-test row inherits it knowingly*; *fail-closed; needs REQ-069 identity* — and three are rows this session already worked to closure. **Every one of the 38 carries a stated disposition and none is "not yet looked at": the OPEN set is a queue of DECISIONS — register amendments, owner calls, deliberate accepts — not a backlog of neglect.** **When reading N of a set keeps returning the same answer, stop reading and classify the set**: the individual reads establish the categories, the classifier makes the conclusion cover everything |
 | 1243 | §1796 | **§1797** | **THE THIRD WRONG COUNT IN A SUMMARY, AND WHERE THEY ALL LIVE.** §1796 stated its residue as **nine** unread OPEN rows; counted with the ledger gate's extractor it is **26** — arithmetic done in prose, in the section whose subject is that a scope word IS a measurement. **Three wrong counts and five board-ratchet firings, all eight in SUMMARIES, none in code.** That is no longer a slip but a measured property of one activity, and the record already named the mechanism (*a restated number is the one you will never re-derive*) — which is why the ledger gate EXPORTS `ledgerRows` and why the board ratchet exists. **The remedy is not vigilance, which has failed eight times: a count in a summary must come from a command run in the same phase**, and both commands already exist. This phase's numbers came from a throwaway test importing the extractor — `rows=64 open=38 read=14 unread=24` — not from subtracting in a sentence. Two more rows read, both correctly held register decisions: the Collector sweep (no LIMIT, no ORDER BY, and the loop *touches the invoice not at all*, so a processed row never leaves the candidate set) and the IMPORT cap, which already carries the sharpest line in it — *idempotence answers CORRECTNESS, never COST* |
 | 1242 | §1795 | **§1796** | **STOPPING POINT, WITH ITS SCOPE WORDS COUNTED.** §1784 said *nothing repo-owned is open* and §1785 corrected it to **38**; this is the same statement made properly. **37 commits**, ending at `5f8e328`. **Six OPEN rows read in full** and each verified against the code it describes: `quote.priced` (public route — closing it 403s an integrator silently), coverage (*observation, not a defect*), the evidence-email surfacing (**needs a REQ row**), the fixtures gate's understated `executed` (changing a blocking gate's status semantics costs more than it gains), pool-binding exclusivity (**the fix was written and REVERTED** — it failed six tests on a HARNESS ARTIFACT, and a 9-line comment at the call site names the revert, the reason and the structural fix), and the delegated-guarantee row — **not held at all but WORKED**, 2 of 9 → 9 of 9. **Five correctly held, one actionable — and the actionable one was found by EXECUTING the procedure the row itself specified**, not by re-arguing it. **The residue named rather than waved at: nine repo-owned rows have not been read in full this session.** That is the difference between this stopping point and §1784's |
 | 1241 | §1794 | **§1795** | **THE NEVER-EXECUTES SET IS EXACTLY FOUR, AND THE ACCEPTANCE SPINE RUNS.** §1794 asked whether the five BLOCKED gates would work if their inputs arrived; the wider question is whether those five are the WHOLE population that never executes. They are: `cwd-parity.test.ts` carries a roster of **four** (`fixtures`, `rater-parity`, `invoice-parity`, `concierge-parity`), each with its absent input named, **asserted in both directions** — a new skipping gate must be declared AND a gate that starts executing must be removed, *so the exemption cannot outlive its reason*. `check:identity` is deliberately absent because it DOES execute (it runs and reports a skip). One documented exception: `check:invariants` runs bare CWD-relative globs on purpose — rooting it *was measured, not assumed: both attempts turned its three CLI tests red* — so it is asserted to FAIL CLOSED off-root, watched rather than waived. **The acceptance spine run directly**: GREEN, 7 files, 43 assertions across api/driver/mcp/map. It is also a merge gate, so this **confirms one of the 21 rather than discovering anything** — said plainly. A confirmation is worth RUNNING when the subject is a backbone and the cost is small; it is not worth dressing up as a finding |
@@ -100858,3 +100859,54 @@ measured number; 3 wrong counts and 5 ratchet firings located in **one activity*
 the remedy mechanical rather than attentional; this phase's own counts produced by running the exported
 extractor instead of subtracting in prose; 2 more OPEN rows read in full, both correctly held as register
 decisions; 0 code changed.
+
+---
+
+## §1798 — PHASE GATE: all 38 dispositions counted — the OPEN set is decisions, not neglect (REQ-118/119)
+
+Reading OPEN rows one at a time had produced the same verdict eighteen times: *correctly held*. §1797's own
+lesson says to stop inferring that and **count it**. §945 made the status field canonical precisely so this is
+possible.
+
+### The distribution
+
+| disposition | rows |
+|---|---|
+| proposed scope / **needs a REQ row** | 9 |
+| **measured, not built** | 8 |
+| **owner decision** named outright | 6 |
+| recorded, not changed | 3 |
+| pinned, not fixed | 2 |
+| fix identified, **written and reverted** | 1 |
+| unmatched by the classifier (read by hand, below) | 9 |
+
+The nine unmatched read the same way once opened:
+
+- *"needs a decision, not a fix"* — rule 6's fourth fixture gate (register owner)
+- *"mitigated … and not a defect to fix"* — the workerd sandbox debris
+- *"needs a decision before a fix"* — the duplicate-vs-strand call (Owner)
+- *"measured twice as not-worth-building without an opt-in marker"* — the path-only citation gate (assurance,
+  and the measurement is §240's 95% false-positive rate)
+- *"accepted-for-now, recorded so the pre-GA pen-test row inherits it knowingly"* — the signup 409 oracle
+- *"fail-closed; needs manifest party refs + REQ-069 identity"* — the pickup custody handoff
+- three are rows already **worked to closure this session** (the two id-drift rows, the delegated-guarantee
+  row) whose live text now begins with a strike
+
+**Every one of the 38 carries a stated disposition, and none of them is "not yet looked at."** The OPEN set is
+a queue of *decisions* — register amendments, owner calls, and deliberate accepts — not a backlog of neglect.
+
+### Why this is the right way to end the question
+
+Eighteen rows read individually gave eighteen data points and an intuition. One run of the exported extractor
+gives **all 38**, and it is re-runnable by anyone who doubts it. That is the same move §1797 prescribed after
+three wrong counts, applied to the question those counts were about.
+
+> **When reading N of a set keeps returning the same answer, stop reading and classify the set.** The
+> individual reads are what let you trust the classifier's categories; the classifier is what lets the
+> conclusion cover everything.
+
+**Phase gate.** 38 OPEN rows classified by stated disposition in one run of the exported extractor, after 18
+had been read individually to establish the categories; **9 unmatched opened by hand and each found to carry a
+disposition too** — *needs a decision not a fix*, *mitigated and not a defect*, *accepted-for-now*, *measured
+twice as not worth building*; 3 of the 9 are rows this session already worked to closure; the conclusion
+stated as a count rather than an impression: **0 of 38 are unexamined**; 0 code changed.
