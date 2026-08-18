@@ -132,6 +132,15 @@ async function overdueSignalId(inboundEventId: string): Promise<string> {
 // The overdue note's DETERMINISTIC body_ref — the SELF-CLEARING key (OVERDUE_SQL excludes an inbound once a
 // note with this body_ref is on its stream). One canonical shape, referenced by both the append and the SQL.
 function overdueBodyRef(inboundEventId: string): string {
+  // MEASURED (§1788), AND THE CONTRAST IS THE POINT. Two seams were starved:
+  //
+  //   the note's EVENT ID  → workers/agents 0 of 155 · workers/api 0 of 908   ← redundant here
+  //   this BODY_REF        → workers/agents 0 of 155 · workers/api 1 of 908   ← the load-bearing seam
+  //
+  // The api case names itself: "IDEMPOTENT + SELF-CLEARING — a second run appends ZERO (query excludes the
+  // already-noted inbound)". Re-append is prevented by OVERDUE_SQL's anti-join on THIS string, not by the
+  // event id's determinism — so starving the id measures nothing, and a 0/0 there means the wrong seam was
+  // starved rather than that the behaviour is uncovered.
   return `concierge-sla-overdue/${inboundEventId}`;
 }
 

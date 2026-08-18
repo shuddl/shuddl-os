@@ -35,6 +35,11 @@ import {
 
 // The split.computed EVENT id, seeded on the POD event id (redelivery-stable; sequencer dedupes on it).
 export async function splitEventIdFor(podEventId: string): Promise<string> {
+  // MEASURED (§1788) — this guarantee is DELEGATED and this package cannot observe it. Making this id
+  // non-deterministic reds `workers/agents` 0 of 155 and `workers/api` 2 of 908: "interline pod.signed →
+  // split.computed appended; AP lines reconcile to the gross" and "is idempotent under redelivery — the
+  // second run appends no second split, no second money_lines". The dedupe is the sequencer DO's, so the
+  // outcome can only be asserted where that DO exists. A green `workers/agents` is not coverage of this line.
   return uuidFromSeed(`interline-split:split-event:${podEventId}`);
 }
 

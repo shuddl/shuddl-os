@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1234 | §1787 | **§1788** | **TWO MORE DELEGATED GUARANTEES — AND THE PROCEDURE MEASURES NOTHING IF YOU STARVE THE WRONG SEAM.** `interline-split`: **0 of 155 · 2 of 908** (the split append and its redelivery idempotence — money outcomes inside the DO's batch). Fourth measurement, same direction: **0/2, 0/3, 0/6, 0/2**. **`sla-sweep` measured TWICE**, and the contrast corrects the row's own procedure: starving the note's EVENT ID reds **0 · 0** — which reads as *uncovered* and is not, because re-append is prevented by `OVERDUE_SQL`'s anti-join on the **body_ref**, making the id redundant here. Starving the body_ref reds **0 · 1** (*IDEMPOTENT + SELF-CLEARING — a second run appends ZERO*). **A 0/0 means the WRONG SEAM was starved, not that the behaviour is uncovered, and the two are indistinguishable from the number alone.** Had I stopped at the first result this phase would have published a module as unmeasured-with-zero-coverage — the phantom work the row's own header warns about. Row moves **3 of 9 → 5 of 9**, procedure refined in place; four remain (watchtower, mirror-sweep, translator inbound, platform-ledger) |
 | 1233 | §1786 | **§1787** | **THE CONCIERGE'S GUARANTEE IS DELEGATED, AND ITS OWN SUITE SEES NONE OF IT.** §1786 found the residue of the 38 is where actionable work lives, and one row is **assurance-owned with its procedure written out**: *starve one of its loaders, run the owning suite AND workers/api, record both numbers*. Nine modules append through the sequencer DO from outside `workers/api`; two were measured (`biller` 0/2, `booking` 0/3). **Third measured**: starving `conciergeEventId`'s determinism reds **0 of 155 in `workers/agents` and 6 of 908 in `workers/api`** — the largest split in the class. The six name themselves: IDEMPOTENCY (auto-reply), IDEMPOTENCY (queued), both SEND-FAILURE cases, and the two REQ-059/178 fast-path re-render pins — **every one a redelivery property, and redelivery dedupe belongs to the DO.** Three measurements, one direction: **0/2, 0/3, 0/6** — the owning suite has never seen one of these guarantees. Recorded at the point of use as the row requires, with *do not read a green `workers/agents` as coverage of this line*; the row moves 2 of 9 → 3 of 9. **Tax, third phase running**: an 11-line insert rotted **7 citations** across 4 files, repointed by a uniform +11 — an ANCHORED citation survives being wrong long enough to be fixed mechanically |
 | 1232 | §1785 | **§1786** | **THE 38 OPEN ROWS, CLASSIFIED — AND §945's BUG #1 REPRODUCED BY ME.** A number without a disposition is the next unhelpful thing, so: **why is each still open?** **14 need a REQ row first** (building is new scope), **9 are owner decisions** (API contract, pricing, dependency posture, tooling scope), 15 classified by hand. Three read in full, all correctly NOT mine: `quote.priced`'s one-line fix is still the owner's because the route is **public** and an integrator's ops principal may post it today (§1702 already pinned both directions); line/branch coverage is recorded as *observation, not a defect*; the evidence-email surfacing **needs a REQ row**. **The open set is not neglect** — it is row-by-row work an audit may not do unilaterally, which is what §1784's overstatement was reaching for and got backwards. **The status-vs-prose check**: 9 rows announce a closure while reading OPEN, and **all 9 are legitimate** — five close a SUB-PART, one quotes a test's failure message, one is conditional, and one is `fail CLOSED (CAPTURE_INPUT_MISSING)`, the design term. That last is **§945's catalogued bug #1 verbatim** (*`fail-closed` contains "closed"*) — two phases after recording that a fresh parser re-derives every bug the original fixed, I wrote two more and hit the FIRST item on the list. The 38 is not inflated |
 | 1231 | §1784 | **§1785** | **I WROTE "NOTHING REPO-OWNED IS OPEN" ONE PHASE AFTER QUOTING THE RULE AGAINST IT.** Counted with the ledger gate's OWN extractor: **64 rows, 38 OPEN** (21 FIXED, 2 CLOSED, 1 each TRIPWIRED/RESOLVED/NOT_APPLICABLE). §1784's closing sentence is **false**, and false in the exact way §804 named — *a claim you INHERIT is a claim you are MAKING* — except this one was written FRESH, in a summary, one phase after quoting the discipline about summaries restating instead of measuring. The true, narrower claim beside it: every finding THIS STRETCH produced was fixed or filed. **The 38 are not trivia**: every KPI scans the whole event history per request; **no line/branch coverage is measured anywhere**; a 4-hour SLA is policed by a 24-hour detector; a lost Concierge trigger has no backstop AND THE CODE SAID IT DID; the Collector cannot progress once truncated. **And the first count was the FIFTH ad-hoc parser §945 exists to prevent** — it returned `when=52, evidence=4`, reading a prose column as status. §945 exports `ledgerRows` precisely so nobody writes another; using anything else is not independence, it is a re-derivation with none of the fixes. §1784 corrected in place, struck not deleted |
@@ -88501,7 +88502,7 @@ is what a careful discipline stops one line short of.
 | kind | server seam | verdict |
 |---|---|---|
 | `invoice.issued` | `biller.ts:566@kind`, `credits.ts:213@kind` | reachable |
-| `split.computed` | `interline-split.ts:213@kind` | reachable |
+| `split.computed` | `interline-split.ts:218@kind` | reachable |
 | `payment.received` | `credits.ts:147@kind` | reachable |
 | `settlement.executed` | **none** | **CORRECT** — REQ-033 (*Settler: escrowed instant settle*) and REQ-143 (*settle/escrow money-transmission review*) are both **CONFIRM-GATED**, vNEXT, counsel-gated. CLAUDE.md forbids building it while the CONFIRM is open, so the absent emitter IS the compliance. |
 | `invoice.corrected` | **none** | **the finding** |
@@ -100296,3 +100297,65 @@ exactly 11. Three phases, three inserts, thirteen rotted citations, all caught b
 delegated guarantee measured **0/155 in its own package and 6/908 where the DO lives**, the largest of three
 such splits; 6 failing cases named so the measurement is re-checkable; the number recorded at the point of use
 **and** in the ledger; 7 citations rotted by the insert and repointed; 0 behaviour changed.
+
+---
+
+## §1788 — PHASE GATE: two more delegated guarantees, and the procedure that measures nothing if you starve the wrong seam (REQ-019/095/003)
+
+§1787 measured the third of nine modules whose guarantees are delegated to the sequencer DO. This measures the
+fourth and fifth — and the fifth corrects the row's own procedure.
+
+### interline-split — the delegated shape again
+
+Starving the split event id's determinism:
+
+```
+workers/agents   0 red of 155
+workers/api      2 red of 908
+```
+
+The two: *"interline pod.signed → split.computed appended; AP lines reconcile to the gross"* and *"is
+idempotent under redelivery — the second run appends no second split, no second money_lines."* Both are money
+outcomes inside the DO's batch. Fourth measurement, same direction: **0/2, 0/3, 0/6, 0/2.**
+
+### sla-sweep — measured twice, because the first measurement said nothing
+
+Starving the overdue note's **event id**:
+
+```
+workers/agents   0 red of 155
+workers/api      0 red of 908        ← nothing, anywhere
+```
+
+A 0/0 reads as *uncovered*. It is not. Re-append is prevented by `OVERDUE_SQL`'s anti-join on the note's
+**`body_ref`**, not by the event id — so the id's determinism is genuinely redundant here. Starving the
+**body_ref** instead:
+
+```
+workers/agents   0 red of 155
+workers/api      1 red of 908        ← "IDEMPOTENT + SELF-CLEARING — a second run appends ZERO
+                                        (query excludes the already-noted inbound)"
+```
+
+Same delegated shape as the others once the right seam is starved.
+
+> **The row's procedure says "starve one of its loaders." Which one decides whether you measure anything.** A
+> 0/0 means *the wrong seam was starved*, not *the behaviour is uncovered* — and the two are indistinguishable
+> from the number alone. Starve the value the **guarantee** keys on; for these agents that is usually the
+> deterministic id, and for this one it is the anti-join string.
+
+Had I stopped at the first sla-sweep result, this phase would have published a module as *unmeasured with zero
+coverage* — manufacturing exactly the kind of phantom work the row's own header warns about when it records
+discarding a proxy that "over-reports gaps."
+
+### Recorded where the code is
+
+Both headers now carry their numbers, and `sla-sweep`'s carries **both** measurements, because the contrast is
+the instructive part. The filed row moves **3 of 9 → 5 of 9**, with the procedure refined in place and four
+named as remaining: watchtower, mirror-sweep, translator inbound, billing platform-ledger.
+
+**Phase gate.** 2 more modules measured against the filed procedure, taking the row from 3 of 9 to **5 of 9**;
+4 measurements now agreeing in direction (**0/2, 0/3, 0/6, 0/2**) that an owning suite sees none of these
+guarantees; **1 procedure defect found and fixed in the row itself** — a 0/0 means the wrong seam, and the
+first sla-sweep probe produced exactly that; 1 phantom "uncovered module" avoided by testing the explanation
+rather than publishing the number; 6 citations repointed after two comment inserts; 0 behaviour changed.
