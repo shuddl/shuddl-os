@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1212 | §1765 | **§1766** | **A DEFAULT THAT MEANS "DELETE ME", AND THE GUARD THAT INVALIDATED A CONTROL.** §1765's method continued into the two unaudited migrations. Both correct — but `0007` gives `documents.created_ts` a **`DEFAULT 0`**, and for a DELETION sweep that is the maximally-expired value: a row written without the column is born expired, its R2 bytes deleted on the next tick and tombstoned as retention-expired, which reads like a correct outcome. **§1536 already closed the live instance** (anchor.ts's tsa_receipt, saved solely by the kind exclusion) — **but that defence is keyed on KIND while the hazard is keyed on a MISSING COLUMN**. Enumerated both writers: no live gap; a third omitting the column under any non-POD kind deletes evidence silently. Added a fail-closed floor (skip `created_ts <= 0`) with its own REPORTED counter, plus a positive control that a real two-year-old clock still deletes — a guard that skipped everything would pass otherwise. **The keeper**: the floor immediately RED-ed a §1536 CONTROL. Its rule was untouched; its control now survived for the FLOOR's reason instead of dying for the EXCLUSION's, so it had stopped testing while staying green. Re-based onto `created_ts = 1` — a KNOWN ancient clock, still born-expired — while the retained-kind case stays at 0, the value anchor.ts actually writes. **A new guard can invalidate an existing test's PREMISE without touching its RULE, and a green control does not self-report.** |
 | 1211 | §1764 | **§1765** | **THE FILE NOTHING HAD EVER AUDITED, AND THE GUARANTEE THAT DID NOT EXIST.** Target picked FROM the record: of **363** non-test source files, **30** appear nowhere in the audit or checklist. The sharpest is `projection/messages.ts` — a ledger projection whose two siblings are heavily audited (§1763's quiet-sibling heuristic, applied to a directory). **Its stated guarantee is false**: it claims to be the SOLE writer of `messages.direction`, so the TypeScript union constrains the column — but **three** statements write it, and the two agent sites are RAW BINDS the union never reaches. Both write 'out' today, so no bad row exists; nothing would have noticed one. **The shape**: the same DDL line gives `channel` a CHECK and `direction` none — the constraint stopped one column short, on the same line of the same table. **A wrong value is SILENT**: four readers branch on the literal, so the row reads fine and is invisible to the sweep that owed it work. Landed a roster + discovery pair, both mutation-proved by name. **Two instrument faults, both caught by controls**: the parser anchored on a HOISTED SQL constant and read a different prepare's bind list (a false defect), and a naive comma split slid every argument left. The fix worth keeping is the **positive control** — grade a slot whose correct answer you already know (the `channel` literal, which HAS a CHECK) in the same parse, so a mis-parse fails first and names itself. 0 behaviour changed |
 | 1210 | §1763 | **§1764** | **THREE HYPOTHESES, THREE ALREADY CLOSED — AND THE PROBE IS THE PATTERN.** Opened on queue-consumer idempotence (at-least-once delivery; double-billing is the silent-expensive failure). **(1)** *"The biller has no redelivery test"* — FALSE; `workers/agents/test/` has no biller file, but the api suite holds *the same message twice → ONE invoice, ONE money projection, ONE email*. Ownership follows the CONSUMER, not the module. **(2)** *"Four cron sweeps drive off unbounded reads and only `watchtower` is on the roster"* — true, and **§1580 had already swept all 183 production SELECTs** from the code side and found nothing left over. **(3)** *"The credit reconciler's `seq` tiebreak is meaningless across streams"* — true (the events PK is stream_id+seq, and a credit.checked rides whatever shipment stream it was posted to), **and §1261 framed it better**: arbitrary is FINE, unstable is not — a flapping pick moves a party between hold and clear while the REQ-042 booking gate reads that value; it pinned the winner AND re-asserted it after a second run, which is also the sweep idempotency case this probe called missing. **The one change**: the reconciler's docstring gave the WRONG mechanism for re-run safety — an immediate re-run never reaches the idempotent writes because the **gap gate** returns first, and that gate is pinned by **exactly one test of 903**. Both reasons now written with the mutation separating them. **Every miss came from a probe narrower than the record's, and the record's version was SHARPER, not merely earlier.** 0 behaviour changed |
 | 1209 | §1762 | **§1763** | **THE EXACTNESS-GUARD CLASS, SWEPT — AND THE RULE THAT DECIDES WHICH ONES MATTER.** Two instances is a class, so this counted instead of fixing: **every `BigInt(` in non-test source**, 7 files. **The geo resolver was unpinned** — rewriting both cross-product predicates in float left all **38** tests in the owning suite green, and **3,000,000 random (edge, point) triples found ZERO disagreements** (a disagreement needs the exact cross to land within ~16 of zero; a random one is ~1e16). So the witness was **CONSTRUCTED**: pick an edge with **coprime** deltas so a cross product of exactly 1 is reachable, solve with extended Euclid — exact says off-edge (interior, the state code), float says collinear (**boundary → "XX"**). 3 tests added; under the mutation **exactly 1 of 41 fails**, and it is the witness. The mild direction is a fail-closed jurisdiction; the same rounding decides `eastOfPoint`, which returns a **confident wrong state**. **THE RULE**: an exactness guard is load-bearing exactly when the result's ROUNDING GRANULARITY is comparable to the error — money rounds to the cent (the error IS a cent), geo compares against ZERO (any error flips it), and **DSO rounds to DAYS while its error is sub-millisecond: 0 / 200,000 answers differ, so that BigInt is genuinely unnecessary**. Cheaper than mutating everything. **And the §1762 asymmetry is now 2 of 2**: the rater's monetary product is pinned by a test named for it, both ledger guards were not — the louder failure attracts the proof. 0 production code changed |
@@ -98897,3 +98898,67 @@ planting the probe twice, unstaged then staged.
 measured **false** (sole-writer, three writers); 0 bad data today and a gate so that stays checkable rather than
 assumed; 2 mutations, each REDing its own half by name; 2 instrument faults caught before they became findings,
 1 of them by a control added for that purpose; 1,518 tools + 771 ledger tests green; 0 behaviour changed.
+
+---
+
+## §1766 — PHASE GATE: a DEFAULT that means "delete me", and the guard that invalidated a control (REQ-116)
+
+Continuing §1765's method — work the files the record has never named — the next two are migrations, which is
+where CLAUDE.md's append-only law is most exposed. Both are correct: `0004`'s `party_refs` trigger is null-safe
+by construction (`json_type` returns NULL on malformed JSON and `IS NOT` is null-safe, so garbage aborts), and
+`0007` adds columns only, with a `CHECK` on `retention_status`.
+
+But `0007` also writes this:
+
+```sql
+ALTER TABLE documents ADD COLUMN created_ts INTEGER NOT NULL DEFAULT 0;
+```
+
+**For a deletion sweep, `DEFAULT 0` is the maximally-expired value.** `0 + any finite retention window` is a
+date in 1970, so a `documents` row written *without* a `created_ts` is born expired and its R2 bytes are
+deleted on the very next tick — irreversibly, and tombstoned as `retention-expired`, which reads exactly like a
+correct outcome.
+
+### What already defended it, and what that defence is keyed on
+
+§1536 found this and closed the live instance: `anchor.ts` inserts the daily `tsa_receipt` **without**
+`created_ts`, and the sweep's `kind NOT IN (…)` exclusion is the *sole* reason those bytes survive — proved by
+deleting `'tsa_receipt'` from the list, which silently swept the ledger's own merkle witness.
+
+**That defence is keyed on KIND; the hazard is keyed on a MISSING COLUMN.** Enumerating every writer of
+`documents` finds exactly two — `anchor.ts` (kind-excluded) and the evidence route (stamps a real clock) — so
+there is no live gap. A third writer omitting the column under any non-POD kind would delete evidence bytes
+with nothing logged as wrong.
+
+### The floor
+
+`sweepTenantExpiredDocuments` now skips any candidate whose clock is unknown (`created_ts <= 0`) and **reports
+the skip** in a new `skipped_unknown_clock` counter rather than folding it into `retained` — an operator can
+see it. An unknown clock is not evidence of expiry; it is evidence of nothing, and a sweep that deletes on
+nothing is not a sweep. Unreachable from today's two writers by construction: that is what a floor is.
+
+Two cases pin it — the floor itself, and a **positive control** that a real clock two years past its window
+still deletes, because a guard that skipped everything would pass the first case and read as coverage.
+Mutation-proved: disabling the floor REDs the unknown-clock case by name and nothing else.
+
+### The part worth keeping: adding a guard invalidated another gate's PROOF
+
+The floor immediately RED-ed a **§1536 control** — *"the SAME row with a non-retained kind IS swept at
+created_ts 0 — so 0 really is born-expired."* Nothing about §1536's rule changed; what changed is that its
+control now survives for the **floor's** reason instead of dying for the **exclusion's**. Left alone it would
+have gone green again the moment anyone widened the floor, while proving nothing — the precise failure a
+control exists to prevent.
+
+Re-based onto `created_ts = 1`: one millisecond after the epoch is a **known** clock and still born-expired
+against every finite window, so the duration still cannot save it and the kind exclusion is still the only
+thing that can. The retained-kind case deliberately **stays at 0**, because 0 is what `anchor.ts` actually
+writes.
+
+> A new guard can invalidate an existing test's *premise* without touching its *rule*. When a guard makes an
+> unrelated control pass, the control has stopped testing — and a green control is not self-reporting.
+
+**Phase gate.** 2 unaudited migrations read, both correct; 1 column DEFAULT identified as fail-OPEN for the
+only sweep that reads it; 2 writers enumerated (no live gap) and a floor added keyed on the HAZARD rather than
+on the kind; 1 counter added so the skip is visible rather than silent; 1 mutation REDing the floor by name;
+**1 pre-existing control found invalidated by my own guard and re-based so it still proves its claim**; 773
+ledger + 4 cron tests green.

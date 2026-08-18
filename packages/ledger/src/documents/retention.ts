@@ -99,6 +99,8 @@ export interface RetentionSweepResult {
   retained: number;
   /** Candidates SKIPPED because their r2_key is not under this tenant's evidence prefix (defense-in-depth). */
   skipped_foreign_key: number;
+  /** Candidates SKIPPED because their retention CLOCK is unknown (created_ts <= 0) — see the guard below. */
+  skipped_unknown_clock: number;
 }
 
 interface CandidateRow {
@@ -156,8 +158,24 @@ export async function sweepTenantExpiredDocuments(
   let deleted = 0;
   let retained = 0;
   let skippedForeignKey = 0;
+  let skippedUnknownClock = 0;
 
   for (const row of rows) {
+    // FAIL CLOSED ON AN UNKNOWN CLOCK (audit §1766). 0007 gives `created_ts` a `DEFAULT 0`, and for a DELETION
+    // sweep that default is the maximally-expired value: `0 + any finite window` is a date in 1970, so a row
+    // written WITHOUT a created_ts is deleted on the very next tick. The existing defence is the kind
+    // exclusion, which covers the one known such writer (`anchor.ts`'s daily tsa_receipt, §1536) — but it
+    // defends by KIND while the hazard is by MISSING COLUMN, so a third writer that omits created_ts under any
+    // non-POD kind would have its bytes deleted irreversibly and tombstoned as retention-expired.
+    //
+    // Today this branch is unreachable: the only two writers are `anchor.ts` (kind-excluded before this point)
+    // and the evidence route (which stamps a real created_ts). It is a NO-OP on current data and a floor on
+    // future data — the cheap half of "fail-closed is about the fallback VALUE". An unknown clock is not
+    // evidence of expiry; it is evidence of nothing, and a sweep that deletes on nothing is not a sweep.
+    if (row.created_ts <= 0) {
+      skippedUnknownClock += 1;
+      continue;
+    }
     const expiresAt = row.created_ts + retentionMsFor(row.lifecycle_class);
     if (expiresAt >= now) {
       retained += 1; // not yet expired — bytes + row untouched
@@ -175,7 +193,13 @@ export async function sweepTenantExpiredDocuments(
     deleted += 1;
   }
 
-  return { scanned: rows.length, deleted, retained, skipped_foreign_key: skippedForeignKey };
+  return {
+    scanned: rows.length,
+    deleted,
+    retained,
+    skipped_foreign_key: skippedForeignKey,
+    skipped_unknown_clock: skippedUnknownClock,
+  };
 }
 
 // ── the storage-cost metric (a METRIC, not a money_line) ──────────────────────────────────────────────────

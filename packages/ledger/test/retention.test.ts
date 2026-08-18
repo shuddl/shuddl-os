@@ -242,6 +242,40 @@ describe("REQ-116 — the retention sweep deletes expired non-POD bytes + tombst
     expect(await retentionStatus(A, "ret-idem")).toBe("expired");
   });
 
+  // ── §1766 — AN UNKNOWN RETENTION CLOCK IS NOT EVIDENCE OF EXPIRY ────────────────────────────────────────
+  // 0007 gives `documents.created_ts` a `DEFAULT 0`, which for a DELETION sweep is the maximally-expired
+  // value: `0 + any finite window` is a date in 1970. The pre-existing defence is the KIND exclusion, and it
+  // covers the one known writer that omits the column (`anchor.ts`'s daily tsa_receipt, §1536) — but it
+  // defends by KIND while the hazard is by MISSING COLUMN. A third writer omitting created_ts under any
+  // non-POD kind would have its bytes irreversibly deleted on the next tick and the row tombstoned as
+  // retention-expired, with nothing logged as wrong.
+  //
+  // These two cases pin the floor AND its cost. Neither is reachable from today's two writers — that is the
+  // point of a floor.
+  it("UNKNOWN CLOCK — a non-POD row with created_ts 0 is SKIPPED, never deleted (fail closed)", async () => {
+    const key = await seedDoc({
+      db: A, tenant: "tenant-a", id: "ret-noclock", kind: "photo", shipment: "ret-shp-noclock",
+      hash: "e".repeat(64), lifecycleClass: RETENTION_CLASS_DEFAULT, createdTs: 0, // the column DEFAULT
+    });
+    const res = await sweepTenantExpiredDocuments(A, R2, "tenant-a", NOW);
+    expect(res.deleted, "a row whose retention clock is unknown must never be deleted").toBe(0);
+    expect(res.skipped_unknown_clock, "and the skip is REPORTED, not silent — an operator can see it").toBe(1);
+    expect(await R2.head(key), "the bytes survive an unknown clock").not.toBeNull();
+    expect(await retentionStatus(A, "ret-noclock")).toBe("active");
+  });
+
+  it("the floor is NARROW — a real clock two years past the window still deletes (positive control)", async () => {
+    // Without this, a guard that skipped EVERYTHING would pass the case above and read as coverage.
+    const key = await seedDoc({
+      db: A, tenant: "tenant-a", id: "ret-clocked", kind: "photo", shipment: "ret-shp-clocked",
+      hash: "f".repeat(64), lifecycleClass: RETENTION_CLASS_DEFAULT, createdTs: NOW - 2 * YEAR_MS,
+    });
+    const res = await sweepTenantExpiredDocuments(A, R2, "tenant-a", NOW);
+    expect(res.deleted, "the floor must not disable the sweep").toBe(1);
+    expect(res.skipped_unknown_clock).toBe(0);
+    expect(await R2.head(key)).toBeNull();
+  });
+
   it("DEFENSE-IN-DEPTH — a row whose r2_key is NOT under this tenant's prefix is SKIPPED, never deleted", async () => {
     // A tenant-a row carrying a tenant-b key (corruption/foreign) must NOT be deleted by the tenant-a sweep.
     const foreignKey = "evidence/tenant-b/xshp/eeee";
@@ -470,7 +504,7 @@ describe("§915: retention_status is constrained by the DB, which is its only gu
 // This derives its subject from POD_RETAINED_KINDS rather than naming the kinds, so a kind added to the
 // constant is covered here on the same commit — which is also the drift the fix closed (the SQL was a
 // hand-written second copy of that constant, in the same file as the constant).
-describe("§1536 REQ-116: the retained-kind exclusion, not the duration, is what saves a created_ts of 0", () => {
+describe("§1536 REQ-116: the retained-kind exclusion, not the duration, is what saves an ANCIENT clock", () => {
   it("every POD_RETAINED_KIND survives a sweep at created_ts 0 — including anchor's receipt", async () => {
     expect(POD_RETAINED_KINDS.length, "an empty retained list would make this pass over nothing").toBeGreaterThanOrEqual(2);
     const keys: string[] = [];
@@ -494,13 +528,21 @@ describe("§1536 REQ-116: the retained-kind exclusion, not the duration, is what
     }
   });
 
-  it("CONTROL: the SAME row with a non-retained kind IS swept at created_ts 0 — so 0 really is born-expired", async () => {
+  // §1766 — THIS CONTROL MOVED OFF created_ts 0, AND WHY. The §1766 fail-closed floor SKIPS any candidate
+  // whose clock is unknown (`created_ts <= 0`), so at 0 the control now survives for the FLOOR's reason
+  // rather than dying for the exclusion's — it would have passed while proving nothing, which is exactly the
+  // failure a control exists to prevent. Adding a guard can invalidate another gate's PROOF without touching
+  // its rule. The fixture therefore uses created_ts = 1: one millisecond after the epoch is a KNOWN clock and
+  // still born-expired against every finite window, so the duration still cannot save it and the exclusion is
+  // still the only thing that can. The retained-kind case above deliberately STAYS at 0 — that is the value
+  // anchor.ts actually writes.
+  it("CONTROL: the SAME row with a non-retained kind IS swept at an ancient KNOWN clock — so age alone kills", async () => {
     // Without this the case above proves only that a sweep ran and deleted nothing, which is also what a
     // broken sweep looks like. This is the same fixture minus the hostile part (§1534): identical tenant,
-    // shipment and created_ts, one field changed — and it must DIE where the retained kinds live.
+    // shipment and (ancient) created_ts, one field changed — and it must DIE where the retained kinds live.
     const key = await seedDoc({
       db: A, tenant: "tenant-a", id: "ret-zero-control", kind: "photo", shipment: "ret-shp-zero",
-      hash: "c".repeat(64), lifecycleClass: retentionClassFor("photo"), createdTs: 0,
+      hash: "c".repeat(64), lifecycleClass: retentionClassFor("photo"), createdTs: 1,
     });
     expect(POD_RETAINED_KINDS.includes("photo"), "the control must NOT be a retained kind, or it proves nothing").toBe(false);
     const res = await sweepTenantExpiredDocuments(A, R2, "tenant-a", 100 * YEAR_MS);
