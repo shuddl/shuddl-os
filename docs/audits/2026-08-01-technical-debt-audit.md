@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1242 | §1795 | **§1796** | **STOPPING POINT, WITH ITS SCOPE WORDS COUNTED.** §1784 said *nothing repo-owned is open* and §1785 corrected it to **38**; this is the same statement made properly. **37 commits**, ending at `5f8e328`. **Six OPEN rows read in full** and each verified against the code it describes: `quote.priced` (public route — closing it 403s an integrator silently), coverage (*observation, not a defect*), the evidence-email surfacing (**needs a REQ row**), the fixtures gate's understated `executed` (changing a blocking gate's status semantics costs more than it gains), pool-binding exclusivity (**the fix was written and REVERTED** — it failed six tests on a HARNESS ARTIFACT, and a 9-line comment at the call site names the revert, the reason and the structural fix), and the delegated-guarantee row — **not held at all but WORKED**, 2 of 9 → 9 of 9. **Five correctly held, one actionable — and the actionable one was found by EXECUTING the procedure the row itself specified**, not by re-arguing it. **The residue named rather than waved at: nine repo-owned rows have not been read in full this session.** That is the difference between this stopping point and §1784's |
 | 1241 | §1794 | **§1795** | **THE NEVER-EXECUTES SET IS EXACTLY FOUR, AND THE ACCEPTANCE SPINE RUNS.** §1794 asked whether the five BLOCKED gates would work if their inputs arrived; the wider question is whether those five are the WHOLE population that never executes. They are: `cwd-parity.test.ts` carries a roster of **four** (`fixtures`, `rater-parity`, `invoice-parity`, `concierge-parity`), each with its absent input named, **asserted in both directions** — a new skipping gate must be declared AND a gate that starts executing must be removed, *so the exemption cannot outlive its reason*. `check:identity` is deliberately absent because it DOES execute (it runs and reports a skip). One documented exception: `check:invariants` runs bare CWD-relative globs on purpose — rooting it *was measured, not assumed: both attempts turned its three CLI tests red* — so it is asserted to FAIL CLOSED off-root, watched rather than waived. **The acceptance spine run directly**: GREEN, 7 files, 43 assertions across api/driver/mcp/map. It is also a merge gate, so this **confirms one of the 21 rather than discovering anything** — said plainly. A confirmation is worth RUNNING when the subject is a backbone and the cost is small; it is not worth dressing up as a finding |
 | 1240 | §1793 | **§1794** | **THE FIVE BLOCKED GATES ARE BLOCKED ON INPUTS, NOT BROKEN.** The same five gates have been described as *external, waiting on inputs* for weeks — a claim about WHY they do not run. The adjacent question was never asked: **if the inputs arrived tomorrow, would they work?** A gate that has never executed its real path has its first execution on the day the owner vendors the fixtures. **identity-leak: exercised end to end** with a SYNTHETIC denylist (three invented terms, nothing from any engagement) — clean tree → *clean (3 terms checked)*, exit 0; planted term → **exit 1** naming the file. And a fourth thing nobody had recorded: **its failure message MASKS the term to its first character** — a leak detector that printed the leak into CI logs would be its own defect. **The four fixture gates floor their input**: `existsSync(dir) && readdirSync(dir).some(f => f.endsWith('.json'))`, so a directory that exists but holds nothing is NOT vendored, and the message distinguishes *path MISSING* from *path exists but the expected files are missing*. **BLOCKED now says "waiting on an input", with evidence, rather than "unknown"** — a blocked gate is the easiest place in a build for a defect to sleep |
 | 1239 | §1792 | **§1793** | **THE RESTATED-KEY HAZARD IS A SINGLETON, AND THE REASON IS A DISTINCTION WORTH KEEPING.** §1792's test passed with the producer starved because its FIXTURE typed the key the production query looks for. Swept: **6 test files type a derived key prefix, and reading all six, NONE is the hazard** — one is an ASSERTION (`expect(body_ref).toBe(...)`), one a log line, one an object key, one a comment plus a different prefix, two are URL paths (`/v1/dunning/{id}/send`). The detector matched substrings without role, predictably: **a key prefix and a URL segment are the same characters.** **The distinction that makes the negative meaningful**: typing a derived key in an ASSERTION is correct — it characterizes the producer and drift reds there; typing it in a FIXTURE the production code must then FIND is the hazard — it fakes the producer and drift goes unnoticed. Same literal, opposite value, decided by which side of the test it sits on. That also explains the singleton: the hazard needs a ROUND-TRIP, and round-trips are rare because most tests assert an output rather than seed an input the code must recognise |
@@ -100751,3 +100752,58 @@ gate's. Re-run and waited for the aggregate line itself, which is the only thing
 input named, the roster asserted both ways, and the single deliberate exception documented as fail-closed
 rather than waived; 1 acceptance spine run directly and green across 4 packages and 43 assertions; **0
 findings**, stated as such rather than dressed up; 0 code changed.
+
+---
+
+## §1796 — PHASE GATE / STOPPING POINT: every OPEN row examined was correctly held, and here is what "examined" means
+
+§1784 tried to say something like this and said it wrong — *"nothing repo-owned is open"* — which §1785
+corrected with the measured **38**. This is the same statement made with its scope words counted, because
+§1785's lesson is that a scope word **is** a measurement.
+
+**37 commits** in this stretch, ending at `5f8e328`; the tree carries 12 modified files, none of them mine.
+
+### What was examined, and what "correctly held" means
+
+Six OPEN rows were read in full, not sampled by their titles. For each, *correctly held* means the row's own
+disposition survives re-reading the code it describes:
+
+| row | why it is not an audit's to close | verified against |
+|---|---|---|
+| `quote.priced` not in `SERVER_EMITTED_KINDS` | a **public** route — closing it 403s an integrator silently | §1702's two-way pin still in place |
+| no line/branch coverage | recorded as *"observation, not a defect"*; nothing in genesis asks for it | the row's own text |
+| failed evidence email surfaces nowhere | **needs a REQ row** (REQ-176 covers the Concierge only) | the asymmetry re-checked at HEAD |
+| `fixtures` gate understates `executed`/`assertions` | changing a blocking gate's status semantics is a larger risk than the benefit | the merge-evidence surface consumes those fields |
+| pool-binding exclusivity on resolve | the fix **was written and reverted** — it failed six tests on a *harness artifact* | a 9-line comment **at the call site** naming the revert, the reason, and the structural fix |
+| delegated guarantees (9 modules) | not held at all — **worked**, §1787–§1792 | 9 of 9 measured, 2 of 6 closed |
+
+The last row is the point: of six examined, five were correctly held and one was actionable — and the
+actionable one was found by *executing the procedure the row itself specified*, not by re-arguing it.
+
+### The honest shape of the residue
+
+**38 OPEN.** 14 need a register row before anything may be built. 9 are owner decisions — an API contract, a
+pricing call, a dependency posture, a tooling scope. Of the 15 remaining, six were read here and in §1786; all
+six were correctly held or worked. **Nine repo-owned rows have not been read in full this session** — that is
+the true residue, and naming it is the difference between this stopping point and §1784's.
+
+### What this stretch delivered
+
+The delegated-guarantee row taken from 2 of 9 measured to **9 of 9**, its population corrected (three modules
+were never in the class), two of six blind modules closed on the cheap side, and the class's remedy reframed
+twice — each time by reading the file the remedy proposed to change. `identity-leak` proven to run, pass and
+catch. The never-executes set enumerated at exactly four, governed both ways.
+
+### Reopen triggers
+
+- a `unit-tests` failure whose log names a suite other than the citation ratchet or a hook timeout
+- the delegated-guarantee row moving off **2 of 6 closed** without a measurement beside it
+- any of the four fixture gates reporting PASS while its directory is empty — the floor is
+  `existsSync(dir) && readdirSync(dir).some(json)`, and it is the only thing standing between "not vendored"
+  and a green
+- a sixth board-citation-ratchet firing that is **not** in a summary — five of five so far have been
+
+**Phase gate.** 37 commits; 6 OPEN rows read in full and each verified against the code it describes, 5
+correctly held and 1 worked to closure; the residue stated as **nine unread rows** rather than as an absence;
+1 row's disposition confirmed by a 9-line comment at its own call site — the record and the code agreeing
+without either being copied from the other; 4 reopen triggers written as things a gate or a log will say.
