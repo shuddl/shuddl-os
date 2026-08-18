@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1215 | §1768 | **§1769** | **THE UNAUDITED-FILE LIST, EXHAUSTED — AND THE METHOD CORRECTED.** §1765's list was too generous: re-measuring the 28 unnamed files by whether ANY test references them gives **22 covered, 6 real residue** — two are §1766's migrations, three are non-production, one was worth a full read. **Unnamed means the audit never needed a section, not that nobody looked**; rank by unnamed AND unexercised. **The one worth reading** — `0002_platform_tenant.sql` — makes three "by construction" claims and **all three are real code with tests on them** (`assertNotPlatformTenant`; a Zod DNS-label regex that rejects `_pool_0N`; RESERVED_PLANS), a clean negative. **What it surfaced**: `tenants.plan` is unconstrained TEXT while the SAME migration gives `users.role` and `pairings.kind` CHECKs — the third constraint-stops-one-column-short instance this session. `ProvisionInput.plan` takes any 40-char string; `resolveSparkPlan` matches `'spark'` exactly and its no-match direction is UNCAPPED **by design**. Neither half is a defect; **the composition means a provisioning typo ('Spark', 'spark ') silently un-meters AI credits forever with nothing logged** — revenue, never truth, and operator-only reachable. **Pinned, not fixed** (which plans exist is a pricing decision): a case variant, a padded variant, and a byte-exact positive control on the identical fixture, plus a checklist row with three ways out. 0 behaviour changed |
 | 1214 | §1767 | **§1768** | **WHAT THE WORKERS WRITE TO STDOUT — THE SURFACE THE IDENTITY LINT CANNOT SEE.** `workers/api/src/log.ts` off §1765's unaudited list, five lines, leading to the better question: **REQ-167's lint scans repo artifacts and cannot see runtime output**, which crosses the trust boundary. Measured before building: **97 console sites — 19 static, 77 ids/slugs only, 1 keyword hit that is a SWEEP name**. Zero logs carry a value identifying anyone, and the discipline is visible: the Biller logs *"bill-to party <id> has no contact email"* — the gap and the id, never the address. Two adjacent surfaces clean too: of **115** ApiError sites exactly one interpolates, echoing the CALLER'S OWN input, and `translateAppendError` maps the DO's code to a FIXED message, discarding its `reason` detail. **The ratchet's term list is the lesson**: `name` was in the first draft, produced exactly one hit, and that hit was a FALSE POSITIVE — removed, so the gate's first real firing is not a false alarm. Built from the corpus, not from vocabulary. Four assertions: the rule, a corpus floor, a TWO-SIDED positive control (fires on a synthetic leak, silent on the id-only shape the code uses), and a pin that `logEvent` still has exactly ONE caller — "acceptable because it is a single site of known shape" stops being true at two. Mutation-proved by name. 0 behaviour changed |
 | 1213 | §1766 | **§1767** | **WAS THE DEFAULT-0 BUG AN EPIDEMIC? 47 COLUMNS, SWEPT.** One instance is a bug, two is a class — so this counted: every `NOT NULL DEFAULT` against every production INSERT. **47 defaulted columns, 19 tables, ZERO further live instances**, and the two reasons are the useful part. **(1)** Most defaults are COLLECTIONS (`'[]'`/`'{}'`), where omitting means exactly what the default says — noise, filtered by construction. **(2)** The scalar ones are all written, and the events path binds `?? null` into NOT NULL columns so an absent value is a **loud abort**, never a silent default. **Surfaced 5 implicit choices**, now written down: `shipments.mode`/`division` are omitted by the booking projection, Concierge, seed and smoke — none a defect (BookingCreatedPayload makes `mode` an OPTIONAL refinement; an inbound email states neither; and `division` reaches the journal only via money_lines, which resolve the SAME `?? "main"` fallback). **The distinction the gate is built around: does the default DESCRIBE or DECIDE?** Landed a ratchet with a corpus floor and a staleness check (an exemption that stops exempting is deleted), mutation-proved by name. **Two instrument faults**: the first probe called the ledger's central write path five-columns-short (it read `${EVENT_COLUMNS.join(",")}` as a literal list) — now resolved through the array, with an **unresolvable list treated as FAILURE, not skip**; and the gate flagged a GATE, since `append-chokepoint.ts` quotes SQL in a detection pattern — excluded by directory, premise verified (nothing there holds a D1 handle). 0 behaviour changed |
 | 1212 | §1765 | **§1766** | **A DEFAULT THAT MEANS "DELETE ME", AND THE GUARD THAT INVALIDATED A CONTROL.** §1765's method continued into the two unaudited migrations. Both correct — but `0007` gives `documents.created_ts` a **`DEFAULT 0`**, and for a DELETION sweep that is the maximally-expired value: a row written without the column is born expired, its R2 bytes deleted on the next tick and tombstoned as retention-expired, which reads like a correct outcome. **§1536 already closed the live instance** (anchor.ts's tsa_receipt, saved solely by the kind exclusion) — **but that defence is keyed on KIND while the hazard is keyed on a MISSING COLUMN**. Enumerated both writers: no live gap; a third omitting the column under any non-POD kind deletes evidence silently. Added a fail-closed floor (skip `created_ts <= 0`) with its own REPORTED counter, plus a positive control that a real two-year-old clock still deletes — a guard that skipped everything would pass otherwise. **The keeper**: the floor immediately RED-ed a §1536 CONTROL. Its rule was untouched; its control now survived for the FLOOR's reason instead of dying for the EXCLUSION's, so it had stopped testing while staying green. Re-based onto `created_ts = 1` — a KNOWN ancient clock, still born-expired — while the retained-kind case stays at 0, the value anchor.ts actually writes. **A new guard can invalidate an existing test's PREMISE without touching its RULE, and a green control does not self-report.** |
@@ -99082,3 +99083,82 @@ log sites + 115 error-envelope sites measured, **0 leaks**; 1 property that was 
 a gate; 1 detector term **removed on measured evidence** rather than kept on intuition; 1 corpus floor, 1
 two-sided positive control, 1 single-caller pin; mutation-proved by name; 1,525 tools tests green; 0 behaviour
 changed.
+
+---
+
+## §1769 — PHASE GATE: the unaudited-file list, exhausted — and the method corrected (REQ-122/125/025)
+
+§1765 opened a method: work the production files the record has never named. This closes it, and the first
+finding is that **the method's own list was too generous.**
+
+### Unnamed is not unexamined
+
+Re-measuring the 28 unnamed files against whether **any test references them**:
+
+| | count |
+|---|---|
+| unnamed in the record | 28 |
+| …but referenced by a test | **22** |
+| unnamed **and** untested — the real residue | **6** |
+
+Of the six: two are the migrations worked at §1766; three are non-production (a `tsx` JSX shim, a seed CLI, a
+presentational driver button whose disabled-gate behaviour is exercised through the flow tests); and one was
+worth a full read.
+
+> **A file being unnamed in an audit says the audit never needed a section about it — not that nobody looked.**
+> Rank by *unnamed AND unexercised*, or the list is 4× larger than the work in it.
+
+### The one worth reading: the control-plane platform tenant
+
+`db/control/migrations/0002_platform_tenant.sql` provisions the reserved `_platform` row and makes three
+claims. All three are enforced **and** pinned, measured against `provision.test.ts`:
+
+| claim | enforcement | pinned by |
+|---|---|---|
+| `_platform` unreachable from a customer path | `assertNotPlatformTenant` | *"claiming `_platform` is blocked…"* |
+| pool sentinels excluded "by the DNS-label slug shape" | a Zod `regex` on `ProvisionInput.slug` | *"claiming `_pool_01` … (INVALID_INPUT)"* |
+| reserved plans never written to a customer | `RESERVED_PLANS` | *"a reserved plan value … cannot be provisioned"* |
+
+A clean negative — the strongest kind, because the file argues "by construction" and the construction turned
+out to be real code with a test on it.
+
+### What the read did surface: two correct halves whose composition is not
+
+`tenants.plan` is unconstrained `TEXT`. The **same migration** gives `users.role` a `CHECK` and
+`pairings.kind` a `CHECK` — the third instance this session of a constraint stopping one column short
+(§1765's `messages.direction`, §1766's `documents.created_ts` default, now this).
+
+- `ProvisionInput.plan` accepts `z.string().min(1).max(40)` minus the two reserved values.
+- `resolveSparkPlan` compares `row.plan !== 'spark'` and its no-match direction is **UNCAPPED by design** —
+  *"only a CONFIRMED Spark tenant is throttled"* — which is correct, documented and tested.
+
+Neither half is a defect. **The composition is a sharp edge:** `'Spark'`, `'spark '` or `'sparks'` reads as
+not-Spark, so that tenant is never metered for AI credits, forever, with nothing logged. Blast radius is
+revenue, never truth — the cap gates the LLM convenience only, and appends and invoicing are never gated.
+Reachability is operator-only: provisioning is flag-gated off in the real env and the plan is server-supplied.
+
+**Pinned, not fixed.** Which plan strings exist is a pricing decision, not an audit's to settle. Three cases
+now hold the edge — a case variant, a whitespace-padded variant, and a **byte-exact positive control** with the
+identical fixture, so the two are about the string and not about a broken seed. The whitespace case also
+asserts *why* the allotment is zero (the row was never treated as Spark, rather than a policy-parse failure),
+because those two failure modes are indistinguishable from the return value alone. Filed on the checklist with
+its three ways out, all of which change what provisioning accepts.
+
+### One thing that is NOT a finding about the code, and is reported anyway
+
+The merge gate **FAILED once** on this phase's tree — `unit-tests — command exited 1`, 20 PASS — and passed on
+an immediate re-run with **no source change** (21 PASS · 0 FAIL · 5 BLOCKED). `pnpm test` standalone exits 0,
+and every owning suite is green individually (agents 155, ledger 773, tools 1,525).
+
+So the board's verdict is **not perfectly reproducible**, and that is worth a line even though the phase's own
+work is unaffected. Recorded rather than re-run-until-green because the alternative — quietly taking the second
+answer — is how a real intermittent failure becomes invisible. No cause established: this repo already carries
+a known `vitest-pool-workers` instability, and a single non-reproducing failure is not enough to name it. What
+would make it actionable is a second occurrence with the same gate and a captured suite name; this note exists
+so the next one is recognised as the second rather than the first.
+
+**Phase gate.** 28 unnamed files re-measured by test-reference down to a 6-file residue, and the method
+corrected in the record; 1 control-plane migration read in full, all 3 of its "by construction" claims found
+to be real code with tests on them; 1 composition hazard found between two individually-correct halves, pinned
+with a two-sided control and filed as an owner decision; 3 cases added; 21 spark tests green; 0 behaviour
+changed. **§1765's list is exhausted.**

@@ -240,6 +240,45 @@ describe("resolveSparkPlan — Spark iff tenants.plan === 'spark'; allotment fro
   it("an UNKNOWN tenant (no control row) is UNCAPPED — only a CONFIRMED Spark tenant is throttled", async () => {
     expect(await resolveSparkPlan(env.CONTROL_DB, "slug-does-not-exist")).toEqual({ capped: false, allotment: 0 });
   });
+
+  // ── §1769 — THE SHARP EDGE OF "EXACT MATCH ON FREE TEXT", PINNED SO IT CANNOT BE FORGOTTEN ────────────
+  // `tenants.plan` is unconstrained TEXT: 0001_control.sql gives `users.role` a CHECK and `pairings.kind` a
+  // CHECK, and gives `plan` none, while `ProvisionInput.plan` is `z.string().min(1).max(40)` — any string
+  // except the two reserved ones. The comparison here is exact, and the gate's no-match direction is
+  // UNCAPPED by design ("only a CONFIRMED Spark tenant is throttled", the case above).
+  //
+  // Compose those and a PROVISIONING TYPO silently disables the AI-credit cap for that tenant, forever, with
+  // nothing logged: 'Spark', 'spark ', 'sparks' all read as "not a Spark tenant". This is not a defect in
+  // either half — the exact match is right, and the uncapped default is deliberate and documented — it is a
+  // consequence of the two together that is invisible from inside either one.
+  //
+  // Pinned rather than fixed: WHICH plan strings exist is a pricing decision, not an audit's to make. What an
+  // audit can do is make the edge re-checkable. If `plan` ever gains a CHECK or an enum, these expectations
+  // flip and whoever changes it sees this comment.
+  it("§1769 — a CASE-VARIANT plan ('Spark') is UNCAPPED: exact match on an unconstrained column", async () => {
+    await seedControlTenant(env.CONTROL_DB, { id: "t-sparkcase", slug: "slug-sparkcase", plan: "Spark", policy: JSON.stringify({ spark_ai_allotment: 25 }) });
+    expect(
+      await resolveSparkPlan(env.CONTROL_DB, "slug-sparkcase"),
+      "if this now reports capped:true, `plan` gained a normalisation or a CHECK — update this case AND the " +
+        "GO-LIVE row that files the free-text-plan edge",
+    ).toEqual({ capped: false, allotment: 0 });
+  });
+
+  it("§1769 — a WHITESPACE-PADDED plan ('spark ') is UNCAPPED too, and the allotment is ignored", async () => {
+    await seedControlTenant(env.CONTROL_DB, { id: "t-sparkpad", slug: "slug-sparkpad", plan: "spark ", policy: JSON.stringify({ spark_ai_allotment: 25 }) });
+    const r = await resolveSparkPlan(env.CONTROL_DB, "slug-sparkpad");
+    expect(r).toEqual({ capped: false, allotment: 0 });
+    // The policy was well-formed and generous; it is not that the allotment failed to parse — the row was
+    // never treated as Spark at all. Stating this separates the two failure modes for the next reader.
+    expect(r.allotment, "the allotment is 0 because the tenant is UNCAPPED, not because policy parsing failed").toBe(0);
+  });
+
+  // POSITIVE CONTROL: the exact literal still caps, so the two cases above are about the STRING and not about
+  // a broken fixture (the same seed shape, one field differing by case/whitespace).
+  it("§1769 CONTROL — the byte-exact 'spark' with that same fixture DOES cap", async () => {
+    await seedControlTenant(env.CONTROL_DB, { id: "t-sparkexact", slug: "slug-sparkexact", plan: "spark", policy: JSON.stringify({ spark_ai_allotment: 25 }) });
+    expect(await resolveSparkPlan(env.CONTROL_DB, "slug-sparkexact")).toEqual({ capped: true, allotment: 25 });
+  });
 });
 
 // ─── C. THE AGENT-ACTION CHOKEPOINT — the cap gates the LLM convenience, keyed off the server tenant ──
