@@ -259,6 +259,10 @@ export async function sweepTenantLegacyMirror(deps: MirrorSweepDeps): Promise<Mi
 
     const shipmentId = await anchorStream(db, draft.streamKey, draft, now);
     const streamId = `s:${shipmentId}`;
+    // MEASURED (§1789) — and this module is NOT in the delegated class, unlike its five siblings. Making this
+    // id non-deterministic reds `workers/agents` **1 of 155** and `workers/api` **0 of 908`: the owning suite
+    // asserts the outcome itself, in a case named "re-ingesting the SAME rows appends NOTHING new —
+    // deterministic ids dedupe at the DO". The filed row's "their own suite cannot see them" is false here.
     const id = await deterministicUuid(draft.idSeed); // LAW 3(a): deterministic ⇒ DO dedupe on re-ingest
     const candidate = {
       id,

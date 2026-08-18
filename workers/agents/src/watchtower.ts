@@ -141,6 +141,10 @@ export interface WatchtowerResult {
 export function watchtowerAlarmId(tenant: string, rule: string, opts?: { scope?: string | undefined; object?: string | undefined }): string {
   const scopeTag = opts?.scope !== undefined ? `:${opts.scope}` : "";
   const objectTag = opts?.object !== undefined ? `:${opts.object}` : "";
+  // MEASURED (§1789) — the LARGEST delegated split in the class. Making this id non-deterministic (it is the
+  // `ON CONFLICT(id)` key that keeps exactly one alarm row per rule+scope) reds `workers/agents` **0 of 155**
+  // and `workers/api` **21 of 908`. The re-raise/self-clear behaviour is asserted where the alarms are read,
+  // not where they are written, so a green owning suite is not coverage of this line.
   return `watchtower:${rule}:${tenant}${scopeTag}${objectTag}`;
 }
 
