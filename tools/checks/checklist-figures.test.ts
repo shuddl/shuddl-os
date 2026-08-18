@@ -114,7 +114,7 @@ const WORD: Readonly<Record<string, number>> = {
  * SWEEP_COUNT_FILES note ("a different population — the repo-wide count"), and only the first had a gate.
  */
 function perTenantOrchestrators(root: string): { total: number; workers: string[] } {
-  const files = execSync('git ls-files "workers/*/src/*.ts" "workers/*/src/**/*.ts"', { cwd: root, encoding: "utf8" })
+  const files = execSync('git ls-files "workers/*/src/*.ts" "workers/*/src/*.tsx" "workers/*/src/**/*.ts" "workers/*/src/**/*.tsx"', { cwd: root, encoding: "utf8" })
     .trim()
     .split("\n")
     .filter((f) => f !== "" && !f.includes(".test."));
@@ -151,7 +151,7 @@ function perTenantOrchestrators(root: string): { total: number; workers: string[
 // which §1053 records as the failure that gets a gate deleted. A phrase rename must update this file.
 /** Every file that states the PER-TENANT sweep population, derived rather than hand-kept. */
 function perTenantCountClaims(root: string): { file: string; stated: number }[] {
-  const files = execSync('git ls-files "workers/**/*.ts" "packages/**/*.ts" "tools/**/*.ts"', { cwd: root, encoding: "utf8" })
+  const files = execSync('git ls-files "workers/**/*.ts" "workers/**/*.tsx" "packages/**/*.ts" "packages/**/*.tsx" "tools/**/*.ts"', { cwd: root, encoding: "utf8" })
     .trim()
     .split("\n")
     // This gate necessarily CONTAINS the vocabulary it matches (the WORD table, the probe strings), so it
@@ -197,7 +197,7 @@ function perTenantCountClaims(root: string): { file: string; stated: number }[] 
  * THIS population, so the match is taken from a window around that phrase rather than from the file.
  */
 function perTenantWorkerClaims(root: string): { file: string; stated: number }[] {
-  const files = execSync('git ls-files "workers/**/*.ts" "packages/**/*.ts" "tools/**/*.ts"', { cwd: root, encoding: "utf8" })
+  const files = execSync('git ls-files "workers/**/*.ts" "workers/**/*.tsx" "packages/**/*.ts" "packages/**/*.tsx" "tools/**/*.ts"', { cwd: root, encoding: "utf8" })
     .trim()
     .split("\n")
     .filter((f) => f !== "" && !f.endsWith("tools/checks/checklist-figures.test.ts"));

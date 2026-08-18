@@ -59,7 +59,7 @@ const NAME_TRUSTED: readonly { readonly cls: string; readonly why: string; reado
 ];
 
 function doClasses(root: string): { cls: string; file: string; selfVerifies: boolean }[] {
-  const files = execSync("git ls-files -- 'workers/*/src/*.ts' 'workers/*/src/**/*.ts'", {
+  const files = execSync("git ls-files -- 'workers/*/src/*.ts' 'workers/*/src/*.tsx' 'workers/*/src/**/*.ts' 'workers/*/src/**/*.tsx'", {
     cwd: root,
     encoding: "utf8",
   })

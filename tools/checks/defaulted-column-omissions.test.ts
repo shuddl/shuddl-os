@@ -175,7 +175,7 @@ describe("REQ-116/I8 §1767: no production INSERT silently takes a scalar column
   it("every INSERT either names each scalar-defaulted column or is allowlisted with a reason", () => {
     const grep = execSync(
       "git grep -n -E 'INSERT( OR (IGNORE|ABORT|FAIL))? INTO ' -- " +
-        "'packages/**/*.ts' 'workers/**/*.ts' 'tools/**/*.ts' " +
+        "'packages/**/*.ts' 'packages/**/*.tsx' 'workers/**/*.ts' 'workers/**/*.tsx' 'tools/**/*.ts' " +
         // `tools/checks/**` is EXCLUDED because those files QUOTE SQL rather than execute it. KEPT after
         // §1774 generalised the rule to "no `.prepare(`, no execution", which subsumes it — a gate that
         // both quotes SQL and holds a D1 handle would otherwise be judged on its detection patterns. The

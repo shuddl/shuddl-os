@@ -174,7 +174,7 @@ describe("REQ-100 §1765: every writer of messages.direction writes a member of 
     // it went unseen until staged, then failed by name (§1765).
     const out = execSync(
       "git grep -lE '(INSERT[^;]{0,40}INTO messages|UPDATE messages)' -- " +
-        "'packages/**/*.ts' 'workers/**/*.ts' 'tools/**/*.ts' " +
+        "'packages/**/*.ts' 'packages/**/*.tsx' 'workers/**/*.ts' 'workers/**/*.tsx' 'tools/**/*.ts' " +
         "':(exclude)**/test/**' ':(exclude)**/*.test.ts'",
       { cwd: root, encoding: "utf8" },
     );

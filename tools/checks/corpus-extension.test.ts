@@ -33,7 +33,14 @@ import { repoRoot } from "./repo-root.js";
 
 const PRODUCTION_TREE = /"(?:workers|packages|apps)[^"]*"|\b(?:workers|packages|apps)\b/;
 /** A `.ts`-only extension predicate: matches `.ts` and does NOT admit `.tsx`. */
-const TS_ONLY = /\.ts\$|endsWith\("\.ts"\)|'\*\.ts'|"\*\.ts"/;
+// §1774 — `*.ts'` NOW MATCHES WHEREVER IT ENDS A PATHSPEC, not only as a bare `'*.ts'`. The original
+// alternation required the quote immediately before the star, which is the `git ls-files`/`globSync` shape;
+// a git-grep pathspec is path-qualified (`'workers/**/*.ts'`), so the star is preceded by a slash and none of
+// the four alternatives fired. That was the SECOND inert fix in this phase — the mechanism list was widened,
+// then the tree test was moved to the statement, and the suite stayed green through both because the
+// extension predicate itself could not see the string. A gate widened in three places is still blind if any
+// one of them is the narrow one.
+const TS_ONLY = /\.ts\$|endsWith\("\.ts"\)|\*\.ts'|\*\.ts"/;
 
 interface Site {
   readonly file: string;
@@ -51,9 +58,13 @@ function tsOnlyCorpora(root: string, selfPath: string): Site[] {
     const lines = readFileSync(`${root}/${file}`, "utf8").split("\n");
     for (let i = 0; i < lines.length; i += 1) {
       const line = lines[i] as string;
-      if (!/git ls-files|globSync/.test(line)) continue;
+      // §1774 — `git grep` JOINED THIS LIST, and its absence is why three gates shipped `.ts`-only past a
+      // gate written to make that unrepeatable. The rule was enumerated by MECHANISM (the two corpus calls
+      // that existed when it was written) rather than by BEHAVIOUR (any call that builds a corpus from a
+      // pathspec). A gate keyed on an API call is blind to the same class under a different call — measured:
+      // 5 gates now build their corpus with `git grep`, 3 of them `.ts`-only, all invisible here.
+      if (!/git ls-files|globSync|git grep/.test(line)) continue;
       if (line.trim().startsWith("//") || line.trim().startsWith("*")) continue;
-      if (!PRODUCTION_TREE.test(line)) continue;
       // The predicate usually sits on the next line or two (`.split("\n")` then `.filter(...)`). Bounded by
       // the END OF THE STATEMENT — the first line whose trailing character closes it — never by a fixed
       // window (§1378): a fixed reach would read the NEXT call's filter and call this one clean.
@@ -63,6 +74,13 @@ function tsOnlyCorpora(root: string, selfPath: string): Site[] {
         win += `\n${l}`;
         if (/;\s*$/.test(l.trim())) break;
       }
+      // §1774 — THE TREE TEST MOVED FROM THE LINE TO THE STATEMENT, and this is what made the `git grep`
+      // extension actually work. It read `PRODUCTION_TREE.test(line)` and skipped before the window existed,
+      // which is right for `git ls-files tools` (one line, tree included) and wrong for a pathspec built by
+      // string concatenation, where the trees sit on the NEXT line. Measured: with the tree test on the line,
+      // re-narrowing a `git grep` gate to `.ts`-only left this suite GREEN — the extension was inert and
+      // would have been credited as working.
+      if (!PRODUCTION_TREE.test(win)) continue;
       if (TS_ONLY.test(win) && !/tsx/.test(win)) out.push({ file, line: i + 1, text: line.trim().slice(0, 100) });
     }
   }

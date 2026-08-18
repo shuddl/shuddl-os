@@ -26,7 +26,7 @@ import { stripComments } from "./source-corpus.js";
 
 /** A function is a tenant-iterating orchestrator iff its body reaches the roster. */
 function orchestratorsByWorker(root: string): Map<string, Set<string>> {
-  const files = execSync('git ls-files "workers/*/src/*.ts" "workers/*/src/**/*.ts"', { cwd: root, encoding: "utf8" })
+  const files = execSync('git ls-files "workers/*/src/*.ts" "workers/*/src/*.tsx" "workers/*/src/**/*.ts" "workers/*/src/**/*.tsx"', { cwd: root, encoding: "utf8" })
     .trim()
     .split("\n")
     .filter((f) => f && !f.includes(".test."));
@@ -50,7 +50,7 @@ function orchestratorsByWorker(root: string): Map<string, Set<string>> {
 
 /** The whole test corpus of one worker, concatenated. */
 function workerTestText(root: string, worker: string): string {
-  const files = execSync(`git ls-files "workers/${worker}/test/*.ts" "workers/${worker}/test/**/*.ts"`, {
+  const files = execSync(`git ls-files "workers/${worker}/test/*.ts" "workers/${worker}/test/*.tsx" "workers/${worker}/test/**/*.ts" "workers/${worker}/test/**/*.tsx"`, {
     cwd: root,
     encoding: "utf8",
   })

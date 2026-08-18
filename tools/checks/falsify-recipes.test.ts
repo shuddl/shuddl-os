@@ -43,7 +43,7 @@ interface Recipe {
 
 function recipes(root: string): Recipe[] {
   const files = execSync(
-    "git ls-files -- 'workers/*/src/*.ts' 'workers/*/src/**/*.ts' 'packages/*/src/*.ts' 'packages/*/src/**/*.ts' 'apps/*/src/*.ts' 'apps/*/src/**/*.ts'",
+    "git ls-files -- 'workers/*/src/*.ts' 'workers/*/src/*.tsx' 'workers/*/src/**/*.ts' 'workers/*/src/**/*.tsx' 'packages/*/src/*.ts' 'packages/*/src/*.tsx' 'packages/*/src/**/*.ts' 'packages/*/src/**/*.tsx' 'apps/*/src/*.ts' 'apps/*/src/*.tsx' 'apps/*/src/**/*.ts' 'apps/*/src/**/*.tsx'",
     { cwd: root, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 },
   )
     .split("\n")

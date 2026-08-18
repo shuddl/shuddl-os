@@ -43,7 +43,7 @@ const SWEPT_LOOSE_KINDS = [
  * no "single-level only" caveat that the next alias would quietly outgrow.
  */
 function looseAliases(root: string): string[] {
-  const files = execSync("git ls-files -- 'packages/contracts/src/*.ts'", { cwd: root, encoding: "utf8" })
+  const files = execSync("git ls-files -- 'packages/contracts/src/*.ts' 'packages/contracts/src/*.tsx'", { cwd: root, encoding: "utf8" })
     .split("\n")
     .filter((f) => f !== "" && !f.endsWith(".test.ts"));
   const sources = files.map((f) => readFileSync(`${root}/${f}`, "utf8"));

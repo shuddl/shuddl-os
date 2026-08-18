@@ -26,7 +26,7 @@ import { repoRoot } from "./repo-root.js";
 
 /** Files that join SQL clauses with " AND " — derived, so a third chain is covered on the day it lands. */
 function andChainFiles(root: string): string[] {
-  const files = execSync('git ls-files "packages/**/*.ts" "workers/**/*.ts"', { cwd: root, encoding: "utf8" })
+  const files = execSync('git ls-files "packages/**/*.ts" "packages/**/*.tsx" "workers/**/*.ts" "workers/**/*.tsx"', { cwd: root, encoding: "utf8" })
     .split("\n")
     .filter((f) => f && !f.includes(".test.") && !f.includes("/test/"));
   return files.filter((f) => /join\(\s*["'`]\s*AND\s*["'`]\s*\)/.test(readFileSync(`${root}/${f}`, "utf8")));

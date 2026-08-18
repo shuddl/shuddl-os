@@ -32,6 +32,35 @@ import { repoRoot } from "./repo-root.js";
 // cannot quietly swallow the whole population.
 
 const DECLARED_EMPTY: readonly { readonly spec: string; readonly why: string }[] = [
+  // §1774 — FIVE MORE PAIRED HALVES, from widening 15 `.ts`-only corpora that §1507's predicate could not
+  // see. Every one is the SAME shape as the `workers/**/*.tsx` row below and carries the same reasoning: the
+  // extension sibling of a non-empty pathspec in the SAME git invocation. §1507 requires the widening ("a
+  // scope that is TRUE TODAY and a scope that is RIGHT are indistinguishable until something moves"); this
+  // gate requires the declaration. Both rules hold, and the pair is what each gate actually reads.
+  {
+    spec: "workers/*/src/*.tsx",
+    why: "workers carry no JSX at the src root today; paired with `workers/*/src/*.ts`, which matches.",
+  },
+  {
+    spec: "workers/*/src/**/*.tsx",
+    why: "the recursive half of the same pair — `workers/*/src/**/*.ts` matches; a worker view would land here.",
+  },
+  {
+    spec: "packages/contracts/src/*.tsx",
+    why:
+      "contracts is a zod-only boundary package with no components; paired with `packages/contracts/src/*.ts`. " +
+      "Kept so the loose-payload boundary cannot go blind if a contracts view ever appears.",
+  },
+  {
+    spec: "workers/mcp/src/**/*.tsx",
+    why: "the mcp worker is backend-only; paired with `workers/mcp/src/**/*.ts`, which matches.",
+  },
+  {
+    spec: "workers/mcp/src/*.tsx",
+    why:
+      "the src-root half of the same mcp pair; `workers/mcp/src/*.ts` matches. Both halves are declared " +
+      "because a git invocation reads them together and the pair is the corpus.",
+  },
   {
     spec: "workers/**/*.tsx",
     why:
@@ -124,7 +153,7 @@ describe("§1426 REQ-118: every literal pathspec a gate passes to git matches at
     // unpaired form drops every top-level file. This control tripped that gate on its first run, which is two
     // of these gates checking each other and is the reason both exist.
     expect(
-      execSync("git ls-files -- 'packages/*/src/*.ts' 'packages/*/src/**/*.ts'", { cwd: root, encoding: "utf8" }).trim().length,
+      execSync("git ls-files -- 'packages/*/src/*.ts' 'packages/*/src/*.tsx' 'packages/*/src/**/*.ts' 'packages/*/src/**/*.tsx'", { cwd: root, encoding: "utf8" }).trim().length,
     ).toBeGreaterThan(0);
   });
 

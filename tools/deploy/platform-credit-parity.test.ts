@@ -52,7 +52,7 @@ const MCP_SRC = "workers/mcp/src";
 const API_ROUTES_DIR = "workers/api/src/routes";
 
 function mcpCalledPaths(root: string): string[] {
-  const files = execSync('git ls-files "workers/mcp/src/**/*.ts" "workers/mcp/src/*.ts"', { cwd: root, encoding: "utf8" })
+  const files = execSync('git ls-files "workers/mcp/src/**/*.ts" "workers/mcp/src/**/*.tsx" "workers/mcp/src/*.ts" "workers/mcp/src/*.tsx"', { cwd: root, encoding: "utf8" })
     .split("\n")
     .filter((f) => f !== "" && !f.includes(".test."));
   const out = new Set<string>();
@@ -63,7 +63,7 @@ function mcpCalledPaths(root: string): string[] {
 }
 
 function apiMountedV1Paths(root: string): string[] {
-  const files = execSync(`git ls-files "${API_ROUTES_DIR}/*.ts" "workers/api/src/index.ts"`, { cwd: root, encoding: "utf8" })
+  const files = execSync(`git ls-files "${API_ROUTES_DIR}/*.ts" "${API_ROUTES_DIR}/*.tsx" "workers/api/src/index.ts"`, { cwd: root, encoding: "utf8" })
     .split("\n")
     .filter((f) => f !== "" && !f.includes(".test."));
   const out = new Set<string>();

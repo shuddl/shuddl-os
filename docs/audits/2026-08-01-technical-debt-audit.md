@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1221 | §1774 | **§1775** | **THE GATE THAT MADE `.ts`-ONLY UNREPEATABLE WAS BLIND TO 15 OF ITS OWN SUBJECTS.** Checking my own three new gates found one scanning `'workers/**/*.ts' 'packages/**/*.ts'` — exactly §1507's class, shipped straight past it (0 live instances, measured first). **§1507 could not see them for THREE separate reasons**: its mechanism list held only `git ls-files` and `globSync` (mine use `git grep` — enumerating by API call misses the class under another call); its tree test ran on the LINE, skipping before the statement window existed; and `TS_ONLY` matched only a BARE `'*.ts'`, so every path-qualified pathspec (slash before the star) slipped through. **Two of the three fixes left the suite GREEN** — a gate widened in three places is still blind if any one is the narrow one, and only a re-narrowing mutation separated a working fix from an inert one. **The population was 3 → 15**: `invariants.ts` (the append-only scanner, 4 corpora), rater-purity, checklist-figures ×3, and-chain-or-parens, do-name-trust, falsify-recipes, invariants.test ×3, loose-payload-boundary, pathspec-nonempty, sweep-containment ×2, platform-credit-parity ×2 — all widened. **Then two gates collided**: §1507 says widen, §1426 forbids a pathspec matching nothing. The repo had already solved it — `DECLARED_EMPTY`'s FIRST row is the same paired-half shape with the reasoning written out. **A conflict between two correct rules is usually already solved somewhere in the corpus** |
 | 1220 | §1773 | **§1774** | **THREE DEMOS DISCLOSED THEIR BLOCKERS, TWO DID NOT.** `demos.ts` and `acceptance-demos.md` are what someone reads BEFORE filming, and both carry a hard-won discipline: demo 1 warns the *+ photos* half does not ship (§178), demo 2 that there is **no signup surface** (§237), demo 3 that there is **no driver login** (§196) — each ending *do not stage the missing thing to make the film match the sentence.* **Demos 4 and 5 carry no such note in either file, and both have blockers.** Demo 4: §1773's finding — nothing creates the `pairings` row it authenticates against, and the manifest's *"per-pairing caps provisioned"* bullet reads as a CONFIGURATION step, hiding that the row has no shipped provisioner (the sharpest form of the gap: a line that mentions the thing while implying it exists). Demo 5: REQ-075's self-hosted tiles have not landed, filed on the checklist as BLOCKS GO-LIVE — **the dim behaviour is ours and is asserted; the basemap under it is rented** — and nothing a reader of the demo files could learn. **Same shape §237 named for demo 2**, one demo over, surviving because the checklist row is true and the demo file is silent rather than wrong. Both notes added to BOTH files in the idiom they already establish. **A disclosure discipline applied to three of five will be trusted on all five** — silence reads as *nothing to declare*, not *not checked*. 0 behaviour changed |
 | 1219 | §1772 | **§1773** | **THE PROVISIONER MINTS THREE OF FOUR CONTROL-PLANE TABLES.** §1770 noted in passing that `pairings` has zero production writers. Pulled on: the control plane has FOUR tables and `provisionTenant` mints **three** in one atomic batch — `tenants` (claiming a pool slot), the admin `users` row, `usage_credits` — and **stops one table short**. The only `INSERT INTO pairings` in the tree are TEST FIXTURES. MCP `/register` does not fill the gap: a client registers **against an existing active pairing**, and `authenticateClient` refuses an absent or non-active row — correctly fail-closed, which is exactly why the row must already be there. **Consequence: acceptance demo 4 (*a booking placed from Claude via MCP*) cannot be performed on a freshly-provisioned tenant**, and no runbook documents the manual INSERT — while the checklist's own caps row tells an operator to set `caps` on every mcp pairing, presupposing they exist. Wider than MCP: `webhook` and `edi` pairings sit in the same table and the EDI 204 seam authenticates off `secret_ref`. **Blocks the demo, not the build** — nothing is broken, a step is unwritten. Filed with two exits (document the INSERT, or build a provisioning path — the latter is NEW SCOPE needing a REQ row) and neither taken. **The new doc loop caught this phase's own two mistakes in seconds** — a §1773 reference before the section existed, and a 10-cell row under a 5-column header |
 | 1218 | §1771 | **§1772** | **THE DOC LOOP, COMPLETED — 3 SUITES BECAME 10, AND ONE PROBE THAT LIED.** §1771's rule applied to the whole corpus: **128 suites** classified by which fast loop should own them. A textual classifier returned 26 candidates and was **wrong on its face** — it listed `repo-root` and `money-halfup-parity` as documentation gates, because the "names source" pattern missed their backtick-template reads. Re-asked behaviourally (what does each actually READ?), **7 doc-subject suites added**: checklist-symbols, cited-scripts-exist, wp-blocker-staleness, wp-exit-audit, phase-index, ledger-status-vocabulary, absolute-paths. **The inclusion rule is not "reads a doc" but "the violation is AUTHORED in a document"** — so checklist-symbols qualifies despite reading source (it reads one side and COMPUTES the other), while `evidence-expiry` is excluded because it can red for a SOURCE reason during a docs-only edit, which is the noise failure that gets a loop ignored. **The probe that lied**: planting `thisSymbolDoesNotExistAnywhere()` returned exit 0 — read straight, "the new gate does not work". False: the detector matches a backticked **camelCase identifier** and the trailing parens put the probe outside its shape. **Read the detector's pattern before believing its silence.** Re-planted correctly → exit 1, and a broken phase-index pointer → exit 1, both through the COMPOSED command. Doc loop now ~4.5s |
@@ -99516,3 +99517,67 @@ and the failing test stayed failing — a loud no-op rather than a silent one.
 supplied from §1773's own measurement, 1 traced to a checklist row that never reached the demo files; 2 notes
 added in each of 2 files, following the idiom the file already established rather than inventing one; 11
 acceptance-manifest tests green; 0 behaviour changed, 0 demo status changed.
+
+---
+
+## §1775 — PHASE GATE: the gate that made `.ts`-only unrepeatable was blind to 15 of its own subjects (REQ-118)
+
+§1774 generalised an exemption from a directory to a property. Applying the same question to my own three new
+gates found a scope defect in one of them — and pulling that thread found a much larger one underneath.
+
+### Three of my own gates were `.ts`-only
+
+`log-pii-ratchet` scanned `'workers/**/*.ts' 'packages/**/*.ts'`. That is **exactly** the class
+`corpus-extension` (§1507) exists to make unrepeatable — *no gate scans a source tree with a `.ts`-only
+filter* — and it shipped straight past it. Measured before fixing: **zero live instances** (the 8 `.tsx` files
+in `packages/`+`workers/` contain no `console.*`, and `apps/` contains none at all), so this is a blind spot
+rather than a leak. Widened all three, and `log-pii` now covers `apps/**` as well.
+
+### Why §1507 could not see them — and then could not see itself
+
+Three separate narrownesses, each of which alone made the fix inert:
+
+1. **The mechanism list.** `tsOnlyCorpora` only inspected lines matching `git ls-files|globSync`. My gates use
+   **`git grep`**. Enumerating by API call misses the same class under a different call.
+2. **The tree test ran on the LINE.** It skipped before building the statement window, which is right for
+   `git ls-files tools` (one line) and wrong for a pathspec built by string concatenation, where the trees sit
+   on the next line.
+3. **The extension predicate itself.** `TS_ONLY` matched a bare `'*.ts'` — quote immediately before the star.
+   Every path-qualified pathspec (`'workers/**/*.ts'`) has a **slash** there, so none of its four alternatives
+   fired.
+
+Each fix was applied and **the suite stayed green**, twice, before the third landed. *A gate widened in three
+places is still blind if any one of them is the narrow one* — and a green after a widening is exactly what a
+still-inert widening looks like. The mutation (re-narrowing a gate to `.ts`-only) is what separated them.
+
+### The population was 5× what the record believed
+
+§1507 found and fixed **3** offenders and recorded the class as closed. With the predicate able to see
+path-qualified globs, the true population is **15** — `invariants.ts` (the constitutional append-only scanner,
+4 corpora), `rater-purity.ts`, `checklist-figures` (×3), `and-chain-or-parens`, `do-name-trust`,
+`falsify-recipes`, `invariants.test.ts` (×3), `loose-payload-boundary`, `pathspec-nonempty`,
+`sweep-containment-coverage` (×2), `platform-credit-parity` (×2). All widened; every affected scanner
+re-verified green.
+
+### Two gates in genuine tension, already reconciled once
+
+Widening produced five pathspecs that match **nothing** (`workers/*/src/*.tsx`, …), which is precisely what
+§1426 forbids: *every literal pathspec a gate passes to git matches at least one file.* §1507 says widen;
+§1426 says an empty pathspec hides a typo. Both are right.
+
+The repo had already resolved this exact conflict once — `DECLARED_EMPTY`'s **first** row is
+`workers/**/*.tsx`, with the reasoning written out: *"the workers half of a PAIRED spec whose packages half
+matches 14 files… deleting the empty half would make the gate silently workers-blind the day a worker gains a
+`.tsx`."* The five new halves were declared the same way, with the same reason. **A conflict between two
+correct rules is usually already solved somewhere in the corpus** — the resolution is a shape to find, not to
+invent.
+
+**Phase gate.** 3 of my own gates found `.ts`-only and widened, with 0 live instances measured first; 3
+distinct narrownesses in §1507 fixed, **2 of them proved inert by a mutation that stayed green**; the class's
+true population re-measured **3 → 15** and all 15 widened; 5 resulting empty pathspecs declared under the
+pattern the corpus already established for exactly this tension; 1,525 tools tests green, and every widened
+scanner (`check:invariants`, `check:rater-purity`) re-verified against its enlarged corpus.
+
+*(The board figure that stood here was removed rather than re-measured: the ratchet caught it in the doc loop
+in ~4 seconds — the fourth firing this session, the first one caught before a commit existed. §1771's wiring,
+paying for itself.)*

@@ -798,7 +798,7 @@ describe("§244: every Durable Object keeps its serialization mutex", () => {
   });
 
   it("the roster matches the DOs actually shipped — it is a pin, not a wish", () => {
-    const files = globSync("workers/*/src/**/*.ts", { cwd: REPO }).map((p) => ({
+    const files = globSync("workers/*/src/**/*.{ts,tsx}", { cwd: REPO }).map((p) => ({
       path: p,
       source: readFileSync(join(REPO, p), "utf8"),
     }));
@@ -1060,7 +1060,7 @@ describe("checkAuthoritySeamDormant — the overlay is inert until a mirror exis
   const dormant = (path: string) => ({ path, source: 'const a = authoritativeSource(await resolveAuthority(db, "rating"), false);' });
 
   it("the shipped tree is dormant — every call site passes false", () => {
-    const files = globSync(join(REPO, "{packages,workers}/*/src/**/*.ts"))
+    const files = globSync(join(REPO, "{packages,workers}/*/src/**/*.{ts,tsx}"))
       .filter((f) => !f.includes("/authority.ts"))
       .map((f) => ({ path: f, source: readFileSync(f, "utf8") }))
       .filter((x) => x.source.includes("authoritativeSource("));
@@ -1087,7 +1087,7 @@ describe("checkAuthoritySeamDormant — the overlay is inert until a mirror exis
 // by nothing.
 describe("checkSqlColumnLiterals — the interpolated column must be a literal (audit §462)", () => {
   it("the shipped tree passes — every call site uses a literal or the wrapper's own `col`", () => {
-    const files = globSync(join(REPO, "{packages,workers}/*/src/**/*.ts")).map((f) => ({ path: f, source: readFileSync(f, "utf8") }));
+    const files = globSync(join(REPO, "{packages,workers}/*/src/**/*.{ts,tsx}")).map((f) => ({ path: f, source: readFileSync(f, "utf8") }));
     expect(files.length).toBeGreaterThan(50);
     expect(checkSqlColumnLiterals(files)).toEqual([]);
   });

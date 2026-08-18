@@ -1055,7 +1055,7 @@ function main(): void {
     // Every shipped control-plane migration is exercised by at least one test (see above).
     const controlViolations = checkControlMigrationsExercised(
       globSync("db/control/migrations/*.sql"),
-      globSync("workers/*/test/**/*.ts").map((p) => ({ path: p, source: readFileSync(p, "utf8") })),
+      globSync("workers/*/test/**/*.{ts,tsx}").map((p) => ({ path: p, source: readFileSync(p, "utf8") })),
     );
     if (controlViolations.length > 0) {
       for (const v of controlViolations) console.error(`FAIL ${v}`);
@@ -1076,7 +1076,7 @@ function main(): void {
 
   // Every Durable Object still holds its serialization mutex (see checkDoMutexIntact).
   const doViolations = checkDoMutexIntact(
-    globSync("workers/*/src/**/*.ts").map((p) => ({ path: p, source: readFileSync(p, "utf8") })),
+    globSync("workers/*/src/**/*.{ts,tsx}").map((p) => ({ path: p, source: readFileSync(p, "utf8") })),
   );
   if (doViolations.length > 0) {
     for (const v of doViolations) console.error(`FAIL ${v}`);
@@ -1143,7 +1143,7 @@ function main(): void {
     // implements. §454 had already taught this distinction and it was reintroduced one section later: an
     // EMPTY GLOB means "not the product tree" (skip); a non-empty glob with no call sites means "renamed"
     // (fire). The filter belongs inside the check, not in front of it.
-    const allSrc = globSync("{packages,workers}/*/src/**/*.ts");
+    const allSrc = globSync("{packages,workers}/*/src/**/*.{ts,tsx}");
     if (allSrc.length > 0) {
       const v = checkSqlColumnLiterals(allSrc.map((f) => ({ path: f, source: readFileSync(f, "utf8") })));
       if (v.length > 0) {
@@ -1159,7 +1159,7 @@ function main(): void {
     // is exercised from temp dirs holding only migrations), which must SKIP — not fail. A non-empty glob with
     // no call sites is the RENAME case, which must fire. Collapsing these fired spuriously on the CLI's own
     // positive-control test, which is how the distinction was found.
-    const seamFiles = globSync("{packages,workers}/*/src/**/*.ts").filter((f) => !f.includes("/authority.ts"));
+    const seamFiles = globSync("{packages,workers}/*/src/**/*.{ts,tsx}").filter((f) => !f.includes("/authority.ts"));
     const seamViolations =
       seamFiles.length === 0
         ? []

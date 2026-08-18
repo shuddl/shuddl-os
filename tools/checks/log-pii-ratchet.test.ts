@@ -48,7 +48,7 @@ describe("REQ-167/111 §1768: no runtime log interpolates a value that identifie
   const root = repoRoot();
   const lines = execSync(
     "git grep -n -E '(console\\.(log|error|warn|info)|logEvent)\\(' -- " +
-      "'workers/**/*.ts' 'packages/**/*.ts' " +
+      "'workers/**/*.ts' 'workers/**/*.tsx' 'packages/**/*.ts' 'packages/**/*.tsx' 'apps/**/*.ts' 'apps/**/*.tsx' " +
       "':(exclude)**/test/**' ':(exclude)**/*.test.ts' ':(exclude)**/perf/**'",
     { cwd: root, encoding: "utf8" },
   )
@@ -97,7 +97,7 @@ describe("REQ-167/111 §1768: no runtime log interpolates a value that identifie
     // known shape: the response says only "INTERNAL ERROR" and the text stays in the log. If a second
     // arbitrary-text logger appears, that argument stops holding and this fails so someone re-makes it.
     const callers = execSync(
-      "git grep -c 'logEvent(' -- 'workers/**/*.ts' ':(exclude)**/test/**' ':(exclude)**/*.test.ts'",
+      "git grep -c 'logEvent(' -- 'workers/**/*.ts' 'workers/**/*.tsx' ':(exclude)**/test/**' ':(exclude)**/*.test.ts'",
       { cwd: root, encoding: "utf8" },
     )
       .split("\n")

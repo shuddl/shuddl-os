@@ -134,7 +134,7 @@ export function analyzeRaterPurity(files: readonly { path: string; content: stri
 // Read all TypeScript sources under packages/rater/src (paths are cwd-relative, matching the CLI output
 // and the analyzer's core/exempt path checks). Shared by the CLI and the "real src is pure" test.
 export function collectRaterSourceFiles(cwd: string = repoRoot()): { path: string; content: string }[] {
-  return globSync("packages/rater/src/**/*.ts", { cwd }).map((p) => ({ path: posix(p), content: readFileSync(join(cwd, p), "utf8") }));
+  return globSync("packages/rater/src/**/*.{ts,tsx}", { cwd }).map((p) => ({ path: posix(p), content: readFileSync(join(cwd, p), "utf8") }));
 }
 
 function main(): void {
