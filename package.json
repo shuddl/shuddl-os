@@ -29,7 +29,7 @@
     "check:citations": "tsx tools/checks/citation-links.ts",
     "fix:citations": "tsx tools/checks/citation-links.ts --fix",
     "check:tables": "tsx tools/docs/check-table-shape.ts",
-    "check:doc-suites": "vitest run --config vitest.tools.config.ts tools/checks/board-citation-ratchet.test.ts tools/checks/audit-record-floor.test.ts tools/checks/citation-blank-line.test.ts",
+    "check:doc-suites": "vitest run --config vitest.tools.config.ts tools/checks/board-citation-ratchet.test.ts tools/checks/audit-record-floor.test.ts tools/checks/citation-blank-line.test.ts tools/checks/checklist-symbols.test.ts tools/checks/cited-scripts-exist.test.ts tools/checks/wp-blocker-staleness.test.ts tools/checks/wp-exit-audit.test.ts tools/checks/phase-index.test.ts tools/checks/ledger-status-vocabulary.test.ts tools/checks/absolute-paths.test.ts",
     "verify:docs": "pnpm check:citations && pnpm check:section-refs && pnpm check:traceability && pnpm check:tables && pnpm check:doc-suites",
     "check:surfaces": "tsx tools/deploy/surface-contract.ts",
     "check:fixtures": "tsx tools/fixtures/verify.ts",

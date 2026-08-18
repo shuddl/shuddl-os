@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1218 | §1771 | **§1772** | **THE DOC LOOP, COMPLETED — 3 SUITES BECAME 10, AND ONE PROBE THAT LIED.** §1771's rule applied to the whole corpus: **128 suites** classified by which fast loop should own them. A textual classifier returned 26 candidates and was **wrong on its face** — it listed `repo-root` and `money-halfup-parity` as documentation gates, because the "names source" pattern missed their backtick-template reads. Re-asked behaviourally (what does each actually READ?), **7 doc-subject suites added**: checklist-symbols, cited-scripts-exist, wp-blocker-staleness, wp-exit-audit, phase-index, ledger-status-vocabulary, absolute-paths. **The inclusion rule is not "reads a doc" but "the violation is AUTHORED in a document"** — so checklist-symbols qualifies despite reading source (it reads one side and COMPUTES the other), while `evidence-expiry` is excluded because it can red for a SOURCE reason during a docs-only edit, which is the noise failure that gets a loop ignored. **The probe that lied**: planting `thisSymbolDoesNotExistAnywhere()` returned exit 0 — read straight, "the new gate does not work". False: the detector matches a backticked **camelCase identifier** and the trailing parens put the probe outside its shape. **Read the detector's pattern before believing its silence.** Re-planted correctly → exit 1, and a broken phase-index pointer → exit 1, both through the COMPOSED command. Doc loop now ~4.5s |
 | 1217 | §1770 | **§1771** | **THE FAST LOOP FOR DOCS COULD NOT SEE THE DOC GATES.** §1770 ended on a discipline observation — the board-citation ratchet fired **3× this session, always while writing a summary**, always surfacing late inside a ten-minute merge run. It is a **wiring** problem, and it is measurable: `verify:docs` runs four SCRIPTS, while the doc-scoped gates that live as vitest SUITES under `tools/checks/` are reachable only through the full `test:tools`. Planted the exact violation that caught §1769 — **verify:docs exit 0, the ratchet exit 1**. The gate that keeps catching my docs was structurally unreachable from the command I run on my docs, which is how one firing got mis-filed for a whole phase as a runner flake. **Why it was invisible**: §838's dev-loop-parity accounts for pnpm SCRIPTS, and every tools suite sits inside the single `unit-tests` merge gate — fully accounted for at merge time, absent from every loop that would catch it in time. **Coverage of a gate is not reachability of a gate at the moment the mistake is made.** Fixed: `check:doc-suites` (board-citation-ratchet + audit-record-floor + citation-blank-line) wired into `verify:docs` for **271ms**, mutation-proved BOTH ways through the composed command. **The general rule**: ask of every gate not only whether it is in the merge roster but **which fast loop it is in, and whether that is the loop someone runs while making the mistake it catches** |
 | 1216 | §1769 | **§1770** | **THE §1769 CLASS, SWEPT — ONE MEMBER, AND THE PROPERTY THAT MAKES IT ONE.** §1769's hazard was a COMPOSITION (free-text column + exact-match gate + permissive no-match), so this counted the class: every TEXT column with no CHECK against every production comparison gating on it. **15 columns carry a CHECK**; the rest are free text. A free-text decision column bites only when BOTH hold — **the value is INPUT-FED** and **the reader's no-match direction is PERMISSIVE**. Measured: **`tenants.plan` is the ONLY one fed by a request input**; every other is written by projections/sweeps from code literals, where a typo is a compile-visible constant. `pairings.status` fails DENY at all three readers; the status columns have no caller-derived writers (`assets`/`pairings` have no production writer at all). **§1769 is a singleton and the class is now closed with its bound stated.** **The lead that looked like a second member**: oauth.ts selects `secret_ref` with NO status column — but `authenticateClient` calls `resolveActiveMcpPairing` FIRST, so an absent column in a SELECT does not prove an absent check. **Discipline note**: the NEWEST status column (`documents.retention_status`, 0007) has a CHECK and the five originals do not — safe only because their writers are literals; recorded, not acted on. **Probe fault**: five columns reported byte-identical 34-site hit lists — when N subjects report identical evidence the probe is keyed on what they SHARE, and identical counts are the cheapest tell. 0 code changed |
 | 1215 | §1768 | **§1769** | **THE UNAUDITED-FILE LIST, EXHAUSTED — AND THE METHOD CORRECTED.** §1765's list was too generous: re-measuring the 28 unnamed files by whether ANY test references them gives **22 covered, 6 real residue** — two are §1766's migrations, three are non-production, one was worth a full read. **Unnamed means the audit never needed a section, not that nobody looked**; rank by unnamed AND unexercised. **The one worth reading** — `0002_platform_tenant.sql` — makes three "by construction" claims and **all three are real code with tests on them** (`assertNotPlatformTenant`; a Zod DNS-label regex that rejects `_pool_0N`; RESERVED_PLANS), a clean negative. **What it surfaced**: `tenants.plan` is unconstrained TEXT while the SAME migration gives `users.role` and `pairings.kind` CHECKs — the third constraint-stops-one-column-short instance this session. `ProvisionInput.plan` takes any 40-char string; `resolveSparkPlan` matches `'spark'` exactly and its no-match direction is UNCAPPED **by design**. Neither half is a defect; **the composition means a provisioning typo ('Spark', 'spark ') silently un-meters AI credits forever with nothing logged** — revenue, never truth, and operator-only reachable. **Pinned, not fixed** (which plans exist is a pricing decision): a case variant, a padded variant, and a byte-exact positive control on the identical fixture, plus a checklist row with three ways out. 0 behaviour changed |
@@ -99321,3 +99322,66 @@ guardrail into a post-mortem.
 and 1 mis-diagnosis; the blindness demonstrated by planting the exact violation (verify:docs 0, the gate 1); 3
 doc-subject suites wired into the doc loop for 271ms; 2 mutations REDing through the composed command; 1,525
 tools tests green; the fast loop for documents is now complete for its own subject.
+
+---
+
+## §1772 — PHASE GATE: the doc loop, completed — 3 suites became 10, and one probe that lied (REQ-118/119)
+
+§1771 wired three doc gates into `verify:docs` and ended on a rule: *ask of every gate which fast loop it is
+in, and whether that is the loop someone runs while making the mistake it catches.* Applying that rule to the
+whole corpus is this phase.
+
+### The sweep, and a classifier that over-included
+
+**128 suites** under `tools/checks/`. A textual classifier — names a doc, names no source tree — returned 26
+candidates, and it was **wrong on its face**: it included `repo-root`, `money-halfup-parity` and
+`idb-durability`, which are not doc gates at all. They mention a doc once; the pattern for "names source"
+missed the backtick-template form they use to read it.
+
+Caught by looking, not by a control: a list containing `repo-root` as a *documentation* gate is self-evidently
+broken. Re-asked behaviourally — **what does each candidate actually read?** — the answer is short and
+checkable:
+
+| suite | reads | in the doc loop? |
+|---|---|---|
+| `checklist-symbols` | `docs/ops`, `docs/wp` (+ source, to *compute* whether the symbol exists) | added |
+| `cited-scripts-exist` | `docs/plans` + `package.json` | added |
+| `wp-blocker-staleness` | `docs/ops`, `docs/wp` | added |
+| `wp-exit-audit` | `CLAUDE.md`, `docs/wp` | added |
+| `phase-index` | the audit record | added |
+| `ledger-status-vocabulary` | `docs/ops` | added |
+| `absolute-paths` | `docs/plans` | added |
+| `evidence-expiry` | `docs/ops` **and** `packages/ledger` | **excluded — see below** |
+
+The inclusion rule is not "reads a doc" but **"the violation is authored in a document."** `checklist-symbols`
+reads source and still qualifies: it reads one side and *computes* the other, and the thing that can be wrong
+is the row. `evidence-expiry` is excluded because it can fail for a *source* reason during a docs-only edit,
+and a doc loop that reds for a non-doc cause is the noise failure that gets a loop ignored.
+
+### The probe that lied, and the tell
+
+The first mutation planted `` `thisSymbolDoesNotExistAnywhere()` `` in the checklist and `verify:docs` returned
+**0**. Read straight, that says the newly-wired gate does not work.
+
+It says nothing of the kind. `checklist-symbols` matches a backticked **camelCase identifier**, and the
+trailing `()` put the probe outside that shape. The gate was fine; **the probe was malformed**. Re-planted as
+`` `notifyProbeSeamXyz` `` → exit 1.
+
+> A mutation that produces no failure has two explanations, and *"the gate is broken"* is the less likely one
+> when the gate has a stated shape. **Read the detector's pattern before believing its silence** — the same
+> asymmetry as a green test proving nothing.
+
+Both mutations then RED through the **composed command** rather than through the suite: an absent backticked
+symbol → 1; a phase-index pointer to a section that does not exist → 1; the clean tree → 0.
+
+### Cost
+
+**3 suites → 10; `verify:docs` runs in ~4.5s.** That is the loop run before every documentation commit in
+this session, and it now covers ten of the rules that documentation can break, instead of the four scripts it
+covered two phases ago.
+
+**Phase gate.** 128 suites classified; 1 textual classifier rejected on sight for including a helper test as a
+documentation gate, and re-asked behaviourally; 7 doc-subject suites added to the doc loop and 1 deliberately
+excluded with its reason; 2 mutations REDing through the composed command; **1 probe found malformed rather
+than a gate found broken** — the failure that would have produced a false "this wiring does not work"; doc
+loop 4 scripts → 4 scripts + 10 suites at ~4.5s.
