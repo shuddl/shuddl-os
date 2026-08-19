@@ -593,6 +593,20 @@ async function main(): Promise<void> {
   }
 
   const smoke = await runConciergeParity(SMOKE_CASES);
+  // The guard above bounds the DATA; this bounds the RUN. They are different failure modes, and this file had
+  // only the first: `runConciergeParity([])` leaves SMOKE_CASES untouched, so the data floor still passes and
+  // the harness prints `0/0 in-repo synthetic cases ... harness live` at exit 0 — with `-2 queued`, an
+  // impossible count nothing reads (measured, audit §1809). `invoice-parity.ts` invented this second guard
+  // after the same discovery about its own file and it was never back-ported here. While the 50-email DoD
+  // fixture is unvendored this smoke set is the ONLY in-repo defence of the parse->decide path, so a hollow
+  // run is the whole gate. A liveness proof has to assert what it MEASURED, not what it was given.
+  if (smoke.total !== SMOKE_CASES.length) {
+    console.error(
+      `CONCIERGE PARSE SMOKE HOLLOW — ran ${smoke.total} case(s) but the in-repo set defines ${SMOKE_CASES.length}.` +
+        " The harness reported on a set it was not given; its green certifies nothing.",
+    );
+    process.exit(1);
+  }
   if (smoke.mismatches.length > 0) {
     printMismatches(smoke.mismatches);
     console.error(

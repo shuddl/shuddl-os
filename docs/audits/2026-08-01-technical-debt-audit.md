@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1255 | §1808 | **§1809** | **WHAT THE FIVE BLOCKED GATES WOULD CERTIFY, AND THE ONE WHOSE IN-REPO STAND-IN COULD BE HOLLOWED.** Asked of the five as a SET: what defends each one's subject today? `identity-leak` — **nothing**, an absent denylist scans zero files by design (filed 351× already). `fixtures` — the accounting gate, no subject beneath it. `rater-parity` — `packages/rater/test/sweep.test.ts`, 11 tests / 504 priced cells, running under `unit-tests` rather than under the blocked gate. `invoice-parity` and `concierge-parse` — in-repo smoke sets of 5 and 7 cases, **verified by running them** (`5/5`, `7/7`) rather than trusting the manifest's claim that they run regardless. **THE FINDING**: `invoice-parity.ts` carries TWO guards and its comment separates them — *the guard above bounds the DATA; this bounds the RUN*. `parse-parity.ts` had only the first, so `runConciergeParity([])` printed `0/0 … harness live` at **exit 0**, with `-2 queued`, an impossible count nobody reads, because the label came from the DEFINED set and the total from the EXECUTED one. It matters most here: while the 50-email DoD fixture is unvendored that smoke set is the ONLY in-repo defence of the parse→decide path, so a hollow run is the whole gate. Fixed, mutation-proved both ways. **2 hypotheses refuted before filing** — the concierge data floor exists in a different shape, and the invoice run guard is not a tautology because the ARGUMENT and the CONSTANT are independently mutable. Both answers were already in comments: **a guard that looks redundant usually encodes a failure mode you have not thought of yet** |
 | 1254 | §1807 | **§1808** | **FIVE CONFIG SETS SWEPT, ONE FINDING, AND THE REASON IS WHICH SETS THE RUNTIME READS.** After §1807 found a hand-maintained config set disagreeing with its code, the other five were swept: queue producers↔consumers (**balanced** — 1 queue, produced by api+agents, consumed by agents), the DLQ (**already on the record** at §952, and `wrangler.toml` says so itself), `env.X` reads↔declared bindings (45 vs 44, **13 undeclared**), `scheduled()`↔`crons` (**4/4 parity**, api correctly has neither), and `compatibility_date` (identical ×5). **All clean.** The 13 undeclared names are 2 CORRECT classes: secrets, which belong nowhere near a committed toml, and vars whose absence SELECTS A FAIL-CLOSED PORT — read at all 3 sites, `evidenceSender` and `conciergeParser` each require both inputs non-empty or return `NotConfigured*`, rejecting loudly and retriably. **The distinction is why §1807 found something and this did not**: a config set the RUNTIME READS is checked by that code (fail-closed port, missing binding, dead handler — all observable in-process and mostly already tested), while **the route set is the only one nothing in the runtime reads** — no code path can ask *am I reachable*, so platform-only config is unchecked BY CONSTRUCTION. Prediction worth keeping: sweep platform-only config first; everything the runtime reads already has a witness. 7th time this loop a probe rediscovered the record, verified specifically rather than inherited |
 | 1253 | §1806 | **§1807** | **TWO WORKERS SERVE HTTP PATHS NOBODY CAN REACH, AND THE RIGHT ANSWERS ARE OPPOSITE.** §1806 found a path exposed that need not be; the mirror, asked of all 5 workers: is any HTTP surface reachable by NOBODY? A Worker receives a request in exactly two ways — a prod route or another Worker's service binding (cron/queue handlers do not count). api, billing and mcp have hostnames. **`translator` and `agents` have neither**, and the service-binding zero was positive-controlled against **6** real bindings to `shuddl-api-*` before it was believed. **The two cases are opposite and only PURPOSE separates them.** `translator`'s inbound 204 is called *"The ONLY public HTTP surface"* by its own source and its caller is an external EDI partner — with no hostname that partner gets a **DNS failure, not a 4xx**, so nothing in the app logs shows a cause: a latent deploy gap, filed. `agents`' `/_dev/evidence-test-send` is a dev-only probe whose absent route is the OUTERMOST of three gates (no hostname → `ALLOW_TEST_SEND` 404s everything → fail-closed bearer token, constant-time): it must NEVER gain one. **Unreachability is a defect only when something is MEANT to reach it** — the gate finds the set, a human classifies it. `worker-route-parity.test.ts` (4 cases) added with a corpus floor, a pure-function positive control and a SELF-CLEANING exemption list, mutation-proved both ways. Rider: the first draft's `pathname` detector false-positived `agents`, caught because the alarm was checked — **the tell was a finding that arrived with no caller attached** |
 | 1252 | §1805 | **§1806** | **THE EDGE RULE'S PATHSPEC IS A GATE, AND IT NAMES TWO OF THE THREE UNAUTHENTICATED PREFIXES.** The record carries two per-IP edge-rate-limit rows — REQ-193 on `/pub/*`, REQ-125 on `/pub/signup`. Enumerating all 46 api route literals against the only auth middleware (`app.use("/v1/*", auth)`) gives **three** unauthenticated prefixes: the four `/pub/*` routes, and **`/internal/platform/*`**, which appears in neither row and returns ZERO hits across `docs/ops/`. It is internet-reachable — prod is `pattern = "api.shuddl.tech/*"`, every path on the hostname. **The in-Worker gate is good** (fail-closed 503 when unbound, 403 with no dark-vs-mismatch oracle, length-checked XOR accumulation, 2-kind allowlist, fixed tenant sentinel) — but constant-time comparison defeats TIMING, never GUESSES, and bounding attempts is the one thing no Worker gate can do. **The fix is stronger and free**: the sole legitimate caller is the billing worker over a SERVICE BINDING (`platform-ledger.ts:83@fetch`, synthetic `.internal` origin), which never traverses an edge route — so nothing legitimate arrives via the public hostname and the rule is **BLOCK, not throttle**. **A pathspec is a gate written by hand in another system**: enumerate the prefixes from the router and diff, because the gap is invisible in either artifact read alone. Also the 5th time this loop a "finding" was already in the record — the rate limiter itself is REQ-193/125 and `PROJECT-STATE.md:379`. 1 deploy-note row filed, 0 code changed |
@@ -101437,3 +101438,63 @@ verified as already recorded rather than inherited as covered — the 7th time t
 record. 13 undeclared env names classified into 2 correct classes, with all 3 fallback sites read rather than
 reasoned about. 1 distinction recorded that explains §1807's finding and predicts where the next one lives.
 0 code changed.
+
+---
+
+## §1809 — PHASE GATE: what the five BLOCKED gates would certify, and the one whose in-repo stand-in could be hollowed (REQ-026/031/093/167)
+
+Five gates report BLOCKED at every merge. The question nobody had asked of them as a set: **what defends each
+one's subject today?** A hold is only cheap if something else is watching.
+
+| BLOCKED gate | what its green would prove | what defends the subject today |
+|---|---|---|
+| `identity-leak` | no tenant/person/vendor name in any artifact (REQ-167) | **nothing** — an absent denylist means zero files scanned, by design (the list contains the names that cannot be committed). Filed 351× in the record |
+| `fixtures` | the 9 engagement fixtures are vendored + hashed | it is the accounting gate; there is no subject beneath it |
+| `rater-parity` | 48 engine tests + the 504-cell sweep vs the audited engine | `packages/rater/test/sweep.test.ts` — **11 tests, 504 priced cells**, and it runs under `unit-tests`, not under the blocked gate |
+| `invoice-parity` | invoice math matches the Rater to the penny over 500 replays | a **5-case in-repo smoke set**, with a data floor *and* a run floor |
+| `concierge-parse` | ≥90% parsed, 100% floor-clean sends over 50 real emails | a **7-case in-repo smoke set** — data floor only, **until this section** |
+
+The smoke sets are not theatre: both harnesses run them *before* reporting PENDING, and the merge run executes
+the harness in order to obtain the BLOCKED status. **Verified rather than inherited** — `5/5` and `7/7` printed
+on a live run.
+
+### The finding: one harness could report on a set it was never given
+
+`invoice-parity.ts` carries **two** guards, and its own comment separates them: *"The guard above bounds the
+DATA; this bounds the RUN."* The data floor rejects a hollowed `SMOKE_CASES`; the run floor rejects
+`runInvoiceParity([], …)`, which leaves the case array untouched and would otherwise print `0/0 … harness live`
+at exit 0.
+
+`parse-parity.ts` had **only the first**. Mutating its call site to `runConciergeParity([])` printed:
+
+```
+concierge parse smoke — 0/0 in-repo synthetic cases: parse matched + decision matched (2 auto_reply, -2 queued; 0 false sends) — harness live
+```
+
+at **exit 0**. Note `-2 queued` — an impossible count, printed and read by nobody, because the label was computed
+from the *defined* set and the total from the *executed* one.
+
+This matters more here than anywhere: while the 50-email DoD fixture is unvendored, that smoke set is **the only
+in-repo defence of the parse→decide path**, so a hollow run is the whole gate.
+
+**Fixed**, mirroring the sibling guard. Mutation-proved both ways: the same argument mutation now exits 1 with
+*"ran 0 case(s) but the in-repo set defines 7"*, and the clean tree still prints `7/7`; restored `cmp`-identical.
+
+### Two hypotheses refuted before they became findings
+
+**"The concierge harness has no floor at all."** False — it has a *data* floor of a different shape
+(`expectSends === 0 || expectBelowFloor === 0` ⇒ exit 1), valid for its own structure.
+
+**"The invoice run guard is a tautology"** — since `total` is defined as `cases.length`, comparing it to
+`SMOKE_CASES.length` looked like comparing a value to itself. False, and the file says why: the *argument* and
+the *constant* are independently mutable, so the guard catches a call-site mutation the data floor cannot see.
+
+> Both refutations came from opening the file, and both were already answered in comments a prior session wrote.
+> A guard that looks redundant usually encodes a failure mode you have not thought of yet — read its comment
+> before deciding it is dead ([[state-the-mechanism-not-the-outcome]] is the same rule pointed the other way).
+
+**Phase gate.** 5 BLOCKED gates given a per-gate statement of what their green would prove and what stands in
+today; the two live smoke sets verified by running them rather than trusting the manifest's claim; **1 real
+defect found and fixed** — a liveness proof that could report on a set it was never handed, in the one gate whose
+subject has no other in-repo cover; mutation-proved in both directions and restored byte-identical; 2 hypotheses
+refuted before filing. 1 file changed.
