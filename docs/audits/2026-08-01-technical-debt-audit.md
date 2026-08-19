@@ -847,6 +847,7 @@ triggers — the table below is the complete list, and its last row is the curre
 | 1069 | §1622 | **§1623** | **THE ARC AFTER THE STOPPING POINT — AND WHY §1597's VERDICT WAS WRONG.** 32 commits after declaring a floor: **four more production defects**, each found by a method the earlier sweeps did not use. A DER child could **overrun its parent and swallow the next sibling inside a signature verifier** (executed a ten-byte fixture); the same bound was missing at **three direct call sites** (enumerated a helper's callers); the **idempotency scope** was tenant- but not principal-scoped (a relation: key tuple vs the roles `requireRole` admits); the **claim event id** collided across principals (reachable only BECAUSE the previous fix made the request execute); and a **migration could seed the ledger past every gate** (compared an error MESSAGE to its MATCHER). **A floor is a property of the METHOD, not the codebase** — what was exhausted was greping. The nine convergences were not waste: each bounded a class at zero and two **stopped me making the record worse**. |
 | 1070 | §1623 | **§1624** | **THE RATER UNDER EXTREME PHYSICS, MEASURED NOT REASONED.** Executed freight pricing across four orders of magnitude: 1e9 → 1e13 lb all return **safe integer** cents (50,000,000,000 → 500,000,000,000,000), and `Number.MAX_SAFE_INTEGER` **throws with the value in the message**. `mulDivHalfUp` works in BigInt and its comment does the arithmetic justifying the guard (*Cents allows ~10^12; ×10000 bps ≈ 10^16 > MAX_SAFE*). **A money guard is only useful if the failing side is louder than the succeeding side** — the shape to fear returns `1.0000000000000002e15` and calls it cents, passing every downstream integer/positive/reconciles check on a number already wrong. **And the first probe measured NOTHING**: it read `charge_cents`, which does not exist (the field is `freight_cents`), so every row printed `n/a` and looked like four clean passes — **a probe that reads a missing property reports absence, not safety.** No defect. |
 | 1071 | §1624 | **§1625** | **THE VACUOUS-ASSERTION CLASS EXISTS IN SHAPE, NOT IN SUBSTANCE — AND §1620 EXPLAINS WHY.** §1624's probe read a missing field and printed `n/a` four times, which LOOKED like four passes. Tests share the hazard in one direction: `toBe(v)` fails on a typo, **`toBeUndefined()` passes trivially** — and on a `Record<string, unknown>` from `res.json()`, any key type-checks. Measured: **77 negative property assertions, 13 on an untyped bag**. The two most consequential are immune and not by luck: `portal-actions` pins the counterparty PRICED response with an **exact key set** (*the exact allowlist and NOTHING else*), and `anchors` uses whole-object equality (`toEqual({day, root})`). **§1620's preference is why the hazard does not bite — these assert an ALLOW-list of keys, not a deny-list of absent names.** Rule: **when a test's job is to prove something ABSENT, assert the whole shape**, so the absence line is never the only thing between a leak and a green suite. |
+| 1253 | §1806 | **§1807** | **TWO WORKERS SERVE HTTP PATHS NOBODY CAN REACH, AND THE RIGHT ANSWERS ARE OPPOSITE.** §1806 found a path exposed that need not be; the mirror, asked of all 5 workers: is any HTTP surface reachable by NOBODY? A Worker receives a request in exactly two ways — a prod route or another Worker's service binding (cron/queue handlers do not count). api, billing and mcp have hostnames. **`translator` and `agents` have neither**, and the service-binding zero was positive-controlled against **6** real bindings to `shuddl-api-*` before it was believed. **The two cases are opposite and only PURPOSE separates them.** `translator`'s inbound 204 is called *"The ONLY public HTTP surface"* by its own source and its caller is an external EDI partner — with no hostname that partner gets a **DNS failure, not a 4xx**, so nothing in the app logs shows a cause: a latent deploy gap, filed. `agents`' `/_dev/evidence-test-send` is a dev-only probe whose absent route is the OUTERMOST of three gates (no hostname → `ALLOW_TEST_SEND` 404s everything → fail-closed bearer token, constant-time): it must NEVER gain one. **Unreachability is a defect only when something is MEANT to reach it** — the gate finds the set, a human classifies it. `worker-route-parity.test.ts` (4 cases) added with a corpus floor, a pure-function positive control and a SELF-CLEANING exemption list, mutation-proved both ways. Rider: the first draft's `pathname` detector false-positived `agents`, caught because the alarm was checked — **the tell was a finding that arrived with no caller attached** |
 | 1252 | §1805 | **§1806** | **THE EDGE RULE'S PATHSPEC IS A GATE, AND IT NAMES TWO OF THE THREE UNAUTHENTICATED PREFIXES.** The record carries two per-IP edge-rate-limit rows — REQ-193 on `/pub/*`, REQ-125 on `/pub/signup`. Enumerating all 46 api route literals against the only auth middleware (`app.use("/v1/*", auth)`) gives **three** unauthenticated prefixes: the four `/pub/*` routes, and **`/internal/platform/*`**, which appears in neither row and returns ZERO hits across `docs/ops/`. It is internet-reachable — prod is `pattern = "api.shuddl.tech/*"`, every path on the hostname. **The in-Worker gate is good** (fail-closed 503 when unbound, 403 with no dark-vs-mismatch oracle, length-checked XOR accumulation, 2-kind allowlist, fixed tenant sentinel) — but constant-time comparison defeats TIMING, never GUESSES, and bounding attempts is the one thing no Worker gate can do. **The fix is stronger and free**: the sole legitimate caller is the billing worker over a SERVICE BINDING (`platform-ledger.ts:83@fetch`, synthetic `.internal` origin), which never traverses an edge route — so nothing legitimate arrives via the public hostname and the rule is **BLOCK, not throttle**. **A pathspec is a gate written by hand in another system**: enumerate the prefixes from the router and diff, because the gap is invisible in either artifact read alone. Also the 5th time this loop a "finding" was already in the record — the rate limiter itself is REQ-193/125 and `PROJECT-STATE.md:379`. 1 deploy-note row filed, 0 code changed |
 | 1251 | §1804 | **§1805** | **TWO DISCIPLINES FOR TENANT-SCOPED BYTES, AND EACH IS CORRECT FOR ITS OWN CASE.** §1804's asymmetry probe pointed at R2 access: do all four paths touching a tenant's objects use the shared `isTenantEvidenceKey` guard? **Three do** — the cap-gated public serve, the Biller's POD proof, and the retention delete sweep all VALIDATE a key that already exists. **`import.ts` does not, and is right**: it CONSTRUCTS the key from the session tenant, so an answer other than this tenant's namespace is unrepresentable. **The distinction is the INPUT, not the endpoint** — the first three receive a key (from a signed cap claim or a documents row) and must ask whether it belongs; the fourth receives a client FRAGMENT and never asks. Construct-from-session is the stronger discipline wherever available, because validation can be forgotten at a new call site and construction cannot. **The traversal question asked and answered**: R2 keys are a flat namespace with no path resolution, so `tenant-a/imports/../tenant-b/x` is a literal key matching nothing — and the fragment is bounded by `.max(MAX_R2_KEY)` anyway. **Two correct answers to one problem is not drift**: ask whether the INPUTS differ before asking why the code does |
 | 1250 | §1803 | **§1804** | **TWO ENDPOINTS, ONE CONSTRAINT, ONE SOLUTION — USED ONCE.** §1803's rule applied to the other external ingress points: **4 of 5 bounded in both senses** (EDI 204; `/pub/quote` with every field `.max()`-bounded and 32 accessorials; `/v1/evidence` with a 10 MiB declared-size fast 413 then a capped read; `/pub/signup`), and **the Stripe webhook bounded in NEITHER by the app**. **The finding is an asymmetry, not an absence**: the webhook and the 204 endpoint face the SAME constraint — the HMAC is over the exact raw bytes, so the body must be read before the signature can be checked, and reading-before-verifying is correct in both. The translator solved the consequence (refuse a declared Content-Length over 1 MiB **without reading the stream**, re-check byteLength after as the belt, 413 with nothing written); the webhook does `await request.text()` with **no app-level cap**, on a route unauthenticated by construction. **One solution to one constraint exists in this repo and the sibling endpoint does not use it** — so the fix is a paste, not a design, which is why the absence is worth filing. Filed with both exits and neither taken: an audit may not pick on a money path, where a wrongly-sized cap drops a real Stripe event |
@@ -101322,3 +101323,69 @@ prod route pattern rather than assumed; the in-Worker gate read and found correc
 precise thing it *cannot* do named (bound attempts); the sole legitimate caller traced to a service binding,
 which is what makes BLOCK available instead of throttle; **1 finding filed** as a GO-LIVE deploy-note row
 beside the two rows it completes. 0 code changed — the gap is in a deploy artifact, not in the Worker.
+
+---
+
+## §1807 — PHASE GATE: two workers serve HTTP paths nobody can reach, and the right answers are opposite (REQ-118/123/193/205)
+
+§1806 found a path **exposed that need not be**. The mirror question, asked of every worker rather than one:
+**is any HTTP surface reachable by nobody?**
+
+A Worker receives a request in exactly two ways — a public route (`[[env.prod.routes]]`) or another Worker's
+service binding. Cron and queue handlers do not count: a worker can be perfectly alive on those and still serve
+an HTTP path no caller can address.
+
+| worker | serves paths? | prod route | inbound binding | reachable |
+|---|---|---|---|---|
+| api | yes | `api.shuddl.tech/*` | — | yes |
+| billing | yes | `billing.shuddl.tech/*` | — | yes |
+| mcp | yes | `mcp.shuddl.tech/*` | — | yes |
+| **translator** | **yes** | **none** | **none** | **no** |
+| **agents** | **yes** | **none** | **none** | **no** |
+
+The service-binding probe was positive-controlled before its zeros were believed: the same command finds **6**
+real bindings to `shuddl-api-*` from mcp and billing, and **0** to `shuddl-translator-*` from anywhere.
+
+### The two cases are opposite, and only purpose separates them
+
+**`translator` — a latent deploy gap.** `workers/translator/src/index.ts:68@fetch` calls the inbound 204 webhook *"The ONLY public HTTP
+surface"*, and its intended caller is an **external EDI partner**. With no hostname, that partner gets a **DNS
+failure, not a 4xx** — nothing in the app logs shows a cause, because nothing in the app ever runs. Dormant today
+(`NotConfiguredTransport`), and the WP-12 plan's own step 4 anticipated *"a public 204 endpoint"* — but no row
+ever provisioned one. **Filed as a deploy note; a hostname is an owner action.**
+
+**`agents` — defense in depth.** `index.ts:310@TEST_SEND_PATH` is `/_dev/evidence-test-send`, a dev-only
+outbound-email probe whose intended caller is an operator on a dev deploy. The absent route is the **outermost of
+three independent gates**: no hostname; then `ALLOW_TEST_SEND !== "1"` ⇒ 404 for every path and method; then a
+fail-closed bearer token (unbound ⇒ 500 *misconfigured*, never open) compared in constant time. **It must never
+gain a hostname.**
+
+> Unreachability is not a defect. It is a defect only when something is **meant** to reach the endpoint — so the
+> gate finds the *set* and a human classifies it. Same measurement, opposite dispositions, and no detector can
+> tell them apart because the difference is who the caller was supposed to be.
+
+### The gate
+
+`tools/checks/worker-route-parity.test.ts` (4 cases, 182ms, picked up by `test:tools`' existing
+`tools/**/*.test.ts` glob — no new selector to rot). It carries a corpus floor (both escape-hatch probes must
+find real instances, or "everything is reachable" is vacuous), a four-way positive control on the rule as a pure
+function, and an exemption list that **self-cleans**: an entry whose worker became reachable fails by name.
+
+**Mutation-proved in both directions.** Removing the `agents` exemption while it is unreachable reds the primary
+test with its own message. Adding `[[env.prod.routes]]` to the translator reds the staleness test —
+*`EXEMPT names a worker that no longer needs it: translator — delete the entry`* — then restored `cmp`-identical.
+Each exemption states its **purpose** and its **ending event**, and the `agents` one says explicitly that going
+stale is an alarm rather than a list to tidy.
+
+### A detector correction worth keeping
+
+The first draft flagged `agents` from `pathname` appearing anywhere in its source. That would have been a false
+positive on any worker that *builds* a URL for an outbound call. It survived only because the alarm was checked
+rather than believed — and the check turned it into the more interesting half of this section. **The tell was
+that the finding arrived without a purpose attached**; every real one here came with a caller.
+
+**Phase gate.** 5 workers × 3 reachability facts measured from config and source rather than reasoned about; **2
+HTTP surfaces reachable by nobody**, one a deploy gap and one deliberate; the service-binding zero
+positive-controlled against 6 real bindings before it was trusted; 1 gate written, 4 cases, mutation-proved in
+both directions and restored byte-identical; 1 deploy-note row filed; the sibling exemption recorded beside it so
+nobody "fixes" the dev probe by giving it a hostname. 0 production source changed.
